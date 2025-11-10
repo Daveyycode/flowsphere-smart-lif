@@ -69,7 +69,7 @@ export function AIAssistant() {
     <>
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-gradient-to-br from-accent via-primary to-coral shadow-2xl flex items-center justify-center group"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-accent via-primary to-coral shadow-2xl flex items-center justify-center group"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         animate={{
@@ -87,7 +87,7 @@ export function AIAssistant() {
           }
         }}
       >
-        <Sparkle className="w-8 h-8 text-white" weight="fill" />
+        <Sparkle className="w-7 h-7 sm:w-8 sm:h-8 text-white" weight="fill" />
       </motion.button>
 
       <AnimatePresence>
@@ -97,31 +97,31 @@ export function AIAssistant() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', bounce: 0.3 }}
-            className="fixed bottom-28 right-6 z-50 w-[90vw] md:w-96"
+            className="fixed bottom-32 md:bottom-28 right-3 md:right-6 left-3 md:left-auto z-50 md:w-96"
           >
             <Card className="shadow-2xl border-accent/20 overflow-hidden">
-              <div className="bg-gradient-to-r from-accent via-primary to-coral p-4 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Sparkle className="w-6 h-6 text-white" weight="fill" />
+              <div className="bg-gradient-to-r from-accent via-primary to-coral p-3 sm:p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Sparkle className="w-5 h-5 sm:w-6 sm:h-6 text-white" weight="fill" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold">AI Assistant</h3>
-                    <p className="text-white/80 text-xs">Always here to help</p>
+                    <h3 className="text-white font-semibold text-sm sm:text-base">AI Assistant</h3>
+                    <p className="text-white/80 text-[10px] sm:text-xs">Always here to help</p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsOpen(false)}
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
 
-              <ScrollArea className="h-96 p-4">
-                <div className="space-y-4">
+              <ScrollArea className="h-80 sm:h-96 p-3 sm:p-4">
+                <div className="space-y-3 sm:space-y-4">
                   {messages.map((message) => (
                     <motion.div
                       key={message.id}
@@ -131,13 +131,13 @@ export function AIAssistant() {
                       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                        className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                           message.role === 'user'
                             ? 'bg-accent text-white'
                             : 'bg-muted text-foreground'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap">{message.content}</p>
                       </div>
                     </motion.div>
                   ))}

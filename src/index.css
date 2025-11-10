@@ -84,10 +84,33 @@
 @layer base {
   body {
     @apply bg-background text-foreground font-sans;
+    font-size: 16px;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+  }
+  
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+  
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  h4 {
+    @apply text-base sm:text-lg;
+  }
+  
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .safe-area-inset-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }
 
@@ -98,5 +121,30 @@
   
   .glow-primary {
     box-shadow: 0 0 20px -5px var(--primary);
+  }
+  
+  .text-responsive-xs {
+    @apply text-[10px] sm:text-xs;
+  }
+  
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .min-touch-target {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

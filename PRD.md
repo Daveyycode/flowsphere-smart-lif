@@ -117,12 +117,14 @@ The design should feel sophisticated yet approachable - like a premium smart hom
 Typography should feel modern and tech-forward while maintaining excellent readability across all device sizes - combining geometric precision with humanist warmth.
 
 - **Typographic Hierarchy**:
-  - H1 (Hero Headlines): Poppins Bold/48px/tight letter spacing/-0.02em - commanding presence for main section headers
-  - H2 (Section Headers): Poppins SemiBold/32px/normal letter spacing - clear hierarchy for subsections
-  - H3 (Card Titles): Poppins Medium/20px/normal letter spacing - approachable weight for card headers
-  - Body (Content): Inter Regular/16px/1.6 line height - optimal readability for descriptions
-  - Caption (Metadata): Inter Regular/14px/1.4 line height/text-muted - subtle information and timestamps
-  - Button Labels: Inter SemiBold/14px/0.01em letter spacing - clear calls to action
+  - H1 (Hero Headlines): Poppins Bold/text-2xl sm:text-3xl md:text-4xl/tight letter spacing/-0.02em - commanding presence for main section headers, fully responsive
+  - H2 (Section Headers): Poppins SemiBold/text-xl sm:text-2xl md:text-3xl/normal letter spacing - clear hierarchy for subsections, scales with viewport
+  - H3 (Card Titles): Poppins Medium/text-lg sm:text-xl md:text-2xl/normal letter spacing - approachable weight for card headers
+  - H4 (Subsection Headers): Poppins Medium/text-base sm:text-lg - sub-card headers and labels
+  - Body (Content): Inter Regular/text-sm sm:text-base/1.6 line height - optimal readability for descriptions, scales for mobile
+  - Caption (Metadata): Inter Regular/text-[10px] sm:text-xs/1.4 line height/text-muted - subtle information and timestamps, extra small on mobile
+  - Button Labels: Inter SemiBold/text-xs sm:text-sm/0.01em letter spacing - clear calls to action
+  - Logo Text: Poppins Bold/text-lg sm:text-xl md:text-2xl - brand identity scales from mobile to desktop
 
 ## Animations
 Animations should feel purposeful and physics-based, creating a sense of responsiveness without slowing down interactions - subtle enough to be professional, delightful enough to notice and remember.
@@ -186,18 +188,24 @@ Animations should feel purposeful and physics-based, creating a sense of respons
   - Gear for settings
 
 - **Spacing**:
-  - Container padding: px-4 md:px-6 lg:px-8 (responsive, comfortable)
-  - Card padding: p-6 (comfortable internal spacing for readability)
-  - Grid gaps: gap-4 for dense layouts (cameras, devices), gap-6 for breathable layouts (dashboard)
-  - Section spacing: space-y-8 for major sections, space-y-6 for related groups
-  - Element spacing: space-x-2 for inline elements, space-y-4 for vertical lists
+  - Container padding: px-3 sm:px-4 md:px-6 lg:px-8 (fully responsive, comfortable on all devices)
+  - Card padding: p-4 sm:p-5 md:p-6 (scales from compact mobile to spacious desktop)
+  - Grid gaps: gap-3 sm:gap-4 for dense layouts (cameras, devices), gap-4 sm:gap-6 for breathable layouts (dashboard)
+  - Section spacing: space-y-6 sm:space-y-8 for major sections, space-y-4 sm:space-y-6 for related groups
+  - Element spacing: space-x-1 sm:space-x-2 for inline elements, space-y-3 sm:space-y-4 for vertical lists
+  - Touch targets: min-width and min-height of 44px on all interactive elements for accessibility
 
 - **Mobile**:
-  - Bottom tab navigation on mobile (<768px) with 4 main tabs visible
-  - Single column layouts on small screens with touch-optimized spacing
-  - Touch-friendly 44px minimum hit areas for all interactive elements
-  - Camera grid adapts to single column on mobile
+  - Bottom tab navigation on mobile (<768px) with 4 main tabs visible, optimized sizing with h-16 sm:h-18
+  - Single/dual column layouts on small screens: grid-cols-2 for stat cards, grid-cols-1 for content
+  - Touch-friendly 44px minimum hit areas with active:scale-95 for tactile feedback
+  - Camera grid adapts to single column on mobile with full-width cards
   - Notification tabs scroll horizontally with touch gestures
-  - AI assistant orb repositions to bottom-right with appropriate mobile size
-  - Morning brief cards stack vertically on mobile with full-width layout
+  - AI assistant orb repositions to bottom-20 md:bottom-6 right-4 md:right-6 with size w-14 h-14 sm:w-16 sm:h-16
+  - AI assistant chat adapts to full-width on mobile (bottom-32 md:bottom-28 right-3 md:right-6 left-3 md:left-auto)
+  - Morning brief cards stack in 2x2 grid on mobile (grid-cols-2 lg:grid-cols-4)
   - Device controls expand to show full slider controls on tap
+  - All icons scale responsively: w-4 h-4 sm:w-5 sm:h-5 or w-5 h-5 sm:w-6 sm:h-6
+  - Logo scales from w-6 h-6 on mobile to w-8 h-8 on desktop
+  - Header height adapts: h-14 sm:h-16
+  - All text uses responsive Tailwind classes for proper sizing across viewports
