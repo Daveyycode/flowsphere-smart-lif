@@ -5,23 +5,41 @@ import { DashboardView } from '@/components/dashboard-view'
 import { DevicesView, Device } from '@/components/devices-view'
 import { FamilyView, FamilyMember } from '@/components/family-view'
 import { SettingsView } from '@/components/settings-view'
+import { NotificationsView, Notification } from '@/components/notifications-view'
+import { CCTVView, CCTVCamera } from '@/components/cctv-view'
+import { AutomationsView, Automation } from '@/components/automations-view'
+import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  initialDevices,
+  initialFamilyMembers,
+  initialNotifications,
+  initialCameras,
+  initialAutomations
+} from '@/lib/initial-data'
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'settings'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings'>('dashboard')
   
-  const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', [])
-  const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', [])
+  const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
+  const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
+  const [notificationsList, setNotificationsList] = useKV<Notification[]>('flowsphere-notifications-list', initialNotifications)
+  const [cameras, setCameras] = useKV<CCTVCamera[]>('flowsphere-cameras', initialCameras)
+  const [automations, setAutomations] = useKV<Automation[]>('flowsphere-automations', initialAutomations)
+  
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
   const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
   const [subscription] = useKV<'free' | 'premium' | 'family'>('flowsphere-subscription', 'premium')
-  const [notifications, setNotifications] = useKV<{
+  const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
+  const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
+  const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
+  const [notificationSettings, setNotificationSettings] = useKV<{
     email: boolean
     push: boolean
     sms: boolean
-  }>('flowsphere-notifications', {
+  }>('flowsphere-notification-settings', {
     email: true,
     push: true,
     sms: false
@@ -31,7 +49,7 @@ function App() {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
     totalDevices: devices?.length || 0,
     familyMembers: familyMembers?.length || 0,
-    automations: 3
+    automations: automations?.length || 0
   }
 
   const recentActivity = [
@@ -57,15 +75,65 @@ function App() {
   }
 
   const handleNotificationChange = (type: 'email' | 'push' | 'sms', value: boolean) => {
-    setNotifications((current) => ({
+    setNotificationSettings((current) => ({
       ...(current || { email: true, push: true, sms: false }),
       [type]: value
     }))
   }
 
+  const handleMarkNotificationRead = (id: string) => {
+    setNotificationsList((current) =>
+      (current || []).map(notif =>
+        notif.id === id ? { ...notif, isRead: true } : notif
+      )
+    )
+  }
+
+  const handleDeleteNotification = (id: string) => {
+    setNotificationsList((current) =>
+      (current || []).filter(notif => notif.id !== id)
+    )
+  }
+
+  const handleToggleCameraRecording = (id: string, isRecording: boolean) => {
+    setCameras((current) =>
+      (current || []).map(camera =>
+        camera.id === id ? { ...camera, isRecording, status: isRecording ? 'recording' : 'online' } : camera
+      )
+    )
+  }
+
+  const handleToggleAutomation = (id: string, isActive: boolean) => {
+    setAutomations((current) =>
+      (current || []).map(automation =>
+        automation.id === id ? { ...automation, isActive } : automation
+      )
+    )
+  }
+
+  const handleDeleteAutomation = (id: string) => {
+    setAutomations((current) =>
+      (current || []).filter(automation => automation.id !== id)
+    )
+  }
+
+  const handleAddAutomation = (newAutomation: Omit<Automation, 'id'>) => {
+    setAutomations((current) => [
+      ...(current || []),
+      { ...newAutomation, id: Date.now().toString() }
+    ])
+  }
+
   return (
     <>
       <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
+        {currentTab === 'dashboard' && showMorningBrief && (
+          <MorningBrief
+            isVisible={showMorningBrief}
+            onDismiss={() => setShowMorningBrief(false)}
+          />
+        )}
+        
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
@@ -77,11 +145,36 @@ function App() {
             {currentTab === 'dashboard' && (
               <DashboardView stats={stats} recentActivity={recentActivity} />
             )}
+            {currentTab === 'notifications' && (
+              <NotificationsView
+                notifications={notificationsList || []}
+                onMarkRead={handleMarkNotificationRead}
+                onDelete={handleDeleteNotification}
+                dndEnabled={dndEnabled || false}
+                onDndToggle={setDndEnabled}
+                emergencyOverride={emergencyOverride || 3}
+                onEmergencyOverrideChange={setEmergencyOverride}
+              />
+            )}
             {currentTab === 'devices' && (
               <DevicesView 
                 devices={devices || []} 
                 onDeviceUpdate={handleDeviceUpdate}
                 onAddDevice={handleAddDevice}
+              />
+            )}
+            {currentTab === 'cameras' && (
+              <CCTVView
+                cameras={cameras || []}
+                onToggleRecording={handleToggleCameraRecording}
+              />
+            )}
+            {currentTab === 'automations' && (
+              <AutomationsView
+                automations={automations || []}
+                onToggleAutomation={handleToggleAutomation}
+                onDeleteAutomation={handleDeleteAutomation}
+                onAddAutomation={handleAddAutomation}
               />
             )}
             {currentTab === 'family' && (
@@ -92,7 +185,7 @@ function App() {
                 userName={userName || 'User'}
                 userEmail={userEmail || 'user@example.com'}
                 subscription={subscription || 'free'}
-                notifications={notifications || { email: true, push: true, sms: false }}
+                notifications={notificationSettings || { email: true, push: true, sms: false }}
                 onNotificationChange={handleNotificationChange}
               />
             )}
@@ -107,4 +200,3 @@ function App() {
 }
 
 export default App
-

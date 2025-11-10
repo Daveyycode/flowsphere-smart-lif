@@ -38,12 +38,12 @@ export function AIAssistant() {
     setIsLoading(true)
 
     try {
-      const prompt = spark.llmPrompt`You are a helpful AI assistant for FlowSphere, a smart home management platform. 
+      const promptText = `You are a helpful AI assistant for FlowSphere, a smart home management platform. 
       The user said: ${input}
       
       Provide a helpful, concise response about smart home management, family safety, or device control. Keep responses under 100 words.`
       
-      const response = await spark.llm(prompt, 'gpt-4o-mini')
+      const response = await window.spark.llm(promptText, 'gpt-4o-mini')
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

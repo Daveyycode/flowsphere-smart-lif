@@ -1,18 +1,21 @@
 import { ReactNode, useState } from 'react'
 import { motion } from 'framer-motion'
-import { House, Cpu, Users, Gear, Sparkle } from '@phosphor-icons/react'
+import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'settings'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'settings') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const tabs = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: House },
+    { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'devices' as const, label: 'Devices', icon: Cpu },
+    { id: 'cameras' as const, label: 'Cameras', icon: Camera },
+    { id: 'automations' as const, label: 'Automations', icon: Lightning },
     { id: 'family' as const, label: 'Family', icon: Users },
     { id: 'settings' as const, label: 'Settings', icon: Gear },
   ]
@@ -68,7 +71,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl">
         <div className="grid grid-cols-4 h-16">
-          {tabs.map((tab) => {
+          {tabs.filter(tab => ['dashboard', 'notifications', 'devices', 'family'].includes(tab.id)).map((tab) => {
             const Icon = tab.icon
             const isActive = currentTab === tab.id
             return (
