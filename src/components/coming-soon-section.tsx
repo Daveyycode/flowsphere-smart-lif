@@ -28,64 +28,64 @@ export function ComingSoonSection() {
       title: 'FlowSphere Tutor AI',
       description: 'Your personal at-home learning companion — ready to teach, quiz, and inspire.',
       icon: Brain,
-      iconColor: 'text-purple-400',
-      bgColor: 'bg-purple-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'focus-report',
       title: 'Focus & Attention Report',
       description: 'Track how well your child (or you) stay focused during learning sessions.',
       icon: Eye,
-      iconColor: 'text-blue-400',
-      bgColor: 'bg-blue-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'smart-integration',
       title: 'Smart Device Integration',
       description: 'Soon, FlowSphere will connect seamlessly to your smart home and gadgets.',
       icon: Devices,
-      iconColor: 'text-green-400',
-      bgColor: 'bg-green-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'smart-timer',
       title: 'Smart Remote Timer',
       description: 'Accessible across devices: perfect for focus sessions or shared family time and pep talks.',
       icon: Timer,
-      iconColor: 'text-orange-400',
-      bgColor: 'bg-orange-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'flowai-scheduler',
       title: 'FlowAI Scheduler',
       description: 'Your personal AI that auto-manages your week, syncs events, reminds you gently, and tracks progress.',
       icon: CalendarCheck,
-      iconColor: 'text-pink-400',
-      bgColor: 'bg-pink-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'privacy-first',
       title: 'Privacy-First System',
       description: 'User data stored locally on their device (encrypted within the phone OS), not in FlowSphere\'s cloud.',
       icon: ShieldCheck,
-      iconColor: 'text-emerald-400',
-      bgColor: 'bg-emerald-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'offline-mode',
       title: 'Offline Mode',
       description: 'Key tools still work without internet, keeping data secure and accessible.',
       icon: WifiSlash,
-      iconColor: 'text-cyan-400',
-      bgColor: 'bg-cyan-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     },
     {
       id: 'tutorbot',
       title: 'FlowSphere TutorBot',
       description: 'Our future home companion — an AI robot that can teach, observe, and adapt.',
       icon: Robot,
-      iconColor: 'text-amber-400',
-      bgColor: 'bg-amber-500/20'
+      iconColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/20'
     }
   ]
 
@@ -116,8 +116,8 @@ export function ComingSoonSection() {
         <CardContent className="p-4 sm:p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 glow-accent">
-                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-accent" weight="fill" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0" style={{ boxShadow: '0 0 20px -5px rgba(234, 179, 8, 0.4)' }}>
+                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" weight="fill" />
               </div>
               <div className="min-w-0">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-100 truncate">Coming Soon...</h2>
