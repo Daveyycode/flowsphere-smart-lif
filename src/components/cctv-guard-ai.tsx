@@ -490,3 +490,4 @@ Be professional, concise, and reassuring if everything looks normal.`
   )
 }
 
+export default CCTVGuardAI
