@@ -15,18 +15,18 @@ A full-featured lifestyle command center with multiple interconnected systems in
 ## Essential Features
 
 ### Smart Sleep Guardian
-- **Functionality**: Automatically detects sleep patterns and enables Do Not Disturb mode with intelligent filtering
-- **Purpose**: Peaceful sleep without missing critical communications
-- **Trigger**: User enables DND mode or automatic sleep detection
-- **Progression**: Detect sleep → Enable DND → Filter notifications by category → Emergency override (3+ calls in 10 min) → Wake summary
-- **Success criteria**: All notifications properly categorized, emergency override reliable, morning voice summary clear and actionable
+- **Functionality**: Automatically detects sleep patterns and enables Do Not Disturb mode with intelligent filtering, plus AI-powered audio notification summaries
+- **Purpose**: Peaceful sleep without missing critical communications, with morning voice briefing of what you missed
+- **Trigger**: User enables DND mode or automatic sleep detection, audio summary requested via "Hear Summary" button
+- **Progression**: Detect sleep → Enable DND → Filter notifications by category → Emergency override (3+ calls in 10 min) → Wake summary → User requests audio → AI generates natural summary → Text-to-speech playback
+- **Success criteria**: All notifications properly categorized, emergency override reliable, morning voice summary clear and actionable, audio summary natural and conversational, ability to stop playback mid-summary
 
 ### Notification Intelligence
-- **Functionality**: AI-powered categorization of notifications into Urgent, Work, Personal, Subscription, and Miscellaneous
-- **Purpose**: Reduce notification overload and surface what matters
-- **Trigger**: New notification arrives or user opens Notifications tab
-- **Progression**: Receive notification → AI categorizes → Store locally encrypted → Display in organized tabs → User can mark read/delete
-- **Success criteria**: 95%+ categorization accuracy, instant filtering, smooth tab switching, all data encrypted locally
+- **Functionality**: AI-powered categorization of notifications into Urgent, Work, Personal, Subscription, and Miscellaneous, with audio summarization via Web Speech API
+- **Purpose**: Reduce notification overload and surface what matters, provide hands-free notification catch-up
+- **Trigger**: New notification arrives or user opens Notifications tab, audio summary triggered by "Hear Summary" button
+- **Progression**: Receive notification → AI categorizes → Store locally encrypted → Display in organized tabs → User can mark read/delete → User requests audio summary → AI generates conversational summary → Text-to-speech speaks summary
+- **Success criteria**: 95%+ categorization accuracy, instant filtering, smooth tab switching, all data encrypted locally, audio summary completes in under 5 seconds, natural-sounding voice synthesis
 
 ### Morning Brief
 - **Functionality**: Personalized daily summary with weather, sleep quality, commute traffic, schedule, and day optimizer suggestions
@@ -186,6 +186,8 @@ Animations should feel purposeful and physics-based, creating a sense of respons
   - Sun for morning routines and day mode
   - MapPin for location features
   - Gear for settings
+  - SpeakerHigh for audio summary playback
+  - Stop for stopping audio playback
 
 - **Spacing**:
   - Container padding: px-3 sm:px-4 md:px-6 lg:px-8 (fully responsive, comfortable on all devices)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Archive, Trash } from '@phosphor-icons/react'
+import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Archive, Trash, SpeakerHigh, Stop } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
+import { speakText, stopSpeaking } from '@/lib/audio-summary'
+
+declare const spark: {
+  llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
+  llm: (prompt: string, model?: string, jsonMode?: boolean) => Promise<string>
+}
 
 export interface Notification {
   id: string
@@ -41,6 +47,8 @@ export function NotificationsView({
   onEmergencyOverrideChange
 }: NotificationsViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [isSummarizing, setIsSummarizing] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -80,15 +88,93 @@ export function NotificationsView({
     toast.success(enabled ? 'Do Not Disturb enabled' : 'Do Not Disturb disabled')
   }
 
+  const handleAudioSummary = async () => {
+    if (isSpeaking) {
+      stopSpeaking()
+      setIsSpeaking(false)
+      setIsSummarizing(false)
+      toast.info('Audio summary stopped')
+      return
+    }
+
+    setIsSummarizing(true)
+    
+    try {
+      const unreadNotifications = notifications.filter(n => !n.isRead)
+      
+      if (unreadNotifications.length === 0) {
+        await speakText('You have no unread notifications. You are all caught up!')
+        toast.success('No unread notifications')
+        setIsSummarizing(false)
+        return
+      }
+
+      const notificationData = unreadNotifications.map(n => ({
+        category: n.category,
+        title: n.title,
+        message: n.message,
+        time: n.time
+      }))
+
+      const prompt = spark.llmPrompt`You are a friendly AI assistant providing a morning briefing of notifications. 
+
+Here are the unread notifications: ${JSON.stringify(notificationData)}
+
+Create a natural, conversational audio summary (2-3 sentences) that:
+1. States the total number of notifications
+2. Highlights any urgent items first
+3. Groups similar notifications together
+4. Uses friendly, casual language suitable for spoken audio
+
+Keep it brief and informative. Return only the summary text, no additional formatting.`
+
+      const summary = await spark.llm(prompt, 'gpt-4o-mini', false)
+      
+      setIsSpeaking(true)
+      await speakText(summary)
+      setIsSpeaking(false)
+      
+      toast.success('Audio summary completed')
+    } catch (error) {
+      console.error('Error generating audio summary:', error)
+      toast.error('Failed to generate audio summary')
+    } finally {
+      setIsSummarizing(false)
+    }
+  }
+
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold mb-2">Notifications</h1>
           <p className="text-muted-foreground">
             Intelligent organization of your alerts and messages
           </p>
         </div>
+        <Button
+          onClick={handleAudioSummary}
+          disabled={isSummarizing}
+          variant={isSpeaking ? 'destructive' : 'default'}
+          className="gap-2"
+        >
+          {isSpeaking ? (
+            <>
+              <Stop className="w-5 h-5" weight="fill" />
+              Stop Audio
+            </>
+          ) : isSummarizing ? (
+            <>
+              <SpeakerHigh className="w-5 h-5 animate-pulse" weight="duotone" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <SpeakerHigh className="w-5 h-5" weight="duotone" />
+              Hear Summary
+            </>
+          )}
+        </Button>
       </div>
 
       <motion.div
