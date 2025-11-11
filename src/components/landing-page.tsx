@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { PricingSection } from '@/components/pricing-section'
 import { 
   Brain, 
   House, 
@@ -175,6 +176,8 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
             </motion.div>
           </div>
         </main>
+
+        <PricingSection onGetStarted={onSignUp} />
 
         <footer className="px-4 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm text-muted-foreground">
           <p>© 2024 FlowSphere. Privacy-first, AI-powered life management.</p>
