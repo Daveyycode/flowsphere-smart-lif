@@ -48,11 +48,11 @@
 
   --radius: 0.5rem;
 
-  --font-sans: Montserrat;
+  --font-sans: Barlow;
 
   --font-serif: PT Serif;
 
-  --font-mono: JetBrains Mono;
+  --font-mono: Source Code Pro;
 
   --chart-1: oklch(0.60 0.25 320);
 
@@ -91,6 +91,8 @@
   --shadow-offset-x: 2px;
 
   --shadow-offset-y: 6px;
+
+  --spacing: 0.3rem;
 }
 
 @theme {
