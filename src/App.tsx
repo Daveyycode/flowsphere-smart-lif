@@ -268,8 +268,23 @@ function App() {
         onTabChange={handleTabChange}
         onDeviceUpdate={handleDeviceUpdate}
         onDndToggle={setDndEnabled}
+        onAddDevice={handleAddDevice}
+        onToggleCameraRecording={handleToggleCameraRecording}
+        onToggleAutomation={handleToggleAutomation}
+        onAddAutomation={handleAddAutomation}
+        onDeleteAutomation={handleDeleteAutomation}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onDeleteNotification={handleDeleteNotification}
+        onEmergencyOverrideChange={setEmergencyOverride}
+        onSubscriptionChange={handleSubscriptionChange}
         devices={devices || []}
+        cameras={cameras || []}
+        automations={automations || []}
+        familyMembers={familyMembers || []}
+        notifications={notificationsList || []}
         dndEnabled={dndEnabled || false}
+        emergencyOverride={emergencyOverride || 3}
+        subscription={subscription || 'free'}
       />
       <Toaster position="top-center" />
     </>

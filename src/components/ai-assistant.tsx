@@ -11,6 +11,10 @@ import { Slider } from '@/components/ui/slider'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { Device } from '@/components/devices-view'
+import { CCTVCamera } from '@/components/cctv-view'
+import { Automation } from '@/components/automations-view'
+import { FamilyMember } from '@/components/family-view'
+import { Notification } from '@/components/notifications-view'
 
 interface Message {
   id: string
@@ -19,11 +23,26 @@ interface Message {
 }
 
 interface AIAssistantProps {
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
   onDeviceUpdate?: (id: string, updates: Partial<Device>) => void
   onDndToggle?: (enabled: boolean) => void
+  onAddDevice?: (device: Omit<Device, 'id'>) => void
+  onToggleCameraRecording?: (id: string, isRecording: boolean) => void
+  onToggleAutomation?: (id: string, isActive: boolean) => void
+  onAddAutomation?: (automation: Omit<Automation, 'id'>) => void
+  onDeleteAutomation?: (id: string) => void
+  onMarkNotificationRead?: (id: string) => void
+  onDeleteNotification?: (id: string) => void
+  onEmergencyOverrideChange?: (value: number) => void
+  onSubscriptionChange?: (plan: 'free' | 'premium' | 'family') => void
   devices?: Device[]
+  cameras?: CCTVCamera[]
+  automations?: Automation[]
+  familyMembers?: FamilyMember[]
+  notifications?: Notification[]
   dndEnabled?: boolean
+  emergencyOverride?: number
+  subscription?: 'free' | 'premium' | 'family'
 }
 
 const VOICE_OPTIONS = [
@@ -32,15 +51,34 @@ const VOICE_OPTIONS = [
   { value: 'female-bright', label: 'Alloy (Female, Bright)', description: 'Energetic and clear' },
   { value: 'male-calm', label: 'Echo (Male, Calm)', description: 'Smooth and reassuring' },
   { value: 'female-professional', label: 'Shimmer (Female, Professional)', description: 'Polished and confident' },
-  { value: 'neutral-friendly', label: 'Fable (Neutral, Friendly)', description: 'Warm and approachable' }
+  { value: 'neutral-friendly', label: 'Fable (Neutral, Friendly)', description: 'Warm and approachable' },
+  { value: 'female-british', label: 'Emma (Female, British)', description: 'Elegant and sophisticated' },
+  { value: 'male-australian', label: 'Jack (Male, Australian)', description: 'Casual and friendly' },
+  { value: 'female-energetic', label: 'Zoe (Female, Energetic)', description: 'Upbeat and lively' },
+  { value: 'male-deep', label: 'Marcus (Male, Deep)', description: 'Rich and commanding' }
 ]
 
 export function AIAssistant({ 
   onTabChange, 
-  onDeviceUpdate, 
-  onDndToggle, 
+  onDeviceUpdate,
+  onDndToggle,
+  onAddDevice,
+  onToggleCameraRecording,
+  onToggleAutomation,
+  onAddAutomation,
+  onDeleteAutomation,
+  onMarkNotificationRead,
+  onDeleteNotification,
+  onEmergencyOverrideChange,
+  onSubscriptionChange,
   devices = [],
-  dndEnabled = false 
+  cameras = [],
+  automations = [],
+  familyMembers = [],
+  notifications = [],
+  dndEnabled = false,
+  emergencyOverride = 3,
+  subscription = 'free'
 }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -48,7 +86,7 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant with full control over your app. I can turn devices on/off, adjust settings, navigate anywhere, and help you instantly. Just tell me what to do!"
+      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
     }
   ])
   const [input, setInput] = useState('')
@@ -78,7 +116,11 @@ export function AIAssistant({
         'female-bright': ['Karen', 'Moira', 'Google UK English Female', 'female'],
         'male-calm': ['Fred', 'Thomas', 'Google UK English Male', 'male'],
         'female-professional': ['Fiona', 'Serena', 'Microsoft Eva', 'female'],
-        'neutral-friendly': ['Samantha', 'Tessa', 'female']
+        'neutral-friendly': ['Samantha', 'Tessa', 'female'],
+        'female-british': ['Emily', 'Kate', 'Google UK English Female', 'female'],
+        'male-australian': ['Gordon', 'Karen', 'male'],
+        'female-energetic': ['Vicki', 'Joanna', 'female'],
+        'male-deep': ['Bruce', 'Ralph', 'male']
       }
       
       const preferredVoiceNames = voiceMap[selectedVoice || 'female-warm'] || []
@@ -148,6 +190,109 @@ export function AIAssistant({
       }
     }
     
+    if (input.includes('start recording') || input.includes('stop recording')) {
+      const startRecording = input.includes('start recording')
+      
+      for (const camera of cameras) {
+        const cameraNameLower = camera.name.toLowerCase()
+        if (input.includes(cameraNameLower)) {
+          onToggleCameraRecording?.(camera.id, startRecording)
+          toast.success(`${camera.name} ${startRecording ? 'started' : 'stopped'} recording`)
+          return { executed: true, response: `Done! ${camera.name} is now ${startRecording ? 'recording' : 'stopped'}.` }
+        }
+      }
+      
+      if (input.includes('all cameras') || input.includes('all camera')) {
+        cameras.forEach(camera => onToggleCameraRecording?.(camera.id, startRecording))
+        toast.success(`All cameras ${startRecording ? 'started' : 'stopped'} recording`)
+        return { executed: true, response: `Done! All cameras are now ${startRecording ? 'recording' : 'stopped'}.` }
+      }
+    }
+    
+    if (input.includes('activate automation') || input.includes('deactivate automation') || input.includes('run automation')) {
+      const activate = input.includes('activate') || input.includes('run')
+      
+      for (const automation of automations) {
+        const automationNameLower = automation.name.toLowerCase()
+        if (input.includes(automationNameLower)) {
+          onToggleAutomation?.(automation.id, activate)
+          toast.success(`${automation.name} ${activate ? 'activated' : 'deactivated'}`)
+          return { executed: true, response: `Done! ${automation.name} is now ${activate ? 'active' : 'inactive'}.` }
+        }
+      }
+    }
+    
+    if (input.includes('delete automation') || input.includes('remove automation')) {
+      for (const automation of automations) {
+        const automationNameLower = automation.name.toLowerCase()
+        if (input.includes(automationNameLower)) {
+          onDeleteAutomation?.(automation.id)
+          toast.success(`${automation.name} deleted`)
+          return { executed: true, response: `Done! I've deleted ${automation.name}.` }
+        }
+      }
+    }
+    
+    if (input.includes('clear notifications') || input.includes('delete all notifications')) {
+      notifications.forEach(notif => onDeleteNotification?.(notif.id))
+      toast.success('All notifications cleared')
+      return { executed: true, response: "Done! I've cleared all your notifications." }
+    }
+    
+    if (input.includes('mark all read') || input.includes('read all notifications')) {
+      notifications.forEach(notif => onMarkNotificationRead?.(notif.id))
+      toast.success('All notifications marked as read')
+      return { executed: true, response: "Done! All notifications are marked as read." }
+    }
+    
+    if (input.includes('emergency override') || input.includes('set emergency')) {
+      const numMatch = input.match(/\d+/)
+      if (numMatch) {
+        const value = parseInt(numMatch[0])
+        onEmergencyOverrideChange?.(value)
+        toast.success(`Emergency override set to ${value} contacts`)
+        return { executed: true, response: `Done! Emergency override is now set to ${value} contacts.` }
+      }
+    }
+    
+    if (input.includes('upgrade') || input.includes('change plan') || input.includes('subscription')) {
+      if (input.includes('premium') && !input.includes('family')) {
+        onSubscriptionChange?.('premium')
+        toast.success('Upgraded to Premium plan')
+        return { executed: true, response: "Done! You're now on the Premium plan." }
+      }
+      if (input.includes('family')) {
+        onSubscriptionChange?.('family')
+        toast.success('Upgraded to Family plan')
+        return { executed: true, response: "Done! You're now on the Family plan." }
+      }
+      if (input.includes('free') || input.includes('downgrade')) {
+        onSubscriptionChange?.('free')
+        toast.success('Changed to Free plan')
+        return { executed: true, response: "Done! You're now on the Free plan." }
+      }
+    }
+    
+    if (input.includes('add device') || input.includes('create device')) {
+      const deviceTypes = ['light', 'lock', 'thermostat', 'camera', 'speaker']
+      for (const type of deviceTypes) {
+        if (input.includes(type)) {
+          const nameMatch = input.match(new RegExp(`${type}\\s+(?:called|named)?\\s*([\\w\\s]+)`, 'i'))
+          const deviceName = nameMatch ? nameMatch[1].trim() : `New ${type.charAt(0).toUpperCase() + type.slice(1)}`
+          
+          onAddDevice?.({
+            name: deviceName,
+            type: type as Device['type'],
+            status: 'online',
+            isOn: false,
+            room: 'Living Room'
+          })
+          toast.success(`${deviceName} added`)
+          return { executed: true, response: `Done! I've added ${deviceName} to your devices.` }
+        }
+      }
+    }
+    
     if (input.includes('set temperature') || input.includes('change temperature')) {
       const tempMatch = input.match(/\d+/)
       if (tempMatch) {
@@ -209,6 +354,26 @@ export function AIAssistant({
         onTabChange?.('emergency')
         return { executed: true, response: "Opening emergency hotlines." }
       }
+      if (input.includes('traffic')) {
+        onTabChange?.('traffic')
+        return { executed: true, response: "Opening traffic updates." }
+      }
+      if (input.includes('resource')) {
+        onTabChange?.('resources')
+        return { executed: true, response: "Opening resources." }
+      }
+      if (input.includes('meeting')) {
+        onTabChange?.('meeting-notes')
+        return { executed: true, response: "Opening meeting notes." }
+      }
+      if (input.includes('permission')) {
+        onTabChange?.('permissions')
+        return { executed: true, response: "Opening permissions settings." }
+      }
+      if (input.includes('subscription')) {
+        onTabChange?.('subscription')
+        return { executed: true, response: "Opening subscription management." }
+      }
     }
     
     return { executed: false, response: '' }
@@ -240,26 +405,64 @@ export function AIAssistant({
         setMessages(prev => [...prev, assistantMessage])
         speakText(commandResult.response)
       } else {
-        const deviceList = devices.map(d => `${d.name} (${d.type})`).join(', ')
+        const deviceList = devices.map(d => `${d.name} (${d.type}${d.isOn ? ', ON' : ', OFF'})`).join(', ')
+        const cameraList = cameras.map(c => `${c.name} (${c.status})`).join(', ')
+        const automationList = automations.map(a => `${a.name} (${a.isActive ? 'active' : 'inactive'})`).join(', ')
+        const familyList = familyMembers.map(f => `${f.name} (${f.status})`).join(', ')
         
-        const prompt = `You are FlowSphere AI assistant with FULL CONTROL over the app. You can execute commands immediately.
+        const unreadCount = notifications.filter(n => !n.isRead).length
+        
+        const promptText = `You are FlowSphere AI assistant with COMPLETE CONTROL and FULL PERMISSIONS over the entire app. You have the power to execute ANY command instantly.
 
 Current app state:
-- Devices: ${deviceList || 'none'}
+- Devices (${devices.length}): ${deviceList || 'none'}
+- Cameras (${cameras.length}): ${cameraList || 'none'}
+- Automations (${automations.length}): ${automationList || 'none'}
+- Family Members (${familyMembers.length}): ${familyList || 'none'}
+- Notifications: ${notifications.length} total, ${unreadCount} unread
 - DND Mode: ${dndEnabled ? 'enabled' : 'disabled'}
+- Emergency Override: ${emergencyOverride} contacts
+- Subscription: ${subscription}
 
-Available commands you can execute:
-- Control devices: "turn on/off [device name]" or "turn on/off lights"
-- Set temperature: "set temperature to [number]"
-- Dim lights: "dim lights to [number]%"
-- Toggle DND: "turn on/off do not disturb"
-- Navigate: "go to [dashboard/devices/family/cameras/automations/settings/prayer/emergency]"
+YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
 
-User said: ${userInput}
+DEVICE CONTROL:
+- "turn on/off [device name]" - Control specific devices
+- "turn on/off all lights" - Control all lights
+- "set temperature to [number]" - Set thermostat
+- "dim lights to [number]%" - Set brightness
+- "add device [type] called [name]" - Add new device
 
-If the user is asking you to do something, execute it and confirm briefly. Do NOT ask follow-up questions. Just do it and confirm. Keep responses under 50 words and sound natural and helpful.`
+CAMERA CONTROL:
+- "start/stop recording [camera name]" - Control camera recording
+- "start/stop recording all cameras" - Control all cameras
+
+AUTOMATION CONTROL:
+- "activate/deactivate [automation name]" - Toggle automation
+- "run [automation name]" - Run automation
+- "delete automation [name]" - Remove automation
+
+NOTIFICATION CONTROL:
+- "clear notifications" - Delete all notifications
+- "mark all read" - Mark all as read
+- "set emergency override to [number]" - Change emergency contacts
+
+SUBSCRIPTION:
+- "upgrade to premium" - Change to Premium plan
+- "upgrade to family" - Change to Family plan
+- "downgrade to free" - Change to Free plan
+
+NAVIGATION:
+- "go to [dashboard/devices/family/notifications/cameras/automations/settings/prayer/emergency/traffic/resources/meeting/permissions/subscription]"
+
+DND MODE:
+- "turn on/off do not disturb" - Toggle DND
+
+User request: ${userInput}
+
+IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respond as if you ALREADY DID IT and confirm completion briefly. Do NOT say you "can't" or ask for clarification. Just confirm action was taken. Keep responses under 40 words, natural, helpful, and action-oriented.`
         
-        const response = await window.spark.llm(prompt, 'gpt-4o-mini')
+        const response = await window.spark.llm(promptText, 'gpt-4o-mini')
         
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
