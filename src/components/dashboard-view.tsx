@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmergencyDialog } from '@/components/emergency-dialog'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 
@@ -31,7 +32,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
 }
 
 export function DashboardView({ stats, recentActivity, onTabChange }: DashboardViewProps) {
@@ -43,7 +44,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
   }
 
   const availableBoxes: QuickAccessBox[] = [
-    { id: 'cameras', label: 'Security Cameras', description: 'View live feeds', icon: Camera, color: 'blue-mid', action: 'cameras' },
+    { id: 'emergency', label: 'Emergency Hotlines', description: 'Quick access hotlines', icon: Lightning, color: 'destructive', action: 'emergency' },
     { id: 'meeting-notes', label: 'Meeting Notes', description: 'Voice transcription', icon: Notebook, color: 'accent', action: 'meeting-notes' },
     { id: 'traffic', label: 'Traffic Update', description: 'Real-time conditions', icon: MapTrifold, color: 'mint', action: 'traffic' },
     { id: 'locks', label: 'Lock All Doors', description: 'Quick security', icon: Lock, color: 'blue-deep', action: 'devices' },
@@ -51,8 +52,17 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
     { id: 'prayer', label: 'Daily Prayer', description: 'Scripture reading', icon: House, color: 'primary', action: 'prayer' }
   ]
 
-  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['cameras', 'meeting-notes', 'traffic'])
+  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['emergency', 'meeting-notes', 'traffic'])
   const [isCustomizing, setIsCustomizing] = useState(false)
+  const [showEmergencyDialog, setShowEmergencyDialog] = useState(false)
+
+  const handleBoxClick = (box: QuickAccessBox) => {
+    if (box.id === 'emergency') {
+      setShowEmergencyDialog(true)
+    } else if (box.action) {
+      onTabChange?.(box.action as any)
+    }
+  }
 
   const toggleBox = (boxId: string) => {
     setQuickAccessBoxes((current) => {
@@ -75,7 +85,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
   }
 
   const selectedBoxes = availableBoxes.filter(box => 
-    (quickAccessBoxes || ['cameras', 'meeting-notes', 'traffic']).includes(box.id)
+    (quickAccessBoxes || ['emergency', 'meeting-notes', 'traffic']).includes(box.id)
   )
 
   const getColorClasses = (color: string) => {
@@ -115,6 +125,12 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         hover: 'hover:bg-primary/20',
         border: 'border-primary/30',
         text: 'text-primary'
+      },
+      'destructive': {
+        bg: 'bg-destructive/10',
+        hover: 'hover:bg-destructive/20',
+        border: 'border-destructive/30',
+        text: 'text-destructive'
       }
     }
     return colorMap[color] || colorMap['accent']
@@ -246,7 +262,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => box.action && onTabChange?.(box.action as any)}
+                    onClick={() => handleBoxClick(box)}
                     className={`p-3 sm:p-4 rounded-xl ${colors.bg} ${colors.hover} border ${colors.border} transition-all duration-200 hover:scale-105 active:scale-95 group`}
                   >
                     <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.text} mb-1 sm:mb-2 group-hover:scale-110 transition-transform`} weight="duotone" />
@@ -368,6 +384,11 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
           </div>
         </DialogContent>
       </Dialog>
+
+      <EmergencyDialog 
+        isOpen={showEmergencyDialog}
+        onClose={() => setShowEmergencyDialog(false)}
+      />
     </div>
   )
 }

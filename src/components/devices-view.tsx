@@ -27,6 +27,8 @@ export interface Device {
   batteryLevel?: number
   cleaningMode?: string
   room: string
+  cameraLocation?: 'outside' | 'inside'
+  isRecording?: boolean
 }
 
 interface DevicesViewProps {
@@ -44,12 +46,14 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
     room: string
     status: 'online' | 'offline'
     isOn: boolean
+    cameraLocation?: 'outside' | 'inside'
   }>({
     name: '',
     type: 'light',
     room: 'Living Room',
     status: 'online',
-    isOn: false
+    isOn: false,
+    cameraLocation: 'outside'
   })
 
   const getDeviceIcon = (type: string) => {
@@ -105,7 +109,9 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
       speed: (newDevice.type === 'fan' || newDevice.type === 'air-purifier') ? 2 : undefined,
       channel: newDevice.type === 'television' ? 'HDMI 1' : undefined,
       batteryLevel: newDevice.type === 'robot' ? 100 : undefined,
-      cleaningMode: newDevice.type === 'robot' ? 'Auto' : undefined
+      cleaningMode: newDevice.type === 'robot' ? 'Auto' : undefined,
+      isRecording: newDevice.type === 'camera' ? false : undefined,
+      cameraLocation: newDevice.type === 'camera' ? newDevice.cameraLocation : undefined
     }
     onAddDevice(deviceToAdd)
     setIsAddDialogOpen(false)
@@ -114,12 +120,194 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
       type: 'light',
       room: 'Living Room',
       status: 'online',
-      isOn: false
+      isOn: false,
+      cameraLocation: 'outside'
     })
     toast.success('Device added successfully')
   }
 
-  const rooms = ['Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Office', 'Garage']
+  const rooms = ['Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Office', 'Garage', 'Outside', 'Driveway', 'Front Door', 'Backyard']
+
+  const cameras = devices.filter(d => d.type === 'camera')
+  const outsideCameras = cameras.filter(c => c.cameraLocation === 'outside')
+  const insideCameras = cameras.filter(c => c.cameraLocation === 'inside')
+  const otherDevices = devices.filter(d => d.type !== 'camera')
+
+  const renderDeviceCard = (device: Device, index: number) => {
+    const Icon = getDeviceIcon(device.type)
+    const color = getDeviceColor(device.type)
+    
+    return (
+      <motion.div
+        key={device.id}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: index * 0.05 }}
+      >
+        <Card 
+          className={`border-border/50 hover:border-${color}/50 transition-all duration-300 hover:shadow-lg cursor-pointer ${
+            device.isOn ? 'glow-accent' : ''
+          }`}
+          onClick={() => setSelectedDevice(device)}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-12 h-12 rounded-xl bg-${color}/10 flex items-center justify-center`}>
+                <Icon 
+                  className={`w-6 h-6 text-${color} ${device.isOn ? 'animate-pulse' : ''}`} 
+                  weight="duotone" 
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge 
+                  variant={device.status === 'online' ? 'default' : 'secondary'}
+                  className="text-xs"
+                >
+                  {device.status}
+                </Badge>
+                <Switch
+                  checked={device.isOn}
+                  onCheckedChange={() => handleToggleDevice(device)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+
+            <h3 className="font-semibold text-lg mb-1">{device.name}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{device.room}</p>
+
+            {device.type === 'light' && device.brightness !== undefined && device.isOn && (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Brightness</span>
+                  <span className="font-medium">{device.brightness}%</span>
+                </div>
+                <Slider
+                  value={[device.brightness]}
+                  onValueChange={(value) => handleBrightnessChange(device, value)}
+                  max={100}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+            )}
+
+            {device.type === 'thermostat' && device.temperature !== undefined && device.isOn && (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Temperature</span>
+                  <span className="font-medium">{device.temperature}°F</span>
+                </div>
+                <Slider
+                  value={[device.temperature]}
+                  onValueChange={(value) => handleTemperatureChange(device, value)}
+                  min={60}
+                  max={85}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+            )}
+
+            {device.type === 'lock' && device.locked !== undefined && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant={device.locked ? 'default' : 'destructive'}>
+                  {device.locked ? 'Locked' : 'Unlocked'}
+                </Badge>
+              </div>
+            )}
+
+            {device.type === 'camera' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Recording</span>
+                  <Badge variant={device.isOn ? 'destructive' : 'secondary'}>
+                    {device.isOn ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {device.cameraLocation && (
+                  <Badge variant="outline" className="text-xs">
+                    {device.cameraLocation === 'outside' ? 'Outside' : 'Inside'} Camera
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {device.type === 'television' && device.volume !== undefined && device.isOn && (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Volume</span>
+                  <span className="font-medium">{device.volume}%</span>
+                </div>
+                <Slider
+                  value={[device.volume]}
+                  onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                  max={100}
+                  step={1}
+                  className="cursor-pointer"
+                />
+                {device.channel && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                    <span>Channel</span>
+                    <span className="font-medium">{device.channel}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {device.type === 'robot' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Battery</span>
+                  <span className="font-medium">{device.batteryLevel || 100}%</span>
+                </div>
+                {device.cleaningMode && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Mode</span>
+                    <Badge variant="default">{device.cleaningMode}</Badge>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(device.type === 'fan' || device.type === 'air-purifier') && device.speed !== undefined && device.isOn && (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Speed</span>
+                  <span className="font-medium">Level {device.speed}</span>
+                </div>
+                <Slider
+                  value={[device.speed]}
+                  onValueChange={(value) => onDeviceUpdate(device.id, { speed: value[0] })}
+                  min={1}
+                  max={5}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+            )}
+
+            {device.type === 'speaker' && device.volume !== undefined && device.isOn && (
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Volume</span>
+                  <span className="font-medium">{device.volume}%</span>
+                </div>
+                <Slider
+                  value={[device.volume]}
+                  onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                  max={100}
+                  step={1}
+                  className="cursor-pointer"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
 
   return (
     <div className="space-y-6 pb-8">
@@ -189,6 +377,23 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
                   </SelectContent>
                 </Select>
               </div>
+              {newDevice.type === 'camera' && (
+                <div className="space-y-2">
+                  <Label htmlFor="camera-location">Camera Location</Label>
+                  <Select
+                    value={newDevice.cameraLocation}
+                    onValueChange={(value: 'outside' | 'inside') => setNewDevice({ ...newDevice, cameraLocation: value })}
+                  >
+                    <SelectTrigger id="camera-location">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="outside">Outside Camera</SelectItem>
+                      <SelectItem value="inside">Inside Camera</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button 
                 onClick={handleAddDevice} 
                 className="w-full bg-accent hover:bg-accent/90"
@@ -201,189 +406,45 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {devices.map((device, index) => {
-          const Icon = getDeviceIcon(device.type)
-          const color = getDeviceColor(device.type)
-          
-          return (
-            <motion.div
-              key={device.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Card 
-                className={`border-border/50 hover:border-${color}/50 transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                  device.isOn ? 'glow-accent' : ''
-                }`}
-                onClick={() => setSelectedDevice(device)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-${color}/10 flex items-center justify-center`}>
-                      <Icon 
-                        className={`w-6 h-6 text-${color} ${device.isOn ? 'animate-pulse' : ''}`} 
-                        weight="duotone" 
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant={device.status === 'online' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {device.status}
-                      </Badge>
-                      <Switch
-                        checked={device.isOn}
-                        onCheckedChange={() => handleToggleDevice(device)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
+      {outsideCameras.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Camera className="w-6 h-6 text-accent" weight="duotone" />
+            Outside Cameras
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {outsideCameras.map((device, index) => renderDeviceCard(device, index))}
+          </div>
+        </div>
+      )}
 
-                  <h3 className="font-semibold text-lg mb-1">{device.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{device.room}</p>
+      {insideCameras.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Camera className="w-6 h-6 text-accent" weight="duotone" />
+            Inside Cameras
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {insideCameras.map((device, index) => renderDeviceCard(device, index))}
+          </div>
+        </div>
+      )}
 
-                  {device.type === 'light' && device.brightness !== undefined && device.isOn && (
-                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Brightness</span>
-                        <span className="font-medium">{device.brightness}%</span>
-                      </div>
-                      <Slider
-                        value={[device.brightness]}
-                        onValueChange={(value) => handleBrightnessChange(device, value)}
-                        max={100}
-                        step={1}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {device.type === 'thermostat' && device.temperature !== undefined && device.isOn && (
-                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Temperature</span>
-                        <span className="font-medium">{device.temperature}°F</span>
-                      </div>
-                      <Slider
-                        value={[device.temperature]}
-                        onValueChange={(value) => handleTemperatureChange(device, value)}
-                        min={60}
-                        max={85}
-                        step={1}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {device.type === 'lock' && device.locked !== undefined && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Status</span>
-                      <Badge variant={device.locked ? 'default' : 'destructive'}>
-                        {device.locked ? 'Locked' : 'Unlocked'}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {device.type === 'camera' && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Recording</span>
-                      <Badge variant={device.isOn ? 'default' : 'secondary'}>
-                        {device.isOn ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {device.type === 'television' && device.volume !== undefined && device.isOn && (
-                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Volume</span>
-                        <span className="font-medium">{device.volume}%</span>
-                      </div>
-                      <Slider
-                        value={[device.volume]}
-                        onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
-                        max={100}
-                        step={1}
-                        className="cursor-pointer"
-                      />
-                      {device.channel && (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                          <span>Channel</span>
-                          <span className="font-medium">{device.channel}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {device.type === 'robot' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Battery</span>
-                        <span className="font-medium">{device.batteryLevel || 100}%</span>
-                      </div>
-                      {device.cleaningMode && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Mode</span>
-                          <Badge variant="default">{device.cleaningMode}</Badge>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {(device.type === 'fan' || device.type === 'air-purifier') && device.speed !== undefined && device.isOn && (
-                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Speed</span>
-                        <span className="font-medium">Level {device.speed}</span>
-                      </div>
-                      <Slider
-                        value={[device.speed]}
-                        onValueChange={(value) => onDeviceUpdate(device.id, { speed: value[0] })}
-                        min={1}
-                        max={5}
-                        step={1}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {device.type === 'speaker' && device.volume !== undefined && device.isOn && (
-                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Volume</span>
-                        <span className="font-medium">{device.volume}%</span>
-                      </div>
-                      <Slider
-                        value={[device.volume]}
-                        onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
-                        max={100}
-                        step={1}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )
-        })}
-      </div>
+      {otherDevices.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Other Devices</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {otherDevices.map((device, index) => renderDeviceCard(device, index))}
+          </div>
+        </div>
+      )}
 
       {devices.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12"
-        >
-          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-            <Plus className="w-10 h-10 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">No devices yet</h3>
+        <Card className="p-12 text-center">
+          <Power className="w-16 h-16 mx-auto mb-4 text-muted-foreground" weight="duotone" />
+          <h3 className="text-xl font-semibold mb-2">No Devices Connected</h3>
           <p className="text-muted-foreground mb-6">
-            Get started by adding your first smart device
+            Add your first smart device to get started
           </p>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
@@ -392,7 +453,7 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
             <Plus className="w-5 h-5 mr-2" weight="bold" />
             Add Your First Device
           </Button>
-        </motion.div>
+        </Card>
       )}
     </div>
   )

@@ -14,12 +14,10 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
     { id: 'dashboard' as const, label: 'Dashboard', icon: House },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'devices' as const, label: 'Devices', icon: Cpu },
-    { id: 'cameras' as const, label: 'Cameras', icon: Camera },
     { id: 'automations' as const, label: 'Automations', icon: Lightning },
     { id: 'family' as const, label: 'Family', icon: Users },
     { id: 'prayer' as const, label: 'Prayer', icon: BookOpen },
     { id: 'resources' as const, label: 'Resources', icon: Newspaper },
-    { id: 'emergency' as const, label: 'Emergency', icon: Phone },
     { id: 'settings' as const, label: 'Settings', icon: Gear }
   ]
 

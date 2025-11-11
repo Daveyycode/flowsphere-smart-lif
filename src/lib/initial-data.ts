@@ -34,11 +34,33 @@ export const initialDevices: Device[] = [
   },
   {
     id: '4',
-    name: 'Garage Camera',
+    name: 'Front Door Camera',
     type: 'camera',
     status: 'online',
     isOn: true,
-    room: 'Garage'
+    isRecording: false,
+    cameraLocation: 'outside',
+    room: 'Front Door'
+  },
+  {
+    id: '5',
+    name: 'Backyard Camera',
+    type: 'camera',
+    status: 'online',
+    isOn: true,
+    isRecording: false,
+    cameraLocation: 'outside',
+    room: 'Backyard'
+  },
+  {
+    id: '6',
+    name: 'Living Room Camera',
+    type: 'camera',
+    status: 'online',
+    isOn: false,
+    isRecording: false,
+    cameraLocation: 'inside',
+    room: 'Living Room'
   }
 ]
 

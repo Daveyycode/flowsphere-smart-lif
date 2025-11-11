@@ -9,7 +9,6 @@ import { DevicesView, Device } from '@/components/devices-view'
 import { FamilyView, FamilyMember } from '@/components/family-view'
 import { SettingsView } from '@/components/settings-view'
 import { NotificationsView, Notification } from '@/components/notifications-view'
-import { CCTVView, CCTVCamera } from '@/components/cctv-view'
 import { AutomationsView, Automation } from '@/components/automations-view'
 import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
@@ -17,7 +16,6 @@ import { SubscriptionManagement } from '@/components/subscription-management'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
 import { PrayerView } from '@/components/prayer-view'
-import { EmergencyHotlines } from '@/components/emergency-hotlines'
 import { ResourcesView } from '@/components/resources-view'
 import { MeetingNotes } from '@/components/meeting-notes'
 import { PermissionsSettings } from '@/components/permissions-settings'
@@ -29,19 +27,17 @@ import {
   initialDevices,
   initialFamilyMembers,
   initialNotifications,
-  initialCameras,
   initialAutomations
 } from '@/lib/initial-data'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
   const [notificationsList, setNotificationsList] = useKV<Notification[]>('flowsphere-notifications-list', initialNotifications)
-  const [cameras, setCameras] = useKV<CCTVCamera[]>('flowsphere-cameras', initialCameras)
   const [automations, setAutomations] = useKV<Automation[]>('flowsphere-automations', initialAutomations)
   
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
@@ -107,14 +103,6 @@ function App() {
   const handleDeleteNotification = (id: string) => {
     setNotificationsList((current) =>
       (current || []).filter(notif => notif.id !== id)
-    )
-  }
-
-  const handleToggleCameraRecording = (id: string, isRecording: boolean) => {
-    setCameras((current) =>
-      (current || []).map(camera =>
-        camera.id === id ? { ...camera, isRecording, status: isRecording ? 'recording' : 'online' } : camera
-      )
     )
   }
 
@@ -218,12 +206,6 @@ function App() {
                 onAddDevice={handleAddDevice}
               />
             )}
-            {currentTab === 'cameras' && (
-              <CCTVView
-                cameras={cameras || []}
-                onToggleRecording={handleToggleCameraRecording}
-              />
-            )}
             {currentTab === 'automations' && (
               <AutomationsView
                 automations={automations || []}
@@ -236,7 +218,6 @@ function App() {
               <FamilyView members={familyMembers || []} />
             )}
             {currentTab === 'prayer' && <PrayerView />}
-            {currentTab === 'emergency' && <EmergencyHotlines />}
             {currentTab === 'resources' && <ResourcesView />}
             {currentTab === 'meeting-notes' && <MeetingNotes />}
             {currentTab === 'permissions' && <PermissionsSettings />}
@@ -269,7 +250,6 @@ function App() {
         onDeviceUpdate={handleDeviceUpdate}
         onDndToggle={setDndEnabled}
         onAddDevice={handleAddDevice}
-        onToggleCameraRecording={handleToggleCameraRecording}
         onToggleAutomation={handleToggleAutomation}
         onAddAutomation={handleAddAutomation}
         onDeleteAutomation={handleDeleteAutomation}
@@ -278,7 +258,6 @@ function App() {
         onEmergencyOverrideChange={setEmergencyOverride}
         onSubscriptionChange={handleSubscriptionChange}
         devices={devices || []}
-        cameras={cameras || []}
         automations={automations || []}
         familyMembers={familyMembers || []}
         notifications={notificationsList || []}

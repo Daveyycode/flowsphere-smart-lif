@@ -23,11 +23,10 @@ interface Message {
 }
 
 interface AIAssistantProps {
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
   onDeviceUpdate?: (id: string, updates: Partial<Device>) => void
   onDndToggle?: (enabled: boolean) => void
   onAddDevice?: (device: Omit<Device, 'id'>) => void
-  onToggleCameraRecording?: (id: string, isRecording: boolean) => void
   onToggleAutomation?: (id: string, isActive: boolean) => void
   onAddAutomation?: (automation: Omit<Automation, 'id'>) => void
   onDeleteAutomation?: (id: string) => void
@@ -36,7 +35,6 @@ interface AIAssistantProps {
   onEmergencyOverrideChange?: (value: number) => void
   onSubscriptionChange?: (plan: 'free' | 'premium' | 'family') => void
   devices?: Device[]
-  cameras?: CCTVCamera[]
   automations?: Automation[]
   familyMembers?: FamilyMember[]
   notifications?: Notification[]
@@ -63,7 +61,6 @@ export function AIAssistant({
   onDeviceUpdate,
   onDndToggle,
   onAddDevice,
-  onToggleCameraRecording,
   onToggleAutomation,
   onAddAutomation,
   onDeleteAutomation,
@@ -72,7 +69,6 @@ export function AIAssistant({
   onEmergencyOverrideChange,
   onSubscriptionChange,
   devices = [],
-  cameras = [],
   automations = [],
   familyMembers = [],
   notifications = [],
