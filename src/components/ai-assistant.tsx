@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkle, X, PaperPlaneRight } from '@phosphor-icons/react'
+import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { useKV } from '@github/spark/hooks'
 
 interface Message {
   id: string
@@ -12,8 +16,18 @@ interface Message {
   content: string
 }
 
+const VOICE_OPTIONS = [
+  { value: 'female-warm', label: 'Nova (Female, Warm)', description: 'Friendly and conversational' },
+  { value: 'male-natural', label: 'Onyx (Male, Natural)', description: 'Deep and authoritative' },
+  { value: 'female-bright', label: 'Alloy (Female, Bright)', description: 'Energetic and clear' },
+  { value: 'male-calm', label: 'Echo (Male, Calm)', description: 'Smooth and reassuring' },
+  { value: 'female-professional', label: 'Shimmer (Female, Professional)', description: 'Polished and confident' },
+  { value: 'neutral-friendly', label: 'Fable (Neutral, Friendly)', description: 'Warm and approachable' }
+]
+
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -23,6 +37,62 @@ export function AIAssistant() {
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  
+  const [selectedVoice, setSelectedVoice] = useKV<string>('flowsphere-ai-voice', 'female-warm')
+  const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', false)
+  const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 1.0)
+  const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
+
+  const speakText = (text: string) => {
+    if (!voiceEnabled) return
+    
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = speechRate || 1.0
+      utterance.pitch = speechPitch || 1.0
+      
+      const voices = window.speechSynthesis.getVoices()
+      
+      const voiceMap: Record<string, string[]> = {
+        'female-warm': ['Samantha', 'Victoria', 'Microsoft Zira', 'Google US English Female', 'female'],
+        'male-natural': ['Alex', 'Daniel', 'Microsoft David', 'Google US English Male', 'male'],
+        'female-bright': ['Karen', 'Moira', 'Google UK English Female', 'female'],
+        'male-calm': ['Fred', 'Thomas', 'Google UK English Male', 'male'],
+        'female-professional': ['Fiona', 'Serena', 'Microsoft Eva', 'female'],
+        'neutral-friendly': ['Samantha', 'Tessa', 'female']
+      }
+      
+      const preferredVoiceNames = voiceMap[selectedVoice || 'female-warm'] || []
+      
+      let selectedSynthVoice = voices.find(voice => 
+        preferredVoiceNames.some(name => voice.name.toLowerCase().includes(name.toLowerCase()))
+      )
+      
+      if (!selectedSynthVoice) {
+        selectedSynthVoice = voices.find(voice => voice.lang.startsWith('en'))
+      }
+      
+      if (selectedSynthVoice) {
+        utterance.voice = selectedSynthVoice
+      }
+      
+      utterance.onstart = () => setIsSpeaking(true)
+      utterance.onend = () => setIsSpeaking(false)
+      utterance.onerror = () => setIsSpeaking(false)
+      
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
+  const stopSpeaking = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+    }
+  }
 
   const handleSend = async () => {
     if (!input.trim()) return
@@ -57,6 +127,8 @@ export function AIAssistant() {
       }
 
       setMessages(prev => [...prev, assistantMessage])
+      
+      speakText(response)
     } catch (error) {
       console.error('AI error:', error)
       const errorMessage: Message = {
@@ -96,7 +168,7 @@ export function AIAssistant() {
       </motion.button>
 
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !showSettings && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -115,14 +187,34 @@ export function AIAssistant() {
                     <p className="text-white/80 text-[10px] sm:text-xs">Always here to help</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsOpen(false)}
-                  className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
-                >
-                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isSpeaking && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={stopSpeaking}
+                      className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
+                    >
+                      <SpeakerHigh className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" weight="fill" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSettings(true)}
+                    className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
+                  >
+                    <Gear className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsOpen(false)}
+                    className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
+                  >
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                </div>
               </div>
 
               <ScrollArea className="h-80 sm:h-96 p-3 sm:p-4">
@@ -200,6 +292,128 @@ export function AIAssistant() {
                     <PaperPlaneRight className="w-5 h-5" weight="fill" />
                   </Button>
                 </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {isOpen && showSettings && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: 'spring', bounce: 0.3 }}
+            className="fixed bottom-32 md:bottom-28 right-3 md:right-6 left-3 md:left-auto z-50 md:w-96"
+          >
+            <Card className="shadow-2xl border-accent/20 overflow-hidden">
+              <div className="bg-gradient-to-r from-accent via-primary to-coral p-3 sm:p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Gear className="w-5 h-5 sm:w-6 sm:h-6 text-white" weight="fill" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm sm:text-base">Voice Settings</h3>
+                    <p className="text-white/80 text-[10px] sm:text-xs">Customize AI voice</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSettings(false)}
+                  className="text-white hover:bg-white/20 h-8 w-8 sm:h-10 sm:w-10"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              </div>
+
+              <div className="p-4 space-y-6">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="voice-toggle" className="text-sm font-medium">
+                    Enable Voice Responses
+                  </Label>
+                  <Button
+                    id="voice-toggle"
+                    variant={voiceEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  >
+                    {voiceEnabled ? 'On' : 'Off'}
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="voice-select" className="text-sm font-medium">
+                    Voice Character
+                  </Label>
+                  <Select
+                    value={selectedVoice}
+                    onValueChange={setSelectedVoice}
+                    disabled={!voiceEnabled}
+                  >
+                    <SelectTrigger id="voice-select">
+                      <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VOICE_OPTIONS.map((voice) => (
+                        <SelectItem key={voice.value} value={voice.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{voice.label}</span>
+                            <span className="text-xs text-muted-foreground">{voice.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="speech-rate" className="text-sm font-medium">
+                      Speech Rate
+                    </Label>
+                    <span className="text-xs text-muted-foreground">{speechRate?.toFixed(1)}x</span>
+                  </div>
+                  <Slider
+                    id="speech-rate"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={[speechRate || 1.0]}
+                    onValueChange={([value]) => setSpeechRate(value)}
+                    disabled={!voiceEnabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="speech-pitch" className="text-sm font-medium">
+                      Speech Pitch
+                    </Label>
+                    <span className="text-xs text-muted-foreground">{speechPitch?.toFixed(1)}x</span>
+                  </div>
+                  <Slider
+                    id="speech-pitch"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={[speechPitch || 1.0]}
+                    onValueChange={([value]) => setSpeechPitch(value)}
+                    disabled={!voiceEnabled}
+                  />
+                </div>
+
+                <Button
+                  onClick={() => {
+                    const selectedVoiceOption = VOICE_OPTIONS.find(v => v.value === selectedVoice)
+                    speakText(`Hello! This is ${selectedVoiceOption?.label.split(' ')[0]}. I'm your FlowSphere AI assistant, ready to help you manage your daily flow.`)
+                  }}
+                  disabled={!voiceEnabled}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <SpeakerHigh className="w-4 h-4 mr-2" />
+                  Test Voice
+                </Button>
               </div>
             </Card>
           </motion.div>
