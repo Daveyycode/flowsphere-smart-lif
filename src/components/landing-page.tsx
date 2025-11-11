@@ -88,6 +88,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-foreground font-heading">FlowSphere</h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Command center for modern life</p>
             </div>
           </motion.div>
           
@@ -116,10 +117,13 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 sm:mb-4 font-heading">
                 FlowSphere
               </h2>
-              <p className="text-lg sm:text-xl md:text-2xl text-primary font-semibold mb-4 sm:mb-6">
-                "One app for your life rhythm"
+              <p className="text-base sm:text-lg md:text-xl text-accent font-medium mb-2 sm:mb-3">
+                "Command center for modern life"
               </p>
-              <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-3xl mx-auto px-4 leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 sm:mb-6">
+                All subscription in one app
+              </p>
+              <p className="text-sm sm:text-base text-muted-foreground/80 max-w-3xl mx-auto px-4 leading-relaxed">
                 An AI-driven, privacy-first companion that synchronizes work, family, rest, and home into a single daily flow
               </p>
             </motion.div>

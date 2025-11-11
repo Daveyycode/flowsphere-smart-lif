@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmergencyDialog } from '@/components/emergency-dialog'
+import { ComingSoonSection } from '@/components/coming-soon-section'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 
@@ -510,6 +511,14 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <ComingSoonSection />
       </motion.div>
 
       <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>

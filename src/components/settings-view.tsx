@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 interface SettingsViewProps {
   userName: string
   userEmail: string
-  subscription: 'free' | 'premium' | 'family'
+  subscription: 'free' | 'premium' | 'family' | 'lifetime'
   notifications: {
     email: boolean
     push: boolean
@@ -40,7 +40,9 @@ export function SettingsView({
       case 'premium':
         return <Badge className="bg-accent">Premium</Badge>
       case 'family':
-        return <Badge className="bg-gradient-to-r from-accent to-primary">Family</Badge>
+        return <Badge className="bg-gradient-to-r from-accent to-primary">Family+</Badge>
+      case 'lifetime':
+        return <Badge className="bg-gradient-to-r from-primary via-accent to-coral">Lifetime</Badge>
       default:
         return <Badge variant="secondary">Free</Badge>
     }
@@ -85,8 +87,7 @@ export function SettingsView({
       icon: User,
       items: [
         { label: 'Name', value: userName },
-        { label: 'Email', value: userEmail },
-        { label: 'Subscription', value: getSubscriptionBadge() }
+        { label: 'Email', value: userEmail }
       ]
     },
     {
@@ -134,6 +135,59 @@ export function SettingsView({
       </div>
 
       <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+        >
+          <Card className="bg-gradient-to-br from-accent/10 via-primary/10 to-accent/5 border-accent/30">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
+                    <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-white" weight="duotone" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold mb-1">Subscription Status</h3>
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      {subscription === 'premium' && (
+                        <>
+                          <Check className="w-5 h-5 text-accent" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Premium</span>
+                        </>
+                      )}
+                      {subscription === 'family' && (
+                        <>
+                          <Check className="w-5 h-5 text-accent" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Family+</span>
+                        </>
+                      )}
+                      {subscription === 'lifetime' && (
+                        <>
+                          <Check className="w-5 h-5 text-accent" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You have Lifetime access to FlowSphere</span>
+                        </>
+                      )}
+                      {subscription === 'free' && (
+                        <>
+                          <span className="text-sm sm:text-base text-muted-foreground">You're on the Free plan</span>
+                        </>
+                      )}
+                    </div>
+                    {getSubscriptionBadge()}
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => onNavigate('subscription')}
+                  className="bg-accent hover:bg-accent/90 min-touch-target"
+                >
+                  {subscription === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

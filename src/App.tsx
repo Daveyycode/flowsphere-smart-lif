@@ -42,7 +42,7 @@ function App() {
   
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
   const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
-  const [subscription, setSubscription] = useKV<'free' | 'premium' | 'family'>('flowsphere-subscription', 'premium')
+  const [subscription, setSubscription] = useKV<'free' | 'premium' | 'family' | 'lifetime'>('flowsphere-subscription', 'premium')
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
   const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
   const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
@@ -127,7 +127,7 @@ function App() {
     ])
   }
 
-  const handleSubscriptionChange = (plan: 'free' | 'premium' | 'family') => {
+  const handleSubscriptionChange = (plan: 'free' | 'premium' | 'family' | 'lifetime') => {
     setSubscription(plan)
   }
 

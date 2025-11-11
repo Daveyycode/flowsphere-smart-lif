@@ -31,14 +31,14 @@ interface AIAssistantProps {
   onMarkNotificationRead?: (id: string) => void
   onDeleteNotification?: (id: string) => void
   onEmergencyOverrideChange?: (value: number) => void
-  onSubscriptionChange?: (plan: 'free' | 'premium' | 'family') => void
+  onSubscriptionChange?: (plan: 'free' | 'premium' | 'family' | 'lifetime') => void
   devices?: Device[]
   automations?: Automation[]
   familyMembers?: FamilyMember[]
   notifications?: Notification[]
   dndEnabled?: boolean
   emergencyOverride?: number
-  subscription?: 'free' | 'premium' | 'family'
+  subscription?: 'free' | 'premium' | 'family' | 'lifetime'
 }
 
 const VOICE_OPTIONS = [

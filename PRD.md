@@ -67,11 +67,11 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Success criteria**: Smooth authentication flow, persistent login state, secure credential handling
 
 ### Landing Page
-- **Functionality**: Beautiful landing page with living room background (blended with color theme), tagline, feature showcase, and comprehensive pricing section with 4-tier plans
-- **Purpose**: Welcome users, explain value proposition, and clearly present subscription options
+- **Functionality**: Beautiful landing page with living room background (blended with color theme), prominent taglines ("Command center for modern life" and "All subscription in one app"), feature showcase, and comprehensive pricing section with 4-tier plans
+- **Purpose**: Welcome users, explain value proposition, and clearly present subscription options with strong call to action
 - **Trigger**: Unauthenticated user visits app
-- **Progression**: Display hero → Show features → Present pricing plans with monthly/yearly toggle → CTA buttons → Authentication modal
-- **Success criteria**: Inspiring design, clear messaging, smooth transition to auth, visually distinct pricing tiers with Gold plan highlighted
+- **Progression**: Display hero with taglines → Show features → Present pricing plans with monthly/yearly toggle → CTA buttons (Sign In / Sign Up) → Authentication modal
+- **Success criteria**: Inspiring design, clear messaging including "command center" positioning, smooth transition to auth, visually distinct pricing tiers with Premium plan highlighted
 
 ### Prayer & Bible Reading
 - **Functionality**: Daily scripture reading with 2-5 minute voice synthesis, random verses, prayer focus
@@ -178,11 +178,11 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Success criteria**: Strict ownership verification, completely separate from main app navigation, clear "Back to Main App" link, professional admin interface
 
 ### Pricing & Subscription Management
-- **Functionality**: 4-tier subscription model (Basic $9/mo, Pro $19.99/mo, Gold $39.99/mo, Family/Team $79.99/mo) with 50% yearly discount, presented on landing page with monthly/yearly toggle
-- **Purpose**: Monetize the platform while offering flexible options for different user needs, from individual exploration to full family/team plans
+- **Functionality**: 4-tier subscription model (Free, Premium $9.99/mo, Family+ $19.99/mo, Lifetime $299 one-time) with clear monthly/annual billing options
+- **Purpose**: Monetize the platform while offering flexible options for different user needs, from free exploration to lifetime commitment
 - **Trigger**: User views landing page pricing section or navigates to subscription management in settings
-- **Progression**: View pricing tiers → Toggle monthly/yearly → Compare features → Select plan → Authentication/payment → Activate subscription
-- **Success criteria**: Clear pricing presentation, smooth plan switching, Gold plan visually highlighted as "Most Popular", responsive design across devices, seamless upgrade/downgrade flow
+- **Progression**: View pricing tiers → Toggle monthly/annual (except lifetime) → Compare features → Select plan → Authentication/payment → Activate subscription
+- **Success criteria**: Clear pricing presentation on landing page, smooth plan switching, Premium plan highlighted as "Most Popular", responsive design across devices, seamless upgrade/downgrade flow, prominent subscription status in settings
 
 ## Edge Case Handling
 - **Offline Mode**: Cache critical data locally, show offline indicator, queue actions for sync when reconnected

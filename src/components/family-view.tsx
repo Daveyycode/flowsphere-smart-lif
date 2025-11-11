@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { FamilyPoll } from '@/components/family-poll'
 
 export interface FamilyMember {
   id: string
@@ -168,10 +166,6 @@ export function FamilyView({ members }: FamilyViewProps) {
           </Button>
         </motion.div>
       )}
-
-      <Separator className="my-8" />
-
-      <FamilyPoll />
     </div>
   )
 }

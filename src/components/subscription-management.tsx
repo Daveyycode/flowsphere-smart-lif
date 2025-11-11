@@ -11,8 +11,8 @@ import { useKV } from '@github/spark/hooks'
 import { PaymentModal } from '@/components/payment-modal'
 
 interface SubscriptionManagementProps {
-  currentPlan: 'free' | 'premium' | 'family'
-  onPlanChange: (plan: 'free' | 'premium' | 'family') => void
+  currentPlan: 'free' | 'premium' | 'family' | 'lifetime'
+  onPlanChange: (plan: 'free' | 'premium' | 'family' | 'lifetime') => void
 }
 
 export function SubscriptionManagement({ currentPlan, onPlanChange }: SubscriptionManagementProps) {
@@ -68,7 +68,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
     },
     {
       id: 'family',
-      name: 'Family',
+      name: 'Family+',
       icon: Users,
       price: 19.99,
       priceAnnual: 199.99,
@@ -85,6 +85,25 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         'Family activity dashboard',
         'Dedicated account manager'
       ]
+    },
+    {
+      id: 'lifetime',
+      name: 'Lifetime',
+      icon: Sparkle,
+      price: 299,
+      priceLifetime: 299,
+      description: 'One-time payment — FlowSphere forever',
+      features: [
+        'Everything in Family+',
+        'Lifetime access to all features',
+        'Priority feature requests',
+        'Beta access to new features',
+        'VIP support channel',
+        'Lifetime updates',
+        'No recurring payments ever'
+      ],
+      popular: false,
+      isLifetime: true
     }
   ]
 
@@ -106,13 +125,13 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
 
   const handlePaymentComplete = () => {
     if (selectedPlan) {
-      onPlanChange(selectedPlan.id as 'free' | 'premium' | 'family')
+      onPlanChange(selectedPlan.id as 'free' | 'premium' | 'family' | 'lifetime')
       toast.success(`Successfully ${getPlanLevel(selectedPlan.id) > getPlanLevel(currentPlan) ? 'upgraded' : 'changed'} to ${selectedPlan.name} plan!`)
     }
   }
 
   const getPlanLevel = (plan: string) => {
-    const levels = { free: 0, premium: 1, family: 2 }
+    const levels = { free: 0, premium: 1, family: 2, lifetime: 3 }
     return levels[plan as keyof typeof levels] || 0
   }
 
@@ -146,7 +165,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         </Label>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {plans.map((plan, index) => {
           const Icon = plan.icon
           const isCurrentPlan = plan.id === currentPlan
@@ -184,15 +203,15 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                   <div className="mt-3 sm:mt-4">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                        ${billingCycle === 'monthly' ? plan.price : plan.priceAnnual}
+                        ${('isLifetime' in plan && plan.isLifetime) ? plan.price : (billingCycle === 'monthly' ? plan.price : (plan.priceAnnual || plan.price))}
                       </span>
                       {plan.price > 0 && (
                         <span className="text-xs sm:text-sm text-muted-foreground">
-                          /{billingCycle === 'monthly' ? 'month' : 'year'}
+                          {('isLifetime' in plan && plan.isLifetime) ? 'one-time' : `/${billingCycle === 'monthly' ? 'month' : 'year'}`}
                         </span>
                       )}
                     </div>
-                    {billingCycle === 'annual' && plan.price > 0 && (
+                    {billingCycle === 'annual' && plan.price > 0 && !('isLifetime' in plan && plan.isLifetime) && plan.priceAnnual && (
                       <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                         Save ${((plan.price * 12) - plan.priceAnnual).toFixed(2)}/year
                       </p>
@@ -201,7 +220,13 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-6">
                   <Button
-                    onClick={() => handleUpgrade(plan.id, plan.name, billingCycle === 'monthly' ? plan.price : plan.priceAnnual)}
+                    onClick={() => handleUpgrade(
+                      plan.id, 
+                      plan.name, 
+                      ('isLifetime' in plan && plan.isLifetime) 
+                        ? plan.price 
+                        : (billingCycle === 'monthly' ? plan.price : (plan.priceAnnual || plan.price))
+                    )}
                     disabled={isCurrentPlan}
                     className={`w-full min-touch-target text-sm sm:text-base ${
                       isPopular ? 'bg-accent hover:bg-accent/90' : ''

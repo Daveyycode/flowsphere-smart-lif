@@ -66,51 +66,51 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="w-full max-w-md"
       >
-        <Card className="p-6 sm:p-8 relative">
+        <Card className="p-6 sm:p-8 relative shadow-2xl border-2 border-primary/20 bg-card">
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="absolute top-4 right-4"
+            className="absolute top-4 right-4 hover:bg-destructive/10 hover:text-destructive"
           >
             <X className="w-5 h-5" />
           </Button>
 
           <div className="flex items-center justify-center mb-6">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Sparkle className="w-6 h-6 text-white" weight="fill" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+              <Sparkle className="w-8 h-8 text-white" weight="fill" />
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-center mb-2 font-heading">
+          <h2 className="text-3xl font-bold text-center mb-2 font-heading">
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </h2>
-          <p className="text-center text-muted-foreground mb-6">
+          <p className="text-center text-muted-foreground mb-8 text-base">
             {mode === 'signup' 
               ? 'Start your journey with FlowSphere' 
               : 'Sign in to continue your flow'}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {mode === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="text-base">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="name"
                     type="text"
                     placeholder="John Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
+                    className="pl-11 h-12 text-base"
                     required
                   />
                 </div>
@@ -118,32 +118,32 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-base">Email</Label>
               <div className="relative">
-                <EnvelopeSimple className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <EnvelopeSimple className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-11 h-12 text-base"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-base">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-11 h-12 text-base"
                   required
                 />
               </div>
@@ -151,7 +151,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90" 
               disabled={isLoading}
             >
               {isLoading 
@@ -160,7 +160,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-base">
             <span className="text-muted-foreground">
               {mode === 'signup' 
                 ? 'Already have an account? ' 
@@ -174,7 +174,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
                   mode === 'signup' ? onClose() : onClose()
                 }, 100)
               }}
-              className="text-primary hover:underline font-semibold"
+              className="text-primary hover:underline font-bold"
             >
               {mode === 'signup' ? 'Sign In' : 'Sign Up'}
             </button>
