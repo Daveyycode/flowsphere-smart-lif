@@ -180,7 +180,39 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.5 : 0.4 }}
+        >
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CreditCard className="w-5 h-5" weight="duotone" />
+                <span>Subscription & Billing</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Current Plan</span>
+                {getSubscriptionBadge()}
+              </div>
+              <Separator />
+              <p className="text-sm text-muted-foreground">
+                Manage your subscription, update payment methods, and view billing history.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => onNavigate('subscription')}
+              >
+                Manage Subscription & Payment
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
         >
           <Card>
             <CardHeader>

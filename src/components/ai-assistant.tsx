@@ -18,7 +18,7 @@ export function AIAssistant() {
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant. I can help you manage your devices, create automations, and provide insights about your home. What would you like to know?"
+      content: "Hi! I'm your FlowSphere AI assistant. I connect all your life layers - Personal, Professional, Family, and Home. I can provide voice & text summaries, help manage devices, create automations, and offer insights. What would you like to know?"
     }
   ])
   const [input, setInput] = useState('')
@@ -38,10 +38,15 @@ export function AIAssistant() {
     setIsLoading(true)
 
     try {
-      const promptText = `You are a helpful AI assistant for FlowSphere, a smart home management platform. 
+      const promptText = `You are a helpful AI assistant for FlowSphere, a comprehensive life management platform that connects four layers:
+      1. Personal Layer (sleep, DND, notifications, reminders, prayer/Bible)
+      2. Professional Layer (email summaries, meeting notes, productivity)
+      3. Family Layer (kid tracking, safety, weekend recommendations)
+      4. Home Layer (CCTV, IoT control, appliances)
+      
       The user said: ${input}
       
-      Provide a helpful, concise response about smart home management, family safety, or device control. Keep responses under 100 words.`
+      Provide a helpful, friendly response that connects relevant layers. Keep responses under 100 words and be actionable.`
       
       const response = await window.spark.llm(promptText, 'gpt-4o-mini')
       

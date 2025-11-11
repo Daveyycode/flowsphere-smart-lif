@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
+import { AnimatePresence } from 'framer-motion'
+import { LandingPage } from '@/components/landing-page'
+import { AuthModal } from '@/components/auth-modal'
 import { Layout } from '@/components/layout'
 import { DashboardView } from '@/components/dashboard-view'
 import { DevicesView, Device } from '@/components/devices-view'
@@ -13,8 +16,11 @@ import { AIAssistant } from '@/components/ai-assistant'
 import { SubscriptionManagement } from '@/components/subscription-management'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
+import { PrayerView } from '@/components/prayer-view'
+import { EmergencyHotlines } from '@/components/emergency-hotlines'
+import { ResourcesView } from '@/components/resources-view'
 import { Toaster } from '@/components/ui/sonner'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   initialDevices,
   initialFamilyMembers,
@@ -24,7 +30,9 @@ import {
 } from '@/lib/initial-data'
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy'>('dashboard')
+  const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -139,6 +147,30 @@ function App() {
     setCurrentTab(tab)
   }
 
+  const handleAuthSuccess = (user: { email: string; name: string }) => {
+    setIsAuthenticated(true)
+    setAuthMode(null)
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LandingPage
+          onSignIn={() => setAuthMode('signin')}
+          onSignUp={() => setAuthMode('signup')}
+        />
+        {authMode && (
+          <AuthModal
+            mode={authMode}
+            onClose={() => setAuthMode(null)}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+        <Toaster position="top-center" />
+      </>
+    )
+  }
+
   return (
     <>
       <Layout currentTab={currentTab} onTabChange={handleTabChange}>
@@ -195,6 +227,9 @@ function App() {
             {currentTab === 'family' && (
               <FamilyView members={familyMembers || []} />
             )}
+            {currentTab === 'prayer' && <PrayerView />}
+            {currentTab === 'emergency' && <EmergencyHotlines />}
+            {currentTab === 'resources' && <ResourcesView />}
             {currentTab === 'settings' && (
               <SettingsView
                 userName={userName || 'User'}

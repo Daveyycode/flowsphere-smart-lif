@@ -1,18 +1,105 @@
-# FlowSphere - Smart Life Management Platform
+# FlowSphere - Complete Life Management Platform
 
-One app to simplify your entire life — home, work, and family in perfect flow.
+One app for your life rhythm - An AI-driven, privacy-first companion that synchronizes work, family, rest, and home into a single daily flow.
 
-**Tagline**: A unified platform that brings together family safety, smart home control, notification intelligence, security monitoring, and AI-powered insights into one beautiful, privacy-first interface.
+**Tagline**: "One app for your life rhythm" - A unified platform combining Notion's elegance, Waze's intelligence, and Duolingo's engagement to manage every aspect of daily life.
 
 **Experience Qualities:**
-1. **Sophisticated** - Professional, polished interface that exudes trust and reliability through thoughtful design and smooth interactions
-2. **Intuitive** - Effortless navigation with clear visual hierarchy, predictable interactions, and contextual help at every step
-3. **Delightful** - Subtle animations, thoughtful micro-interactions, and AI-powered insights that create memorable moments and anticipate needs
+1. **Sophisticated** - Professional, polished interface that exudes trust and reliability through thoughtful design and smooth interactions, inspired by Notion's clean aesthetic
+2. **Intuitive** - Effortless navigation with clear visual hierarchy, predictable interactions like Waze's smart guidance, and contextual help at every step
+3. **Delightful** - Subtle animations, thoughtful micro-interactions like Duolingo's encouragement, and AI-powered insights that create memorable moments and anticipate needs
 
 **Complexity Level**: Complex Application (advanced functionality, comprehensive state management)
-A full-featured lifestyle command center with multiple interconnected systems including real-time monitoring, intelligent automation, notification management, security integration, and AI assistance - all persisted using useKV for seamless experience across sessions with local-first, privacy-by-design architecture.
+A full-featured lifestyle command center with authentication, multiple interconnected layers (Personal, Professional, Family, Home), AI assistance, prayer/wellness features, emergency services, and comprehensive monitoring - all persisted using useKV for seamless experience across sessions with local-first, privacy-by-design architecture.
+
+## Architecture Layers
+
+### Personal Layer
+- **Sleep Tracking**: Automatic sleep pattern detection with quality metrics
+- **Do Not Disturb (DND)**: Smart DND with configurable emergency override (default: 3 calls in 10 minutes)
+- **Notification Management**: AI-categorized notifications from emails, SMS, calls, messengers, Instagram, etc.
+  - Notifications turn off based on configured rules
+  - Emergency override: rings when same number calls 3 times in a span of 10 minutes
+  - AI summarizes notifications (reads subjects and preview text, not full email content)
+- **Reminders**: Meeting reminders, school activities, kids' exams, weekly grocery checker
+- **Prayer & Bible**: Daily scripture reading with voice synthesis, 2-5 minute sessions, random verses
+
+### Professional Layer
+- **Email & Task Summarizer**: AI-powered email subject and preview summarization
+- **Meeting Optimizer**: Smart scheduling and productivity insights
+- **Productivity Insights**: Time tracking and efficiency analytics
+- **Remote Timer**: Accessible timer that syncs across devices
+- **Meeting Note Taker**: 
+  - Auto-detects 200 languages
+  - Prioritizes native language and English
+  - Word-by-word transcription
+  - AI offers to summarize when meeting ends
+
+### Family Layer
+- **Kid Tracker**: Real-time GPS tracking with battery status
+- **Emergency Alerts**: Instant notifications for family safety
+- **Household Status**: Overview of home and family activities
+- **Weekend Recommendations**: 
+  - AI suggests new places to visit every Thursday/Friday
+  - Famous things to do with family
+  - Restaurant and food recommendations
+  - Local events and activities
+
+### Home Layer
+- **CCTV Access**: Multi-camera dashboard with live feeds and recording control
+- **IoT Control**: Manage all smart devices (lights, thermostats, locks, etc.)
+- **Smart Timers**: Scheduled device automation
+- **Appliance Scheduling**: Energy-efficient appliance management
+
+### AI Assistant Layer
+- **Voice Summaries**: Spoken briefings of notifications, schedules, and updates
+- **Text Summaries**: Written summaries connecting all layers
+- **Integration**: Connects and synthesizes information from all four layers
+- **Conversational**: Natural language interaction for queries and commands
 
 ## Essential Features
+
+### Authentication System
+- **Functionality**: Secure sign-in and sign-up with email/password
+- **Purpose**: Protect user data and personalize experience
+- **Trigger**: User lands on app for first time or after logout
+- **Progression**: Landing page → Sign In/Sign Up modal → Authentication → Main dashboard
+- **Success criteria**: Smooth authentication flow, persistent login state, secure credential handling
+
+### Landing Page
+- **Functionality**: Beautiful landing page with living room background (blended with color theme), tagline, and feature showcase
+- **Purpose**: Welcome users and explain value proposition
+- **Trigger**: Unauthenticated user visits app
+- **Progression**: Display hero → Show features → CTA buttons → Authentication modal
+- **Success criteria**: Inspiring design, clear messaging, smooth transition to auth
+
+### Prayer & Bible Reading
+- **Functionality**: Daily scripture reading with 2-5 minute voice synthesis, random verses, prayer focus
+- **Purpose**: Spiritual wellness and daily reflection
+- **Trigger**: User navigates to Prayer tab
+- **Progression**: Select time (2 or 5 min) → Random verse displayed → Voice reading option → New verse button
+- **Success criteria**: Natural voice synthesis, relevant verses, peaceful UX
+
+### Emergency Hotlines
+- **Functionality**: Quick access to emergency numbers with one-tap calling
+- **Purpose**: Critical safety resource for emergencies
+- **Trigger**: User navigates to Emergency tab
+- **Progression**: View hotlines → Select service → Initiate call
+- **Success criteria**: Instant access, clear categorization, international numbers included
+
+### Game Time Monitoring
+- **Functionality**: Track children's gaming sessions with daily limits and alerts
+- **Purpose**: Healthy screen time management for kids
+- **Trigger**: Displayed in Resources tab
+- **Progression**: Track sessions → Display progress → Alert when over limit → Daily reset
+- **Success criteria**: Accurate tracking, clear visualization, configurable limits
+
+### Daily News Updates
+- **Functionality**: Curated news feed with category filtering
+- **Purpose**: Stay informed about relevant daily events
+- **Trigger**: Displayed in Resources tab
+- **Progression**: Load news → Display by category → Tap to read more → Refresh for updates
+- **Success criteria**: Relevant content, fast loading, clean presentation
 
 ### Smart Sleep Guardian
 - **Functionality**: Automatically detects sleep patterns and enables Do Not Disturb mode with intelligent filtering, plus AI-powered audio notification summaries

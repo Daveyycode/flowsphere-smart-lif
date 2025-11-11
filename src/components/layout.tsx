@@ -1,12 +1,12 @@
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera } from '@phosphor-icons/react'
+import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera, BookOpen, Phone, Newspaper } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
@@ -17,6 +17,9 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
     { id: 'cameras' as const, label: 'Cameras', icon: Camera },
     { id: 'automations' as const, label: 'Automations', icon: Lightning },
     { id: 'family' as const, label: 'Family', icon: Users },
+    { id: 'prayer' as const, label: 'Prayer', icon: BookOpen },
+    { id: 'resources' as const, label: 'Resources', icon: Newspaper },
+    { id: 'emergency' as const, label: 'Emergency', icon: Phone },
     { id: 'settings' as const, label: 'Settings', icon: Gear }
   ]
 
@@ -70,8 +73,8 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
       </main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl safe-area-inset-bottom">
-        <div className="grid grid-cols-4 h-16 sm:h-18">
-          {tabs.filter(tab => ['dashboard', 'notifications', 'devices', 'family'].includes(tab.id)).map((tab) => {
+        <div className="grid grid-cols-5 h-16 sm:h-18">
+          {tabs.filter(tab => ['dashboard', 'notifications', 'family', 'prayer', 'resources'].includes(tab.id)).map((tab) => {
             const Icon = tab.icon
             const isActive = currentTab === tab.id
             return (
