@@ -5,16 +5,15 @@ import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   const tabs = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: House },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
-    { id: 'devices' as const, label: 'Devices', icon: Cpu },
-    { id: 'automations' as const, label: 'Automations', icon: Lightning },
+    { id: 'devices' as const, label: 'Devices & Automations', icon: Cpu },
     { id: 'family' as const, label: 'Family', icon: Users },
     { id: 'prayer' as const, label: 'Prayer', icon: BookOpen },
     { id: 'resources' as const, label: 'Resources', icon: Newspaper },
@@ -73,9 +72,10 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl safe-area-inset-bottom">
         <div className="grid grid-cols-5 h-16 sm:h-18">
-          {tabs.filter(tab => ['dashboard', 'notifications', 'family', 'prayer', 'resources'].includes(tab.id)).map((tab) => {
+          {tabs.filter(tab => ['dashboard', 'notifications', 'devices', 'family', 'resources'].includes(tab.id)).map((tab) => {
             const Icon = tab.icon
             const isActive = currentTab === tab.id
+            const label = tab.id === 'devices' ? 'Devices' : tab.label
             return (
               <button
                 key={tab.id}
@@ -86,7 +86,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                 )}
               >
                 <Icon className="w-5 h-5 sm:w-6 sm:h-6" weight={isActive ? 'fill' : 'regular'} />
-                <span className="text-[10px] sm:text-xs font-medium leading-tight">{tab.label}</span>
+                <span className="text-[10px] sm:text-xs font-medium leading-tight">{label}</span>
               </button>
             )
           })}

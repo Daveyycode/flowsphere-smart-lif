@@ -32,7 +32,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
 }
 
 export function DashboardView({ stats, recentActivity, onTabChange }: DashboardViewProps) {

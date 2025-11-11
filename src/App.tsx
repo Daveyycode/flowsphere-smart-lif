@@ -5,11 +5,10 @@ import { LandingPage } from '@/components/landing-page'
 import { AuthModal } from '@/components/auth-modal'
 import { Layout } from '@/components/layout'
 import { DashboardView } from '@/components/dashboard-view'
-import { DevicesView, Device } from '@/components/devices-view'
+import { DevicesAutomationsView, Device, Automation } from '@/components/devices-automations-view'
 import { FamilyView, FamilyMember } from '@/components/family-view'
 import { SettingsView } from '@/components/settings-view'
 import { NotificationsView, Notification } from '@/components/notifications-view'
-import { AutomationsView, Automation } from '@/components/automations-view'
 import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
 import { SubscriptionManagement } from '@/components/subscription-management'
@@ -33,7 +32,7 @@ import {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -200,15 +199,11 @@ function App() {
               />
             )}
             {currentTab === 'devices' && (
-              <DevicesView 
+              <DevicesAutomationsView 
                 devices={devices || []} 
+                automations={automations || []}
                 onDeviceUpdate={handleDeviceUpdate}
                 onAddDevice={handleAddDevice}
-              />
-            )}
-            {currentTab === 'automations' && (
-              <AutomationsView
-                automations={automations || []}
                 onToggleAutomation={handleToggleAutomation}
                 onDeleteAutomation={handleDeleteAutomation}
                 onAddAutomation={handleAddAutomation}

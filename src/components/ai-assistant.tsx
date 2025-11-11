@@ -10,9 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
-import { Device } from '@/components/devices-view'
-import { CCTVCamera } from '@/components/cctv-view'
-import { Automation } from '@/components/automations-view'
+import { Device, Automation } from '@/components/devices-automations-view'
 import { FamilyMember } from '@/components/family-view'
 import { Notification } from '@/components/notifications-view'
 
@@ -23,7 +21,7 @@ interface Message {
 }
 
 interface AIAssistantProps {
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
   onDeviceUpdate?: (id: string, updates: Partial<Device>) => void
   onDndToggle?: (enabled: boolean) => void
   onAddDevice?: (device: Omit<Device, 'id'>) => void
@@ -188,18 +186,19 @@ export function AIAssistant({
     
     if (input.includes('start recording') || input.includes('stop recording')) {
       const startRecording = input.includes('start recording')
+      const cameras = devices.filter(d => d.type === 'camera')
       
       for (const camera of cameras) {
         const cameraNameLower = camera.name.toLowerCase()
         if (input.includes(cameraNameLower)) {
-          onToggleCameraRecording?.(camera.id, startRecording)
+          onDeviceUpdate?.(camera.id, { isOn: startRecording })
           toast.success(`${camera.name} ${startRecording ? 'started' : 'stopped'} recording`)
           return { executed: true, response: `Done! ${camera.name} is now ${startRecording ? 'recording' : 'stopped'}.` }
         }
       }
       
       if (input.includes('all cameras') || input.includes('all camera')) {
-        cameras.forEach(camera => onToggleCameraRecording?.(camera.id, startRecording))
+        cameras.forEach(camera => onDeviceUpdate?.(camera.id, { isOn: startRecording }))
         toast.success(`All cameras ${startRecording ? 'started' : 'stopped'} recording`)
         return { executed: true, response: `Done! All cameras are now ${startRecording ? 'recording' : 'stopped'}.` }
       }
@@ -330,13 +329,9 @@ export function AIAssistant({
         onTabChange?.('notifications')
         return { executed: true, response: "Opening your notifications." }
       }
-      if (input.includes('camera') || input.includes('cctv')) {
-        onTabChange?.('cameras')
-        return { executed: true, response: "Opening camera view." }
-      }
-      if (input.includes('automation') || input.includes('routine')) {
-        onTabChange?.('automations')
-        return { executed: true, response: "Opening automations." }
+      if (input.includes('camera') || input.includes('cctv') || input.includes('automation') || input.includes('routine')) {
+        onTabChange?.('devices')
+        return { executed: true, response: "Opening devices & automations." }
       }
       if (input.includes('setting')) {
         onTabChange?.('settings')
@@ -345,10 +340,6 @@ export function AIAssistant({
       if (input.includes('prayer') || input.includes('bible')) {
         onTabChange?.('prayer')
         return { executed: true, response: "Opening prayer & Bible time." }
-      }
-      if (input.includes('emergency') || input.includes('hotline')) {
-        onTabChange?.('emergency')
-        return { executed: true, response: "Opening emergency hotlines." }
       }
       if (input.includes('traffic')) {
         onTabChange?.('traffic')
@@ -401,8 +392,9 @@ export function AIAssistant({
         setMessages(prev => [...prev, assistantMessage])
         speakText(commandResult.response)
       } else {
+        const cameras = devices.filter(d => d.type === 'camera')
         const deviceList = devices.map(d => `${d.name} (${d.type}${d.isOn ? ', ON' : ', OFF'})`).join(', ')
-        const cameraList = cameras.map(c => `${c.name} (${c.status})`).join(', ')
+        const cameraList = cameras.map(c => `${c.name} (${c.cameraLocation || 'unknown location'}${c.isOn ? ', RECORDING' : ', OFF'})`).join(', ')
         const automationList = automations.map(a => `${a.name} (${a.isActive ? 'active' : 'inactive'})`).join(', ')
         const familyList = familyMembers.map(f => `${f.name} (${f.status})`).join(', ')
         
