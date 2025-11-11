@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Lightbulb, Thermometer, Lock, Eye, Lightning, TrendUp, Users as UsersIcon, House, Camera, CalendarBlank, Cloud, MapTrifold, Notebook, Plus, PencilSimple } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Lightbulb, Thermometer, Lock, Eye, Lightning, TrendUp, Users as UsersIcon, House, Camera, CalendarBlank, Cloud, MapTrifold, Notebook, Plus, PencilSimple, BookOpen, Play, Pause, ArrowClockwise } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -9,6 +9,54 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmergencyDialog } from '@/components/emergency-dialog'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
+
+interface BibleVerse {
+  reference: string
+  text: string
+}
+
+const bibleVerses: BibleVerse[] = [
+  {
+    reference: 'Philippians 4:6-7',
+    text: 'Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God. And the peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus.'
+  },
+  {
+    reference: 'Psalm 46:1',
+    text: 'God is our refuge and strength, an ever-present help in trouble.'
+  },
+  {
+    reference: 'Jeremiah 29:11',
+    text: 'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.'
+  },
+  {
+    reference: 'Isaiah 41:10',
+    text: 'So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.'
+  },
+  {
+    reference: 'Proverbs 3:5-6',
+    text: 'Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.'
+  },
+  {
+    reference: 'Matthew 11:28',
+    text: 'Come to me, all you who are weary and burdened, and I will give you rest.'
+  },
+  {
+    reference: 'Romans 8:28',
+    text: 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.'
+  },
+  {
+    reference: 'Joshua 1:9',
+    text: 'Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.'
+  },
+  {
+    reference: 'Psalm 23:1-4',
+    text: 'The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name\'s sake. Even though I walk through the darkest valley, I will fear no evil, for you are with me; your rod and your staff, they comfort me.'
+  },
+  {
+    reference: '2 Corinthians 12:9',
+    text: 'But he said to me, "My grace is sufficient for you, for my power is made perfect in weakness." Therefore I will boast all the more gladly about my weaknesses, so that Christ\'s power may rest on me.'
+  }
+]
 
 interface QuickAccessBox {
   id: string
@@ -32,7 +80,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
 }
 
 export function DashboardView({ stats, recentActivity, onTabChange }: DashboardViewProps) {
@@ -45,7 +93,6 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
 
   const availableBoxes: QuickAccessBox[] = [
     { id: 'weather', label: 'Weather', description: 'Local forecast', icon: Cloud, color: 'blue-mid', action: 'dashboard' },
-    { id: 'prayer', label: 'Daily Prayer', description: 'Scripture reading', icon: House, color: 'primary', action: 'prayer' },
     { id: 'emergency', label: 'Emergency Hotlines', description: 'Quick access hotlines', icon: Lightning, color: 'destructive', action: 'emergency' },
     { id: 'meeting-notes', label: 'Meeting Notes', description: 'Voice transcription', icon: Notebook, color: 'accent', action: 'meeting-notes' },
     { id: 'traffic', label: 'Traffic Update', description: 'Real-time conditions', icon: MapTrifold, color: 'mint', action: 'traffic' },
@@ -53,7 +100,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
     { id: 'family', label: 'Family Safety', description: 'Track loved ones', icon: UsersIcon, color: 'coral', action: 'family' }
   ]
 
-  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['weather', 'prayer', 'emergency'])
+  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['weather', 'emergency', 'meeting-notes'])
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [showEmergencyDialog, setShowEmergencyDialog] = useState(false)
 
@@ -86,7 +133,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
   }
 
   const selectedBoxes = availableBoxes.filter(box => 
-    (quickAccessBoxes || ['weather', 'prayer', 'emergency']).includes(box.id)
+    (quickAccessBoxes || ['weather', 'emergency', 'meeting-notes']).includes(box.id)
   )
 
   const getColorClasses = (color: string) => {
@@ -170,6 +217,51 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
     }
   ]
 
+  const [currentVerse, setCurrentVerse] = useState<BibleVerse | null>(null)
+  const [isReading, setIsReading] = useState(false)
+
+  const getRandomVerse = () => {
+    const randomIndex = Math.floor(Math.random() * bibleVerses.length)
+    return bibleVerses[randomIndex]
+  }
+
+  const handleStartReading = () => {
+    const verse = getRandomVerse()
+    setCurrentVerse(verse)
+    setIsReading(true)
+    
+    const utterance = new SpeechSynthesisUtterance(`${verse.reference}. ${verse.text}`)
+    utterance.rate = 0.85
+    utterance.pitch = 1
+    utterance.volume = 1
+    
+    utterance.onend = () => {
+      setIsReading(false)
+      toast.success('May God\'s word bless your day')
+    }
+    
+    utterance.onerror = () => {
+      setIsReading(false)
+      toast.error('Unable to read aloud. Please check your device settings.')
+    }
+    
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const handleStopReading = () => {
+    window.speechSynthesis.cancel()
+    setIsReading(false)
+  }
+
+  const handleNewVerse = () => {
+    if (isReading) {
+      handleStopReading()
+    }
+    const verse = getRandomVerse()
+    setCurrentVerse(verse)
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
       <motion.div
@@ -181,6 +273,91 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
           Here's what's happening in your sphere today
         </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card className="p-4 sm:p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+          <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" weight="fill" />
+            </div>
+
+            {!currentVerse ? (
+              <>
+                <div>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2 font-heading">
+                    Word of God
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Would you like to hear God's word today?
+                  </p>
+                </div>
+
+                <Button
+                  size="lg"
+                  onClick={handleStartReading}
+                  className="min-touch-target bg-primary hover:bg-primary/90"
+                >
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                  Start Reading
+                </Button>
+              </>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentVerse.reference}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-4 sm:space-y-6 w-full"
+                >
+                  <div>
+                    <p className="text-xs sm:text-sm font-semibold text-primary mb-3 sm:mb-4">
+                      {currentVerse.reference}
+                    </p>
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                      {currentVerse.text}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
+                    {isReading ? (
+                      <Button
+                        variant="destructive"
+                        onClick={handleStopReading}
+                        className="min-touch-target"
+                      >
+                        <Pause className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                        Stop
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleStartReading}
+                        className="min-touch-target"
+                      >
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                        Read Aloud
+                      </Button>
+                    )}
+                    
+                    <Button
+                      variant="outline"
+                      onClick={handleNewVerse}
+                      className="min-touch-target"
+                    >
+                      <ArrowClockwise className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      New Verse
+                    </Button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
+        </Card>
       </motion.div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -347,7 +524,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
             <div className="space-y-2">
               {availableBoxes.map((box) => {
                 const Icon = box.icon
-                const isSelected = (quickAccessBoxes || ['weather', 'prayer', 'emergency']).includes(box.id)
+                const isSelected = (quickAccessBoxes || ['weather', 'emergency', 'meeting-notes']).includes(box.id)
                 const colors = getColorClasses(box.color)
                 
                 return (

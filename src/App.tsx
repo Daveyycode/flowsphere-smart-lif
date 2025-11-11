@@ -14,7 +14,6 @@ import { AIAssistant } from '@/components/ai-assistant'
 import { SubscriptionManagement } from '@/components/subscription-management'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
-import { PrayerView } from '@/components/prayer-view'
 import { MeetingNotes } from '@/components/meeting-notes'
 import { PermissionsSettings } from '@/components/permissions-settings'
 import { TrafficUpdate } from '@/components/traffic-update'
@@ -31,7 +30,7 @@ import {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -211,7 +210,6 @@ function App() {
             {currentTab === 'family' && (
               <FamilyView members={familyMembers || []} />
             )}
-            {currentTab === 'prayer' && <PrayerView />}
             {currentTab === 'meeting-notes' && <MeetingNotes />}
             {currentTab === 'permissions' && <PermissionsSettings />}
             {currentTab === 'traffic' && <TrafficUpdate />}
