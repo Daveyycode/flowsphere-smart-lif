@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Lightbulb, Thermometer, Lock, Camera, Power, Plus } from '@phosphor-icons/react'
+import { Lightbulb, Thermometer, Lock, Camera, Power, Plus, Television, Robot, Fan, SpeakerHigh, Wind } from '@phosphor-icons/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
@@ -15,12 +15,17 @@ import { toast } from 'sonner'
 export interface Device {
   id: string
   name: string
-  type: 'light' | 'thermostat' | 'lock' | 'camera'
+  type: 'light' | 'thermostat' | 'lock' | 'camera' | 'television' | 'robot' | 'fan' | 'speaker' | 'air-purifier'
   status: 'online' | 'offline'
   isOn: boolean
   brightness?: number
   temperature?: number
   locked?: boolean
+  volume?: number
+  speed?: number
+  channel?: string
+  batteryLevel?: number
+  cleaningMode?: string
   room: string
 }
 
@@ -35,7 +40,7 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newDevice, setNewDevice] = useState<{
     name: string
-    type: 'light' | 'thermostat' | 'lock' | 'camera'
+    type: 'light' | 'thermostat' | 'lock' | 'camera' | 'television' | 'robot' | 'fan' | 'speaker' | 'air-purifier'
     room: string
     status: 'online' | 'offline'
     isOn: boolean
@@ -53,6 +58,11 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
       case 'thermostat': return Thermometer
       case 'lock': return Lock
       case 'camera': return Camera
+      case 'television': return Television
+      case 'robot': return Robot
+      case 'fan': return Fan
+      case 'speaker': return SpeakerHigh
+      case 'air-purifier': return Wind
       default: return Power
     }
   }
@@ -63,6 +73,11 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
       case 'thermostat': return 'coral'
       case 'lock': return 'primary'
       case 'camera': return 'accent'
+      case 'television': return 'accent'
+      case 'robot': return 'primary'
+      case 'fan': return 'mint'
+      case 'speaker': return 'coral'
+      case 'air-purifier': return 'mint'
       default: return 'muted'
     }
   }
@@ -85,7 +100,12 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
       ...newDevice,
       brightness: newDevice.type === 'light' ? 100 : undefined,
       temperature: newDevice.type === 'thermostat' ? 72 : undefined,
-      locked: newDevice.type === 'lock' ? true : undefined
+      locked: newDevice.type === 'lock' ? true : undefined,
+      volume: (newDevice.type === 'television' || newDevice.type === 'speaker') ? 50 : undefined,
+      speed: (newDevice.type === 'fan' || newDevice.type === 'air-purifier') ? 2 : undefined,
+      channel: newDevice.type === 'television' ? 'HDMI 1' : undefined,
+      batteryLevel: newDevice.type === 'robot' ? 100 : undefined,
+      cleaningMode: newDevice.type === 'robot' ? 'Auto' : undefined
     }
     onAddDevice(deviceToAdd)
     setIsAddDialogOpen(false)
@@ -145,6 +165,11 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
                     <SelectItem value="thermostat">Thermostat</SelectItem>
                     <SelectItem value="lock">Lock</SelectItem>
                     <SelectItem value="camera">Camera</SelectItem>
+                    <SelectItem value="television">Television</SelectItem>
+                    <SelectItem value="robot">Robot Vacuum</SelectItem>
+                    <SelectItem value="fan">Fan</SelectItem>
+                    <SelectItem value="speaker">Speaker</SelectItem>
+                    <SelectItem value="air-purifier">Air Purifier</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -268,6 +293,76 @@ export function DevicesView({ devices, onDeviceUpdate, onAddDevice }: DevicesVie
                       <Badge variant={device.isOn ? 'default' : 'secondary'}>
                         {device.isOn ? 'Active' : 'Inactive'}
                       </Badge>
+                    </div>
+                  )}
+
+                  {device.type === 'television' && device.volume !== undefined && device.isOn && (
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Volume</span>
+                        <span className="font-medium">{device.volume}%</span>
+                      </div>
+                      <Slider
+                        value={[device.volume]}
+                        onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                        max={100}
+                        step={1}
+                        className="cursor-pointer"
+                      />
+                      {device.channel && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                          <span>Channel</span>
+                          <span className="font-medium">{device.channel}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {device.type === 'robot' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Battery</span>
+                        <span className="font-medium">{device.batteryLevel || 100}%</span>
+                      </div>
+                      {device.cleaningMode && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Mode</span>
+                          <Badge variant="default">{device.cleaningMode}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(device.type === 'fan' || device.type === 'air-purifier') && device.speed !== undefined && device.isOn && (
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Speed</span>
+                        <span className="font-medium">Level {device.speed}</span>
+                      </div>
+                      <Slider
+                        value={[device.speed]}
+                        onValueChange={(value) => onDeviceUpdate(device.id, { speed: value[0] })}
+                        min={1}
+                        max={5}
+                        step={1}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {device.type === 'speaker' && device.volume !== undefined && device.isOn && (
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Volume</span>
+                        <span className="font-medium">{device.volume}%</span>
+                      </div>
+                      <Slider
+                        value={[device.volume]}
+                        onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                        max={100}
+                        step={1}
+                        className="cursor-pointer"
+                      />
                     </div>
                   )}
                 </CardContent>

@@ -10,6 +10,10 @@ import { CCTVView, CCTVCamera } from '@/components/cctv-view'
 import { AutomationsView, Automation } from '@/components/automations-view'
 import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
+import { AdminDashboard } from '@/components/admin-dashboard'
+import { SubscriptionManagement } from '@/components/subscription-management'
+import { TermsOfService } from '@/components/terms-of-service'
+import { PrivacyPolicy } from '@/components/privacy-policy'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -21,7 +25,7 @@ import {
 } from '@/lib/initial-data'
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'admin' | 'subscription' | 'terms' | 'privacy'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -31,7 +35,7 @@ function App() {
   
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
   const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
-  const [subscription] = useKV<'free' | 'premium' | 'family'>('flowsphere-subscription', 'premium')
+  const [subscription, setSubscription] = useKV<'free' | 'premium' | 'family'>('flowsphere-subscription', 'premium')
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
   const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
   const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
@@ -124,6 +128,14 @@ function App() {
     ])
   }
 
+  const handleSubscriptionChange = (plan: 'free' | 'premium' | 'family') => {
+    setSubscription(plan)
+  }
+
+  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy') => {
+    setCurrentTab(destination)
+  }
+
   return (
     <>
       <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
@@ -187,8 +199,18 @@ function App() {
                 subscription={subscription || 'free'}
                 notifications={notificationSettings || { email: true, push: true, sms: false }}
                 onNotificationChange={handleNotificationChange}
+                onNavigate={handleNavigateFromSettings}
               />
             )}
+            {currentTab === 'admin' && <AdminDashboard />}
+            {currentTab === 'subscription' && (
+              <SubscriptionManagement 
+                currentPlan={subscription || 'free'} 
+                onPlanChange={handleSubscriptionChange}
+              />
+            )}
+            {currentTab === 'terms' && <TermsOfService />}
+            {currentTab === 'privacy' && <PrivacyPolicy />}
           </motion.div>
         </AnimatePresence>
       </Layout>

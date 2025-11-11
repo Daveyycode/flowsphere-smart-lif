@@ -1,15 +1,29 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera } from '@phosphor-icons/react'
+import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera, UserCircleGear } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'admin' | 'subscription' | 'terms' | 'privacy'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'admin' | 'subscription' | 'terms' | 'privacy') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
+  const [isOwner, setIsOwner] = useState(false)
+
+  useEffect(() => {
+    const checkOwnership = async () => {
+      try {
+        const user = await window.spark.user()
+        setIsOwner(user?.isOwner || false)
+      } catch (error) {
+        setIsOwner(false)
+      }
+    }
+    checkOwnership()
+  }, [])
+
   const tabs = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: House },
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
@@ -18,6 +32,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
     { id: 'automations' as const, label: 'Automations', icon: Lightning },
     { id: 'family' as const, label: 'Family', icon: Users },
     { id: 'settings' as const, label: 'Settings', icon: Gear },
+    ...(isOwner ? [{ id: 'admin' as const, label: 'Admin', icon: UserCircleGear }] : [])
   ]
 
   return (

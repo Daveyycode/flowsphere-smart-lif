@@ -17,6 +17,7 @@ interface SettingsViewProps {
     sms: boolean
   }
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
+  onNavigate: (tab: 'subscription' | 'terms' | 'privacy') => void
 }
 
 export function SettingsView({ 
@@ -24,7 +25,8 @@ export function SettingsView({
   userEmail, 
   subscription,
   notifications,
-  onNotificationChange 
+  onNotificationChange,
+  onNavigate 
 }: SettingsViewProps) {
   const getSubscriptionBadge = () => {
     switch (subscription) {
@@ -162,7 +164,10 @@ export function SettingsView({
                     <p className="text-sm text-muted-foreground mb-4">
                       Unlock unlimited devices, AI-powered insights, family safety tracking, and advanced automations.
                     </p>
-                    <Button className="bg-accent hover:bg-accent/90">
+                    <Button 
+                      className="bg-accent hover:bg-accent/90"
+                      onClick={() => onNavigate('subscription')}
+                    >
                       View Plans
                     </Button>
                   </div>
@@ -196,10 +201,18 @@ export function SettingsView({
               </div>
               <Separator />
               <div className="pt-2 space-x-4">
-                <Button variant="link" className="p-0 h-auto text-accent">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-accent"
+                  onClick={() => onNavigate('privacy')}
+                >
                   Privacy Policy
                 </Button>
-                <Button variant="link" className="p-0 h-auto text-accent">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-accent"
+                  onClick={() => onNavigate('terms')}
+                >
                   Terms of Service
                 </Button>
                 <Button variant="link" className="p-0 h-auto text-accent">
