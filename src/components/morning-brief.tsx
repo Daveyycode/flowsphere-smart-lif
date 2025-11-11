@@ -67,21 +67,55 @@ export function MorningBrief({ isVisible, onDismiss }: MorningBriefProps) {
   const WeatherIcon = getWeatherIcon()
 
   const handlePlayVoice = async () => {
+    if (!('speechSynthesis' in window)) {
+      toast.error('Text-to-speech is not supported in your browser')
+      return
+    }
+
+    if (isPlaying) {
+      window.speechSynthesis.cancel()
+      setIsPlaying(false)
+      return
+    }
+    
     setIsPlaying(true)
     
-    const voiceScript = `Good morning! You slept ${briefData.sleep.hours} hours with ${briefData.sleep.quality}% quality. 
+    const voiceScript = `${greeting}! You slept ${briefData.sleep.hours} hours with ${briefData.sleep.quality}% quality. 
     Weather is ${briefData.weather.condition} at ${briefData.weather.temperature} degrees. 
     Traffic to work is ${briefData.traffic.status}, about ${briefData.traffic.duration}. 
     You have ${briefData.schedule.events} meetings today. 
     Your next event is ${briefData.schedule.nextEvent}.
     You have ${briefData.notifications.urgent} urgent notifications and ${briefData.notifications.work} work messages.`
     
-    toast.info('Voice summary playing...')
+    const utterance = new SpeechSynthesisUtterance(voiceScript)
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+    utterance.volume = 1.0
     
-    setTimeout(() => {
+    utterance.onstart = () => {
+      toast.success('Playing voice summary')
+    }
+    
+    utterance.onend = () => {
       setIsPlaying(false)
-    }, 3000)
+      toast.info('Summary complete')
+    }
+    
+    utterance.onerror = () => {
+      setIsPlaying(false)
+      toast.error('Failed to play voice summary')
+    }
+    
+    window.speechSynthesis.speak(utterance)
   }
+  
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   return (
     <AnimatePresence>
