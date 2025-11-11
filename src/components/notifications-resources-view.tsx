@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { motion } from 'framer-motion'
-import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning } from '@phosphor-icons/react'
+import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning, CreditCard, Camera } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,8 @@ import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { speakText, stopSpeaking } from '@/lib/audio-summary'
+import { SubscriptionMonitoring } from '@/components/subscription-monitoring'
+import { CCTVGuardAI } from '@/components/cctv-guard-ai'
 
 declare const spark: {
   llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
@@ -99,7 +101,7 @@ export function NotificationsResourcesView({
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [activeTab, setActiveTab] = useState<'notifications' | 'monitoring'>('notifications')
+  const [activeTab, setActiveTab] = useState<'notifications' | 'monitoring' | 'subscriptions' | 'cctv'>('notifications')
 
   const [gameSessions, setGameSessions] = useKV<GameSession[]>('flowsphere-game-sessions', [
     {
@@ -261,15 +263,23 @@ Keep it brief and informative. Return only the summary text, no additional forma
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notifications' | 'monitoring')} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notifications' | 'monitoring' | 'subscriptions' | 'cctv')} className="space-y-6">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="w-4 h-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="subscriptions" className="gap-2">
+            <CreditCard className="w-4 h-4" />
+            Subscriptions
+          </TabsTrigger>
+          <TabsTrigger value="cctv" className="gap-2">
+            <Camera className="w-4 h-4" />
+            CCTV Guard
+          </TabsTrigger>
           <TabsTrigger value="monitoring" className="gap-2">
             <GameController className="w-4 h-4" />
-            Monitoring
+            Activity
           </TabsTrigger>
         </TabsList>
 
@@ -438,6 +448,14 @@ Keep it brief and informative. Return only the summary text, no additional forma
               )}
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="subscriptions" className="space-y-6">
+          <SubscriptionMonitoring />
+        </TabsContent>
+
+        <TabsContent value="cctv" className="space-y-6">
+          <CCTVGuardAI />
         </TabsContent>
 
         <TabsContent value="monitoring" className="space-y-6">

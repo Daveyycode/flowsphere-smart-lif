@@ -131,6 +131,12 @@ function App() {
     setSubscription(plan)
   }
 
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    setCurrentTab('dashboard')
+    setShowMorningBrief(true)
+  }
+
   const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => {
     setCurrentTab(destination)
   }
@@ -225,6 +231,7 @@ function App() {
                 notifications={notificationSettings || { email: true, push: true, sms: false }}
                 onNotificationChange={handleNotificationChange}
                 onNavigate={handleNavigateFromSettings}
+                onLogout={handleLogout}
               />
             )}
             {currentTab === 'subscription' && (

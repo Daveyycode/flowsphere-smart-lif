@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check } from '@phosphor-icons/react'
+import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check, SignOut } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useTheme, ColorTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface SettingsViewProps {
   userName: string
@@ -20,6 +21,7 @@ interface SettingsViewProps {
   }
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
   onNavigate: (tab: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => void
+  onLogout?: () => void
 }
 
 export function SettingsView({ 
@@ -28,7 +30,8 @@ export function SettingsView({
   subscription,
   notifications,
   onNotificationChange,
-  onNavigate 
+  onNavigate,
+  onLogout
 }: SettingsViewProps) {
   const { mode, colorTheme, setColorTheme } = useTheme()
   
@@ -392,6 +395,39 @@ export function SettingsView({
                   Support
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.8 : 0.7 }}
+        >
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-destructive">
+                <SignOut className="w-5 h-5" weight="duotone" />
+                <span>Sign Out</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sign out of your FlowSphere account. You can always sign back in anytime.
+              </p>
+              <Button 
+                variant="destructive" 
+                className="w-full gap-2"
+                onClick={() => {
+                  if (onLogout) {
+                    toast.success('Signed out successfully')
+                    onLogout()
+                  }
+                }}
+              >
+                <SignOut className="w-4 h-4" weight="bold" />
+                Sign Out
+              </Button>
             </CardContent>
           </Card>
         </motion.div>
