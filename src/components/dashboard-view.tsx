@@ -44,15 +44,16 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
   }
 
   const availableBoxes: QuickAccessBox[] = [
+    { id: 'prayer', label: 'Daily Prayer', description: 'Scripture reading', icon: House, color: 'primary', action: 'prayer' },
     { id: 'emergency', label: 'Emergency Hotlines', description: 'Quick access hotlines', icon: Lightning, color: 'destructive', action: 'emergency' },
     { id: 'meeting-notes', label: 'Meeting Notes', description: 'Voice transcription', icon: Notebook, color: 'accent', action: 'meeting-notes' },
     { id: 'traffic', label: 'Traffic Update', description: 'Real-time conditions', icon: MapTrifold, color: 'mint', action: 'traffic' },
+    { id: 'weather', label: 'Weather', description: 'Local forecast', icon: Cloud, color: 'blue-mid', action: 'dashboard' },
     { id: 'locks', label: 'Lock All Doors', description: 'Quick security', icon: Lock, color: 'blue-deep', action: 'devices' },
-    { id: 'family', label: 'Family Safety', description: 'Track loved ones', icon: UsersIcon, color: 'coral', action: 'family' },
-    { id: 'prayer', label: 'Daily Prayer', description: 'Scripture reading', icon: House, color: 'primary', action: 'prayer' }
+    { id: 'family', label: 'Family Safety', description: 'Track loved ones', icon: UsersIcon, color: 'coral', action: 'family' }
   ]
 
-  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['emergency', 'meeting-notes', 'traffic'])
+  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['prayer', 'emergency', 'meeting-notes'])
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [showEmergencyDialog, setShowEmergencyDialog] = useState(false)
 
@@ -66,7 +67,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
 
   const toggleBox = (boxId: string) => {
     setQuickAccessBoxes((current) => {
-      const currentBoxes = current || ['cameras', 'meeting-notes', 'traffic']
+      const currentBoxes = current || ['prayer', 'emergency', 'meeting-notes']
       
       if (currentBoxes.includes(boxId)) {
         if (currentBoxes.length <= 3) {
@@ -85,7 +86,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
   }
 
   const selectedBoxes = availableBoxes.filter(box => 
-    (quickAccessBoxes || ['emergency', 'meeting-notes', 'traffic']).includes(box.id)
+    (quickAccessBoxes || ['prayer', 'emergency', 'meeting-notes']).includes(box.id)
   )
 
   const getColorClasses = (color: string) => {
@@ -346,7 +347,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
             <div className="space-y-2">
               {availableBoxes.map((box) => {
                 const Icon = box.icon
-                const isSelected = (quickAccessBoxes || ['cameras', 'meeting-notes', 'traffic']).includes(box.id)
+                const isSelected = (quickAccessBoxes || ['prayer', 'emergency', 'meeting-notes']).includes(box.id)
                 const colors = getColorClasses(box.color)
                 
                 return (
