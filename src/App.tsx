@@ -252,7 +252,13 @@ function App() {
         </AnimatePresence>
       </Layout>
       
-      <AIAssistant />
+      <AIAssistant 
+        onTabChange={handleTabChange}
+        onDeviceUpdate={handleDeviceUpdate}
+        onDndToggle={setDndEnabled}
+        devices={devices || []}
+        dndEnabled={dndEnabled || false}
+      />
       <Toaster position="top-center" />
     </>
   )

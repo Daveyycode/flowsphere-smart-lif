@@ -9,11 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { useKV } from '@github/spark/hooks'
+import { toast } from 'sonner'
+import { Device } from '@/components/devices-view'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+}
+
+interface AIAssistantProps {
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources') => void
+  onDeviceUpdate?: (id: string, updates: Partial<Device>) => void
+  onDndToggle?: (enabled: boolean) => void
+  devices?: Device[]
+  dndEnabled?: boolean
 }
 
 const VOICE_OPTIONS = [
@@ -25,14 +35,20 @@ const VOICE_OPTIONS = [
   { value: 'neutral-friendly', label: 'Fable (Neutral, Friendly)', description: 'Warm and approachable' }
 ]
 
-export function AIAssistant() {
+export function AIAssistant({ 
+  onTabChange, 
+  onDeviceUpdate, 
+  onDndToggle, 
+  devices = [],
+  dndEnabled = false 
+}: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant. I connect all your life layers - Personal, Professional, Family, and Home. I can provide voice & text summaries, help manage devices, create automations, and offer insights. What would you like to know?"
+      content: "Hi! I'm your FlowSphere AI assistant with full control over your app. I can turn devices on/off, adjust settings, navigate anywhere, and help you instantly. Just tell me what to do!"
     }
   ])
   const [input, setInput] = useState('')
@@ -94,6 +110,110 @@ export function AIAssistant() {
     }
   }
 
+  const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
+    const input = userInput.toLowerCase()
+    
+    if (input.includes('turn on') || input.includes('turn off') || input.includes('switch on') || input.includes('switch off') || input.includes('enable') || input.includes('disable')) {
+      const turnOn = input.includes('turn on') || input.includes('switch on') || input.includes('enable')
+      
+      if (input.includes('dnd') || input.includes('do not disturb')) {
+        onDndToggle?.(turnOn)
+        toast.success(`Do Not Disturb ${turnOn ? 'enabled' : 'disabled'}`)
+        return { executed: true, response: `Done! I've ${turnOn ? 'enabled' : 'disabled'} Do Not Disturb mode for you.` }
+      }
+      
+      for (const device of devices) {
+        const deviceNameLower = device.name.toLowerCase()
+        if (input.includes(deviceNameLower)) {
+          onDeviceUpdate?.(device.id, { isOn: turnOn })
+          toast.success(`${device.name} ${turnOn ? 'turned on' : 'turned off'}`)
+          return { executed: true, response: `Done! I've turned ${turnOn ? 'on' : 'off'} ${device.name}.` }
+        }
+      }
+      
+      if (input.includes('light') || input.includes('lights')) {
+        const lights = devices.filter(d => d.type === 'light')
+        lights.forEach(light => onDeviceUpdate?.(light.id, { isOn: turnOn }))
+        toast.success(`All lights ${turnOn ? 'turned on' : 'turned off'}`)
+        return { executed: true, response: `Done! I've turned ${turnOn ? 'on' : 'off'} all lights.` }
+      }
+      
+      if (input.includes('thermostat') || input.includes('temperature') || input.includes('heating') || input.includes('cooling')) {
+        const thermostat = devices.find(d => d.type === 'thermostat')
+        if (thermostat) {
+          onDeviceUpdate?.(thermostat.id, { isOn: turnOn })
+          toast.success(`Thermostat ${turnOn ? 'turned on' : 'turned off'}`)
+          return { executed: true, response: `Done! I've turned ${turnOn ? 'on' : 'off'} the thermostat.` }
+        }
+      }
+    }
+    
+    if (input.includes('set temperature') || input.includes('change temperature')) {
+      const tempMatch = input.match(/\d+/)
+      if (tempMatch) {
+        const temp = parseInt(tempMatch[0])
+        const thermostat = devices.find(d => d.type === 'thermostat')
+        if (thermostat) {
+          onDeviceUpdate?.(thermostat.id, { temperature: temp, isOn: true })
+          toast.success(`Temperature set to ${temp}°F`)
+          return { executed: true, response: `Done! I've set the temperature to ${temp}°F.` }
+        }
+      }
+    }
+    
+    if (input.includes('dim') || input.includes('brightness')) {
+      const brightnessMatch = input.match(/\d+/)
+      if (brightnessMatch) {
+        const brightness = parseInt(brightnessMatch[0])
+        const lights = devices.filter(d => d.type === 'light')
+        lights.forEach(light => onDeviceUpdate?.(light.id, { brightness, isOn: true }))
+        toast.success(`Lights dimmed to ${brightness}%`)
+        return { executed: true, response: `Done! I've set the lights to ${brightness}% brightness.` }
+      }
+    }
+    
+    if (input.includes('open') || input.includes('go to') || input.includes('show') || input.includes('navigate')) {
+      if (input.includes('dashboard') || input.includes('home')) {
+        onTabChange?.('dashboard')
+        return { executed: true, response: "Opening your dashboard now." }
+      }
+      if (input.includes('device') || input.includes('smart home')) {
+        onTabChange?.('devices')
+        return { executed: true, response: "Opening your devices." }
+      }
+      if (input.includes('family') || input.includes('kid')) {
+        onTabChange?.('family')
+        return { executed: true, response: "Opening family tracking." }
+      }
+      if (input.includes('notification')) {
+        onTabChange?.('notifications')
+        return { executed: true, response: "Opening your notifications." }
+      }
+      if (input.includes('camera') || input.includes('cctv')) {
+        onTabChange?.('cameras')
+        return { executed: true, response: "Opening camera view." }
+      }
+      if (input.includes('automation') || input.includes('routine')) {
+        onTabChange?.('automations')
+        return { executed: true, response: "Opening automations." }
+      }
+      if (input.includes('setting')) {
+        onTabChange?.('settings')
+        return { executed: true, response: "Opening settings." }
+      }
+      if (input.includes('prayer') || input.includes('bible')) {
+        onTabChange?.('prayer')
+        return { executed: true, response: "Opening prayer & Bible time." }
+      }
+      if (input.includes('emergency') || input.includes('hotline')) {
+        onTabChange?.('emergency')
+        return { executed: true, response: "Opening emergency hotlines." }
+      }
+    }
+    
+    return { executed: false, response: '' }
+  }
+
   const handleSend = async () => {
     if (!input.trim()) return
 
@@ -104,31 +224,52 @@ export function AIAssistant() {
     }
 
     setMessages(prev => [...prev, userMessage])
+    const userInput = input
     setInput('')
     setIsLoading(true)
 
     try {
-      const promptText = `You are a helpful AI assistant for FlowSphere, a comprehensive life management platform that connects four layers:
-      1. Personal Layer (sleep, DND, notifications, reminders, prayer/Bible)
-      2. Professional Layer (email summaries, meeting notes, productivity)
-      3. Family Layer (kid tracking, safety, weekend recommendations)
-      4. Home Layer (CCTV, IoT control, appliances)
+      const commandResult = await executeCommand(userInput)
       
-      The user said: ${input}
-      
-      Provide a helpful, friendly response that connects relevant layers. Keep responses under 100 words and be actionable.`
-      
-      const response = await window.spark.llm(promptText, 'gpt-4o-mini')
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response
-      }
+      if (commandResult.executed) {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: commandResult.response
+        }
+        setMessages(prev => [...prev, assistantMessage])
+        speakText(commandResult.response)
+      } else {
+        const deviceList = devices.map(d => `${d.name} (${d.type})`).join(', ')
+        
+        const prompt = `You are FlowSphere AI assistant with FULL CONTROL over the app. You can execute commands immediately.
 
-      setMessages(prev => [...prev, assistantMessage])
-      
-      speakText(response)
+Current app state:
+- Devices: ${deviceList || 'none'}
+- DND Mode: ${dndEnabled ? 'enabled' : 'disabled'}
+
+Available commands you can execute:
+- Control devices: "turn on/off [device name]" or "turn on/off lights"
+- Set temperature: "set temperature to [number]"
+- Dim lights: "dim lights to [number]%"
+- Toggle DND: "turn on/off do not disturb"
+- Navigate: "go to [dashboard/devices/family/cameras/automations/settings/prayer/emergency]"
+
+User said: ${userInput}
+
+If the user is asking you to do something, execute it and confirm briefly. Do NOT ask follow-up questions. Just do it and confirm. Keep responses under 50 words and sound natural and helpful.`
+        
+        const response = await window.spark.llm(prompt, 'gpt-4o-mini')
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response
+        }
+
+        setMessages(prev => [...prev, assistantMessage])
+        speakText(response)
+      }
     } catch (error) {
       console.error('AI error:', error)
       const errorMessage: Message = {
