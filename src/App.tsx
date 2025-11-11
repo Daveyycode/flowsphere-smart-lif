@@ -15,6 +15,7 @@ import { SubscriptionManagement } from '@/components/subscription-management'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
 import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   initialDevices,
@@ -26,6 +27,7 @@ import {
 
 function App() {
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'admin' | 'subscription' | 'terms' | 'privacy'>('dashboard')
+  const [isOwner, setIsOwner] = useState(false)
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -48,6 +50,18 @@ function App() {
     push: true,
     sms: false
   })
+
+  useEffect(() => {
+    const checkOwnership = async () => {
+      try {
+        const user = await window.spark.user()
+        setIsOwner(user?.isOwner || false)
+      } catch (error) {
+        setIsOwner(false)
+      }
+    }
+    checkOwnership()
+  }, [])
 
   const stats = {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
@@ -136,9 +150,23 @@ function App() {
     setCurrentTab(destination)
   }
 
+  const handleTabChange = (tab: typeof currentTab) => {
+    if (tab === 'admin' && !isOwner) {
+      toast.error('Admin access is restricted to the app owner')
+      return
+    }
+    setCurrentTab(tab)
+  }
+
+  useEffect(() => {
+    if (currentTab === 'admin' && !isOwner) {
+      setCurrentTab('dashboard')
+    }
+  }, [isOwner, currentTab])
+
   return (
     <>
-      <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
+      <Layout currentTab={currentTab} onTabChange={handleTabChange}>
         {currentTab === 'dashboard' && showMorningBrief && (
           <MorningBrief
             isVisible={showMorningBrief}
