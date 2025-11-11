@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Crown, Users, Sparkle } from '@phosphor-icons/react'
+import { Check, Crown, Users, Sparkle, CreditCard, CalendarBlank } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
+import { PaymentModal } from '@/components/payment-modal'
 
 interface SubscriptionManagementProps {
   currentPlan: 'free' | 'premium' | 'family'
@@ -12,7 +16,12 @@ interface SubscriptionManagementProps {
 }
 
 export function SubscriptionManagement({ currentPlan, onPlanChange }: SubscriptionManagementProps) {
-  const [billingCycle] = useKV<'monthly' | 'annual'>('flowsphere-billing-cycle', 'monthly')
+  const [billingCycle, setBillingCycle] = useKV<'monthly' | 'annual'>('flowsphere-billing-cycle', 'monthly')
+  const [paymentMethod] = useKV<{type: 'card' | 'paypal' | 'apple', last4?: string} | null>('flowsphere-payment-method', null)
+  const [nextBillingDate] = useKV<string>('flowsphere-next-billing', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+  
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<{id: string, name: string, price: number} | null>(null)
 
   const plans = [
     {
@@ -79,14 +88,27 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
     }
   ]
 
-  const handleUpgrade = (planId: string) => {
+  const handleUpgrade = (planId: string, planName: string, price: number) => {
     if (planId === currentPlan) {
       toast.info('You are already on this plan')
       return
     }
 
-    onPlanChange(planId as 'free' | 'premium' | 'family')
-    toast.success(`Successfully ${getPlanLevel(planId) > getPlanLevel(currentPlan) ? 'upgraded' : 'changed'} to ${planId} plan!`)
+    if (planId === 'free') {
+      onPlanChange('free')
+      toast.success('Downgraded to Free plan')
+      return
+    }
+
+    setSelectedPlan({ id: planId, name: planName, price })
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentComplete = () => {
+    if (selectedPlan) {
+      onPlanChange(selectedPlan.id as 'free' | 'premium' | 'family')
+      toast.success(`Successfully ${getPlanLevel(selectedPlan.id) > getPlanLevel(currentPlan) ? 'upgraded' : 'changed'} to ${selectedPlan.name} plan!`)
+    }
   }
 
   const getPlanLevel = (plan: string) => {
@@ -107,6 +129,21 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
           Unlock the full potential of your smart home with FlowSphere
         </p>
+      </div>
+
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <Label htmlFor="billing-toggle" className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+          Monthly
+        </Label>
+        <Switch
+          id="billing-toggle"
+          checked={billingCycle === 'annual'}
+          onCheckedChange={(checked) => setBillingCycle(checked ? 'annual' : 'monthly')}
+        />
+        <Label htmlFor="billing-toggle" className={`text-sm font-medium ${billingCycle === 'annual' ? 'text-foreground' : 'text-muted-foreground'}`}>
+          Annual
+          <Badge variant="secondary" className="ml-2 text-[10px]">Save 15%</Badge>
+        </Label>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -164,7 +201,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-6">
                   <Button
-                    onClick={() => handleUpgrade(plan.id)}
+                    onClick={() => handleUpgrade(plan.id, plan.name, billingCycle === 'monthly' ? plan.price : plan.priceAnnual)}
                     disabled={isCurrentPlan}
                     className={`w-full min-touch-target text-sm sm:text-base ${
                       isPopular ? 'bg-accent hover:bg-accent/90' : ''
@@ -219,11 +256,41 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Billing Cycle</p>
               <p className="text-base sm:text-lg font-semibold capitalize">{billingCycle}</p>
             </div>
+            {currentPlan !== 'free' && (
+              <>
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Next Billing Date</p>
+                  <p className="text-base sm:text-lg font-semibold">
+                    {new Date(nextBillingDate || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Payment Method</p>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-base sm:text-lg font-semibold">
+                      {paymentMethod?.type === 'card' && paymentMethod?.last4 
+                        ? `•••• ${paymentMethod.last4}` 
+                        : paymentMethod?.type === 'paypal'
+                        ? 'PayPal'
+                        : paymentMethod?.type === 'apple'
+                        ? 'Apple Pay'
+                        : 'No payment method'}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           {currentPlan !== 'free' && (
-            <div className="pt-4 border-t border-border/50">
+            <div className="pt-4 border-t border-border/50 flex gap-3">
               <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <CreditCard className="w-4 h-4 mr-2" />
                 Update Payment Method
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <CalendarBlank className="w-4 h-4 mr-2" />
+                View Billing History
               </Button>
             </div>
           )}
@@ -238,6 +305,15 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
           Need help choosing? <button className="text-accent hover:underline">Contact our team</button>
         </p>
       </div>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        planName={selectedPlan?.name || ''}
+        planPrice={selectedPlan?.price || 0}
+        billingCycle={billingCycle || 'monthly'}
+        onPaymentComplete={handlePaymentComplete}
+      />
     </div>
   )
 }
