@@ -20,6 +20,7 @@ import { TrafficUpdate } from '@/components/traffic-update'
 import { AIVoiceSettings } from '@/components/ai-voice-settings'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
+import { useTheme } from '@/hooks/use-theme'
 import {
   initialDevices,
   initialFamilyMembers,
@@ -28,6 +29,8 @@ import {
 } from '@/lib/initial-data'
 
 function App() {
+  useTheme()
+  
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')

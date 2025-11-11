@@ -1,7 +1,9 @@
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { House, Cpu, Users, Gear, Sparkle, Bell, Lightning, Camera, BookOpen, Phone, Newspaper } from '@phosphor-icons/react'
+import { House, Cpu, Users, Gear, Sparkle, Bell, Moon, Sun } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/use-theme'
+import { Button } from '@/components/ui/button'
 
 interface LayoutProps {
   children: ReactNode
@@ -10,6 +12,8 @@ interface LayoutProps {
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
+  const { mode, toggleMode } = useTheme()
+  
   const tabs = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: House },
     { id: 'notifications' as const, label: 'Notifications & Resources', icon: Bell },
@@ -31,36 +35,52 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
             <span className="font-heading font-bold text-lg sm:text-xl md:text-2xl bg-gradient-to-r from-blue-mid to-accent bg-clip-text text-transparent">FlowSphere</span>
           </div>
           
-          <nav className="hidden md:flex items-center space-x-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = currentTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={cn(
-                    'relative px-3 lg:px-4 py-2 rounded-lg text-sm lg:text-base font-medium transition-colors',
-                    isActive
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Icon className="w-4 h-4 lg:w-5 lg:h-5" weight={isActive ? 'fill' : 'regular'} />
-                    <span>{tab.label}</span>
-                  </div>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-gradient-to-r from-blue-light/20 via-blue-mid/10 to-transparent rounded-lg -z-10 border border-blue-mid/30"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </nav>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleMode}
+              className="rounded-full w-9 h-9 sm:w-10 sm:h-10"
+              aria-label="Toggle dark mode"
+            >
+              {mode === 'dark' ? (
+                <Sun className="w-5 h-5 text-foreground" weight="duotone" />
+              ) : (
+                <Moon className="w-5 h-5 text-foreground" weight="duotone" />
+              )}
+            </Button>
+            
+            <nav className="hidden md:flex items-center space-x-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = currentTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className={cn(
+                      'relative px-3 lg:px-4 py-2 rounded-lg text-sm lg:text-base font-medium transition-colors',
+                      isActive
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Icon className="w-4 h-4 lg:w-5 lg:h-5" weight={isActive ? 'fill' : 'regular'} />
+                      <span>{tab.label}</span>
+                    </div>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-gradient-to-r from-blue-light/20 via-blue-mid/10 to-transparent rounded-lg -z-10 border border-blue-mid/30"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
         </div>
       </header>
 

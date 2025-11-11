@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh } from '@phosphor-icons/react'
+import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { useTheme, ColorTheme } from '@/hooks/use-theme'
+import { cn } from '@/lib/utils'
 
 interface SettingsViewProps {
   userName: string
@@ -28,6 +30,8 @@ export function SettingsView({
   onNotificationChange,
   onNavigate 
 }: SettingsViewProps) {
+  const { mode, colorTheme, setColorTheme } = useTheme()
+  
   const getSubscriptionBadge = () => {
     switch (subscription) {
       case 'premium':
@@ -38,6 +42,39 @@ export function SettingsView({
         return <Badge variant="secondary">Free</Badge>
     }
   }
+
+  const themeOptions: { value: ColorTheme; label: string; description: string; preview: string }[] = [
+    {
+      value: 'neon-noir',
+      label: 'Neon Noir',
+      description: 'Vibrant neon accents with dark undertones',
+      preview: 'linear-gradient(135deg, oklch(0.65 0.28 328) 0%, oklch(0.70 0.25 320) 100%)'
+    },
+    {
+      value: 'aurora-borealis',
+      label: 'Aurora Borealis',
+      description: 'Cool blues and teals like northern lights',
+      preview: 'linear-gradient(135deg, oklch(0.55 0.25 250) 0%, oklch(0.65 0.22 160) 100%)'
+    },
+    {
+      value: 'cosmic-latte',
+      label: 'Cosmic Latte',
+      description: 'Warm beige tones inspired by the universe',
+      preview: 'linear-gradient(135deg, oklch(0.50 0.18 70) 0%, oklch(0.65 0.15 50) 100%)'
+    },
+    {
+      value: 'candy-shop',
+      label: 'Candy Shop',
+      description: 'Sweet pink and purple candy colors',
+      preview: 'linear-gradient(135deg, oklch(0.60 0.22 340) 0%, oklch(0.70 0.20 290) 100%)'
+    },
+    {
+      value: 'black-gray',
+      label: 'Black & Gray',
+      description: 'Classic monochrome elegance',
+      preview: 'linear-gradient(135deg, oklch(0.30 0 0) 0%, oklch(0.60 0 0) 100%)'
+    }
+  ]
 
   const settingsSections = [
     {
@@ -94,6 +131,54 @@ export function SettingsView({
       </div>
 
       <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Palette className="w-5 h-5" weight="duotone" />
+                <span>Theme Colors</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose your preferred color theme. Current mode: <span className="font-semibold capitalize">{mode}</span>
+                </p>
+                {themeOptions.map((theme) => (
+                  <button
+                    key={theme.value}
+                    onClick={() => setColorTheme(theme.value)}
+                    className={cn(
+                      'w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all hover:shadow-lg',
+                      colorTheme === theme.value
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div
+                        className="w-12 h-12 rounded-lg shadow-md"
+                        style={{ background: theme.preview }}
+                      />
+                      <div className="text-left">
+                        <p className="font-semibold">{theme.label}</p>
+                        <p className="text-xs text-muted-foreground">{theme.description}</p>
+                      </div>
+                    </div>
+                    {colorTheme === theme.value && (
+                      <Check className="w-6 h-6 text-primary" weight="bold" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {settingsSections.map((section, sectionIndex) => {
           const Icon = section.icon
           return (
