@@ -19,7 +19,7 @@ interface Message {
 }
 
 interface AIAssistantProps {
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions') => void
   onDeviceUpdate?: (id: string, updates: Partial<Device>) => void
   onDndToggle?: (enabled: boolean) => void
   devices?: Device[]
@@ -287,14 +287,14 @@ If the user is asking you to do something, execute it and confirm briefly. Do NO
     <>
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-accent via-primary to-coral shadow-2xl flex items-center justify-center group"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-light via-blue-mid to-blue-deep shadow-2xl flex items-center justify-center group"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         animate={{
           boxShadow: [
-            '0 0 20px rgba(101, 133, 255, 0.4)',
-            '0 0 40px rgba(101, 133, 255, 0.6)',
-            '0 0 20px rgba(101, 133, 255, 0.4)',
+            '0 0 20px rgba(96, 165, 250, 0.4)',
+            '0 0 40px rgba(96, 165, 250, 0.6)',
+            '0 0 20px rgba(96, 165, 250, 0.4)',
           ]
         }}
         transition={{
@@ -371,7 +371,7 @@ If the user is asking you to do something, execute it and confirm briefly. Do NO
                       <div
                         className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                           message.role === 'user'
-                            ? 'bg-accent text-white'
+                            ? 'bg-gradient-to-r from-blue-mid to-blue-deep text-white'
                             : 'bg-muted text-foreground'
                         }`}
                       >
@@ -428,7 +428,7 @@ If the user is asking you to do something, execute it and confirm briefly. Do NO
                     onClick={handleSend}
                     disabled={isLoading || !input.trim()}
                     size="icon"
-                    className="bg-accent hover:bg-accent/90"
+                    className="bg-gradient-to-r from-blue-mid to-blue-deep hover:from-blue-mid/90 hover:to-blue-deep/90"
                   >
                     <PaperPlaneRight className="w-5 h-5" weight="fill" />
                   </Button>
@@ -446,8 +446,8 @@ If the user is asking you to do something, execute it and confirm briefly. Do NO
             transition={{ type: 'spring', bounce: 0.3 }}
             className="fixed bottom-32 md:bottom-28 right-3 md:right-6 left-3 md:left-auto z-50 md:w-96"
           >
-            <Card className="shadow-2xl border-accent/20 overflow-hidden">
-              <div className="bg-gradient-to-r from-accent via-primary to-coral p-3 sm:p-4 flex items-center justify-between">
+            <Card className="shadow-2xl border-blue-mid/30 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-light via-blue-mid to-blue-deep p-3 sm:p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                     <Gear className="w-5 h-5 sm:w-6 sm:h-6 text-white" weight="fill" />

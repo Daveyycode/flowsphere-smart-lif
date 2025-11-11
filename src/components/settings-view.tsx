@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info } from '@phosphor-icons/react'
+import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -17,7 +17,7 @@ interface SettingsViewProps {
     sms: boolean
   }
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
-  onNavigate: (tab: 'subscription' | 'terms' | 'privacy') => void
+  onNavigate: (tab: 'subscription' | 'terms' | 'privacy' | 'permissions') => void
 }
 
 export function SettingsView({ 
@@ -185,6 +185,34 @@ export function SettingsView({
           <Card className="border-primary/30">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
+                <ShieldCheck className="w-5 h-5" weight="duotone" />
+                <span>Permissions & Privacy</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Control what FlowSphere can access. Manage email accounts, calendar sync, location sharing, and more.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => onNavigate('permissions')}
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Manage Permissions
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
+        >
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
                 <CreditCard className="w-5 h-5" weight="duotone" />
                 <span>Subscription & Billing</span>
               </CardTitle>
@@ -212,7 +240,7 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.7 : 0.6 }}
         >
           <Card>
             <CardHeader>

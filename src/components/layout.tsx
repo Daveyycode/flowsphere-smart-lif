@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
@@ -24,15 +24,16 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-light via-blue-mid to-blue-deep" />
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="relative">
-              <Sparkle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-accent" weight="fill" />
-              <div className="absolute inset-0 bg-accent/30 blur-lg" />
+              <Sparkle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-blue-mid" weight="fill" />
+              <div className="absolute inset-0 bg-blue-mid/30 blur-lg" />
             </div>
-            <span className="font-heading font-bold text-lg sm:text-xl md:text-2xl">FlowSphere</span>
+            <span className="font-heading font-bold text-lg sm:text-xl md:text-2xl bg-gradient-to-r from-blue-mid to-accent bg-clip-text text-transparent">FlowSphere</span>
           </div>
           
           <nav className="hidden md:flex items-center space-x-1">
@@ -57,7 +58,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                   {isActive && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute inset-0 bg-secondary rounded-lg -z-10"
+                      className="absolute inset-0 bg-gradient-to-r from-blue-light/20 via-blue-mid/10 to-transparent rounded-lg -z-10 border border-blue-mid/30"
                       transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -83,7 +84,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
                   'flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 transition-colors active:scale-95',
-                  isActive ? 'text-accent' : 'text-muted-foreground'
+                  isActive ? 'text-blue-mid' : 'text-muted-foreground'
                 )}
               >
                 <Icon className="w-5 h-5 sm:w-6 sm:h-6" weight={isActive ? 'fill' : 'regular'} />

@@ -35,6 +35,10 @@
   --mint: oklch(0.75 0.12 165);
   --mint-foreground: oklch(0.2 0 0);
 
+  --blue-light: oklch(0.75 0.15 240);
+  --blue-mid: oklch(0.60 0.20 250);
+  --blue-deep: oklch(0.45 0.18 260);
+
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
 
@@ -64,6 +68,9 @@
   --color-coral-foreground: var(--coral-foreground);
   --color-mint: var(--mint);
   --color-mint-foreground: var(--mint-foreground);
+  --color-blue-light: var(--blue-light);
+  --color-blue-mid: var(--blue-mid);
+  --color-blue-deep: var(--blue-deep);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -121,6 +128,22 @@
   
   .glow-primary {
     box-shadow: 0 0 20px -5px var(--primary);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 30px -8px var(--blue-mid);
+  }
+
+  .blue-ombre {
+    background: linear-gradient(135deg, var(--blue-light) 0%, var(--blue-mid) 50%, var(--blue-deep) 100%);
+  }
+
+  .blue-ombre-subtle {
+    background: linear-gradient(135deg, oklch(0.95 0.05 240) 0%, oklch(0.96 0.03 250) 100%);
+  }
+
+  .blue-border-gradient {
+    border-image: linear-gradient(135deg, var(--blue-light), var(--blue-mid), var(--blue-deep)) 1;
   }
   
   .text-responsive-xs {

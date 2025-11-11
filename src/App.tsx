@@ -19,6 +19,8 @@ import { PrivacyPolicy } from '@/components/privacy-policy'
 import { PrayerView } from '@/components/prayer-view'
 import { EmergencyHotlines } from '@/components/emergency-hotlines'
 import { ResourcesView } from '@/components/resources-view'
+import { MeetingNotes } from '@/components/meeting-notes'
+import { PermissionsSettings } from '@/components/permissions-settings'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
 import {
@@ -32,7 +34,7 @@ import {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -139,7 +141,7 @@ function App() {
     setSubscription(plan)
   }
 
-  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy') => {
+  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy' | 'permissions') => {
     setCurrentTab(destination)
   }
 
@@ -190,7 +192,11 @@ function App() {
             transition={{ duration: 0.3 }}
           >
             {currentTab === 'dashboard' && (
-              <DashboardView stats={stats} recentActivity={recentActivity} />
+              <DashboardView 
+                stats={stats} 
+                recentActivity={recentActivity}
+                onTabChange={handleTabChange}
+              />
             )}
             {currentTab === 'notifications' && (
               <NotificationsView
@@ -230,6 +236,8 @@ function App() {
             {currentTab === 'prayer' && <PrayerView />}
             {currentTab === 'emergency' && <EmergencyHotlines />}
             {currentTab === 'resources' && <ResourcesView />}
+            {currentTab === 'meeting-notes' && <MeetingNotes />}
+            {currentTab === 'permissions' && <PermissionsSettings />}
             {currentTab === 'settings' && (
               <SettingsView
                 userName={userName || 'User'}
