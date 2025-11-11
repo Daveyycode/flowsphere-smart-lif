@@ -1,8 +1,22 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lightbulb, Thermometer, Lock, Eye, Lightning, TrendUp, Users as UsersIcon, House, Camera, CalendarBlank, Cloud, MapTrifold, Notebook } from '@phosphor-icons/react'
+import { Lightbulb, Thermometer, Lock, Eye, Lightning, TrendUp, Users as UsersIcon, House, Camera, CalendarBlank, Cloud, MapTrifold, Notebook, Plus, PencilSimple } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useKV } from '@github/spark/hooks'
+import { toast } from 'sonner'
+
+interface QuickAccessBox {
+  id: string
+  label: string
+  description: string
+  icon: any
+  color: string
+  action?: string
+}
 
 interface DashboardViewProps {
   stats: {
@@ -17,7 +31,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic') => void
 }
 
 export function DashboardView({ stats, recentActivity, onTabChange }: DashboardViewProps) {
@@ -26,6 +40,84 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
     if (hour < 12) return 'Good morning'
     if (hour < 18) return 'Good afternoon'
     return 'Good evening'
+  }
+
+  const availableBoxes: QuickAccessBox[] = [
+    { id: 'cameras', label: 'Security Cameras', description: 'View live feeds', icon: Camera, color: 'blue-mid', action: 'cameras' },
+    { id: 'meeting-notes', label: 'Meeting Notes', description: 'Voice transcription', icon: Notebook, color: 'accent', action: 'meeting-notes' },
+    { id: 'traffic', label: 'Traffic Update', description: 'Real-time conditions', icon: MapTrifold, color: 'mint', action: 'traffic' },
+    { id: 'locks', label: 'Lock All Doors', description: 'Quick security', icon: Lock, color: 'blue-deep', action: 'devices' },
+    { id: 'family', label: 'Family Safety', description: 'Track loved ones', icon: UsersIcon, color: 'coral', action: 'family' },
+    { id: 'prayer', label: 'Daily Prayer', description: 'Scripture reading', icon: House, color: 'primary', action: 'prayer' }
+  ]
+
+  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['cameras', 'meeting-notes', 'traffic'])
+  const [isCustomizing, setIsCustomizing] = useState(false)
+
+  const toggleBox = (boxId: string) => {
+    setQuickAccessBoxes((current) => {
+      const currentBoxes = current || ['cameras', 'meeting-notes', 'traffic']
+      
+      if (currentBoxes.includes(boxId)) {
+        if (currentBoxes.length <= 3) {
+          toast.error('You must have at least 3 boxes')
+          return currentBoxes
+        }
+        return currentBoxes.filter(id => id !== boxId)
+      } else {
+        if (currentBoxes.length >= 6) {
+          toast.error('You can only have up to 6 boxes')
+          return currentBoxes
+        }
+        return [...currentBoxes, boxId]
+      }
+    })
+  }
+
+  const selectedBoxes = availableBoxes.filter(box => 
+    (quickAccessBoxes || ['cameras', 'meeting-notes', 'traffic']).includes(box.id)
+  )
+
+  const getColorClasses = (color: string) => {
+    const colorMap: Record<string, { bg: string, border: string, text: string, hover: string }> = {
+      'blue-mid': {
+        bg: 'bg-blue-mid/10',
+        hover: 'hover:bg-blue-mid/20',
+        border: 'border-blue-mid/30',
+        text: 'text-blue-mid'
+      },
+      'accent': {
+        bg: 'bg-accent/10',
+        hover: 'hover:bg-accent/20',
+        border: 'border-accent/30',
+        text: 'text-accent'
+      },
+      'mint': {
+        bg: 'bg-mint/10',
+        hover: 'hover:bg-mint/20',
+        border: 'border-mint/30',
+        text: 'text-mint'
+      },
+      'blue-deep': {
+        bg: 'bg-blue-deep/10',
+        hover: 'hover:bg-blue-deep/20',
+        border: 'border-blue-deep/30',
+        text: 'text-blue-deep'
+      },
+      'coral': {
+        bg: 'bg-coral/10',
+        hover: 'hover:bg-coral/20',
+        border: 'border-coral/30',
+        text: 'text-coral'
+      },
+      'primary': {
+        bg: 'bg-primary/10',
+        hover: 'hover:bg-primary/20',
+        border: 'border-primary/30',
+        text: 'text-primary'
+      }
+    }
+    return colorMap[color] || colorMap['accent']
   }
 
   const statCards = [
@@ -129,63 +221,40 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         >
           <Card className="border-blue-mid/20 bg-gradient-to-br from-blue-light/10 via-blue-mid/5 to-transparent">
             <CardHeader className="pb-3 sm:pb-6">
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <House className="w-4 h-4 sm:w-5 sm:h-5" weight="duotone" />
-                <span>Quick Access</span>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                  <House className="w-4 h-4 sm:w-5 sm:h-5" weight="duotone" />
+                  <span>Quick Access</span>
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setIsCustomizing(true)}
+                >
+                  <PencilSimple className="w-4 h-4" weight="duotone" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 sm:gap-3">
-              <button
-                onClick={() => onTabChange?.('cameras')}
-                className="p-3 sm:p-4 rounded-xl bg-blue-mid/10 hover:bg-blue-mid/20 border border-blue-mid/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-blue-mid mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Security Cameras</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">View live feeds</p>
-              </button>
-              
-              <button
-                onClick={() => onTabChange?.('meeting-notes')}
-                className="p-3 sm:p-4 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <Notebook className="w-5 h-5 sm:w-6 sm:h-6 text-accent mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Meeting Notes</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Voice transcription</p>
-              </button>
-
-              <button
-                className="p-3 sm:p-4 rounded-xl bg-coral/10 hover:bg-coral/20 border border-coral/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <CalendarBlank className="w-5 h-5 sm:w-6 sm:h-6 text-coral mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Today's Schedule</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">3 events</p>
-              </button>
-
-              <button
-                className="p-3 sm:p-4 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-primary mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Weather</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">72°F, Sunny</p>
-              </button>
-
-              <button
-                onClick={() => onTabChange?.('family')}
-                className="p-3 sm:p-4 rounded-xl bg-mint/10 hover:bg-mint/20 border border-mint/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <MapTrifold className="w-5 h-5 sm:w-6 sm:h-6 text-mint mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Commute</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">25 min to work</p>
-              </button>
-
-              <button
-                onClick={() => onTabChange?.('devices')}
-                className="p-3 sm:p-4 rounded-xl bg-blue-deep/10 hover:bg-blue-deep/20 border border-blue-deep/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              >
-                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-blue-deep mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="duotone" />
-                <p className="text-xs sm:text-sm font-medium leading-tight">Lock All Doors</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Quick security</p>
-              </button>
+              {selectedBoxes.map((box, index) => {
+                const Icon = box.icon
+                const colors = getColorClasses(box.color)
+                return (
+                  <motion.button
+                    key={box.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => box.action && onTabChange?.(box.action as any)}
+                    className={`p-3 sm:p-4 rounded-xl ${colors.bg} ${colors.hover} border ${colors.border} transition-all duration-200 hover:scale-105 active:scale-95 group`}
+                  >
+                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.text} mb-1 sm:mb-2 group-hover:scale-110 transition-transform`} weight="duotone" />
+                    <p className="text-xs sm:text-sm font-medium leading-tight">{box.label}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{box.description}</p>
+                  </motion.button>
+                )
+              })}
             </CardContent>
           </Card>
         </motion.div>
@@ -248,6 +317,57 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
           </CardContent>
         </Card>
       </motion.div>
+
+      <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customize Quick Access</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Select 3-6 shortcuts to display on your dashboard
+            </p>
+            <div className="space-y-2">
+              {availableBoxes.map((box) => {
+                const Icon = box.icon
+                const isSelected = (quickAccessBoxes || ['cameras', 'meeting-notes', 'traffic']).includes(box.id)
+                const colors = getColorClasses(box.color)
+                
+                return (
+                  <button
+                    key={box.id}
+                    onClick={() => toggleBox(box.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                      isSelected
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border hover:border-accent/50'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-5 h-5 ${colors.text}`} weight="duotone" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-sm">{box.label}</p>
+                      <p className="text-xs text-muted-foreground">{box.description}</p>
+                    </div>
+                    {isSelected && (
+                      <Badge variant="secondary" className="bg-mint/20 text-mint">
+                        Selected
+                      </Badge>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <Button
+              onClick={() => setIsCustomizing(false)}
+              className="w-full bg-accent hover:bg-accent/90"
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

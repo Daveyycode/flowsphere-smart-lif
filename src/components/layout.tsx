@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils'
 
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions') => void
+  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'
+  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {

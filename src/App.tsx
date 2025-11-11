@@ -21,6 +21,8 @@ import { EmergencyHotlines } from '@/components/emergency-hotlines'
 import { ResourcesView } from '@/components/resources-view'
 import { MeetingNotes } from '@/components/meeting-notes'
 import { PermissionsSettings } from '@/components/permissions-settings'
+import { TrafficUpdate } from '@/components/traffic-update'
+import { AIVoiceSettings } from '@/components/ai-voice-settings'
 import { Toaster } from '@/components/ui/sonner'
 import { motion } from 'framer-motion'
 import {
@@ -34,7 +36,7 @@ import {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'prayer' | 'emergency' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -141,7 +143,7 @@ function App() {
     setSubscription(plan)
   }
 
-  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy' | 'permissions') => {
+  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => {
     setCurrentTab(destination)
   }
 
@@ -238,6 +240,8 @@ function App() {
             {currentTab === 'resources' && <ResourcesView />}
             {currentTab === 'meeting-notes' && <MeetingNotes />}
             {currentTab === 'permissions' && <PermissionsSettings />}
+            {currentTab === 'traffic' && <TrafficUpdate />}
+            {currentTab === 'ai-voice' && <AIVoiceSettings />}
             {currentTab === 'settings' && (
               <SettingsView
                 userName={userName || 'User'}

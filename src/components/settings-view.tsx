@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck } from '@phosphor-icons/react'
+import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -17,7 +17,7 @@ interface SettingsViewProps {
     sms: boolean
   }
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
-  onNavigate: (tab: 'subscription' | 'terms' | 'privacy' | 'permissions') => void
+  onNavigate: (tab: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => void
 }
 
 export function SettingsView({ 
@@ -181,6 +181,34 @@ export function SettingsView({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: subscription === 'free' ? 0.5 : 0.4 }}
+        >
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <SpeakerHigh className="w-5 h-5" weight="duotone" />
+                <span>AI Voice & Assistance</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Customize FlowSphere's AI voice, including accent, speed, and pitch preferences for voice summaries and alerts.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => onNavigate('ai-voice')}
+              >
+                <SpeakerHigh className="w-4 h-4 mr-2" />
+                Customize AI Voice
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
         >
           <Card className="border-primary/30">
             <CardHeader>
