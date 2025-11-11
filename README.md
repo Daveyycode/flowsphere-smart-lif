@@ -1,23 +1,47 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# FlowSphere - Smart Life Management Platform
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+One app to simplify your entire life — home, work, and family in perfect flow.
 
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-  
-🧠 What Can You Do?
+## 🚀 Overview
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+FlowSphere is a unified platform that brings together family safety, smart home control, notification intelligence, security monitoring, and AI-powered insights into one beautiful, privacy-first interface.
 
-🧹 Just Exploring?
-No problem! If you were just checking things out and don’t need to keep this code:
+## 📱 User Application
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+The main user application is accessible at the root URL (`/` or `index.html`):
+- Dashboard with stats and insights
+- Smart device control
+- CCTV & security monitoring
+- Intelligent automations
+- Family safety tracking
+- Notification management with AI categorization
+- Settings and subscription management
 
-📄 License For Spark Template Resources 
+## 🔐 Admin Panel (Owner Only)
+
+**For app owners only**: Access the admin dashboard by navigating to `/admin.html`
+
+The admin panel is completely separate from the user interface and includes:
+- System analytics and insights
+- User management capabilities
+- Advanced configuration options
+- Strict ownership verification (non-owners see an access denied screen)
+
+**To access admin:**
+1. Navigate to `/admin.html` in your browser
+2. The system will automatically verify your ownership
+3. Only the app owner will see the admin dashboard
+4. All other users will see an access denied message
+
+## 🛠️ Development
+
+This is a React + TypeScript application built with Vite, using:
+- Tailwind CSS for styling
+- Shadcn UI components
+- Framer Motion for animations
+- Phosphor Icons
+- useKV for persistent storage
+
+## 📄 License
 
 The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.

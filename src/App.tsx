@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { Layout } from '@/components/layout'
 import { DashboardView } from '@/components/dashboard-view'
@@ -10,12 +10,10 @@ import { CCTVView, CCTVCamera } from '@/components/cctv-view'
 import { AutomationsView, Automation } from '@/components/automations-view'
 import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
-import { AdminDashboard } from '@/components/admin-dashboard'
 import { SubscriptionManagement } from '@/components/subscription-management'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
 import { Toaster } from '@/components/ui/sonner'
-import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   initialDevices,
@@ -26,8 +24,7 @@ import {
 } from '@/lib/initial-data'
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'admin' | 'subscription' | 'terms' | 'privacy'>('dashboard')
-  const [isOwner, setIsOwner] = useState(false)
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'cameras' | 'automations' | 'settings' | 'subscription' | 'terms' | 'privacy'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -50,18 +47,6 @@ function App() {
     push: true,
     sms: false
   })
-
-  useEffect(() => {
-    const checkOwnership = async () => {
-      try {
-        const user = await window.spark.user()
-        setIsOwner(user?.isOwner || false)
-      } catch (error) {
-        setIsOwner(false)
-      }
-    }
-    checkOwnership()
-  }, [])
 
   const stats = {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
@@ -151,18 +136,8 @@ function App() {
   }
 
   const handleTabChange = (tab: typeof currentTab) => {
-    if (tab === 'admin' && !isOwner) {
-      toast.error('Admin access is restricted to the app owner')
-      return
-    }
     setCurrentTab(tab)
   }
-
-  useEffect(() => {
-    if (currentTab === 'admin' && !isOwner) {
-      setCurrentTab('dashboard')
-    }
-  }, [isOwner, currentTab])
 
   return (
     <>
@@ -230,7 +205,6 @@ function App() {
                 onNavigate={handleNavigateFromSettings}
               />
             )}
-            {currentTab === 'admin' && <AdminDashboard />}
             {currentTab === 'subscription' && (
               <SubscriptionManagement 
                 currentPlan={subscription || 'free'} 

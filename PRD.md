@@ -83,6 +83,13 @@ A full-featured lifestyle command center with multiple interconnected systems in
 - **Progression**: View profile → Adjust preferences → Manage notifications → Review security → Upgrade plan
 - **Success criteria**: All settings persist immediately, clear privacy information, seamless payment flow
 
+### Admin Dashboard (Owner Only)
+- **Functionality**: Separate admin interface accessible only to the app owner via /admin.html route, providing analytics, user management, and system controls
+- **Purpose**: Give the app owner full control and visibility over the entire system without cluttering the user interface
+- **Trigger**: Owner navigates directly to /admin.html URL
+- **Progression**: Verify ownership → Display access denied or load admin dashboard → View system analytics → Manage users/settings
+- **Success criteria**: Strict ownership verification, completely separate from main app navigation, clear "Back to Main App" link, professional admin interface
+
 ## Edge Case Handling
 - **Offline Mode**: Cache critical data locally, show offline indicator, queue actions for sync when reconnected
 - **Device Unavailable**: Display last known state, show "offline" badge with timestamp, auto-retry connection periodically
