@@ -298,6 +298,7 @@ Be friendly, helpful, and mention how saving money could help others (like the m
       case 'duplicate-service': return Warning
       case 'unused': return Info
       case 'due-soon': return Calendar
+      default: return Info
     }
   }
 
