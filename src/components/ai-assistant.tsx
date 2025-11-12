@@ -191,30 +191,77 @@ export function AIAssistant({
       }
     }
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = async (event: any) => {
       const transcript = event.results[event.results.length - 1][0].transcript
-      setInput(transcript)
       
       if (micToggled) {
-        setTimeout(() => {
-          handleSend(transcript)
-          setInput('')
-        }, 300)
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content: transcript
+        }
+        setMessages(prev => [...prev, userMessage])
+        
+        setIsLoading(true)
+        try {
+          const commandResult = await executeCommand(transcript)
+          
+          if (commandResult.executed) {
+            const assistantMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: commandResult.response
+            }
+            setMessages(prev => [...prev, assistantMessage])
+            speakText(commandResult.response)
+          } else {
+            const promptText = `You are FlowSphere AI assistant. Respond to: "${transcript}". Be concise (under 30 words).`
+            const response = await window.spark.llm(promptText, 'gpt-4o-mini')
+            
+            const assistantMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: response
+            }
+            setMessages(prev => [...prev, assistantMessage])
+            speakText(response)
+          }
+        } catch (error) {
+          console.error('AI error:', error)
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: "I'm having trouble right now. Please try again."
+          }
+          setMessages(prev => [...prev, errorMessage])
+        } finally {
+          setIsLoading(false)
+        }
+      } else {
+        setInput(transcript)
       }
     }
 
     recognition.onerror = (event: any) => {
       if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        toast.error(`Voice recognition error: ${event.error}`)
+        console.error('Voice recognition error:', event.error)
       }
       if (micToggled && event.error === 'no-speech') {
-        recognition.start()
+        setTimeout(() => {
+          if (micToggled) {
+            recognition.start()
+          }
+        }, 100)
       }
     }
 
     recognition.onend = () => {
       if (micToggled) {
-        recognition.start()
+        setTimeout(() => {
+          if (micToggled) {
+            recognition.start()
+          }
+        }, 100)
       } else {
         setIsListening(false)
       }
@@ -1002,8 +1049,34 @@ If they're asking to do something, guide them on the correct phrasing.`
 
               <div className="p-4 border-t border-border">
                 <div className="flex space-x-2">
+                  <Button
+                    onClick={toggleMic}
+                    disabled={isLoading}
+                    size="icon"
+                    variant={micToggled ? "default" : "outline"}
+                    className={micToggled ? 'bg-red-500 hover:bg-red-600 relative overflow-hidden' : ''}
+                    title={micToggled ? "Stop continuous listening" : "Start continuous listening"}
+                  >
+                    {micToggled ? (
+                      <motion.div
+                        className="flex items-center justify-center"
+                        animate={{
+                          scale: [1, 1.3, 1],
+                        }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Activity className="w-5 h-5 text-white" weight="bold" />
+                      </motion.div>
+                    ) : (
+                      <Activity className="w-5 h-5" weight="regular" />
+                    )}
+                  </Button>
                   <Input
-                    placeholder={micToggled ? "Listening continuously..." : "Ask me anything..."}
+                    placeholder={micToggled ? "🎤 Listening continuously..." : "Ask me anything..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -1015,31 +1088,6 @@ If they're asking to do something, guide them on the correct phrasing.`
                     disabled={isLoading || micToggled}
                     className="flex-1"
                   />
-                  <Button
-                    onClick={toggleMic}
-                    disabled={isLoading}
-                    size="icon"
-                    variant={micToggled ? "default" : "outline"}
-                    className={micToggled ? 'bg-red-500 hover:bg-red-600 relative overflow-hidden' : ''}
-                  >
-                    {micToggled ? (
-                      <motion.div
-                        className="flex items-center justify-center"
-                        animate={{
-                          scale: [1, 1.2, 1],
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      >
-                        <Activity className="w-5 h-5" weight="bold" />
-                      </motion.div>
-                    ) : (
-                      <Activity className="w-5 h-5" weight="regular" />
-                    )}
-                  </Button>
                   {!micToggled && (
                     <>
                       <Button
@@ -1048,6 +1096,7 @@ If they're asking to do something, guide them on the correct phrasing.`
                         size="icon"
                         variant="outline"
                         className={isListening ? 'bg-accent/20 border-accent' : ''}
+                        title="Voice input (one-time)"
                       >
                         <Microphone className="w-5 h-5" weight={isListening ? 'fill' : 'regular'} />
                       </Button>
@@ -1056,15 +1105,16 @@ If they're asking to do something, guide them on the correct phrasing.`
                         disabled={isLoading || !input.trim()}
                         size="icon"
                         className="bg-gradient-to-r from-blue-mid to-blue-deep hover:from-blue-mid/90 hover:to-blue-deep/90"
+                        title="Send message"
                       >
-                        <PaperPlaneRight className="w-5 h-5" weight="fill" />
+                        <PaperPlaneRight className="w-5 h-5 text-white" weight="fill" />
                       </Button>
                     </>
                   )}
                 </div>
                 {micToggled && (
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    🎤 Continuous listening enabled - speak naturally, I'll auto-respond
+                    🎤 Continuous listening active - speak naturally, I'll auto-respond
                   </p>
                 )}
                 {pendingConfirmation && (
