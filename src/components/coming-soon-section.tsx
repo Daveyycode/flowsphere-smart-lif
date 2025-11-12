@@ -138,7 +138,7 @@ export function ComingSoonSection() {
                 <motion.div
                   key={feature.id}
                   variants={cardVariants}
-                  className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors"
+                  className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-600/40 hover:border-gray-500/50 transition-colors"
                 >
                   <div className="flex items-start justify-between mb-2 sm:mb-3">
                     <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${feature.bgColor} flex items-center justify-center`}>
