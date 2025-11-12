@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { speakText, stopSpeaking } from '@/lib/audio-summary'
 import { SubscriptionMonitoring } from '@/components/subscription-monitoring'
 import { CCTVGuardAI } from '@/components/cctv-guard-ai'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 declare const spark: {
   llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
@@ -98,6 +99,7 @@ export function NotificationsResourcesView({
   emergencyOverride,
   onEmergencyOverrideChange
 }: NotificationsResourcesViewProps) {
+  const isMobile = useIsMobile()
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -267,19 +269,19 @@ Keep it brief and informative. Return only the summary text, no additional forma
         <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="w-4 h-4" />
-            Notifications
+            {!isMobile && "Notifications"}
           </TabsTrigger>
           <TabsTrigger value="subscriptions" className="gap-2">
             <CreditCard className="w-4 h-4" />
-            Subscriptions
+            {!isMobile && "Subscriptions"}
           </TabsTrigger>
           <TabsTrigger value="cctv" className="gap-2">
             <Camera className="w-4 h-4" />
-            CCTV Guard
+            {!isMobile && "CCTV Guard"}
           </TabsTrigger>
           <TabsTrigger value="monitoring" className="gap-2">
             <GameController className="w-4 h-4" />
-            Activity
+            {!isMobile && "Activity"}
           </TabsTrigger>
         </TabsList>
 
