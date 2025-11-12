@@ -29,16 +29,16 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       name: 'Basic',
       emoji: '🩶',
       icon: Sparkle,
-      monthlyPrice: 9,
-      yearlyPrice: 4.50,
-      yearlyTotal: 54,
-      description: 'Perfect for exploring the app.',
+      monthlyPrice: 14.99,
+      yearlyPrice: 7.49,
+      yearlyTotal: 89.88,
+      description: 'First-time users',
       color: 'gray',
       features: [
-        'Access to essential tools',
-        'Limited AI usage',
-        'Standard speed & support',
-        'Basic comparison and search'
+        'Email sorting',
+        'Daily prayers',
+        'Basic scheduler',
+        'Limited AI usage'
       ],
       cta: 'Get Started'
     },
@@ -47,17 +47,17 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       name: 'Pro',
       emoji: '🩵',
       icon: Sparkle,
-      monthlyPrice: 19.99,
-      yearlyPrice: 9.99,
-      yearlyTotal: 119.88,
-      description: 'Unlocks more power and integrations.',
+      monthlyPrice: 24.99,
+      yearlyPrice: 12.49,
+      yearlyTotal: 149.88,
+      description: 'Busy individuals',
       color: 'blue',
       features: [
         'Everything in Basic',
-        'Unlimited AI usage',
-        'Payment & integration tools (PayPal, affiliate links)',
-        'Priority processing speed',
-        'Saved searches and preferences'
+        'Traffic alerts',
+        'Learning scheduler',
+        'AI automation',
+        'Unlimited AI usage'
       ],
       cta: 'Upgrade to Pro'
     },
@@ -66,16 +66,17 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       name: 'Gold',
       emoji: '💛',
       icon: Star,
-      monthlyPrice: 39.99,
-      yearlyPrice: 19.99,
-      yearlyTotal: 239.88,
-      description: 'Full access for creators, sellers & professionals.',
+      monthlyPrice: 49.99,
+      yearlyPrice: 24.99,
+      yearlyTotal: 299.88,
+      description: 'Professionals / Smart-home users',
       color: 'gold',
       features: [
         'Everything in Pro',
-        'Advanced analytics and automation tools',
-        'Beta feature access',
-        'Dedicated priority support'
+        'Full automation',
+        'Family dashboard',
+        'Voice control',
+        'Advanced analytics'
       ],
       cta: 'Go Gold',
       popular: true
@@ -85,15 +86,16 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       name: 'Family / Team',
       emoji: '💎',
       icon: Users,
-      monthlyPrice: 79.99,
-      yearlyPrice: 39.99,
-      yearlyTotal: 479.88,
-      description: 'For families or small teams sharing one plan.',
+      monthlyPrice: 99.99,
+      yearlyPrice: 49.99,
+      yearlyTotal: 599.88,
+      description: 'Households / small orgs',
       color: 'purple',
       features: [
         'Everything in Gold',
-        'Up to 5 user accounts',
-        'Shared data analytics',
+        'Multi-account (up to 5 users)',
+        'Tutor AI',
+        'Complete home integration',
         'Team management & concierge support'
       ],
       cta: 'Get Family Plan'

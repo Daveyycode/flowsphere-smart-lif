@@ -179,11 +179,16 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Success criteria**: Strict ownership verification, completely separate from main app navigation, clear "Back to Main App" link, professional admin interface
 
 ### Pricing & Subscription Management
-- **Functionality**: 4-tier subscription model (Basic $9/mo, Pro $19.99/mo, Gold $39.99/mo, Family/Team $79.99/mo) with 3-day free trial for all tiers, monthly/annual billing with 50% savings on annual
+- **Functionality**: 4-tier subscription model (Basic $14.99/mo, Pro $24.99/mo, Gold $49.99/mo, Family/Team $99.99/mo) with 3-day free trial for all tiers, monthly/annual billing with 50% savings on annual
 - **Purpose**: Monetize the platform while offering flexible options from basic access to full family features with transparent pricing and trial period
 - **Trigger**: User views landing page pricing section or navigates to subscription management in settings
 - **Progression**: View pricing tiers → Toggle monthly/annual → Compare features → Select plan → Start 3-day trial → Authentication/payment → Activate subscription
 - **Success criteria**: Clear pricing presentation, 3-day trial messaging prominent, Gold plan highlighted as "Most Popular", smooth plan switching, responsive design, seamless upgrade/downgrade flow
+
+**Optional Add-ons** (Future Enhancement):
+- AI Tutor Module: $14.99/child/month
+- Smart-device pack: $4.99 per extra 5 devices
+- Extended memory/analytics: $3.99/month
 
 ### Subscription Gating & Feature Access
 - **Functionality**: Tiered feature access based on subscription level with visual gates showing required tier for locked features
@@ -194,10 +199,10 @@ A full-featured lifestyle command center with authentication, multiple interconn
 
 **Feature Access by Tier:**
 - **Trial (3 days)**: Limited access to all tiers to evaluate the platform
-- **Basic**: Essential tools, limited AI usage, standard speed & support, basic comparison and search
-- **Pro** (Required for Subscription Monitoring): Unlimited AI, payment integrations (PayPal, affiliate links), priority processing, saved searches, subscription monitoring with AI insights
-- **Gold**: Everything in Pro + advanced analytics, automation tools, beta features, dedicated priority support
-- **Family/Team**: Everything in Gold + up to 5 user accounts, shared analytics, team management, concierge support
+- **Basic** ($14.99/mo): Email sorting, daily prayers, basic scheduler, limited AI usage
+- **Pro** ($24.99/mo - Required for Subscription Monitoring): Everything in Basic + traffic alerts, learning scheduler, AI automation, unlimited AI usage, subscription monitoring with AI insights
+- **Gold** ($49.99/mo - Most Popular): Everything in Pro + full automation, family dashboard, voice control, advanced analytics, beta features, dedicated priority support
+- **Family/Team** ($99.99/mo): Everything in Gold + multi-account (up to 5 users), Tutor AI, complete home integration, team management, concierge support
 
 ## Edge Case Handling
 - **Offline Mode**: Cache critical data locally, show offline indicator, queue actions for sync when reconnected

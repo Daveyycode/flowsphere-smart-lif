@@ -27,14 +27,14 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
   const plans: PricingPlan[] = [
     {
       name: 'Basic',
-      monthlyPrice: 9,
-      yearlyPrice: 4.5,
-      description: 'Perfect for exploring the app.',
+      monthlyPrice: 14.99,
+      yearlyPrice: 7.49,
+      description: 'First-time users',
       features: [
-        'Access to essential tools',
-        'Limited AI usage',
-        'Standard speed & support',
-        'Basic comparison and search'
+        'Email sorting',
+        'Daily prayers',
+        'Basic scheduler',
+        'Limited AI usage'
       ],
       cta: 'Get Started',
       color: 'gray',
@@ -42,15 +42,15 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
     },
     {
       name: 'Pro',
-      monthlyPrice: 19.99,
-      yearlyPrice: 9.99,
-      description: 'Unlocks more power and integrations.',
+      monthlyPrice: 24.99,
+      yearlyPrice: 12.49,
+      description: 'Busy individuals',
       features: [
         'Everything in Basic',
-        'Unlimited AI usage',
-        'Payment & integration tools',
-        'Priority processing speed',
-        'Saved searches and preferences'
+        'Traffic alerts',
+        'Learning scheduler',
+        'AI automation',
+        'Unlimited AI usage'
       ],
       cta: 'Upgrade to Pro',
       color: 'blue',
@@ -58,14 +58,15 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
     },
     {
       name: 'Gold',
-      monthlyPrice: 39.99,
-      yearlyPrice: 19.99,
-      description: 'Full access for creators, sellers & professionals.',
+      monthlyPrice: 49.99,
+      yearlyPrice: 24.99,
+      description: 'Professionals / Smart-home users',
       features: [
         'Everything in Pro',
-        'Advanced analytics and automation tools',
-        'Beta feature access',
-        'Dedicated priority support'
+        'Full automation',
+        'Family dashboard',
+        'Voice control',
+        'Advanced analytics'
       ],
       cta: 'Go Gold',
       color: 'gold',
@@ -74,13 +75,14 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
     },
     {
       name: 'Family / Team',
-      monthlyPrice: 79.99,
-      yearlyPrice: 39.99,
-      description: 'For families or small teams sharing one plan.',
+      monthlyPrice: 99.99,
+      yearlyPrice: 49.99,
+      description: 'Households / small orgs',
       features: [
         'Everything in Gold',
-        'Up to 5 user accounts',
-        'Shared data analytics',
+        'Multi-account (up to 5 users)',
+        'Tutor AI',
+        'Complete home integration',
         'Team management & concierge support'
       ],
       cta: 'Get Family Plan',
