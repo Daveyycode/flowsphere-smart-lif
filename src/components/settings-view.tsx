@@ -20,7 +20,7 @@ interface SettingsViewProps {
     sms: boolean
   }
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
-  onNavigate: (tab: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => void
+  onNavigate: (tab: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => void
   onLogout?: () => void
 }
 
@@ -183,6 +183,45 @@ export function SettingsView({
                 >
                   Manage Subscription
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CreditCard className="w-5 h-5" weight="duotone" />
+                <span>Subscription Monitoring</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                AI-powered tracking and optimization of all your subscriptions. Get alerts for price increases, duplicate services, and unused subscriptions.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => onNavigate('subscription-monitoring')}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Manage Subscriptions
+                </Button>
+                {(subscription === 'basic' || subscription === 'pro' || subscription === 'gold' || subscription === 'family') && (
+                  <Badge className={
+                    subscription === 'pro' || subscription === 'gold' || subscription === 'family'
+                      ? 'bg-blue-mid text-white'
+                      : 'bg-muted text-muted-foreground'
+                  }>
+                    {subscription === 'pro' || subscription === 'gold' || subscription === 'family' ? 'Pro Feature' : 'Pro Required'}
+                  </Badge>
+                )}
               </div>
             </CardContent>
           </Card>

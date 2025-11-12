@@ -179,11 +179,25 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Success criteria**: Strict ownership verification, completely separate from main app navigation, clear "Back to Main App" link, professional admin interface
 
 ### Pricing & Subscription Management
-- **Functionality**: 4-tier subscription model (Free, Premium $9.99/mo, Family+ $19.99/mo, Lifetime $299 one-time) with clear monthly/annual billing options
-- **Purpose**: Monetize the platform while offering flexible options for different user needs, from free exploration to lifetime commitment
+- **Functionality**: 4-tier subscription model (Basic $9/mo, Pro $19.99/mo, Gold $39.99/mo, Family/Team $79.99/mo) with 3-day free trial for all tiers, monthly/annual billing with 50% savings on annual
+- **Purpose**: Monetize the platform while offering flexible options from basic access to full family features with transparent pricing and trial period
 - **Trigger**: User views landing page pricing section or navigates to subscription management in settings
-- **Progression**: View pricing tiers → Toggle monthly/annual (except lifetime) → Compare features → Select plan → Authentication/payment → Activate subscription
-- **Success criteria**: Clear pricing presentation on landing page, smooth plan switching, Premium plan highlighted as "Most Popular", responsive design across devices, seamless upgrade/downgrade flow, prominent subscription status in settings
+- **Progression**: View pricing tiers → Toggle monthly/annual → Compare features → Select plan → Start 3-day trial → Authentication/payment → Activate subscription
+- **Success criteria**: Clear pricing presentation, 3-day trial messaging prominent, Gold plan highlighted as "Most Popular", smooth plan switching, responsive design, seamless upgrade/downgrade flow
+
+### Subscription Gating & Feature Access
+- **Functionality**: Tiered feature access based on subscription level with visual gates showing required tier for locked features
+- **Purpose**: Encourage upgrades while maintaining transparency about what each tier unlocks
+- **Trigger**: User attempts to access a feature above their current subscription tier
+- **Progression**: Navigate to gated feature → Display subscription gate card → Show required tier and benefits → Offer upgrade button → Direct to subscription page
+- **Success criteria**: Clear visual indication of locked features, no broken functionality, smooth upgrade path, trial users see trial status
+
+**Feature Access by Tier:**
+- **Trial (3 days)**: Limited access to all tiers to evaluate the platform
+- **Basic**: Essential tools, limited AI usage, standard speed & support, basic comparison and search
+- **Pro** (Required for Subscription Monitoring): Unlimited AI, payment integrations (PayPal, affiliate links), priority processing, saved searches, subscription monitoring with AI insights
+- **Gold**: Everything in Pro + advanced analytics, automation tools, beta features, dedicated priority support
+- **Family/Team**: Everything in Gold + up to 5 user accounts, shared analytics, team management, concierge support
 
 ## Edge Case Handling
 - **Offline Mode**: Cache critical data locally, show offline indicator, queue actions for sync when reconnected

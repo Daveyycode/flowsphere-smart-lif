@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
 import { LandingPage } from '@/components/landing-page'
@@ -12,6 +12,8 @@ import { NotificationsResourcesView, Notification } from '@/components/notificat
 import { MorningBrief } from '@/components/morning-brief'
 import { AIAssistant } from '@/components/ai-assistant'
 import { SubscriptionManagement } from '@/components/subscription-management'
+import { SubscriptionMonitoring } from '@/components/subscription-monitoring'
+import { SubscriptionGate } from '@/components/subscription-gate'
 import { TermsOfService } from '@/components/terms-of-service'
 import { PrivacyPolicy } from '@/components/privacy-policy'
 import { MeetingNotes } from '@/components/meeting-notes'
@@ -27,13 +29,14 @@ import {
   initialNotifications,
   initialAutomations
 } from '@/lib/initial-data'
+import { getEffectiveTier, getRemainingTrialDays } from '@/lib/subscription-utils'
 
 function App() {
   useTheme()
   
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -43,6 +46,7 @@ function App() {
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
   const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
   const [subscription, setSubscription] = useKV<'basic' | 'pro' | 'gold' | 'family'>('flowsphere-subscription', 'pro')
+  const [trialStartDate, setTrialStartDate] = useKV<string | null>('flowsphere-trial-start', null)
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
   const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
   const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
@@ -55,6 +59,15 @@ function App() {
     push: true,
     sms: false
   })
+
+  const effectiveTier = getEffectiveTier(subscription || 'basic', trialStartDate || null)
+  const remainingTrialDays = getRemainingTrialDays(trialStartDate || null)
+
+  useEffect(() => {
+    if (isAuthenticated && !trialStartDate) {
+      setTrialStartDate(new Date().toISOString())
+    }
+  }, [isAuthenticated, trialStartDate, setTrialStartDate])
 
   const stats = {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
@@ -137,7 +150,7 @@ function App() {
     setShowMorningBrief(true)
   }
 
-  const handleNavigateFromSettings = (destination: 'subscription' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => {
+  const handleNavigateFromSettings = (destination: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => {
     setCurrentTab(destination)
   }
 
@@ -239,6 +252,20 @@ function App() {
                 currentPlan={subscription || 'basic'} 
                 onPlanChange={handleSubscriptionChange}
               />
+            )}
+            {currentTab === 'subscription-monitoring' && (
+              <SubscriptionGate
+                requiredTier="pro"
+                currentTier={effectiveTier}
+                featureName="Subscription Monitoring"
+                onUpgrade={() => setCurrentTab('subscription')}
+              >
+                <SubscriptionMonitoring 
+                  currentFlowSpherePlan={subscription || 'basic'}
+                  isOnTrial={effectiveTier === 'trial'}
+                  trialDaysRemaining={remainingTrialDays}
+                />
+              </SubscriptionGate>
             )}
             {currentTab === 'terms' && <TermsOfService />}
             {currentTab === 'privacy' && <PrivacyPolicy />}

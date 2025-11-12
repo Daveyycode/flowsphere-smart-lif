@@ -12,7 +12,8 @@ import {
   Bell,
   CheckCircle,
   Info,
-  Heart
+  Heart,
+  Diamond
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,9 @@ export interface AIAlert {
 
 interface SubscriptionMonitoringProps {
   className?: string
+  currentFlowSpherePlan?: 'basic' | 'pro' | 'gold' | 'family'
+  isOnTrial?: boolean
+  trialDaysRemaining?: number
 }
 
 const mockAIAlerts: AIAlert[] = [
@@ -96,7 +100,7 @@ const mockAIAlerts: AIAlert[] = [
   }
 ]
 
-export function SubscriptionMonitoring({ className }: SubscriptionMonitoringProps) {
+export function SubscriptionMonitoring({ className, currentFlowSpherePlan = 'basic', isOnTrial = false, trialDaysRemaining = 0 }: SubscriptionMonitoringProps) {
   const [subscriptions, setSubscriptions] = useKV<Subscription[]>('flowsphere-subscriptions', [
     {
       id: 'sub-1',
@@ -424,6 +428,43 @@ Be friendly, helpful, and mention how saving money could help others (like the m
           </Dialog>
         </div>
       </div>
+
+      <Card className="border-primary/50 bg-gradient-to-br from-blue-mid/5 via-accent/5 to-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Diamond className="w-5 h-5 text-primary" weight="fill" />
+            Your FlowSphere Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-2xl font-bold capitalize">{currentFlowSpherePlan}</h3>
+                {currentFlowSpherePlan === 'basic' && <Badge variant="secondary" className="bg-muted text-muted-foreground">🩶 Basic</Badge>}
+                {currentFlowSpherePlan === 'pro' && <Badge className="bg-blue-mid text-white">🩵 Pro</Badge>}
+                {currentFlowSpherePlan === 'gold' && <Badge className="bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-foreground">💛 Gold</Badge>}
+                {currentFlowSpherePlan === 'family' && <Badge className="bg-[#7B61FF] text-white">💎 Family</Badge>}
+              </div>
+              {isOnTrial && (
+                <p className="text-sm text-accent font-medium">
+                  🎉 Trial active - {trialDaysRemaining} {trialDaysRemaining === 1 ? 'day' : 'days'} remaining
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                {currentFlowSpherePlan === 'basic' && 'Access to essential tools'}
+                {currentFlowSpherePlan === 'pro' && 'Unlimited AI usage and priority support'}
+                {currentFlowSpherePlan === 'gold' && 'Full access with advanced analytics'}
+                {currentFlowSpherePlan === 'family' && 'Up to 5 user accounts with team features'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground mb-1">This feature included in:</p>
+              <Badge className="bg-primary text-primary-foreground">Pro & Above</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
