@@ -13,7 +13,10 @@ import {
   CheckCircle,
   Info,
   Heart,
-  Diamond
+  Diamond,
+  GraduationCap,
+  DeviceMobile,
+  Database
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -101,6 +104,16 @@ const mockAIAlerts: AIAlert[] = [
 ]
 
 export function SubscriptionMonitoring({ className, currentFlowSpherePlan = 'basic', isOnTrial = false, trialDaysRemaining = 0 }: SubscriptionMonitoringProps) {
+  const [activeAddOns] = useKV<{
+    aiTutor: number
+    smartDevicePack: number
+    extendedMemory: boolean
+  }>('flowsphere-active-addons', {
+    aiTutor: 0,
+    smartDevicePack: 0,
+    extendedMemory: false
+  })
+  
   const [subscriptions, setSubscriptions] = useKV<Subscription[]>('flowsphere-subscriptions', [
     {
       id: 'sub-1',
@@ -463,6 +476,41 @@ Be friendly, helpful, and mention how saving money could help others (like the m
               <Badge className="bg-primary text-primary-foreground">Pro & Above</Badge>
             </div>
           </div>
+          
+          {((activeAddOns?.aiTutor || 0) > 0 || (activeAddOns?.smartDevicePack || 0) > 0 || activeAddOns?.extendedMemory) && (
+            <div className="pt-4 mt-4 border-t border-border/50">
+              <p className="text-sm font-semibold mb-3">Active Add-Ons:</p>
+              <div className="space-y-2">
+                {(activeAddOns?.aiTutor || 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm bg-accent/5 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-accent" />
+                      <span>AI Tutor Module × {activeAddOns?.aiTutor}</span>
+                    </div>
+                    <span className="font-semibold">${((activeAddOns?.aiTutor || 0) * 14.99).toFixed(2)}/mo</span>
+                  </div>
+                )}
+                {(activeAddOns?.smartDevicePack || 0) > 0 && (
+                  <div className="flex items-center justify-between text-sm bg-accent/5 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <DeviceMobile className="w-4 h-4 text-accent" />
+                      <span>Smart Device Pack × {activeAddOns?.smartDevicePack}</span>
+                    </div>
+                    <span className="font-semibold">${((activeAddOns?.smartDevicePack || 0) * 4.99).toFixed(2)}/mo</span>
+                  </div>
+                )}
+                {activeAddOns?.extendedMemory && (
+                  <div className="flex items-center justify-between text-sm bg-accent/5 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4 text-accent" />
+                      <span>Extended Memory & Analytics</span>
+                    </div>
+                    <span className="font-semibold">$3.99/mo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
