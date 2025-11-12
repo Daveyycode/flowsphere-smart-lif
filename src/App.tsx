@@ -32,7 +32,7 @@ import {
 import { getEffectiveTier, getRemainingTrialDays } from '@/lib/subscription-utils'
 
 function App() {
-  useTheme()
+  const { mode, colorTheme, toggleMode, setColorTheme } = useTheme()
   
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
@@ -285,6 +285,8 @@ function App() {
         onDeleteNotification={handleDeleteNotification}
         onEmergencyOverrideChange={setEmergencyOverride}
         onSubscriptionChange={handleSubscriptionChange}
+        onThemeChange={setColorTheme}
+        onThemeModeToggle={toggleMode}
         devices={devices || []}
         automations={automations || []}
         familyMembers={familyMembers || []}
@@ -292,6 +294,8 @@ function App() {
         dndEnabled={dndEnabled || false}
         emergencyOverride={emergencyOverride || 3}
         subscription={subscription || 'basic'}
+        currentTheme={colorTheme}
+        currentThemeMode={mode}
       />
       <Toaster position="top-center" />
     </>

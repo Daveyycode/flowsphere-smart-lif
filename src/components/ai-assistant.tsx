@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { Device, Automation } from '@/components/devices-automations-view'
 import { FamilyMember } from '@/components/family-view'
 import { Notification } from '@/components/notifications-view'
+import { ColorTheme } from '@/hooks/use-theme'
 
 interface Message {
   id: string
@@ -32,6 +33,8 @@ interface AIAssistantProps {
   onDeleteNotification?: (id: string) => void
   onEmergencyOverrideChange?: (value: number) => void
   onSubscriptionChange?: (plan: 'basic' | 'pro' | 'gold' | 'family') => void
+  onThemeChange?: (theme: ColorTheme) => void
+  onThemeModeToggle?: () => void
   devices?: Device[]
   automations?: Automation[]
   familyMembers?: FamilyMember[]
@@ -39,6 +42,8 @@ interface AIAssistantProps {
   dndEnabled?: boolean
   emergencyOverride?: number
   subscription?: 'basic' | 'pro' | 'gold' | 'family'
+  currentTheme?: ColorTheme
+  currentThemeMode?: 'light' | 'dark'
 }
 
 const VOICE_OPTIONS = [
@@ -66,13 +71,17 @@ export function AIAssistant({
   onDeleteNotification,
   onEmergencyOverrideChange,
   onSubscriptionChange,
+  onThemeChange,
+  onThemeModeToggle,
   devices = [],
   automations = [],
   familyMembers = [],
   notifications = [],
   dndEnabled = false,
   emergencyOverride = 3,
-  subscription = 'basic'
+  subscription = 'basic',
+  currentTheme = 'neon-noir',
+  currentThemeMode = 'light'
 }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -148,6 +157,46 @@ export function AIAssistant({
 
   const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
     const input = userInput.toLowerCase()
+    
+    if (input.includes('theme') || input.includes('color scheme') || input.includes('appearance')) {
+      if (input.includes('dark') && (input.includes('mode') || input.includes('switch') || input.includes('toggle') || input.includes('change'))) {
+        onThemeModeToggle?.()
+        toast.success('Theme mode toggled')
+        return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+      }
+      
+      if (input.includes('light') && (input.includes('mode') || input.includes('switch') || input.includes('toggle') || input.includes('change'))) {
+        onThemeModeToggle?.()
+        toast.success('Theme mode toggled')
+        return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+      }
+      
+      const themeMap: Record<string, ColorTheme> = {
+        'candy shop': 'candy-shop',
+        'candy': 'candy-shop',
+        'candyshop': 'candy-shop',
+        'neon noir': 'neon-noir',
+        'neon': 'neon-noir',
+        'aurora borealis': 'aurora-borealis',
+        'aurora': 'aurora-borealis',
+        'cosmic latte': 'cosmic-latte',
+        'cosmic': 'cosmic-latte',
+        'latte': 'cosmic-latte',
+        'black gray': 'black-gray',
+        'gray': 'black-gray',
+        'grey': 'black-gray',
+        'monochrome': 'black-gray'
+      }
+      
+      for (const [keyword, themeValue] of Object.entries(themeMap)) {
+        if (input.includes(keyword)) {
+          onThemeChange?.(themeValue)
+          const themeName = themeValue.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+          toast.success(`Theme changed to ${themeName}`)
+          return { executed: true, response: `Done! I've changed the theme to ${themeName}.` }
+        }
+      }
+    }
     
     if (input.includes('mark') && (input.includes('email') || input.includes('mail')) && (input.includes('read') || input.includes('as read'))) {
       const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
@@ -495,8 +544,19 @@ Current app state:
 - DND Mode: ${dndEnabled ? 'enabled' : 'disabled'}
 - Emergency Override: ${emergencyOverride} contacts
 - Subscription: ${subscription}
+- Current Theme: ${currentTheme} (${currentThemeMode} mode)
 
 YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
+
+THEME & APPEARANCE:
+- "change theme to candy shop" - Switch to Candy Shop theme
+- "change theme to neon noir" - Switch to Neon Noir theme
+- "change theme to aurora borealis" - Switch to Aurora Borealis theme
+- "change theme to cosmic latte" - Switch to Cosmic Latte theme
+- "change theme to black gray" - Switch to Black Gray theme
+- "switch to dark mode" - Toggle dark mode
+- "switch to light mode" - Toggle light mode
+- "toggle dark mode" - Toggle theme mode
 
 EMAIL & NOTIFICATION CONTROL:
 - "read my emails" - Read all unread email subjects out loud
