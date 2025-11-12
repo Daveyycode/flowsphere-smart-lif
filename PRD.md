@@ -251,9 +251,9 @@ Animations should feel purposeful and physics-based, creating a sense of respons
   - Tabs for main navigation and notification categories
   - Switch components for device on/off, automation enable/disable, and DND toggle
   - Slider for brightness, temperature, and emergency override threshold controls
-  - Tooltips for icon buttons and quick info
-  - Toast notifications (via sonner) for confirmations, alerts, and error messages
-  - Avatar components for family members
+  - Tabs for main navigation and notification categories
+  - Switch components for device on/off, automation enable/disable, and DND toggle
+  - Slider for brightness, temperature, and emergency override threshold controls
   - Badge for device status, notification categories, and recording indicators
   - Progress bars for loading states, metrics, and sleep quality
   - Scroll areas for long notification lists and activity feeds
@@ -302,13 +302,17 @@ Animations should feel purposeful and physics-based, creating a sense of respons
   - Bottom tab navigation on mobile (<768px) with 4 main tabs visible, optimized sizing with h-16 sm:h-18
   - Single/dual column layouts on small screens: grid-cols-2 for stat cards, grid-cols-1 for content
   - Touch-friendly 44px minimum hit areas with active:scale-95 for tactile feedback
-  - Camera grid adapts to single column on mobile with full-width cards
-  - Notification tabs scroll horizontally with touch gestures
-  - AI assistant orb repositions to bottom-20 md:bottom-6 right-4 md:right-6 with size w-14 h-14 sm:w-16 sm:h-16
-  - AI assistant chat adapts to full-width on mobile (bottom-32 md:bottom-28 right-3 md:right-6 left-3 md:left-auto)
-  - Morning brief cards stack in 2x2 grid on mobile (grid-cols-2 lg:grid-cols-4)
-  - Device controls expand to show full slider controls on tap
+  - **Mobile-First Design**: All components built with mobile as the primary viewport, progressively enhanced for larger screens
+  - **Bottom Navigation**: Fixed mobile navigation bar (hidden on md+) with 5 main tabs, positioned above safe area insets (h-16 sm:h-18)
+  - **Responsive Grid System**: Automatic adjustment - grid-cols-1 on mobile, grid-cols-2 on sm, grid-cols-3 on lg, grid-cols-4 on xl
   - All icons scale responsively: w-4 h-4 sm:w-5 sm:h-5 or w-5 h-5 sm:w-6 sm:h-6
   - Logo scales from w-6 h-6 on mobile to w-8 h-8 on desktop
   - Header height adapts: h-14 sm:h-16
   - All text uses responsive Tailwind classes for proper sizing across viewports
+  - **Component Stacking**: Flex columns on mobile (flex-col sm:flex-row), rows on larger screens for optimal layout  - **Icon Sizing**: Icons scale from w-4 h-4 / w-5 h-5 on mobile to w-6 h-6 / w-8 h-8 on desktop for better visibility  - **Safe Area Support**: iOS safe area insets handled via `.safe-area-inset-bottom` utility class for notched devices    - `.flex-responsive` for responsive flex direction
+    - `.card-padding`, `.container-padding`, `.section-spacing` for consistent spacing
+    - `.mobile-full-width`, `.mobile-stack` for mobile-specific layouts
+    - Desktop: 768px+ (md) - Multi-column, mouse/keyboard optimized
+    - Large Desktop: 1024px+ (lg) - Expanded layouts
+    - XL Desktop: 1280px+ (xl) - Maximum content width
+  - Camera grid adapts to single column on mobile with full-width cards
