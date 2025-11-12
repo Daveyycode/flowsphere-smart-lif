@@ -89,7 +89,7 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant! Toggle the mic and speak - I'll auto-respond. For sensitive commands (like checking kid locations or calling family), I'll confirm first. Try: \"Turn on living room lights\" or \"Good morning scene\" or \"Check kids location\". Control rooms, scenes, devices, and more!"
+      content: "Hi! I'm your FlowSphere AI assistant! To execute commands, say \"I'm [your name] please\" followed by your command, or toggle the mic button for continuous hands-free control. For sensitive actions (like calling family or checking locations), I'll always confirm first. Try: \"I'm Sarah please turn on living room lights\" or toggle the mic and say \"Good morning scene\"!"
     }
   ])
   const [input, setInput] = useState('')
@@ -241,6 +241,21 @@ export function AIAssistant({
   const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string; needsConfirmation?: boolean; confirmAction?: string }> => {
     const input = userInput.toLowerCase()
     
+    const userFirstName = (userName || 'User').split(' ')[0].toLowerCase()
+    const userLastName = (userName || 'User').split(' ')[(userName || 'User').split(' ').length - 1].toLowerCase()
+    const userFullName = (userName || 'User').toLowerCase()
+    
+    const hasActivationPhrase = 
+      input.includes(`i'm ${userFirstName} please`) ||
+      input.includes(`im ${userFirstName} please`) ||
+      input.includes(`i'm ${userLastName} please`) ||
+      input.includes(`im ${userLastName} please`) ||
+      input.includes(`i'm ${userFullName} please`) ||
+      input.includes(`im ${userFullName} please`) ||
+      input.includes(`${userFirstName} please`) ||
+      input.includes('please') ||
+      micToggled
+    
     if (pendingConfirmation && (input.includes('yes') || input.includes('yeah') || input.includes('sure') || input.includes('ok') || input.includes('confirm'))) {
       const action = pendingConfirmation.action
       setPendingConfirmation(null)
@@ -288,6 +303,13 @@ export function AIAssistant({
     if (pendingConfirmation && (input.includes('no') || input.includes('cancel') || input.includes('nope') || input.includes('nevermind'))) {
       setPendingConfirmation(null)
       return { executed: true, response: "Okay, I've cancelled that action." }
+    }
+    
+    if (!hasActivationPhrase && !pendingConfirmation) {
+      return { 
+        executed: true, 
+        response: `To execute commands, please say "I'm ${userFirstName} please" followed by your command, or toggle the mic for continuous listening.` 
+      }
     }
     
     if (input.includes('check') && (input.includes('kid') || input.includes('child') || input.includes('children')) && input.includes('location')) {
@@ -804,92 +826,29 @@ export function AIAssistant({
         const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
         const emailList = unreadEmails.map(e => `"${e.title}" from ${e.source}`).join(', ')
         
-        const promptText = `You are FlowSphere AI assistant with COMPLETE CONTROL and FULL PERMISSIONS over the entire app. You have the power to execute ANY command instantly.
+        const promptText = `You are FlowSphere AI assistant. The user tried to execute a command but it wasn't recognized by the system.
+
+User said: "${userInput}"
 
 Current app state:
 - Devices (${devices.length}): ${deviceList || 'none'}
-- Cameras (${cameras.length}): ${cameraList || 'none'}
-- Automations (${automations.length}): ${automationList || 'none'}
+- Cameras (${cameras.length}): ${cameraList || 'none'}  
 - Family Members (${familyMembers.length}): ${familyList || 'none'}
-- Notifications: ${notifications.length} total, ${unreadCount} unread
-- Unread Emails (${unreadEmails.length}): ${emailList || 'none'}
-- DND Mode: ${dndEnabled ? 'enabled' : 'disabled'}
-- Emergency Override: ${emergencyOverride} contacts
 - Subscription: ${subscription}
-- Current Theme: ${currentTheme} (${currentThemeMode} mode)
+- Current Theme: ${currentTheme}
 
-YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
+Since I couldn't execute their command automatically, provide a helpful response explaining what you CAN do or clarify what they meant. Be concise (under 40 words) and helpful.
 
-ROOM CONTROL:
-- "turn on/off [room name] lights" - Control all lights in a specific room
-- "turn on/off everything in [room name]" - Control all devices in a room
-- Supported rooms: living room, bedroom, kitchen, bathroom, office, dining room, garage, basement
+Examples of what you CAN execute:
+- Control devices/lights/cameras
+- Change themes and settings
+- Read emails
+- Navigate to different pages
+- Activate scenes (good morning, good night, movie, etc.)
+- Control specific rooms
+- Check family locations (with confirmation)
 
-SCENES & ROUTINES:
-- "good morning scene" - Turn on bedroom/kitchen lights and coffee maker
-- "good night scene" - Turn off all lights and lock all doors
-- "movie scene" - Dim living room lights to 20%
-- "away scene" - Turn off lights, lock doors, set eco temperature
-- "coming home scene" - Turn on entry lights and adjust temperature
-
-FAMILY & SAFETY (requires confirmation):
-- "check kids location" - Get children's current locations (asks for confirmation)
-- "call [family member name]" - Call a specific family member (asks for confirmation)
-- "call my kids" - Call all children (asks for confirmation)
-- "call family" - Call all family members (asks for confirmation)
-
-THEME & APPEARANCE:
-- "change theme to candy shop" - Switch to Candy Shop theme
-- "change theme to neon noir" - Switch to Neon Noir theme
-- "change theme to aurora borealis" - Switch to Aurora Borealis theme
-- "change theme to cosmic latte" - Switch to Cosmic Latte theme
-- "change theme to black gray" - Switch to Black Gray theme
-- "switch to dark mode" - Toggle dark mode
-- "switch to light mode" - Toggle light mode
-- "toggle dark mode" - Toggle theme mode
-
-EMAIL & NOTIFICATION CONTROL:
-- "read my emails" - Read all unread email subjects out loud
-- "read my messages" - Read all unread email subjects out loud
-- "read emails from [sender]" - Read specific emails from a sender
-- "read all my emails" - Read all unread emails with full details
-- "mark email as read" - Mark specific email as read
-- "mark all emails as read" - Mark all emails as read
-- "mark [subject/sender] as read" - Mark specific emails as read
-- "clear notifications" - Delete all notifications
-- "mark all read" - Mark all notifications as read
-- "set emergency override to [number]" - Change emergency contacts
-
-DEVICE CONTROL:
-- "turn on/off [device name]" - Control specific devices
-- "turn on/off all lights" - Control all lights
-- "set temperature to [number]" - Set thermostat
-- "dim lights to [number]%" - Set brightness
-- "add device [type] called [name]" - Add new device
-
-CAMERA CONTROL:
-- "start/stop recording [camera name]" - Control camera recording
-- "start/stop recording all cameras" - Control all cameras
-
-AUTOMATION CONTROL:
-- "activate/deactivate [automation name]" - Toggle automation
-- "run [automation name]" - Run automation
-- "delete automation [name]" - Remove automation
-
-SUBSCRIPTION:
-- "upgrade to premium" - Change to Premium plan
-- "upgrade to family" - Change to Family plan
-- "downgrade to free" - Change to Free plan
-
-NAVIGATION:
-- "go to [dashboard/devices/family/notifications/cameras/automations/settings/prayer/emergency/traffic/resources/meeting/permissions/subscription]"
-
-DND MODE:
-- "turn on/off do not disturb" - Toggle DND
-
-User request: ${userInput}
-
-IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respond as if you ALREADY DID IT and confirm completion briefly. Do NOT say you "can't" or ask for clarification. Just confirm action was taken. Keep responses under 40 words, natural, helpful, and action-oriented.`
+If they're asking to do something, guide them on the correct phrasing.`
         
         const response = await window.spark.llm(promptText, 'gpt-4o-mini')
         
