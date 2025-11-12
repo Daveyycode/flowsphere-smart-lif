@@ -43,7 +43,7 @@ const voiceOptions: VoiceOption[] = [
 export function AIVoiceSettings() {
   const [voiceSettings, setVoiceSettings] = useKV<VoiceSettings>('flowsphere-voice-settings', {
     name: 'Samantha',
-    rate: 1.0,
+    rate: 0.95,
     pitch: 1.0,
     volume: 1.0
   })
@@ -89,7 +89,7 @@ export function AIVoiceSettings() {
       utterance.voice = voice
     }
     
-    utterance.rate = voiceSettings?.rate || 1.0
+    utterance.rate = voiceSettings?.rate || 0.95
     utterance.pitch = voiceSettings?.pitch || 1.0
     utterance.volume = voiceSettings?.volume || 1.0
 
@@ -109,7 +109,7 @@ export function AIVoiceSettings() {
 
   const selectVoice = (voiceName: string) => {
     setVoiceSettings((current) => ({
-      ...(current || { rate: 1.0, pitch: 1.0, volume: 1.0 }),
+      ...(current || { rate: 0.95, pitch: 1.0, volume: 1.0 }),
       name: voiceName
     }))
     toast.success(`Voice changed to ${voiceName}`)
@@ -124,14 +124,14 @@ export function AIVoiceSettings() {
 
   const updatePitch = (value: number[]) => {
     setVoiceSettings((current) => ({
-      ...(current || { name: 'Samantha', rate: 1.0, volume: 1.0 }),
+      ...(current || { name: 'Samantha', rate: 0.95, volume: 1.0 }),
       pitch: value[0]
     }))
   }
 
   const updateVolume = (value: number[]) => {
     setVoiceSettings((current) => ({
-      ...(current || { name: 'Samantha', rate: 1.0, pitch: 1.0 }),
+      ...(current || { name: 'Samantha', rate: 0.95, pitch: 1.0 }),
       volume: value[0]
     }))
   }
@@ -139,7 +139,7 @@ export function AIVoiceSettings() {
   const resetToDefaults = () => {
     setVoiceSettings({
       name: 'Samantha',
-      rate: 1.0,
+      rate: 0.95,
       pitch: 1.0,
       volume: 1.0
     })
@@ -260,7 +260,7 @@ export function AIVoiceSettings() {
                 min={0.5}
                 max={2.0}
                 step={0.1}
-                value={[voiceSettings?.rate || 1.0]}
+                value={[voiceSettings?.rate || 0.95]}
                 onValueChange={updateRate}
               />
               <p className="text-xs text-muted-foreground">

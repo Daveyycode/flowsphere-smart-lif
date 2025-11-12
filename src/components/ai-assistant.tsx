@@ -89,7 +89,7 @@ export function AIAssistant({
   
   const [selectedVoice, setSelectedVoice] = useKV<string>('flowsphere-ai-voice', 'female-warm')
   const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', false)
-  const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 1.0)
+  const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 0.95)
   const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
 
   const speakText = (text: string) => {
@@ -99,7 +99,7 @@ export function AIAssistant({
       window.speechSynthesis.cancel()
       
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = speechRate || 1.0
+      utterance.rate = speechRate || 0.95
       utterance.pitch = speechPitch || 1.0
       
       const voices = window.speechSynthesis.getVoices()
@@ -710,7 +710,7 @@ IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respo
                     min={0.5}
                     max={2}
                     step={0.1}
-                    value={[speechRate || 1.0]}
+                    value={[speechRate || 0.95]}
                     onValueChange={([value]) => setSpeechRate(value)}
                     disabled={!voiceEnabled}
                   />
