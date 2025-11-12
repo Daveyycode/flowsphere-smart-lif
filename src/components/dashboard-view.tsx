@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmergencyDialog } from '@/components/emergency-dialog'
 import { ComingSoonSection } from '@/components/coming-soon-section'
 import { useKV } from '@github/spark/hooks'
+import { useDeviceType } from '@/hooks/use-mobile'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface BibleVerse {
@@ -85,6 +87,10 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({ stats, recentActivity, onTabChange }: DashboardViewProps) {
+  const deviceType = useDeviceType()
+  const isMobile = deviceType === 'mobile'
+  const isTablet = deviceType === 'tablet'
+  
   const greeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return 'Good morning'
@@ -263,15 +269,22 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
     setCurrentVerse(verse)
   }
 
+  const cardGridCols = isMobile ? 'grid-cols-2' : isTablet ? 'grid-cols-2' : 'grid-cols-4'
+  const quickAccessCols = isMobile ? 'grid-cols-2' : isTablet ? 'grid-cols-3' : 'grid-cols-2'
+  const iconSize = isMobile ? 'w-5 h-5' : isTablet ? 'w-5 h-5' : 'w-6 h-6'
+  const cardPadding = isMobile ? 'p-4' : isTablet ? 'p-5' : 'p-6'
+
   return (
-    <div className="space-y-6 sm:space-y-8 pb-8">
+    <div className={cn("space-y-6 pb-8", isMobile && "space-y-6", isTablet && "space-y-7")}>
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">{greeting()}</h1>
-        <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
+        <h1 className={cn("font-bold mb-1", isMobile ? "text-2xl" : isTablet ? "text-3xl" : "text-4xl")}>
+          {greeting()}
+        </h1>
+        <p className={cn("text-muted-foreground", isMobile ? "text-sm" : isTablet ? "text-base" : "text-lg")}>
           Here's what's happening in your sphere today
         </p>
       </motion.div>
@@ -281,29 +294,29 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <Card className="p-4 sm:p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-          <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" weight="fill" />
+        <Card className={cn("bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20", cardPadding)}>
+          <div className={cn("flex flex-col items-center text-center", isMobile ? "space-y-4" : "space-y-6")}>
+            <div className={cn("rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center", isMobile ? "w-12 h-12" : "w-16 h-16")}>
+              <BookOpen className={cn("text-white", isMobile ? "w-6 h-6" : "w-8 h-8")} weight="fill" />
             </div>
 
             {!currentVerse ? (
               <>
                 <div>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2 font-heading">
+                  <h2 className={cn("font-semibold mb-2 font-heading", isMobile ? "text-lg" : isTablet ? "text-xl" : "text-2xl")}>
                     Word of God
                   </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
+                  <p className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>
                     Would you like to hear God's word today?
                   </p>
                 </div>
 
                 <Button
-                  size="lg"
+                  size={isMobile ? "default" : "lg"}
                   onClick={handleStartReading}
                   className="min-touch-target bg-primary hover:bg-primary/90"
                 >
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                  <Play className={cn("mr-2", isMobile ? "w-4 h-4" : "w-5 h-5")} weight="fill" />
                   Start Reading
                 </Button>
               </>
@@ -314,33 +327,35 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="space-y-4 sm:space-y-6 w-full"
+                  className={cn("w-full", isMobile ? "space-y-4" : "space-y-6")}
                 >
                   <div>
-                    <p className="text-xs sm:text-sm font-semibold text-primary mb-3 sm:mb-4">
+                    <p className={cn("font-semibold text-primary mb-3", isMobile ? "text-xs" : "text-sm")}>
                       {currentVerse.reference}
                     </p>
-                    <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                    <p className={cn("text-foreground leading-relaxed", isMobile ? "text-sm" : "text-base")}>
                       {currentVerse.text}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
+                  <div className={cn("flex flex-wrap justify-center", isMobile ? "gap-2" : "gap-3")}>
                     {isReading ? (
                       <Button
                         variant="destructive"
                         onClick={handleStopReading}
+                        size={isMobile ? "default" : "lg"}
                         className="min-touch-target"
                       >
-                        <Pause className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                        <Pause className={cn("mr-2", isMobile ? "w-4 h-4" : "w-5 h-5")} weight="fill" />
                         Stop
                       </Button>
                     ) : (
                       <Button
                         onClick={handleStartReading}
+                        size={isMobile ? "default" : "lg"}
                         className="min-touch-target"
                       >
-                        <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" weight="fill" />
+                        <Play className={cn("mr-2", isMobile ? "w-4 h-4" : "w-5 h-5")} weight="fill" />
                         Read Aloud
                       </Button>
                     )}
@@ -348,9 +363,10 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
                     <Button
                       variant="outline"
                       onClick={handleNewVerse}
+                      size={isMobile ? "default" : "lg"}
                       className="min-touch-target"
                     >
-                      <ArrowClockwise className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <ArrowClockwise className={cn("mr-2", isMobile ? "w-4 h-4" : "w-5 h-5")} />
                       New Verse
                     </Button>
                   </div>
@@ -361,7 +377,7 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className={cn("grid gap-3", cardGridCols, isMobile && "gap-3", isTablet && "gap-4")}>
         {statCards.map((stat, index) => {
           const Icon = stat.icon
           return (
@@ -372,33 +388,33 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
               <Card className="border-border/50 hover:border-accent/50 transition-all duration-300 hover:shadow-lg">
-                <CardContent className="p-4 sm:p-5 md:p-6">
-                  <div className="flex items-start justify-between mb-3 sm:mb-4">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-${stat.color}/10 flex items-center justify-center`}>
-                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 text-${stat.color}`} weight="duotone" />
+                <CardContent className={cardPadding}>
+                  <div className={cn("flex items-start justify-between", isMobile ? "mb-3" : "mb-4")}>
+                    <div className={cn("rounded-xl bg-${stat.color}/10 flex items-center justify-center", isMobile ? "w-10 h-10" : "w-12 h-12")}>
+                      <Icon className={cn(`text-${stat.color}`, isMobile ? "w-5 h-5" : "w-6 h-6")} weight="duotone" />
                     </div>
-                    <Badge variant="secondary" className="text-[10px] sm:text-xs">
+                    <Badge variant="secondary" className={isMobile ? "text-[10px]" : "text-xs"}>
                       {stat.trend}
                     </Badge>
                   </div>
-                  <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+                  <h3 className={cn("font-medium text-muted-foreground mb-1", isMobile ? "text-xs" : "text-sm")}>
                     {stat.title}
                   </h3>
-                  <div className="flex items-baseline space-x-1 sm:space-x-2">
-                    <p className="text-2xl sm:text-3xl font-bold">
+                  <div className={cn("flex items-baseline", isMobile ? "space-x-1" : "space-x-2")}>
+                    <p className={cn("font-bold", isMobile ? "text-2xl" : "text-3xl")}>
                       {stat.value}
                     </p>
                     {stat.total && (
-                      <span className="text-muted-foreground text-xs sm:text-sm">/ {stat.total}</span>
+                      <span className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>/ {stat.total}</span>
                     )}
                     {stat.unit && (
-                      <span className="text-muted-foreground text-xs sm:text-sm">{stat.unit}</span>
+                      <span className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>{stat.unit}</span>
                     )}
                   </div>
                   {stat.total && (
                     <Progress 
                       value={(stat.value / stat.total) * 100} 
-                      className="mt-2 sm:mt-3 h-1.5"
+                      className={cn("h-1.5", isMobile ? "mt-2" : "mt-3")}
                     />
                   )}
                 </CardContent>
@@ -408,30 +424,30 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2", isMobile && "gap-4", isTablet && "gap-6")}>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           <Card className="border-blue-mid/20 bg-gradient-to-br from-blue-light/10 via-blue-mid/5 to-transparent">
-            <CardHeader className="pb-3 sm:pb-6">
+            <CardHeader className={cn(isMobile ? "pb-3" : "pb-6")}>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                  <House className="w-4 h-4 sm:w-5 sm:h-5" weight="duotone" />
+                <CardTitle className={cn("flex items-center space-x-2", isMobile ? "text-base" : "text-lg")}>
+                  <House className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} weight="duotone" />
                   <span>Quick Access</span>
                 </CardTitle>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 min-touch-target"
                   onClick={() => setIsCustomizing(true)}
                 >
                   <PencilSimple className="w-4 h-4" weight="duotone" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2 sm:gap-3">
+            <CardContent className={cn("grid gap-2", quickAccessCols, isMobile && "gap-2", isTablet && "gap-3")}>
               {selectedBoxes.map((box, index) => {
                 const Icon = box.icon
                 const colors = getColorClasses(box.color)
@@ -442,11 +458,14 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleBoxClick(box)}
-                    className={`p-3 sm:p-4 rounded-xl ${colors.bg} ${colors.hover} border ${colors.border} transition-all duration-200 hover:scale-105 active:scale-95 group`}
+                    className={cn(
+                      `rounded-xl ${colors.bg} ${colors.hover} border ${colors.border} transition-all duration-200 hover:scale-105 active:scale-95 group min-touch-target`,
+                      isMobile ? "p-3" : "p-4"
+                    )}
                   >
-                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.text} mb-1 sm:mb-2 group-hover:scale-110 transition-transform`} weight="duotone" />
-                    <p className="text-xs sm:text-sm font-medium leading-tight">{box.label}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{box.description}</p>
+                    <Icon className={cn(`${colors.text} mb-1 group-hover:scale-110 transition-transform`, isMobile ? "w-5 h-5" : "w-6 h-6", isMobile && "mb-1", isTablet && "mb-2")} weight="duotone" />
+                    <p className={cn("font-medium leading-tight", isMobile ? "text-xs" : "text-sm")}>{box.label}</p>
+                    <p className={cn("text-muted-foreground mt-1", isMobile ? "text-[10px]" : "text-xs")}>{box.description}</p>
                   </motion.button>
                 )
               })}
@@ -460,23 +479,23 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
           transition={{ duration: 0.5, delay: 0.5 }}
         >
           <Card>
-            <CardHeader className="pb-3 sm:pb-6">
-              <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+            <CardHeader className={cn(isMobile ? "pb-3" : "pb-6")}>
+              <CardTitle className={isMobile ? "text-base" : "text-lg"}>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 sm:space-y-4">
+              <div className={cn(isMobile ? "space-y-3" : "space-y-4")}>
                 {recentActivity.map((activity, index) => (
                   <motion.div
                     key={activity.id}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
-                    className="flex items-start space-x-2 sm:space-x-3 pb-3 border-b border-border/50 last:border-0 last:pb-0"
+                    className={cn("flex items-start pb-3 border-b border-border/50 last:border-0 last:pb-0", isMobile ? "space-x-2" : "space-x-3")}
                   >
                     <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">{activity.message}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{activity.time}</p>
+                      <p className={cn("font-medium truncate", isMobile ? "text-xs" : "text-sm")}>{activity.message}</p>
+                      <p className={cn("text-muted-foreground", isMobile ? "text-[10px] mt-0.5" : "text-xs mt-1")}>{activity.time}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -493,18 +512,18 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
       >
         <Card className="border-blue-mid/30 bg-gradient-to-br from-blue-light/10 via-accent/5 to-coral/10 relative overflow-hidden">
           <div className="absolute inset-0 blue-ombre opacity-5" />
-          <CardContent className="p-4 sm:p-5 md:p-6 relative">
-            <div className="flex items-start space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-light to-blue-deep flex items-center justify-center flex-shrink-0">
-                <Lightning className="w-5 h-5 sm:w-6 sm:h-6 text-white" weight="fill" />
+          <CardContent className={cn("relative", cardPadding)}>
+            <div className={cn("flex items-start", isMobile ? "space-x-3" : "space-x-4")}>
+              <div className={cn("rounded-full bg-gradient-to-br from-blue-light to-blue-deep flex items-center justify-center flex-shrink-0", isMobile ? "w-10 h-10" : "w-12 h-12")}>
+                <Lightning className={cn("text-white", isMobile ? "w-5 h-5" : "w-6 h-6")} weight="fill" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">AI Insight</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
+                <h3 className={cn("font-semibold mb-1", isMobile ? "text-base" : "text-lg", isMobile && "mb-1", isTablet && "mb-2")}>AI Insight</h3>
+                <p className={cn("text-muted-foreground mb-2", isMobile ? "text-xs" : "text-sm", isMobile && "mb-2", isTablet && "mb-3")}>
                   Your living room lights have been on for 3+ hours during daytime. 
                   Consider creating an automation to turn them off when natural light is sufficient.
                 </p>
-                <button className="text-xs sm:text-sm font-medium text-blue-mid hover:underline">
+                <button className={cn("font-medium text-blue-mid hover:underline", isMobile ? "text-xs" : "text-sm")}>
                   Create automation →
                 </button>
               </div>
@@ -522,12 +541,12 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
       </motion.div>
 
       <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={cn(isMobile ? "max-w-[95vw]" : "max-w-md")}>
           <DialogHeader>
-            <DialogTitle>Customize Quick Access</DialogTitle>
+            <DialogTitle className={isMobile ? "text-base" : "text-lg"}>Customize Quick Access</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <p className="text-sm text-muted-foreground">
+          <div className={cn(isMobile ? "space-y-3 pt-3" : "space-y-4 pt-4")}>
+            <p className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>
               Select 3-6 shortcuts to display on your dashboard
             </p>
             <div className="space-y-2">
@@ -540,21 +559,23 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
                   <button
                     key={box.id}
                     onClick={() => toggleBox(box.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                    className={cn(
+                      "w-full flex items-center rounded-lg border-2 transition-all min-touch-target",
+                      isMobile ? "gap-2 p-2" : "gap-3 p-3",
                       isSelected
                         ? 'border-accent bg-accent/10'
                         : 'border-border hover:border-accent/50'
-                    }`}
+                    )}
                   >
-                    <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-5 h-5 ${colors.text}`} weight="duotone" />
+                    <div className={cn("rounded-lg flex items-center justify-center flex-shrink-0", colors.bg, isMobile ? "w-8 h-8" : "w-10 h-10")}>
+                      <Icon className={cn(colors.text, isMobile ? "w-4 h-4" : "w-5 h-5")} weight="duotone" />
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="font-medium text-sm">{box.label}</p>
-                      <p className="text-xs text-muted-foreground">{box.description}</p>
+                      <p className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}>{box.label}</p>
+                      <p className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>{box.description}</p>
                     </div>
                     {isSelected && (
-                      <Badge variant="secondary" className="bg-mint/20 text-mint">
+                      <Badge variant="secondary" className={cn("bg-mint/20 text-mint", isMobile ? "text-[10px]" : "text-xs")}>
                         Selected
                       </Badge>
                     )}
@@ -564,7 +585,8 @@ export function DashboardView({ stats, recentActivity, onTabChange }: DashboardV
             </div>
             <Button
               onClick={() => setIsCustomizing(false)}
-              className="w-full bg-accent hover:bg-accent/90"
+              className="w-full bg-accent hover:bg-accent/90 min-touch-target"
+              size={isMobile ? "default" : "lg"}
             >
               Done
             </Button>

@@ -11,6 +11,8 @@ import {
   WifiSlash,
   Robot
 } from '@phosphor-icons/react'
+import { useDeviceType } from '@/hooks/use-mobile'
+import { cn } from '@/lib/utils'
 
 interface ComingSoonFeature {
   id: string
@@ -22,6 +24,10 @@ interface ComingSoonFeature {
 }
 
 export function ComingSoonSection() {
+  const deviceType = useDeviceType()
+  const isMobile = deviceType === 'mobile'
+  const isTablet = deviceType === 'tablet'
+  
   const features: ComingSoonFeature[] = [
     {
       id: 'tutor-ai',
@@ -110,18 +116,21 @@ export function ComingSoonSection() {
     }
   }
 
+  const gridCols = isMobile ? 'grid-cols-2' : isTablet ? 'grid-cols-3' : 'grid-cols-4'
+  const cardPadding = isMobile ? 'p-4' : isTablet ? 'p-5' : 'p-6'
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className={cn(isMobile ? "space-y-4" : "space-y-6")}>
       <Card className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 border-gray-700/50 overflow-hidden">
-        <CardContent className="p-4 sm:p-5 md:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0" style={{ boxShadow: '0 0 20px -5px rgba(234, 179, 8, 0.4)' }}>
-                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" weight="fill" />
+        <CardContent className={cardPadding}>
+          <div className={cn("flex items-center justify-between", isMobile ? "mb-4" : "mb-4")}>
+            <div className={cn("flex items-center min-w-0", isMobile ? "space-x-2" : "space-x-3")}>
+              <div className={cn("rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0", isMobile ? "w-10 h-10" : "w-12 h-12")} style={{ boxShadow: '0 0 20px -5px rgba(234, 179, 8, 0.4)' }}>
+                <Lock className={cn("text-yellow-500", isMobile ? "w-5 h-5" : "w-6 h-6")} weight="fill" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-100 truncate">Coming Soon...</h2>
-                <p className="text-xs sm:text-sm text-gray-400">Features under development</p>
+                <h2 className={cn("font-bold text-gray-100", isMobile ? "text-xl" : "text-2xl")}>Coming Soon...</h2>
+                <p className={cn("text-gray-400", isMobile ? "text-xs" : "text-sm")}>Features under development</p>
               </div>
             </div>
           </div>
@@ -130,7 +139,7 @@ export function ComingSoonSection() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+            className={cn("grid gap-3", gridCols, isMobile && "gap-3", isTablet && "gap-4")}
           >
             {features.map((feature) => {
               const IconComponent = feature.icon
@@ -138,15 +147,15 @@ export function ComingSoonSection() {
                 <motion.div
                   key={feature.id}
                   variants={cardVariants}
-                  className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-600/40 hover:border-gray-500/50 transition-colors"
+                  className={cn("bg-gray-700/30 backdrop-blur-sm rounded-xl border border-gray-600/40 hover:border-gray-500/50 transition-colors", isMobile ? "p-3" : "p-4")}
                 >
-                  <div className="flex items-start justify-between mb-2 sm:mb-3">
-                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${feature.bgColor} flex items-center justify-center`}>
-                      <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${feature.iconColor}`} weight="duotone" />
+                  <div className={cn("flex items-start justify-between", isMobile ? "mb-2" : "mb-3")}>
+                    <div className={cn("rounded-lg flex items-center justify-center", feature.bgColor, isMobile ? "w-8 h-8" : "w-10 h-10")}>
+                      <IconComponent className={cn(feature.iconColor, isMobile ? "w-4 h-4" : "w-5 h-5")} weight="duotone" />
                     </div>
                   </div>
-                  <h4 className="font-semibold mb-1 text-xs sm:text-sm text-gray-100">{feature.title}</h4>
-                  <p className="text-[10px] sm:text-xs text-gray-400 line-clamp-3">{feature.description}</p>
+                  <h4 className={cn("font-semibold mb-1 text-gray-100", isMobile ? "text-xs" : "text-sm")}>{feature.title}</h4>
+                  <p className={cn("text-gray-400 line-clamp-3", isMobile ? "text-[10px]" : "text-xs")}>{feature.description}</p>
                 </motion.div>
               )
             })}
