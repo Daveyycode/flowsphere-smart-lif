@@ -89,24 +89,30 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails out loud, mark specific emails as read, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just say \"I'm [your name], please...\" and I'll do it instantly!"
+      content: "Hi! I'm your FlowSphere AI assistant! Toggle the mic and speak - I'll auto-respond. For sensitive commands (like checking kid locations or calling family), I'll confirm first. Try: \"Turn on living room lights\" or \"Good morning scene\" or \"Check kids location\". Control rooms, scenes, devices, and more!"
     }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [pendingConfirmation, setPendingConfirmation] = useState<{action: string; command: string} | null>(null)
   
   const [selectedVoice, setSelectedVoice] = useKV<string>('flowsphere-ai-voice', 'female-warm')
   const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', false)
   const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 0.95)
   const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
+  const [micToggled, setMicToggled] = useState(false)
 
   useEffect(() => {
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel()
+      }
+      if (micToggled) {
+        setMicToggled(false)
+        setIsListening(false)
       }
     }
   }, [])
@@ -174,61 +180,247 @@ export function AIAssistant({
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
 
-    recognition.continuous = false
+    recognition.continuous = micToggled
     recognition.interimResults = false
     recognition.lang = 'en-US'
 
     recognition.onstart = () => {
       setIsListening(true)
-      toast.success('Listening...')
+      if (!micToggled) {
+        toast.success('Listening...')
+      }
     }
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript
+      const transcript = event.results[event.results.length - 1][0].transcript
       setInput(transcript)
-      setIsListening(false)
       
-      const nameParts = (userName || 'Sarah Johnson').split(' ')
-      const firstName = nameParts[0]
-      const lastName = nameParts[nameParts.length - 1]
-      const fullName = userName || 'Sarah Johnson'
-      
-      const lowerTranscript = transcript.toLowerCase()
-      const activationPhrases = [
-        `i'm ${firstName.toLowerCase()} please`,
-        `i'm ${lastName.toLowerCase()} please`,
-        `i'm ${fullName.toLowerCase()} please`,
-        `im ${firstName.toLowerCase()} please`,
-        `im ${lastName.toLowerCase()} please`,
-        `im ${fullName.toLowerCase()} please`,
-        `i am ${firstName.toLowerCase()} please`,
-        `i am ${lastName.toLowerCase()} please`,
-        `i am ${fullName.toLowerCase()} please`,
-      ]
-      
-      const isActivated = activationPhrases.some(phrase => lowerTranscript.includes(phrase))
-      
-      if (isActivated) {
-        setTimeout(() => handleSend(transcript), 500)
+      if (micToggled) {
+        setTimeout(() => {
+          handleSend(transcript)
+          setInput('')
+        }, 300)
       }
     }
 
     recognition.onerror = (event: any) => {
-      setIsListening(false)
-      if (event.error !== 'no-speech') {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
         toast.error(`Voice recognition error: ${event.error}`)
+      }
+      if (micToggled && event.error === 'no-speech') {
+        recognition.start()
       }
     }
 
     recognition.onend = () => {
-      setIsListening(false)
+      if (micToggled) {
+        recognition.start()
+      } else {
+        setIsListening(false)
+      }
     }
 
     recognition.start()
   }
 
-  const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
+  const toggleMic = () => {
+    if (micToggled) {
+      setMicToggled(false)
+      setIsListening(false)
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+      toast.success('Continuous listening disabled')
+    } else {
+      setMicToggled(true)
+      startVoiceRecognition()
+      toast.success('Continuous listening enabled - speak naturally!')
+    }
+  }
+
+  const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string; needsConfirmation?: boolean; confirmAction?: string }> => {
     const input = userInput.toLowerCase()
+    
+    if (pendingConfirmation && (input.includes('yes') || input.includes('yeah') || input.includes('sure') || input.includes('ok') || input.includes('confirm'))) {
+      const action = pendingConfirmation.action
+      setPendingConfirmation(null)
+      
+      if (action === 'check-kids-location') {
+        const kids = familyMembers.filter(m => 
+          m.name.toLowerCase().includes('alex') || 
+          m.name.toLowerCase().includes('emily') ||
+          m.status === 'school'
+        )
+        if (kids.length > 0) {
+          const locations = kids.map(k => `${k.name} is ${k.status} at ${k.location || 'unknown location'}`).join('. ')
+          return { executed: true, response: `Here are your kids' locations: ${locations}` }
+        }
+        return { executed: true, response: "No children found in family tracking." }
+      }
+      
+      if (action === 'call-kids') {
+        const kids = familyMembers.filter(m => 
+          m.name.toLowerCase().includes('alex') || 
+          m.name.toLowerCase().includes('emily') ||
+          m.status === 'school'
+        )
+        if (kids.length > 0) {
+          const names = kids.map(k => k.name).join(' and ')
+          toast.success(`Calling ${names}...`)
+          return { executed: true, response: `Calling ${names} now. The call should connect shortly.` }
+        }
+        return { executed: true, response: "No children found in family tracking." }
+      }
+      
+      if (action === 'call-family') {
+        const familyNames = familyMembers.map(m => m.name).join(', ')
+        toast.success(`Initiating family call...`)
+        return { executed: true, response: `Calling ${familyNames}. Connecting now.` }
+      }
+      
+      if (action.startsWith('call-')) {
+        const memberName = action.replace('call-', '')
+        toast.success(`Calling ${memberName}...`)
+        return { executed: true, response: `Calling ${memberName} now. The call should connect shortly.` }
+      }
+    }
+    
+    if (pendingConfirmation && (input.includes('no') || input.includes('cancel') || input.includes('nope') || input.includes('nevermind'))) {
+      setPendingConfirmation(null)
+      return { executed: true, response: "Okay, I've cancelled that action." }
+    }
+    
+    if (input.includes('check') && (input.includes('kid') || input.includes('child') || input.includes('children')) && input.includes('location')) {
+      setPendingConfirmation({ action: 'check-kids-location', command: userInput })
+      return { 
+        executed: true, 
+        response: "Do you want me to check your kids' locations?",
+        needsConfirmation: true,
+        confirmAction: 'check-kids-location'
+      }
+    }
+    
+    if (input.includes('call') && (input.includes('kid') || input.includes('child') || input.includes('children'))) {
+      setPendingConfirmation({ action: 'call-kids', command: userInput })
+      return { 
+        executed: true, 
+        response: "Do you want me to call your kids?",
+        needsConfirmation: true,
+        confirmAction: 'call-kids'
+      }
+    }
+    
+    if (input.includes('call') && input.includes('family')) {
+      setPendingConfirmation({ action: 'call-family', command: userInput })
+      return { 
+        executed: true, 
+        response: "Do you want me to call your family members?",
+        needsConfirmation: true,
+        confirmAction: 'call-family'
+      }
+    }
+    
+    for (const member of familyMembers) {
+      if (input.includes('call') && input.toLowerCase().includes(member.name.toLowerCase())) {
+        setPendingConfirmation({ action: `call-${member.name}`, command: userInput })
+        return { 
+          executed: true, 
+          response: `Do you want me to call ${member.name}?`,
+          needsConfirmation: true,
+          confirmAction: `call-${member.name}`
+        }
+      }
+    }
+    
+    if (input.includes('scene') || input.includes('routine')) {
+      if (input.includes('good morning') || input.includes('morning')) {
+        const morningDevices = devices.filter(d => 
+          d.name.toLowerCase().includes('bedroom') || 
+          d.name.toLowerCase().includes('kitchen') ||
+          d.name.toLowerCase().includes('coffee')
+        )
+        morningDevices.forEach(d => onDeviceUpdate?.(d.id, { isOn: true }))
+        toast.success('Good Morning scene activated')
+        return { executed: true, response: "Good morning! I've activated your morning scene - bedroom lights on, kitchen ready, and coffee brewing!" }
+      }
+      
+      if (input.includes('good night') || input.includes('night') || input.includes('bedtime') || input.includes('sleep')) {
+        const allLights = devices.filter(d => d.type === 'light')
+        const locks = devices.filter(d => d.type === 'lock')
+        allLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: false }))
+        locks.forEach(lock => onDeviceUpdate?.(lock.id, { isOn: true }))
+        toast.success('Good Night scene activated')
+        return { executed: true, response: "Good night! All lights are off and doors are locked. Sleep well!" }
+      }
+      
+      if (input.includes('movie') || input.includes('cinema')) {
+        const livingRoomLights = devices.filter(d => d.type === 'light' && d.room?.toLowerCase().includes('living'))
+        livingRoomLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: true, brightness: 20 }))
+        toast.success('Movie scene activated')
+        return { executed: true, response: "Movie scene activated! Living room lights dimmed to 20%. Enjoy your movie!" }
+      }
+      
+      if (input.includes('away') || input.includes('leaving') || input.includes('vacation')) {
+        const allLights = devices.filter(d => d.type === 'light')
+        const locks = devices.filter(d => d.type === 'lock')
+        const thermostat = devices.find(d => d.type === 'thermostat')
+        allLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: false }))
+        locks.forEach(lock => onDeviceUpdate?.(lock.id, { isOn: true }))
+        if (thermostat) onDeviceUpdate?.(thermostat.id, { temperature: 68 })
+        toast.success('Away scene activated')
+        return { executed: true, response: "Away scene activated! All lights off, doors locked, and temperature set to eco mode." }
+      }
+      
+      if (input.includes('home') || input.includes('arrive') || input.includes('coming home')) {
+        const entryLights = devices.filter(d => d.type === 'light' && (d.room?.toLowerCase().includes('entry') || d.room?.toLowerCase().includes('living')))
+        const thermostat = devices.find(d => d.type === 'thermostat')
+        entryLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: true }))
+        if (thermostat) onDeviceUpdate?.(thermostat.id, { temperature: 72, isOn: true })
+        toast.success('Welcome Home scene activated')
+        return { executed: true, response: "Welcome home! Entry lights on and temperature adjusting to 72°F." }
+      }
+    }
+    
+    if (input.includes('room') || input.includes('in the')) {
+      const rooms = ['living room', 'bedroom', 'kitchen', 'bathroom', 'office', 'dining room', 'garage', 'basement']
+      
+      for (const room of rooms) {
+        if (input.includes(room)) {
+          const turnOn = input.includes('turn on') || input.includes('on') || input.includes('enable')
+          const turnOff = input.includes('turn off') || input.includes('off') || input.includes('disable')
+          
+          if (input.includes('light') || input.includes('lights')) {
+            const roomLights = devices.filter(d => d.type === 'light' && d.room?.toLowerCase().includes(room))
+            if (roomLights.length > 0) {
+              if (turnOn) {
+                roomLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: true }))
+                toast.success(`${room} lights turned on`)
+                return { executed: true, response: `Done! I've turned on all lights in the ${room}.` }
+              } else if (turnOff) {
+                roomLights.forEach(light => onDeviceUpdate?.(light.id, { isOn: false }))
+                toast.success(`${room} lights turned off`)
+                return { executed: true, response: `Done! I've turned off all lights in the ${room}.` }
+              }
+            }
+          }
+          
+          if (input.includes('everything') || input.includes('all devices')) {
+            const roomDevices = devices.filter(d => d.room?.toLowerCase().includes(room))
+            if (roomDevices.length > 0) {
+              if (turnOn) {
+                roomDevices.forEach(device => onDeviceUpdate?.(device.id, { isOn: true }))
+                toast.success(`All ${room} devices turned on`)
+                return { executed: true, response: `Done! I've turned on all devices in the ${room}.` }
+              } else if (turnOff) {
+                roomDevices.forEach(device => onDeviceUpdate?.(device.id, { isOn: false }))
+                toast.success(`All ${room} devices turned off`)
+                return { executed: true, response: `Done! I've turned off all devices in the ${room}.` }
+              }
+            }
+          }
+        }
+      }
+    }
     
     if (input.includes('theme') || input.includes('color scheme') || input.includes('appearance')) {
       if (input.includes('dark') && (input.includes('mode') || input.includes('switch') || input.includes('toggle') || input.includes('change'))) {
@@ -628,6 +820,24 @@ Current app state:
 
 YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
 
+ROOM CONTROL:
+- "turn on/off [room name] lights" - Control all lights in a specific room
+- "turn on/off everything in [room name]" - Control all devices in a room
+- Supported rooms: living room, bedroom, kitchen, bathroom, office, dining room, garage, basement
+
+SCENES & ROUTINES:
+- "good morning scene" - Turn on bedroom/kitchen lights and coffee maker
+- "good night scene" - Turn off all lights and lock all doors
+- "movie scene" - Dim living room lights to 20%
+- "away scene" - Turn off lights, lock doors, set eco temperature
+- "coming home scene" - Turn on entry lights and adjust temperature
+
+FAMILY & SAFETY (requires confirmation):
+- "check kids location" - Get children's current locations (asks for confirmation)
+- "call [family member name]" - Call a specific family member (asks for confirmation)
+- "call my kids" - Call all children (asks for confirmation)
+- "call family" - Call all family members (asks for confirmation)
+
 THEME & APPEARANCE:
 - "change theme to candy shop" - Switch to Candy Shop theme
 - "change theme to neon noir" - Switch to Neon Noir theme
@@ -834,7 +1044,7 @@ IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respo
               <div className="p-4 border-t border-border">
                 <div className="flex space-x-2">
                   <Input
-                    placeholder="Ask me anything..."
+                    placeholder={micToggled ? "Listening continuously..." : "Ask me anything..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -843,27 +1053,52 @@ IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respo
                         handleSend()
                       }
                     }}
-                    disabled={isLoading}
+                    disabled={isLoading || micToggled}
                     className="flex-1"
                   />
                   <Button
-                    onClick={startVoiceRecognition}
-                    disabled={isLoading || isListening}
+                    onClick={toggleMic}
+                    disabled={isLoading}
                     size="icon"
-                    variant="outline"
-                    className={isListening ? 'bg-red-500/20 border-red-500' : ''}
+                    variant={micToggled ? "default" : "outline"}
+                    className={micToggled ? 'bg-red-500 hover:bg-red-600' : ''}
                   >
-                    <Microphone className="w-5 h-5" weight={isListening ? 'fill' : 'regular'} />
+                    <Microphone className="w-5 h-5" weight={micToggled ? 'fill' : 'regular'} />
                   </Button>
-                  <Button
-                    onClick={() => handleSend()}
-                    disabled={isLoading || !input.trim()}
-                    size="icon"
-                    className="bg-gradient-to-r from-blue-mid to-blue-deep hover:from-blue-mid/90 hover:to-blue-deep/90"
-                  >
-                    <PaperPlaneRight className="w-5 h-5" weight="fill" />
-                  </Button>
+                  {!micToggled && (
+                    <>
+                      <Button
+                        onClick={startVoiceRecognition}
+                        disabled={isLoading || isListening}
+                        size="icon"
+                        variant="outline"
+                        className={isListening ? 'bg-accent/20 border-accent' : ''}
+                      >
+                        <Microphone className="w-5 h-5" weight={isListening ? 'fill' : 'regular'} />
+                      </Button>
+                      <Button
+                        onClick={() => handleSend()}
+                        disabled={isLoading || !input.trim()}
+                        size="icon"
+                        className="bg-gradient-to-r from-blue-mid to-blue-deep hover:from-blue-mid/90 hover:to-blue-deep/90"
+                      >
+                        <PaperPlaneRight className="w-5 h-5" weight="fill" />
+                      </Button>
+                    </>
+                  )}
                 </div>
+                {micToggled && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    🎤 Continuous listening enabled - speak naturally, I'll auto-respond
+                  </p>
+                )}
+                {pendingConfirmation && (
+                  <div className="mt-2 p-2 bg-accent/10 border border-accent/20 rounded-lg">
+                    <p className="text-xs text-accent-foreground text-center">
+                      ⚠️ Awaiting confirmation - say "yes" or "no"
+                    </p>
+                  </div>
+                )}
               </div>
             </Card>
           </motion.div>
