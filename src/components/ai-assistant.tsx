@@ -80,7 +80,7 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
+      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails out loud, mark specific emails as read, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
     }
   ])
   const [input, setInput] = useState('')
@@ -149,6 +149,44 @@ export function AIAssistant({
   const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
     const input = userInput.toLowerCase()
     
+    if (input.includes('mark') && (input.includes('email') || input.includes('mail')) && (input.includes('read') || input.includes('as read'))) {
+      const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
+      
+      if (unreadEmails.length === 0) {
+        return { executed: true, response: "There are no unread emails to mark as read." }
+      }
+      
+      let markedCount = 0
+      
+      for (const email of unreadEmails) {
+        const emailTitleLower = email.title.toLowerCase()
+        const emailSourceLower = email.source.toLowerCase()
+        
+        if (input.includes('all')) {
+          onMarkNotificationRead?.(email.id)
+          markedCount++
+        } else if (emailTitleLower.split(' ').some(word => input.includes(word) && word.length > 3)) {
+          onMarkNotificationRead?.(email.id)
+          markedCount++
+        } else if (emailSourceLower.split(' ').some(word => input.includes(word) && word.length > 3)) {
+          onMarkNotificationRead?.(email.id)
+          markedCount++
+        }
+      }
+      
+      if (markedCount > 0) {
+        toast.success(`Marked ${markedCount} email${markedCount > 1 ? 's' : ''} as read`)
+        return { 
+          executed: true, 
+          response: markedCount === 1 
+            ? `Done! I've marked that email as read.`
+            : `Done! I've marked ${markedCount} emails as read.`
+        }
+      }
+      
+      return { executed: false, response: '' }
+    }
+    
     if (input.includes('read') && (input.includes('email') || input.includes('mail') || input.includes('message'))) {
       const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
       
@@ -156,10 +194,33 @@ export function AIAssistant({
         return { executed: true, response: "You have no unread emails at the moment. Your inbox is clear!" }
       }
       
-      const emailSubjects = unreadEmails.map(email => email.title).join(', ')
-      const response = unreadEmails.length === 1 
-        ? `You have 1 unread email: "${unreadEmails[0].title}"`
-        : `You have ${unreadEmails.length} unread emails. Here are the subjects: ${emailSubjects}`
+      let emailsToRead = unreadEmails
+      
+      if (input.includes('all')) {
+        const emailDetails = emailsToRead.map(email => `"${email.title}" from ${email.source}`).join('. ')
+        const response = `You have ${emailsToRead.length} unread email${emailsToRead.length > 1 ? 's' : ''}. ${emailDetails}`
+        return { executed: true, response }
+      }
+      
+      for (const email of unreadEmails) {
+        const emailTitleLower = email.title.toLowerCase()
+        const emailSourceLower = email.source.toLowerCase()
+        
+        if (emailTitleLower.split(' ').some(word => input.includes(word) && word.length > 3)) {
+          const response = `Email from ${email.source}: "${email.title}"`
+          return { executed: true, response }
+        } else if (emailSourceLower.split(' ').some(word => input.includes(word) && word.length > 3)) {
+          emailsToRead = unreadEmails.filter(e => e.source.toLowerCase().includes(emailSourceLower))
+          const emailDetails = emailsToRead.map(e => `"${e.title}"`).join(', ')
+          const response = `You have ${emailsToRead.length} email${emailsToRead.length > 1 ? 's' : ''} from ${email.source}: ${emailDetails}`
+          return { executed: true, response }
+        }
+      }
+      
+      const emailSubjects = emailsToRead.map(email => `"${email.title}" from ${email.source}`).join('. ')
+      const response = emailsToRead.length === 1 
+        ? `You have 1 unread email: ${emailSubjects}`
+        : `You have ${emailsToRead.length} unread emails. ${emailSubjects}`
       
       return { executed: true, response }
     }
@@ -433,10 +494,15 @@ Current app state:
 YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
 
 EMAIL & NOTIFICATION CONTROL:
-- "read my emails" - Read unread email subjects
-- "read my messages" - Read unread email subjects
+- "read my emails" - Read all unread email subjects out loud
+- "read my messages" - Read all unread email subjects out loud
+- "read emails from [sender]" - Read specific emails from a sender
+- "read all my emails" - Read all unread emails with full details
+- "mark email as read" - Mark specific email as read
+- "mark all emails as read" - Mark all emails as read
+- "mark [subject/sender] as read" - Mark specific emails as read
 - "clear notifications" - Delete all notifications
-- "mark all read" - Mark all as read
+- "mark all read" - Mark all notifications as read
 - "set emergency override to [number]" - Change emergency contacts
 
 DEVICE CONTROL:
