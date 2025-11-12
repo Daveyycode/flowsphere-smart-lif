@@ -121,9 +121,11 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                     )}
                   >
                     <Icon className={cn(isMobile ? "w-5 h-5" : "w-6 h-6")} weight={isActive ? 'fill' : 'regular'} />
-                    <span className={cn("font-medium leading-tight", isMobile ? "text-[10px]" : "text-xs")}>
-                      {label}
-                    </span>
+                    {!isMobile && (
+                      <span className={cn("font-medium leading-tight", "text-xs")}>
+                        {label}
+                      </span>
+                    )}
                   </button>
                 )
               })}
