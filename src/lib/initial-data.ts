@@ -122,27 +122,45 @@ export const initialNotifications: Notification[] = [
   {
     id: '4',
     category: 'work',
-    title: 'Email from Boss',
-    message: 'Please review the Q4 report',
+    title: 'Q4 Report Review Needed',
+    message: 'Please review the Q4 report by end of day',
     time: '2 hours ago',
     isRead: false,
-    source: 'Email'
+    source: 'Work Email'
   },
   {
     id: '5',
-    category: 'subscription',
-    title: 'Netflix Payment',
-    message: 'Your subscription has been renewed',
+    category: 'work',
+    title: 'Project Update from Sarah',
+    message: 'New milestone completed on the FlowSphere project',
     time: '3 hours ago',
-    isRead: true,
-    source: 'Netflix'
+    isRead: false,
+    source: 'Work Email'
   },
   {
     id: '6',
     category: 'personal',
+    title: 'Invoice from Web Hosting',
+    message: 'Your monthly hosting bill is ready',
+    time: '5 hours ago',
+    isRead: false,
+    source: 'Personal Email'
+  },
+  {
+    id: '7',
+    category: 'subscription',
+    title: 'Netflix Payment',
+    message: 'Your subscription has been renewed',
+    time: '1 day ago',
+    isRead: true,
+    source: 'Netflix'
+  },
+  {
+    id: '8',
+    category: 'personal',
     title: 'Text from Mom',
     message: 'Don\'t forget dinner on Sunday',
-    time: '4 hours ago',
+    time: '1 day ago',
     isRead: true,
     source: 'Messages'
   }

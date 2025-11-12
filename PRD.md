@@ -54,7 +54,8 @@ A full-featured lifestyle command center with authentication, multiple interconn
 ### AI Assistant Layer
 - **Voice Summaries**: Spoken briefings of notifications, schedules, and updates
 - **Text Summaries**: Written summaries connecting all layers
-- **Integration**: Connects and synthesizes information from all four layers
+- **Email Reading**: AI can read unread email subjects from notifications when requested
+- **Integration**: Connects and synthesizes information from all four layers with full access to app data
 - **Conversational**: Natural language interaction for queries and commands
 
 ## Essential Features

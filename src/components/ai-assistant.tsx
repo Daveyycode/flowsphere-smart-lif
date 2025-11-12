@@ -80,7 +80,7 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
+      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
     }
   ])
   const [input, setInput] = useState('')
@@ -148,6 +148,21 @@ export function AIAssistant({
 
   const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
     const input = userInput.toLowerCase()
+    
+    if (input.includes('read') && (input.includes('email') || input.includes('mail') || input.includes('message'))) {
+      const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
+      
+      if (unreadEmails.length === 0) {
+        return { executed: true, response: "You have no unread emails at the moment. Your inbox is clear!" }
+      }
+      
+      const emailSubjects = unreadEmails.map(email => email.title).join(', ')
+      const response = unreadEmails.length === 1 
+        ? `You have 1 unread email: "${unreadEmails[0].title}"`
+        : `You have ${unreadEmails.length} unread emails. Here are the subjects: ${emailSubjects}`
+      
+      return { executed: true, response }
+    }
     
     if (input.includes('turn on') || input.includes('turn off') || input.includes('switch on') || input.includes('switch off') || input.includes('enable') || input.includes('disable')) {
       const turnOn = input.includes('turn on') || input.includes('switch on') || input.includes('enable')
@@ -399,6 +414,8 @@ export function AIAssistant({
         const familyList = familyMembers.map(f => `${f.name} (${f.status})`).join(', ')
         
         const unreadCount = notifications.filter(n => !n.isRead).length
+        const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
+        const emailList = unreadEmails.map(e => `"${e.title}" from ${e.source}`).join(', ')
         
         const promptText = `You are FlowSphere AI assistant with COMPLETE CONTROL and FULL PERMISSIONS over the entire app. You have the power to execute ANY command instantly.
 
@@ -408,11 +425,19 @@ Current app state:
 - Automations (${automations.length}): ${automationList || 'none'}
 - Family Members (${familyMembers.length}): ${familyList || 'none'}
 - Notifications: ${notifications.length} total, ${unreadCount} unread
+- Unread Emails (${unreadEmails.length}): ${emailList || 'none'}
 - DND Mode: ${dndEnabled ? 'enabled' : 'disabled'}
 - Emergency Override: ${emergencyOverride} contacts
 - Subscription: ${subscription}
 
 YOU CAN EXECUTE ALL OF THESE COMMANDS INSTANTLY:
+
+EMAIL & NOTIFICATION CONTROL:
+- "read my emails" - Read unread email subjects
+- "read my messages" - Read unread email subjects
+- "clear notifications" - Delete all notifications
+- "mark all read" - Mark all as read
+- "set emergency override to [number]" - Change emergency contacts
 
 DEVICE CONTROL:
 - "turn on/off [device name]" - Control specific devices
@@ -429,11 +454,6 @@ AUTOMATION CONTROL:
 - "activate/deactivate [automation name]" - Toggle automation
 - "run [automation name]" - Run automation
 - "delete automation [name]" - Remove automation
-
-NOTIFICATION CONTROL:
-- "clear notifications" - Delete all notifications
-- "mark all read" - Mark all as read
-- "set emergency override to [number]" - Change emergency contacts
 
 SUBSCRIPTION:
 - "upgrade to premium" - Change to Premium plan
