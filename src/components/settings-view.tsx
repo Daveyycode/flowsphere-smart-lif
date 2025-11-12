@@ -425,11 +425,6 @@ export function SettingsView({
                 <span className="text-sm font-medium">1.0.0</span>
               </div>
               <Separator />
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-muted-foreground">Built with</span>
-                <span className="text-sm font-medium">React & TypeScript</span>
-              </div>
-              <Separator />
               <div className="pt-2 space-x-4">
                 <Button 
                   variant="link" 
