@@ -1034,10 +1034,10 @@ If they're asking to do something, guide them on the correct phrasing.`
                           ease: "easeInOut"
                         }}
                       >
-                        <Activity className="w-5 h-5" weight="fill" />
+                        <Activity className="w-5 h-5" weight="bold" />
                       </motion.div>
                     ) : (
-                      <Microphone className="w-5 h-5" weight="regular" />
+                      <Activity className="w-5 h-5" weight="regular" />
                     )}
                   </Button>
                   {!micToggled && (
