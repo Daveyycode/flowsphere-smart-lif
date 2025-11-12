@@ -31,14 +31,14 @@ interface AIAssistantProps {
   onMarkNotificationRead?: (id: string) => void
   onDeleteNotification?: (id: string) => void
   onEmergencyOverrideChange?: (value: number) => void
-  onSubscriptionChange?: (plan: 'free' | 'premium' | 'family' | 'lifetime') => void
+  onSubscriptionChange?: (plan: 'basic' | 'pro' | 'gold' | 'family') => void
   devices?: Device[]
   automations?: Automation[]
   familyMembers?: FamilyMember[]
   notifications?: Notification[]
   dndEnabled?: boolean
   emergencyOverride?: number
-  subscription?: 'free' | 'premium' | 'family' | 'lifetime'
+  subscription?: 'basic' | 'pro' | 'gold' | 'family'
 }
 
 const VOICE_OPTIONS = [
@@ -72,7 +72,7 @@ export function AIAssistant({
   notifications = [],
   dndEnabled = false,
   emergencyOverride = 3,
-  subscription = 'free'
+  subscription = 'basic'
 }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -327,20 +327,25 @@ export function AIAssistant({
     }
     
     if (input.includes('upgrade') || input.includes('change plan') || input.includes('subscription')) {
-      if (input.includes('premium') && !input.includes('family')) {
-        onSubscriptionChange?.('premium')
-        toast.success('Upgraded to Premium plan')
-        return { executed: true, response: "Done! You're now on the Premium plan." }
+      if (input.includes('pro') && !input.includes('family')) {
+        onSubscriptionChange?.('pro')
+        toast.success('Upgraded to Pro plan')
+        return { executed: true, response: "Done! You're now on the Pro plan." }
+      }
+      if (input.includes('gold')) {
+        onSubscriptionChange?.('gold')
+        toast.success('Upgraded to Gold plan')
+        return { executed: true, response: "Done! You're now on the Gold plan with premium features!" }
       }
       if (input.includes('family')) {
         onSubscriptionChange?.('family')
-        toast.success('Upgraded to Family plan')
-        return { executed: true, response: "Done! You're now on the Family plan." }
+        toast.success('Upgraded to Family / Team plan')
+        return { executed: true, response: "Done! You're now on the Family / Team plan." }
       }
-      if (input.includes('free') || input.includes('downgrade')) {
-        onSubscriptionChange?.('free')
-        toast.success('Changed to Free plan')
-        return { executed: true, response: "Done! You're now on the Free plan." }
+      if (input.includes('basic') || input.includes('downgrade')) {
+        onSubscriptionChange?.('basic')
+        toast.success('Changed to Basic plan')
+        return { executed: true, response: "Done! You're now on the Basic plan." }
       }
     }
     

@@ -42,7 +42,7 @@ function App() {
   
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
   const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
-  const [subscription, setSubscription] = useKV<'free' | 'premium' | 'family' | 'lifetime'>('flowsphere-subscription', 'premium')
+  const [subscription, setSubscription] = useKV<'basic' | 'pro' | 'gold' | 'family'>('flowsphere-subscription', 'pro')
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
   const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
   const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
@@ -127,7 +127,7 @@ function App() {
     ])
   }
 
-  const handleSubscriptionChange = (plan: 'free' | 'premium' | 'family' | 'lifetime') => {
+  const handleSubscriptionChange = (plan: 'basic' | 'pro' | 'gold' | 'family') => {
     setSubscription(plan)
   }
 
@@ -227,7 +227,7 @@ function App() {
               <SettingsView
                 userName={userName || 'User'}
                 userEmail={userEmail || 'user@example.com'}
-                subscription={subscription || 'free'}
+                subscription={subscription || 'basic'}
                 notifications={notificationSettings || { email: true, push: true, sms: false }}
                 onNotificationChange={handleNotificationChange}
                 onNavigate={handleNavigateFromSettings}
@@ -236,7 +236,7 @@ function App() {
             )}
             {currentTab === 'subscription' && (
               <SubscriptionManagement 
-                currentPlan={subscription || 'free'} 
+                currentPlan={subscription || 'basic'} 
                 onPlanChange={handleSubscriptionChange}
               />
             )}
@@ -264,7 +264,7 @@ function App() {
         notifications={notificationsList || []}
         dndEnabled={dndEnabled || false}
         emergencyOverride={emergencyOverride || 3}
-        subscription={subscription || 'free'}
+        subscription={subscription || 'basic'}
       />
       <Toaster position="top-center" />
     </>

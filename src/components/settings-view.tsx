@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 interface SettingsViewProps {
   userName: string
   userEmail: string
-  subscription: 'free' | 'premium' | 'family' | 'lifetime'
+  subscription: 'basic' | 'pro' | 'gold' | 'family'
   notifications: {
     email: boolean
     push: boolean
@@ -37,14 +37,14 @@ export function SettingsView({
   
   const getSubscriptionBadge = () => {
     switch (subscription) {
-      case 'premium':
-        return <Badge className="bg-accent">Premium</Badge>
+      case 'pro':
+        return <Badge className="bg-blue-mid text-white">Pro</Badge>
+      case 'gold':
+        return <Badge className="bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-foreground">Gold</Badge>
       case 'family':
-        return <Badge className="bg-gradient-to-r from-accent to-primary">Family+</Badge>
-      case 'lifetime':
-        return <Badge className="bg-gradient-to-r from-primary via-accent to-coral">Lifetime</Badge>
+        return <Badge className="bg-[#7B61FF] text-white">Family / Team</Badge>
       default:
-        return <Badge variant="secondary">Free</Badge>
+        return <Badge variant="secondary" className="bg-muted text-muted-foreground">Basic</Badge>
     }
   }
 
@@ -150,27 +150,27 @@ export function SettingsView({
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold mb-1">Subscription Status</h3>
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      {subscription === 'premium' && (
+                      {subscription === 'pro' && (
                         <>
-                          <Check className="w-5 h-5 text-accent" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Premium</span>
+                          <Check className="w-5 h-5 text-blue-mid" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Pro</span>
+                        </>
+                      )}
+                      {subscription === 'gold' && (
+                        <>
+                          <Check className="w-5 h-5 text-[#FFB700]" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Gold</span>
                         </>
                       )}
                       {subscription === 'family' && (
                         <>
-                          <Check className="w-5 h-5 text-accent" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Family+</span>
+                          <Check className="w-5 h-5 text-[#7B61FF]" weight="bold" />
+                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Family / Team</span>
                         </>
                       )}
-                      {subscription === 'lifetime' && (
+                      {subscription === 'basic' && (
                         <>
-                          <Check className="w-5 h-5 text-accent" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You have Lifetime access to FlowSphere</span>
-                        </>
-                      )}
-                      {subscription === 'free' && (
-                        <>
-                          <span className="text-sm sm:text-base text-muted-foreground">You're on the Free plan</span>
+                          <span className="text-sm sm:text-base text-muted-foreground">You're on the Basic plan</span>
                         </>
                       )}
                     </div>
@@ -181,7 +181,7 @@ export function SettingsView({
                   onClick={() => onNavigate('subscription')}
                   className="bg-accent hover:bg-accent/90 min-touch-target"
                 >
-                  {subscription === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
+                  Manage Subscription
                 </Button>
               </div>
             </CardContent>
@@ -289,40 +289,10 @@ export function SettingsView({
           )
         })}
 
-        {subscription === 'free' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Card className="bg-gradient-to-br from-accent/10 via-primary/10 to-coral/10 border-accent/20">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-6 h-6 text-accent" weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-2">Upgrade to Premium</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Unlock unlimited devices, AI-powered insights, family safety tracking, and advanced automations.
-                    </p>
-                    <Button 
-                      className="bg-accent hover:bg-accent/90"
-                      onClick={() => onNavigate('subscription')}
-                    >
-                      View Plans
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.5 : 0.4 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
         >
           <Card className="border-primary/30">
             <CardHeader>
@@ -350,7 +320,7 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
         >
           <Card className="border-primary/30">
             <CardHeader>
@@ -378,7 +348,7 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.6 : 0.5 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
         >
           <Card className="border-primary/30">
             <CardHeader>
@@ -410,7 +380,7 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.7 : 0.6 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <Card>
             <CardHeader>
@@ -451,7 +421,7 @@ export function SettingsView({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: subscription === 'free' ? 0.8 : 0.7 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
         >
           <Card className="border-destructive/30">
             <CardHeader>

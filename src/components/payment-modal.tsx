@@ -15,7 +15,7 @@ interface PaymentModalProps {
   onClose: () => void
   planName: string
   planPrice: number
-  billingCycle: 'monthly' | 'annual'
+  billingCycle: 'monthly' | 'yearly'
   onPaymentComplete: () => void
 }
 
