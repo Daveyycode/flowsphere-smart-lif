@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone } from '@phosphor-icons/react'
+import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone, Waveform } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -1020,9 +1020,25 @@ If they're asking to do something, guide them on the correct phrasing.`
                     disabled={isLoading}
                     size="icon"
                     variant={micToggled ? "default" : "outline"}
-                    className={micToggled ? 'bg-red-500 hover:bg-red-600' : ''}
+                    className={micToggled ? 'bg-red-500 hover:bg-red-600 relative overflow-hidden' : ''}
                   >
-                    <Microphone className="w-5 h-5" weight={micToggled ? 'fill' : 'regular'} />
+                    {micToggled ? (
+                      <motion.div
+                        className="flex items-center justify-center"
+                        animate={{
+                          scale: [1, 1.2, 1],
+                        }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Waveform className="w-5 h-5" weight="fill" />
+                      </motion.div>
+                    ) : (
+                      <Microphone className="w-5 h-5" weight="regular" />
+                    )}
                   </Button>
                   {!micToggled && (
                     <>
