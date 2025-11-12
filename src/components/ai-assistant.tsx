@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone, Waveform } from '@phosphor-icons/react'
+import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone, Activity } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -1034,7 +1034,7 @@ If they're asking to do something, guide them on the correct phrasing.`
                           ease: "easeInOut"
                         }}
                       >
-                        <Waveform className="w-5 h-5" weight="fill" />
+                        <Activity className="w-5 h-5" weight="fill" />
                       </motion.div>
                     ) : (
                       <Microphone className="w-5 h-5" weight="regular" />
