@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear } from '@phosphor-icons/react'
+import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -89,17 +89,27 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails out loud, mark specific emails as read, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just ask me and I'll do it instantly!"
+      content: "Hi! I'm your FlowSphere AI assistant with FULL PERMISSIONS to control everything in your app! I can read your emails out loud, mark specific emails as read, manage devices, cameras, automations, family settings, notifications, subscriptions, and navigate anywhere. Just say \"I'm [your name], please...\" and I'll do it instantly!"
     }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   
   const [selectedVoice, setSelectedVoice] = useKV<string>('flowsphere-ai-voice', 'female-warm')
   const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', false)
   const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 0.95)
   const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
+  const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
+
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   const speakText = (text: string) => {
     if (!voiceEnabled) return
@@ -155,20 +165,86 @@ export function AIAssistant({
     }
   }
 
+  const startVoiceRecognition = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      toast.error('Voice recognition not supported in this browser')
+      return
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-US'
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      toast.success('Listening...')
+    }
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript
+      setInput(transcript)
+      setIsListening(false)
+      
+      const nameParts = (userName || 'Sarah Johnson').split(' ')
+      const firstName = nameParts[0]
+      const lastName = nameParts[nameParts.length - 1]
+      const fullName = userName || 'Sarah Johnson'
+      
+      const lowerTranscript = transcript.toLowerCase()
+      const activationPhrases = [
+        `i'm ${firstName.toLowerCase()} please`,
+        `i'm ${lastName.toLowerCase()} please`,
+        `i'm ${fullName.toLowerCase()} please`,
+        `im ${firstName.toLowerCase()} please`,
+        `im ${lastName.toLowerCase()} please`,
+        `im ${fullName.toLowerCase()} please`,
+        `i am ${firstName.toLowerCase()} please`,
+        `i am ${lastName.toLowerCase()} please`,
+        `i am ${fullName.toLowerCase()} please`,
+      ]
+      
+      const isActivated = activationPhrases.some(phrase => lowerTranscript.includes(phrase))
+      
+      if (isActivated) {
+        setTimeout(() => handleSend(transcript), 500)
+      }
+    }
+
+    recognition.onerror = (event: any) => {
+      setIsListening(false)
+      if (event.error !== 'no-speech') {
+        toast.error(`Voice recognition error: ${event.error}`)
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognition.start()
+  }
+
   const executeCommand = async (userInput: string): Promise<{ executed: boolean; response: string }> => {
     const input = userInput.toLowerCase()
     
     if (input.includes('theme') || input.includes('color scheme') || input.includes('appearance')) {
       if (input.includes('dark') && (input.includes('mode') || input.includes('switch') || input.includes('toggle') || input.includes('change'))) {
-        onThemeModeToggle?.()
-        toast.success('Theme mode toggled')
-        return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+        if (onThemeModeToggle) {
+          onThemeModeToggle()
+          toast.success('Theme mode toggled')
+          return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+        }
       }
       
       if (input.includes('light') && (input.includes('mode') || input.includes('switch') || input.includes('toggle') || input.includes('change'))) {
-        onThemeModeToggle?.()
-        toast.success('Theme mode toggled')
-        return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+        if (onThemeModeToggle) {
+          onThemeModeToggle()
+          toast.success('Theme mode toggled')
+          return { executed: true, response: `Done! I've switched to ${currentThemeMode === 'light' ? 'dark' : 'light'} mode.` }
+        }
       }
       
       const themeMap: Record<string, ColorTheme> = {
@@ -190,10 +266,12 @@ export function AIAssistant({
       
       for (const [keyword, themeValue] of Object.entries(themeMap)) {
         if (input.includes(keyword)) {
-          onThemeChange?.(themeValue)
-          const themeName = themeValue.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-          toast.success(`Theme changed to ${themeName}`)
-          return { executed: true, response: `Done! I've changed the theme to ${themeName}.` }
+          if (onThemeChange) {
+            onThemeChange(themeValue)
+            const themeName = themeValue.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            toast.success(`Theme changed to ${themeName}`)
+            return { executed: true, response: `Done! I've changed the theme to ${themeName}. You should see the new colors now!` }
+          }
         }
       }
     }
@@ -496,18 +574,20 @@ export function AIAssistant({
     return { executed: false, response: '' }
   }
 
-  const handleSend = async () => {
-    if (!input.trim()) return
+  const handleSend = async (overrideInput?: string) => {
+    const userInput = overrideInput || input
+    if (!userInput.trim()) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input
+      content: userInput
     }
 
     setMessages(prev => [...prev, userMessage])
-    const userInput = input
-    setInput('')
+    if (!overrideInput) {
+      setInput('')
+    }
     setIsLoading(true)
 
     try {
@@ -767,7 +847,16 @@ IMPORTANT: If the user is asking you to DO something or EXECUTE an action, respo
                     className="flex-1"
                   />
                   <Button
-                    onClick={handleSend}
+                    onClick={startVoiceRecognition}
+                    disabled={isLoading || isListening}
+                    size="icon"
+                    variant="outline"
+                    className={isListening ? 'bg-red-500/20 border-red-500' : ''}
+                  >
+                    <Microphone className="w-5 h-5" weight={isListening ? 'fill' : 'regular'} />
+                  </Button>
+                  <Button
+                    onClick={() => handleSend()}
                     disabled={isLoading || !input.trim()}
                     size="icon"
                     className="bg-gradient-to-r from-blue-mid to-blue-deep hover:from-blue-mid/90 hover:to-blue-deep/90"
