@@ -158,9 +158,6 @@ export function MorningBrief({ isVisible, onDismiss }: MorningBriefProps) {
                       <Play className="w-4 h-4 sm:w-5 sm:h-5" weight="fill" />
                     )}
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={onDismiss} className="h-8 w-8 sm:h-10 sm:w-10">
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Button>
                 </div>
               </div>
 
