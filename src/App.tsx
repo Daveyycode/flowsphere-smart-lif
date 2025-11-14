@@ -50,6 +50,7 @@ function App() {
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
   const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
   const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
+  const [lastBriefDate, setLastBriefDate] = useKV<string>('flowsphere-last-brief-date', '')
   const [notificationSettings, setNotificationSettings] = useKV<{
     email: boolean
     push: boolean
@@ -68,6 +69,14 @@ function App() {
       setTrialStartDate(new Date().toISOString())
     }
   }, [isAuthenticated, trialStartDate, setTrialStartDate])
+
+  useEffect(() => {
+    const today = new Date().toDateString()
+    if (isAuthenticated && lastBriefDate !== today) {
+      setShowMorningBrief(true)
+      setLastBriefDate(today)
+    }
+  }, [isAuthenticated, lastBriefDate, setShowMorningBrief, setLastBriefDate])
 
   const stats = {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
