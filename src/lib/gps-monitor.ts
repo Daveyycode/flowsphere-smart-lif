@@ -64,7 +64,7 @@ export function checkFamilyMemberDistance(member: FamilyMember): GPSAlert | null
 
 export async function sendEmailNotification(alert: GPSAlert, userEmail: string): Promise<boolean> {
   try {
-    const promptText = `You are an email notification system. Generate a professional, concise email notification about a family member's GPS location alert.
+    const prompt = (window.spark.llmPrompt as any)`You are an email notification system. Generate a professional, concise email notification about a family member's GPS location alert.
 
 Family Member: ${alert.memberName}
 Distance from Home: ${alert.distance} km
@@ -76,7 +76,7 @@ Write a brief, clear email notification (subject and body) that alerts the user 
 SUBJECT: [subject line]
 BODY: [email body]`
 
-    const emailText = await window.spark.llm(promptText, 'gpt-4o-mini')
+    const emailText = await window.spark.llm(prompt, 'gpt-4o-mini')
     
     console.log(`📧 Email Notification Sent to: ${userEmail}`)
     console.log(`Alert: ${alert.memberName} moved ${alert.distance}km from registered location`)

@@ -249,8 +249,8 @@ export function AIAssistant({
             setMessages(prev => [...prev, assistantMessage])
             speakText(commandResult.response)
           } else {
-            const promptText = `You are FlowSphere AI assistant. Respond to: "${transcript}". Be concise (under 30 words).`
-            const response = await window.spark.llm(promptText, 'gpt-4o-mini')
+            const prompt = (window.spark.llmPrompt as any)`You are FlowSphere AI assistant. Respond to: "${transcript}". Be concise (under 30 words).`
+            const response = await window.spark.llm(prompt, 'gpt-4o-mini')
             
             const assistantMessage: Message = {
               id: (Date.now() + 1).toString(),
@@ -938,7 +938,7 @@ export function AIAssistant({
         const unreadEmails = notifications.filter(n => !n.isRead && n.source.toLowerCase().includes('email'))
         const emailList = unreadEmails.map(e => `"${e.title}" from ${e.source}`).join(', ')
         
-        const promptText = `You are FlowSphere AI assistant. The user tried to execute a command but it wasn't recognized by the system.
+        const prompt = (window.spark.llmPrompt as any)`You are FlowSphere AI assistant. The user tried to execute a command but it wasn't recognized by the system.
 
 User said: "${userInput}"
 
@@ -962,7 +962,7 @@ Examples of what you CAN execute:
 
 If they're asking to do something, guide them on the correct phrasing.`
         
-        const response = await window.spark.llm(promptText, 'gpt-4o-mini')
+        const response = await window.spark.llm(prompt, 'gpt-4o-mini')
         
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
