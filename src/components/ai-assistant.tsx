@@ -14,6 +14,7 @@ import { Device, Automation } from '@/components/devices-automations-view'
 import { FamilyMember } from '@/components/family-view'
 import { Notification } from '@/components/notifications-view'
 import { ColorTheme } from '@/hooks/use-theme'
+import { monitorFamilyGPS, GPSAlert } from '@/lib/gps-monitor'
 
 interface Message {
   id: string
@@ -103,6 +104,9 @@ export function AIAssistant({
   const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 0.95)
   const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
+  const [userEmail] = useKV<string>('flowsphere-user-email', 'sarah@example.com')
+  const [gpsMonitoringEnabled, setGpsMonitoringEnabled] = useKV<boolean>('flowsphere-gps-monitoring', true)
+  const [lastGpsCheck, setLastGpsCheck] = useKV<string>('flowsphere-last-gps-check', '')
   const [micToggled, setMicToggled] = useState(false)
 
   useEffect(() => {
@@ -116,6 +120,36 @@ export function AIAssistant({
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!gpsMonitoringEnabled || !familyMembers || familyMembers.length === 0) {
+      return
+    }
+
+    const checkGPS = () => {
+      const alerts = monitorFamilyGPS(familyMembers, userEmail || 'sarah@example.com', (alert: GPSAlert) => {
+        toast.error(`⚠️ GPS Alert: ${alert.memberName} is ${alert.distance}km from home!`, {
+          duration: 10000,
+        })
+        
+        const assistantMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `📍 GPS Alert: ${alert.memberName} has moved ${alert.distance}km away from their registered home location. An email notification has been sent to you.`
+        }
+        setMessages(prev => [...prev, assistantMessage])
+      })
+
+      if (alerts.length > 0) {
+        setLastGpsCheck(new Date().toISOString())
+      }
+    }
+
+    checkGPS()
+    const interval = setInterval(checkGPS, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [gpsMonitoringEnabled, familyMembers, userEmail, setLastGpsCheck])
 
   const speakText = (text: string) => {
     if (!voiceEnabled) return
@@ -366,6 +400,37 @@ export function AIAssistant({
         response: "Do you want me to check your kids' locations?",
         needsConfirmation: true,
         confirmAction: 'check-kids-location'
+      }
+    }
+    
+    if (input.includes('check') && input.includes('gps') && (input.includes('family') || input.includes('member'))) {
+      const alerts = monitorFamilyGPS(familyMembers, userEmail || 'sarah@example.com', (alert: GPSAlert) => {
+        toast.error(`⚠️ ${alert.memberName} is ${alert.distance}km from home!`)
+      })
+      
+      if (alerts.length === 0) {
+        return { 
+          executed: true, 
+          response: "All family members are within 1km of their registered home location. No alerts at this time."
+        }
+      }
+      
+      const alertMessages = alerts.map(a => 
+        `${a.memberName} is ${a.distance}km away from home`
+      ).join('. ')
+      
+      toast.success(`📧 Email notifications sent for ${alerts.length} family member${alerts.length > 1 ? 's' : ''}`)
+      
+      return { 
+        executed: true, 
+        response: `GPS check complete! ${alertMessages}. Email notifications have been sent to you.`
+      }
+    }
+    
+    if (input.includes('monitor') && input.includes('gps')) {
+      return { 
+        executed: true, 
+        response: "GPS monitoring is active! I'll automatically send you email notifications when any family member moves more than 1km from their registered home location. You can check GPS status anytime by saying 'check GPS family members'."
       }
     }
     

@@ -1,9 +1,13 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Clock, Plus, Shield } from '@phosphor-icons/react'
+import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { useKV } from '@github/spark/hooks'
+import { toast } from 'sonner'
 
 export interface FamilyMember {
   id: string
@@ -13,6 +17,9 @@ export interface FamilyMember {
   battery: number
   status: 'home' | 'work' | 'school' | 'traveling'
   lastSeen: string
+  gpsCoordinates?: { lat: number; lng: number }
+  registeredIpLocation?: { lat: number; lng: number; address: string }
+  emailNotificationsEnabled?: boolean
 }
 
 interface FamilyViewProps {
@@ -20,6 +27,9 @@ interface FamilyViewProps {
 }
 
 export function FamilyView({ members }: FamilyViewProps) {
+  const [gpsMonitoringEnabled, setGpsMonitoringEnabled] = useKV<boolean>('flowsphere-gps-monitoring', true)
+  const [lastGpsCheck] = useKV<string>('flowsphere-last-gps-check', '')
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'home': return 'mint'
@@ -32,6 +42,15 @@ export function FamilyView({ members }: FamilyViewProps) {
 
   const getStatusLabel = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1)
+  }
+  
+  const handleGpsToggle = (enabled: boolean) => {
+    setGpsMonitoringEnabled(enabled)
+    if (enabled) {
+      toast.success('GPS monitoring enabled - Email alerts will be sent when family members move >1km from home')
+    } else {
+      toast.info('GPS monitoring disabled')
+    }
   }
 
   return (
@@ -69,6 +88,62 @@ export function FamilyView({ members }: FamilyViewProps) {
                   View safety zones →
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-blue-mid/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Crosshair className="w-5 h-5 text-primary" weight="bold" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">GPS Monitoring & Email Alerts</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get notified when family members move 1km+ from home
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={gpsMonitoringEnabled || false}
+                onCheckedChange={handleGpsToggle}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+              <EnvelopeSimple className="w-5 h-5 text-primary mt-0.5" weight="duotone" />
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Automatic Email Notifications</p>
+                <p className="text-xs text-muted-foreground">
+                  Receive instant email alerts when any family member's GPS location moves more than 1 kilometer away from their registered home IP address.
+                </p>
+              </div>
+            </div>
+            
+            {lastGpsCheck && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>Last GPS check: {new Date(lastGpsCheck).toLocaleString()}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2 text-xs">
+              <Bell className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {gpsMonitoringEnabled 
+                  ? "Active monitoring - Checks every 5 minutes" 
+                  : "GPS monitoring is currently disabled"}
+              </span>
             </div>
           </CardContent>
         </Card>

@@ -37,6 +37,11 @@ A full-featured lifestyle command center with authentication, multiple interconn
 
 ### Family Layer
 - **Kid Tracker**: Real-time GPS tracking with battery status
+- **GPS Email Notifications**: Automatic email alerts when family members move 1km+ from registered home IP location
+  - AI-powered monitoring checks GPS every 5 minutes
+  - Instant email notifications with distance and location details
+  - Configurable per family member
+  - Voice command integration: "Check GPS family members"
 - **Emergency Alerts**: Instant notifications for family safety
 - **Household Status**: Overview of home and family activities
 - **Weekend Recommendations**: 
@@ -55,6 +60,7 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Voice Summaries**: Spoken briefings of notifications, schedules, and updates
 - **Text Summaries**: Written summaries connecting all layers
 - **Email Reading**: AI can read unread email subjects from notifications when requested
+- **GPS Monitoring Commands**: Voice-activated GPS checks and monitoring status
 - **Integration**: Connects and synthesizes information from all four layers with full access to app data
 - **Conversational**: Natural language interaction for queries and commands
 

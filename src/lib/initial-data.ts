@@ -71,7 +71,10 @@ export const initialFamilyMembers: FamilyMember[] = [
     location: 'Lincoln High School',
     battery: 85,
     status: 'school',
-    lastSeen: '5 minutes ago'
+    lastSeen: '5 minutes ago',
+    gpsCoordinates: { lat: 37.7849, lng: -122.4094 },
+    registeredIpLocation: { lat: 37.7749, lng: -122.4194, address: '123 Main St, San Francisco, CA' },
+    emailNotificationsEnabled: true
   },
   {
     id: '2',
@@ -79,7 +82,10 @@ export const initialFamilyMembers: FamilyMember[] = [
     location: 'Tech Corp Office',
     battery: 62,
     status: 'work',
-    lastSeen: '10 minutes ago'
+    lastSeen: '10 minutes ago',
+    gpsCoordinates: { lat: 37.7949, lng: -122.3994 },
+    registeredIpLocation: { lat: 37.7749, lng: -122.4194, address: '123 Main St, San Francisco, CA' },
+    emailNotificationsEnabled: true
   },
   {
     id: '3',
@@ -87,7 +93,10 @@ export const initialFamilyMembers: FamilyMember[] = [
     location: 'Home',
     battery: 95,
     status: 'home',
-    lastSeen: 'Just now'
+    lastSeen: 'Just now',
+    gpsCoordinates: { lat: 37.7749, lng: -122.4194 },
+    registeredIpLocation: { lat: 37.7749, lng: -122.4194, address: '123 Main St, San Francisco, CA' },
+    emailNotificationsEnabled: true
   }
 ]
 
