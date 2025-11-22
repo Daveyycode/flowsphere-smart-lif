@@ -1,8 +1,7 @@
-import { Device } from '@/components/devices-view'
+import { Device, Automation } from '@/components/devices-automations-view'
 import { FamilyMember } from '@/components/family-view'
-import { Notification } from '@/components/notifications-view'
-import { CCTVCamera } from '@/components/cctv-view'
-import { Automation } from '@/components/automations-view'
+import { Notification } from '@/components/notifications-resources-view'
+import { CCTVCamera } from '@/components/cctv-guard-ai'
 
 export const initialDevices: Device[] = [
   {
@@ -182,7 +181,8 @@ export const initialCameras: CCTVCamera[] = [
     location: 'front-door',
     status: 'online',
     isRecording: false,
-    lastMotion: '10 minutes ago'
+    lastMotion: '10 minutes ago',
+    aiEnabled: true
   },
   {
     id: '2',
@@ -190,7 +190,8 @@ export const initialCameras: CCTVCamera[] = [
     location: 'backyard',
     status: 'online',
     isRecording: false,
-    lastMotion: '2 hours ago'
+    lastMotion: '2 hours ago',
+    aiEnabled: true
   },
   {
     id: '3',
@@ -198,7 +199,8 @@ export const initialCameras: CCTVCamera[] = [
     location: 'garage',
     status: 'online',
     isRecording: true,
-    lastMotion: '30 minutes ago'
+    lastMotion: '30 minutes ago',
+    aiEnabled: true
   },
   {
     id: '4',
@@ -206,7 +208,8 @@ export const initialCameras: CCTVCamera[] = [
     location: 'driveway',
     status: 'online',
     isRecording: false,
-    lastMotion: '1 hour ago'
+    lastMotion: '1 hour ago',
+    aiEnabled: false
   }
 ]
 
