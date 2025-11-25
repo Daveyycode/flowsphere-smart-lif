@@ -28,6 +28,8 @@ import { Badge } from '@/components/ui/badge'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { QRScanner } from '@/components/qr-scanner'
+import { QRCodeDisplay } from '@/components/qr-code-display'
 
 interface Contact {
   id: string
@@ -80,6 +82,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showQRDialog, setShowQRDialog] = useState(false)
   const [showAddContactDialog, setShowAddContactDialog] = useState(false)
+  const [showQRScanner, setShowQRScanner] = useState(false)
   const [scannedCode, setScannedCode] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [attachments, setAttachments] = useState<MessageAttachment[]>([])
@@ -123,8 +126,10 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
     toast.success('Invite code generated')
   }
 
-  const handleScanCode = () => {
-    if (!scannedCode.trim()) {
+  const handleScanCode = (code?: string) => {
+    const codeToUse = code || scannedCode
+    
+    if (!codeToUse.trim()) {
       toast.error('Please enter an invite code')
       return
     }
@@ -132,7 +137,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
     const newContact: Contact = {
       id: Date.now().toString(),
       name: `Contact ${(contacts || []).length + 1}`,
-      publicKey: scannedCode,
+      publicKey: codeToUse,
       status: 'online',
       unreadCount: 0
     }
@@ -140,6 +145,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
     setContacts((current) => [...(current || []), newContact])
     setScannedCode('')
     setShowAddContactDialog(false)
+    setShowQRScanner(false)
     toast.success(`Connected with ${newContact.name}`)
   }
 
@@ -336,6 +342,15 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
               <Button
                 size="sm"
                 variant="outline"
+                onClick={() => setShowQRScanner(true)}
+                className="gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">Scan QR</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={generateInviteCode}
                 className="gap-2"
               >
@@ -376,13 +391,23 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
                   <p className="text-xs sm:text-sm text-muted-foreground mb-4">
                     No contacts yet
                   </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowAddContactDialog(true)}
-                  >
-                    Add First Contact
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setShowQRScanner(true)}
+                      className="gap-2"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Scan QR Code
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowAddContactDialog(true)}
+                    >
+                      Enter Code Manually
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="p-2">
@@ -698,19 +723,11 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
             </DialogHeader>
             <div className="space-y-4">
               <div className="aspect-square bg-muted rounded-lg flex items-center justify-center p-8">
-                <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center p-4">
-                  <div className="grid grid-cols-8 gap-1 w-full">
-                    {Array.from({ length: 64 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          'aspect-square rounded-sm',
-                          Math.random() > 0.5 ? 'bg-foreground' : 'bg-white'
-                        )}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <QRCodeDisplay 
+                  data={currentInvite?.code || myPublicKey || 'FSM-PLACEHOLDER'} 
+                  size={280}
+                  className="w-full h-full"
+                />
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Or share this code:</p>
@@ -753,7 +770,11 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
                   Scan QR code or enter invite code
                 </p>
                 <div className="aspect-square bg-muted rounded-lg flex items-center justify-center p-8">
-                  <Button variant="outline" className="gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => setShowQRScanner(true)}
+                  >
                     <Camera className="w-4 h-4" />
                     Open Camera
                   </Button>
@@ -786,7 +807,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
                 >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleScanCode}>
+                <Button className="flex-1" onClick={() => handleScanCode()}>
                   Add Contact
                 </Button>
               </div>
@@ -794,6 +815,12 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
           </DialogContent>
         </Dialog>
       </DialogContent>
+
+      <QRScanner 
+        isOpen={showQRScanner} 
+        onClose={() => setShowQRScanner(false)} 
+        onScan={handleScanCode}
+      />
     </Dialog>
   )
 }

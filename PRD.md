@@ -88,12 +88,17 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Success criteria**: Seamless unlock, all data encrypted at rest, auto-lock timer functional, biometric support
 
 ### Secure Messenger (within Vault)
-- **Functionality**: Real-time end-to-end encrypted messaging with QR code invite system for secure peer-to-peer communication
+- **Functionality**: Real-time end-to-end encrypted messaging with QR code invite system and camera scanning for secure peer-to-peer communication
 - **Purpose**: Private messaging that doesn't rely on external servers - perfect for sensitive family or business communications
 - **Trigger**: User opens Vault → Messages tab → "Open Messenger"
-- **Progression**: Generate QR invite code → Contact scans or enters code → Contacts list updates → Select contact → Send messages with text/images/voice → Real-time delivery status (sent/delivered/read) → Voice/video calls (future)
+- **Progression**: Generate QR invite code → Contact scans with device camera OR enters code manually → Contacts list updates → Select contact → Send messages with text/images/voice → Real-time delivery status (sent/delivered/read) → Voice/video calls (future)
 - **Success criteria**: 
   - QR codes generate unique invite links with 24-hour expiration
+  - Camera access for QR scanning with real-time detection using jsQR library
+  - Full-screen camera view with scanning frame overlay
+  - Flash/torch control and camera switching (front/back)
+  - Fallback to manual code entry if camera unavailable
+  - QR code display using qrcode library for crisp, scannable codes
   - Messages show real-time status indicators
   - Support for text, image attachments, file sharing, and voice notes
   - Contact online/offline/away status visible
