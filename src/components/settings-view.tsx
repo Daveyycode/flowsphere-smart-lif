@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check, SignOut } from '@phosphor-icons/react'
+import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check, SignOut, TestTube } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator'
 import { useTheme, ColorTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { VoiceCommandTester } from '@/components/voice-command-tester'
+import { useState } from 'react'
 
 interface SettingsViewProps {
   userName: string
@@ -34,6 +36,7 @@ export function SettingsView({
   onLogout
 }: SettingsViewProps) {
   const { mode, colorTheme, setColorTheme } = useTheme()
+  const [showVoiceTester, setShowVoiceTester] = useState(false)
   
   const getSubscriptionBadge = () => {
     switch (subscription) {
@@ -352,6 +355,39 @@ export function SettingsView({
                 <SpeakerHigh className="w-4 h-4 mr-2" />
                 Customize AI Voice
               </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+        >
+          <Card className="border-accent/30">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <TestTube className="w-5 h-5" weight="duotone" />
+                <span>Voice Command Tester</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Test voice commands and confirmation flows. Verify that all AI assistant commands work correctly with voice input.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowVoiceTester(!showVoiceTester)}
+              >
+                <TestTube className="w-4 h-4 mr-2" />
+                {showVoiceTester ? 'Hide Tester' : 'Show Tester'}
+              </Button>
+              {showVoiceTester && (
+                <div className="mt-4">
+                  <VoiceCommandTester />
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
