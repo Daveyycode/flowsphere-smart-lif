@@ -10,7 +10,8 @@ import { useTheme, ColorTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { VoiceCommandTester } from '@/components/voice-command-tester'
-import { useState } from 'react'
+import { Vault } from '@/components/vault'
+import { useState, useRef, useEffect } from 'react'
 
 interface SettingsViewProps {
   userName: string
@@ -37,6 +38,41 @@ export function SettingsView({
 }: SettingsViewProps) {
   const { mode, colorTheme, setColorTheme } = useTheme()
   const [showVoiceTester, setShowVoiceTester] = useState(false)
+  const [showVault, setShowVault] = useState(false)
+  const [tapCount, setTapCount] = useState(0)
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  useEffect(() => {
+    return () => {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleAboutClick = () => {
+    setTapCount((prev) => {
+      const newCount = prev + 1
+      
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current)
+      }
+      
+      if (newCount === 7) {
+        setShowVault(true)
+        toast.success('🔐 Vault unlocked!', {
+          description: 'Secret vault access granted'
+        })
+        return 0
+      }
+      
+      tapTimeoutRef.current = setTimeout(() => {
+        setTapCount(0)
+      }, 2000)
+      
+      return newCount
+    })
+  }
   
   const getSubscriptionBadge = () => {
     switch (subscription) {
@@ -459,7 +495,10 @@ export function SettingsView({
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle 
+                className="flex items-center space-x-2 select-none cursor-pointer"
+                onClick={handleAboutClick}
+              >
                 <Info className="w-5 h-5" weight="duotone" />
                 <span>About</span>
               </CardTitle>
@@ -526,6 +565,8 @@ export function SettingsView({
           </Card>
         </motion.div>
       </div>
+
+      <Vault isOpen={showVault} onClose={() => setShowVault(false)} />
     </div>
   )
 }
