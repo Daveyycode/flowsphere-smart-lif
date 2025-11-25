@@ -1199,4 +1199,3 @@ export function Vault({ isOpen, onClose }: VaultProps) {
       </DialogContent>
     </Dialog>
   )
-}
