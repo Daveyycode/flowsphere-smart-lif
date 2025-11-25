@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator'
 import { useKV } from '@github/spark/hooks'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { SecureMessenger } from '@/components/secure-messenger'
 
 interface VaultItem {
   id: string
@@ -93,6 +94,7 @@ export function Vault({ isOpen, onClose }: VaultProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingNote, setEditingNote] = useState<VaultNote | null>(null)
   const [showNoteDialog, setShowNoteDialog] = useState(false)
+  const [showMessenger, setShowMessenger] = useState(false)
   
   const [formData, setFormData] = useState({
     title: '',
@@ -576,87 +578,52 @@ export function Vault({ isOpen, onClose }: VaultProps) {
               </TabsContent>
 
               <TabsContent value="messages" className="mt-0 space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="relative flex-1">
-                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search messages..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+                  <CardContent className="py-12 text-center">
+                    <ChatCircle className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 text-primary" weight="duotone" />
+                    <h3 className="text-lg sm:text-xl font-semibold mb-2">Secure Messenger</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                      End-to-end encrypted messaging with QR code invites. Connect securely with trusted contacts using one-time invite codes.
+                    </p>
+                    <Button
+                      onClick={() => setShowMessenger(true)}
+                      size="lg"
+                      className="gap-2"
+                    >
+                      <ChatCircle className="w-5 h-5" weight="fill" />
+                      Open Messenger
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                <ScrollArea className="h-[400px] rounded-lg border bg-muted/20 p-4">
-                  <div className="space-y-3">
-                    {filteredMessages.length === 0 ? (
-                      <div className="text-center py-12">
-                        <ChatCircle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-muted-foreground" weight="duotone" />
-                        <p className="text-xs sm:text-sm text-muted-foreground">No messages yet</p>
-                      </div>
-                    ) : (
-                      filteredMessages.map((msg) => (
-                        <motion.div
-                          key={msg.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="group"
-                        >
-                          <Card className="hover:border-primary/50 transition-colors">
-                            <CardContent className="p-3 sm:p-4">
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <p className="text-xs sm:text-sm flex-1 break-words">{msg.text}</p>
-                                <div className="flex gap-1 flex-shrink-0">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleToggleFavoriteMessage(msg.id)}
-                                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Star
-                                      className={cn("w-3 h-3 sm:w-4 sm:h-4", msg.isFavorite && "fill-yellow-400 text-yellow-400")}
-                                    />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeleteMessage(msg.id)}
-                                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                                  >
-                                    <Trash className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {msg.isEncrypted && (
-                                  <Badge variant="outline" className="text-[10px] sm:text-xs">
-                                    <Lock className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
-                                    Encrypted
-                                  </Badge>
-                                )}
-                                <span>{new Date(msg.timestamp).toLocaleString()}</span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type a secure message..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSendMessage} size="sm" className="gap-2">
-                    <PaperPlaneTilt className="w-4 h-4" />
-                    <span className="hidden sm:inline">Send</span>
-                  </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-primary" weight="duotone" />
+                      <p className="text-sm font-medium mb-1">End-to-End Encrypted</p>
+                      <p className="text-xs text-muted-foreground">
+                        Military-grade encryption
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <Key className="w-8 h-8 mx-auto mb-2 text-primary" weight="duotone" />
+                      <p className="text-sm font-medium mb-1">QR Code Invites</p>
+                      <p className="text-xs text-muted-foreground">
+                        Secure one-time connections
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <Lock className="w-8 h-8 mx-auto mb-2 text-primary" weight="duotone" />
+                      <p className="text-sm font-medium mb-1">Private & Secure</p>
+                      <p className="text-xs text-muted-foreground">
+                        No data leaves your vault
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 
@@ -1197,6 +1164,8 @@ export function Vault({ isOpen, onClose }: VaultProps) {
           </DialogContent>
         </Dialog>
       </DialogContent>
+      
+      <SecureMessenger isOpen={showMessenger} onClose={() => setShowMessenger(false)} />
     </Dialog>
   )
 }

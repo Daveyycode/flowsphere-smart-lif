@@ -80,6 +80,30 @@ A full-featured lifestyle command center with authentication, multiple interconn
 - **Progression**: Display hero with taglines → Show features → Present pricing plans with monthly/yearly toggle → CTA buttons (Sign In / Sign Up) → Authentication modal
 - **Success criteria**: Inspiring design, clear messaging including "command center" positioning, smooth transition to auth, visually distinct pricing tiers with Premium plan highlighted
 
+### Vault Security System
+- **Functionality**: Protected secure area accessed by pressing "About" 7 times in settings - containing passwords, encrypted messaging, file storage, and secure notes
+- **Purpose**: Provide maximum privacy and security for sensitive data
+- **Trigger**: User simultaneously taps "About" text in settings 7 times
+- **Progression**: Hidden gesture detection → Vault unlock → Access secure tabs (Passwords, Secure Messenger, Files, Notes, Settings)
+- **Success criteria**: Seamless unlock, all data encrypted at rest, auto-lock timer functional, biometric support
+
+### Secure Messenger (within Vault)
+- **Functionality**: Real-time end-to-end encrypted messaging with QR code invite system for secure peer-to-peer communication
+- **Purpose**: Private messaging that doesn't rely on external servers - perfect for sensitive family or business communications
+- **Trigger**: User opens Vault → Messages tab → "Open Messenger"
+- **Progression**: Generate QR invite code → Contact scans or enters code → Contacts list updates → Select contact → Send messages with text/images/voice → Real-time delivery status (sent/delivered/read) → Voice/video calls (future)
+- **Success criteria**: 
+  - QR codes generate unique invite links with 24-hour expiration
+  - Messages show real-time status indicators
+  - Support for text, image attachments, file sharing, and voice notes
+  - Contact online/offline/away status visible
+  - Unread message badges update correctly
+  - Message history persists in vault
+  - All communications encrypted end-to-end
+  - No external server storage - fully local/peer-to-peer
+  - Responsive design works on mobile and desktop
+  - Smooth animations and transitions
+
 ### Prayer & Bible Reading
 - **Functionality**: Daily scripture reading with 2-5 minute voice synthesis, random verses, prayer focus
 - **Purpose**: Spiritual wellness and daily reflection
