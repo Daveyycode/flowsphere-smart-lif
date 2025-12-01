@@ -10,6 +10,8 @@ import { CreditCard, Lock, Check, Bank, Globe } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useKV } from '@github/spark/hooks'
+import { supabase } from '@/lib/supabase'
+import { processCardPayment, processBankPayment } from '@/lib/real-payments'
 
 interface PaymentModalProps {
   isOpen: boolean
@@ -203,31 +205,71 @@ export function PaymentModal({
 
     setStep('processing')
 
-    setTimeout(() => {
-      const last4 = paymentMethod === 'card'
-        ? cardNumber.replace(/\s/g, '').slice(-4)
-        : paymentMethod === 'ph-bank'
-        ? accountNumber.slice(-4)
-        : undefined
+    // REAL PAYMENT PROCESSING - Saves to Supabase database
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
 
-      const bankName = paymentMethod === 'ph-bank'
-        ? philippineBanks.find(b => b.id === selectedBank)?.name
-        : undefined
+      if (!user) {
+        toast.error('Please log in to process payment')
+        setStep('payment')
+        return
+      }
 
-      setStoredPaymentMethod({ type: paymentMethod, last4, bank: bankName })
-      
-      const nextBilling = billingCycle === 'monthly' 
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-      setNextBillingDate(nextBilling.toISOString())
-      
-      setStep('success')
-      setTimeout(() => {
-        onPaymentComplete()
-        onClose()
-        resetForm()
-      }, 2000)
-    }, 2000)
+      let result
+
+      if (paymentMethod === 'card') {
+        result = await processCardPayment(
+          user.id,
+          planName.toLowerCase() as any,
+          planPrice,
+          { cardNumber, cardName, expiryDate, cvv }
+        )
+      } else if (paymentMethod === 'ph-bank') {
+        const bankName = philippineBanks.find(b => b.id === selectedBank)?.name || selectedBank
+        result = await processBankPayment(
+          user.id,
+          planName.toLowerCase() as any,
+          planPrice,
+          { selectedBank: bankName, accountNumber, accountName }
+        )
+      } else {
+        toast.error('Payment method not supported yet')
+        setStep('payment')
+        return
+      }
+
+      if (result.success) {
+        const last4 = paymentMethod === 'card'
+          ? cardNumber.replace(/\s/g, '').slice(-4)
+          : accountNumber.slice(-4)
+
+        const bankName = paymentMethod === 'ph-bank'
+          ? philippineBanks.find(b => b.id === selectedBank)?.name
+          : undefined
+
+        setStoredPaymentMethod({ type: paymentMethod, last4, bank: bankName })
+
+        const nextBilling = billingCycle === 'monthly'
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        setNextBillingDate(nextBilling.toISOString())
+
+        setStep('success')
+
+        setTimeout(() => {
+          onPaymentComplete()
+          onClose()
+          resetForm()
+        }, 2500)
+      } else {
+        toast.error(result.message)
+        setStep('payment')
+      }
+    } catch (error) {
+      console.error('Payment processing error:', error)
+      toast.error('Payment processing failed. Please try again.')
+      setStep('payment')
+    }
   }
 
   const resetForm = () => {
