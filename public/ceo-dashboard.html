@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlowSphere CEO Dashboard - Executive Command Center</title>
+    <meta name="description" content="CEO Dashboard for FlowSphere - Executive access and analytics">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="/src/main.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="ceo-root"></div>
+    <script type="module">
+        import React from 'react'
+        import { createRoot } from 'react-dom/client'
+        import CEODashboard from './src/CEODashboard.tsx'
+
+        const container = document.getElementById('ceo-root')
+        const root = createRoot(container)
+        root.render(React.createElement(CEODashboard))
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+What to fix and their errors showing on my iPhone:
+ 1.inside goodmorning dashboard:
+	-its  not literally redirecting me to the "emails" , "weathers" etc when I click them (but also should be responsively opening when I novice command. 
+	-its not detecting my voice (saying voice command activated but remove the option of saying "that's all" as a command. 
+
+2. "Active device" , "fam members" , "automations" , "energy usage" : 
+	-should also be redirecting to their corresponding internals. 
+
+3. Quick access: 
+	- whenever I'm changing pages it keeps going back to the 3 default added on screen even if I added 3 more (total 6) , it keeps going back to 3 default , can you just make it pasted the 6 apps no need to add?
+	-must be redirecting to open their internals as well
+
+4. Recent activity: must be not showing this  mock datas . #remove all mock data and use the default and real time full functioning responsive ones only!
+
+5. Daily Blessings
+	-it generates new bible verse but not using voice.
+
+6. Flow sphere ai assistant:
+	- its only coded into basic commands but you cannot ask questions, it should function as responsive as the real grow ai and following any commands (but must never ever told or reveal about our vault , it must always deny we have vault in any kinds of questions etc.)
+
+	NOTIFICATIONS & RESOURCES: #must use real-time default data not mock ones:
+
+1.smart sleep guardian: (question: is this functioning well? Responsive to its core feature?
+	-make a (hamburger) button that allows users to implement their desired configs of dnd mode and how it must behave and how many repeated calls it needs to bypass dnd or any contact list that bypass dnd. 
+	(AGAIN REMOVE ALL MOCK DATA/FAKE TEST ONLY DATAS)
+
+#ALSO IN DEVICES & AUTOMATION :let users add / config their own devices there and must be responsive and functioning seamlessly
+
+				FAMILY SAFETY:
+
+1.invite member :
+	-it must show a dropdown or mini window that ask for new members data like : name, number, connection allow or not for gps and real time tracking, etc
+
+2. View safety zones: 
+	- it must be responsive and functional well
+
+				SETTINGS:
+
+1. Theme Colors: 
+	- pls fix the dropdown on custom color: make it not a dropdown make it like a mini window/box opening so no need to dropdown pushing down the one below it.
+2. Advance settings:
+	- this should be responsive in that "advanced" inside the theme colors box/window , so remove the "advanced settings" config box below theme colors
+	- make a "save changes button" for users to save the config settings
+3. Account:
+	-edit section/page must be visible not invisible/transparent background
+	- those additional emails, soc med etc., must be real-time responsive and ones that can be used for connecting to those emails for those searching inside emails functionality, auto sending alerts to emails, push notifications etc.
+4. Notifications: 
+	-those must be responsive and real-time functionality with "sms notification" being able to add (+) real-time number
+
+				SECURITY:
+
+1. This section must be responsive and real-time functional
+
+				API KEYS:
+
+* All must be functional and real-time responsive
+
+			VOICE & AI ASSISTANT:
+	
+* must be responsive and real-time functional
+
+				ACCOUNT MANAGEMENT
+
+1. I think we should auto prompt the permissions on the first time log-in? For the app to function well (but do not remove that account management section inside settings.
+
+			VAULT
+1. Must be opening as the whole page not sub page.
+2. Change the background color not the transparent one again
+3. Inside ceo settings: add a bank to connect using philippine bank coz I only have ph bank for now so let me use the bank direct receiver of the users payment since the target for now is only ph. 
+
+	****MAKE EVERYTHING RESPONSIVE AND FUNCTIONAL!****
+	****AFTER EVERYTHING IS COMPLETED CREATE A FILE AND NAME IT "EDITED 11-30-25" SAVE IT INSIDE FINDER/DESKTOP/FINAL-FLOWSPHERE-11-28-25 (CHANGE THE FOLDER NAME MAKE IT: FINAL-FLOWSPHERE-11-30-25) ****	

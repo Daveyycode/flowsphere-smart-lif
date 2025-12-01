@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FlowSphere</string>
+    <string name="title_activity_main">FlowSphere</string>
+    <string name="package_name">com.flowsphere.app</string>
+    <string name="custom_url_scheme">com.flowsphere.app</string>
+</resources>
