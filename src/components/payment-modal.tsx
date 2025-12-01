@@ -144,6 +144,7 @@ export function PaymentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // CRITICAL: Validate ALL payment methods before processing
     if (paymentMethod === 'card') {
       const cleanedCard = cardNumber.replace(/\s/g, '')
 
@@ -193,6 +194,11 @@ export function PaymentModal({
         toast.error('Please enter a valid account holder name (letters only)')
         return
       }
+    }
+
+    if (paymentMethod === 'paypal' || paymentMethod === 'apple') {
+      toast.error('Payment gateway integration required. Please use Card or Bank payment.')
+      return
     }
 
     setStep('processing')

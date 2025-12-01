@@ -224,12 +224,24 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
       return
     }
 
-    // Try to decrypt if it's an encrypted QR code
-    const decryptedCode = decryptQRCode(codeToUse)
-    if (decryptedCode) {
-      codeToUse = decryptedCode
-    } else if (!isValidFlowSphereQR(codeToUse)) {
-      toast.error('Invalid QR code format')
+    // CRITICAL FIX: Proper decryption and validation logic
+    const decryptedCode = decryptQRCode(codeToUse.trim())
+
+    if (!decryptedCode) {
+      // Decryption failed and it's not a valid plain code
+      toast.error('Invalid QR code. Please scan a valid FlowSphere QR code or enter the code manually.')
+      setScannedCode('')
+      setShowAddContactDialog(false)
+      setShowQRScanner(false)
+      return
+    }
+
+    // Use the decrypted/validated code
+    codeToUse = decryptedCode
+
+    // Additional validation - ensure it's a proper format after decryption
+    if (!isValidFlowSphereQR(codeToUse)) {
+      toast.error('Invalid invite code format. Code must be 6-12 alphanumeric characters.')
       setScannedCode('')
       setShowAddContactDialog(false)
       setShowQRScanner(false)
@@ -239,7 +251,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
     // Check if code was already used
     const existingContact = (contacts || []).find(c => c.publicKey === codeToUse)
     if (existingContact) {
-      toast.error('This invite code has already been used')
+      toast.error(`This contact "${existingContact.name}" is already in your contact list`)
       setScannedCode('')
       setShowAddContactDialog(false)
       setShowQRScanner(false)
@@ -260,7 +272,10 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
       name: `Contact ${(contacts || []).length + 1}`,
       publicKey: codeToUse,
       status: 'online',
-      unreadCount: 0
+      unreadCount: 0,
+      themeColor: '#8B5CF6',
+      notificationsEnabled: true,
+      soundEnabled: true
     }
 
     // Add contact (useKV will auto-save to localStorage)
@@ -274,7 +289,7 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
     setScannedCode('')
     setShowAddContactDialog(false)
     setShowQRScanner(false)
-    toast.success(`${newContact.name} added to contacts - Auto-saved!`)
+    toast.success(`${newContact.name} added successfully! You can now send encrypted messages.`)
   }
 
   const handleSendMessage = () => {
@@ -679,10 +694,30 @@ export function SecureMessenger({ isOpen, onClose }: SecureMessengerProps) {
                         </Badge>
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 sm:h-9 sm:w-9 p-0"
+                      onClick={() => {
+                        if (!selectedContact) return
+                        toast.info(`Initiating voice call with ${selectedContact.name}...`, {
+                          description: 'Voice calling feature coming soon with WebRTC integration'
+                        })
+                      }}
+                    >
                       <Phone className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 sm:h-9 sm:w-9 p-0"
+                      onClick={() => {
+                        if (!selectedContact) return
+                        toast.info(`Initiating video call with ${selectedContact.name}...`, {
+                          description: 'Video calling feature coming soon with WebRTC integration'
+                        })
+                      }}
+                    >
                       <VideoCamera className="w-4 h-4" />
                     </Button>
                     <Button
