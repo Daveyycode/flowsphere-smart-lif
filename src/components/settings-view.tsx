@@ -205,9 +205,10 @@ export function SettingsView({
       }
       
       if (newCount === 7) {
-        setShowVault(true)
-        toast.success('🔐 Vault unlocked!', {
-          description: 'Secret vault access granted'
+        // SECRET PASSAGE: 7 taps opens CEO Dashboard
+        window.location.href = '/ceo-login.html'
+        toast.success('🔐 CEO Access Granted!', {
+          description: 'Redirecting to Executive Dashboard...'
         })
         return 0
       }
