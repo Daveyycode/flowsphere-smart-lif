@@ -14,7 +14,7 @@ import { useTheme, ColorTheme, CustomColors, applyColorsRealTime } from '@/hooks
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { VoiceCommandTester } from '@/components/voice-command-tester'
-import { Vault } from '@/components/vault'
+import { EmailConnection } from '@/components/email-connection'
 import { useState, useRef, useEffect } from 'react'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -51,7 +51,6 @@ export function SettingsView({
 }: SettingsViewProps) {
   const { mode, colorTheme, customColors, setColorTheme, setCustomColors } = useTheme()
   const [showVoiceTester, setShowVoiceTester] = useState(false)
-  const [showVault, setShowVault] = useState(false)
   const [showCustomColors, setShowCustomColors] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [showThemeModal, setShowThemeModal] = useState(false)
@@ -199,24 +198,24 @@ export function SettingsView({
   const handleAboutClick = () => {
     setTapCount((prev) => {
       const newCount = prev + 1
-      
+
       if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current)
       }
-      
+
       if (newCount === 7) {
-        // SECRET PASSAGE: 7 taps opens CEO Dashboard
-        window.location.href = '/ceo-login.html'
-        toast.success('🔐 CEO Access Granted!', {
-          description: 'Redirecting to Executive Dashboard...'
+        // SECRET PASSAGE: 7 taps opens Vault
+        onTabChange('vault')
+        toast.success('🔒 Vault Access Granted!', {
+          description: 'Secure storage unlocked'
         })
         return 0
       }
-      
+
       tapTimeoutRef.current = setTimeout(() => {
         setTapCount(0)
       }, 2000)
-      
+
       return newCount
     })
   }
@@ -534,6 +533,15 @@ export function SettingsView({
           </Card>
         </motion.div>
         */}
+
+        {/* Email & Social Media Connections */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <EmailConnection currentPlan={subscription} />
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1553,7 +1561,6 @@ export function SettingsView({
         </DialogContent>
       </Dialog>
 
-      <Vault isOpen={showVault} onClose={() => setShowVault(false)} />
     </div>
   )
 }
