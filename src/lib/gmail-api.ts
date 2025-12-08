@@ -4,6 +4,7 @@
  */
 
 import { scanEmails, detectSubscriptions, generateEmailInsights, type EmailMessage } from './email-scanner'
+import { logger } from '@/lib/security-utils'
 
 // Gmail API Configuration
 const GMAIL_API_BASE = 'https://www.googleapis.com/gmail/v1'
@@ -59,7 +60,7 @@ export class GmailAPIService {
       scope: SCOPES.join(' '),
       callback: (response: any) => {
         if (response.error) {
-          console.error('OAuth error:', response.error)
+          logger.error('OAuth error', response.error, 'GmailAPI')
           throw new Error(response.error)
         }
 
@@ -147,6 +148,37 @@ export class GmailAPIService {
   }
 
   /**
+   * Get connection status with details
+   */
+  getConnectionStatus(): {
+    connected: boolean
+    expired: boolean
+    expiresAt: Date | null
+    minutesRemaining: number | null
+  } {
+    if (!this.token) {
+      return { connected: false, expired: false, expiresAt: null, minutesRemaining: null }
+    }
+
+    const now = Date.now()
+    const expired = this.token.expires_at <= now
+    const expiresAt = new Date(this.token.expires_at)
+    const minutesRemaining = expired ? 0 : Math.floor((this.token.expires_at - now) / 60000)
+
+    return { connected: !expired, expired, expiresAt, minutesRemaining }
+  }
+
+  /**
+   * Force reconnect - clears token and prompts for new authentication
+   */
+  async reconnect(): Promise<void> {
+    logger.info('Forcing reconnect', null, 'GmailAPI')
+    this.token = null
+    this.clearTokenFromStorage()
+    await this.authenticate()
+  }
+
+  /**
    * Revoke authentication
    */
   async logout(): Promise<void> {
@@ -156,7 +188,7 @@ export class GmailAPIService {
           method: 'POST'
         })
       } catch (error) {
-        console.error('Error revoking token:', error)
+        logger.error('Error revoking token', error, 'GmailAPI')
       }
     }
 
@@ -195,7 +227,7 @@ export class GmailAPIService {
       // Scan and categorize emails
       return scanEmails(emails)
     } catch (error) {
-      console.error('Error fetching emails:', error)
+      logger.error('Error fetching emails', error, 'GmailAPI')
       throw error
     }
   }
@@ -257,10 +289,23 @@ export class GmailAPIService {
 
   /**
    * Make authenticated request to Gmail API
+   * Automatically handles token expiry and re-authentication
    */
-  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async makeRequest(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<any> {
+    // Check if token is expired or missing
+    if (!this.token || this.token.expires_at <= Date.now()) {
+      // Token expired - try to re-authenticate silently
+      logger.info('Token expired, attempting re-authentication', null, 'GmailAPI')
+      try {
+        await this.authenticate()
+      } catch (authError) {
+        this.clearTokenFromStorage()
+        throw new Error('Gmail session expired. Please reconnect your Gmail account.')
+      }
+    }
+
     if (!this.token) {
-      throw new Error('No access token available')
+      throw new Error('Gmail not connected. Please connect your Gmail account.')
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${GMAIL_API_BASE}${endpoint}`
@@ -274,8 +319,24 @@ export class GmailAPIService {
       }
     })
 
+    // Handle 401 Unauthorized - token might be revoked
+    if (response.status === 401 && retryCount < 1) {
+      logger.info('Received 401, clearing token and retrying', null, 'GmailAPI')
+      this.token = null
+      this.clearTokenFromStorage()
+      return this.makeRequest(endpoint, options, retryCount + 1)
+    }
+
     if (!response.ok) {
-      const error = await response.json()
+      const error = await response.json().catch(() => ({ error: { message: 'Gmail API request failed' } }))
+
+      // Provide user-friendly error messages
+      if (response.status === 401) {
+        throw new Error('Gmail session expired. Please reconnect your Gmail account.')
+      } else if (response.status === 403) {
+        throw new Error('Gmail access denied. Please check your permissions.')
+      }
+
       throw new Error(error.error?.message || 'Gmail API request failed')
     }
 
@@ -343,7 +404,7 @@ export class GmailAPIService {
         }
       }
     } catch (error) {
-      console.error('Error loading token:', error)
+      logger.error('Error loading token', error, 'GmailAPI')
     }
   }
 

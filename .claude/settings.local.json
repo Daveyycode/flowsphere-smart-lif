@@ -55,7 +55,14 @@
       "Bash(killall:*)",
       "Bash(xcrun xctrace:*)",
       "Bash(system_profiler:*)",
-      "Bash(xcrun devicectl:*)"
+      "Bash(xcrun devicectl:*)",
+      "Bash(./cleanup-duplicates.sh:*)",
+      "Bash(tee:*)",
+      "Bash(for file in auth-modal.tsx ai-assistant.tsx settings-view.tsx notifications-view.tsx)",
+      "Bash(do echo \"\")",
+      "Bash(export PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\")",
+      "Bash(fuser:*)",
+      "Bash(export PATH=/usr/local/bin:/opt/homebrew/bin:$PATH)"
     ],
     "deny": [],
     "ask": []

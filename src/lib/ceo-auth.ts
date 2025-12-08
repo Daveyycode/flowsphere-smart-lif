@@ -4,6 +4,7 @@
  */
 
 import { toast } from 'sonner'
+import { logger } from '@/lib/security-utils'
 
 export interface CEOCredentials {
   username: string // 6-digit code
@@ -119,7 +120,8 @@ export function validateQRLogin(qrData: string, expectedUsername: string): boole
     }
 
     return true
-  } catch {
+  } catch (error) {
+    logger.debug('QR code validation failed', error)
     return false
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { X, Sparkle, EnvelopeSimple, Lock, User, Eye, EyeSlash } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { verifyCEOCredentials, storeCEOSession } from '@/lib/ceo-check'
 
 interface AuthModalProps {
   mode: 'signin' | 'signup'
@@ -24,28 +25,20 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
   const [otp, setOtp] = useState('')
   const [otpEmail, setOtpEmail] = useState('')
 
-  // CEO credentials - silently detected, logs in as normal user
-  const CEO_EMAIL = '19780111'
-  const CEO_PASSWORD = 'papakoEddie@tripzy.international'
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // CEO login detection (silent - logs in as normal user)
-      if (email === CEO_EMAIL && password === CEO_PASSWORD) {
-        localStorage.setItem('flowsphere_ceo_authenticated', 'true')
-        localStorage.setItem('flowsphere_ceo_email', CEO_EMAIL)
+      // CEO login detection FIRST - before any validation (silent - logs in as normal user)
+      // CEO credentials use username, not email format
+      if (verifyCEOCredentials(email, password)) {
+        await storeCEOSession(email, password)
         toast.success('Welcome back!')
-        onSuccess({ email: 'CEO', name: 'CEO' })
+        onSuccess({ email: 'Executive User', name: 'FlowSphere CEO' })
         setIsLoading(false)
         return
       }
-
-      // Clear CEO authentication for non-CEO users
-      localStorage.removeItem('flowsphere_ceo_authenticated')
-      localStorage.removeItem('flowsphere_ceo_email')
 
       if (mode === 'signup') {
         // Validation
@@ -137,8 +130,10 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
         }
 
         if (data.user) {
-          // Check if email is verified
-          if (!data.user.email_confirmed_at) {
+          const isDemoMode = import.meta.env.DEV
+
+          // Check if email is verified (skip in demo mode)
+          if (!isDemoMode && !data.user.email_confirmed_at) {
             toast.error('Please verify your email first. We\'ll send you a new verification code.')
 
             // Send OTP for verification
@@ -363,9 +358,6 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
                   type="button"
                   onClick={() => {
                     onClose()
-                    setTimeout(() => {
-                      mode === 'signup' ? onClose() : onClose()
-                    }, 100)
                   }}
                   className="text-primary hover:underline font-bold"
                 >

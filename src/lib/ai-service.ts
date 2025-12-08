@@ -3,6 +3,8 @@
  * Supports both Groq (default, cheaper & faster) and OpenAI
  */
 
+import { logger } from '@/lib/security-utils'
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -20,7 +22,7 @@ export async function callFlowSphereAI(messages: ChatMessage[]): Promise<string>
     try {
       return await callGroq(messages, groqKey)
     } catch (error) {
-      console.error('Groq API error, falling back:', error)
+      logger.error('Groq API error, falling back', error, 'AIService')
       // Fall through to OpenAI or fallback
     }
   }
@@ -30,7 +32,7 @@ export async function callFlowSphereAI(messages: ChatMessage[]): Promise<string>
     try {
       return await callOpenAI(messages, openaiKey)
     } catch (error) {
-      console.error('OpenAI API error:', error)
+      logger.error('OpenAI API error', error, 'AIService')
     }
   }
 

@@ -29,7 +29,13 @@ export async function fetchDailyNews(category: string = 'general', maxResults: n
       const cacheAgeHours = cacheAge / (1000 * 60 * 60)
 
       if (cacheAgeHours < CACHE_DURATION_HOURS) {
-        return JSON.parse(cachedNews)
+        try {
+          return JSON.parse(cachedNews)
+        } catch {
+          // Cache corrupted, will fetch fresh data
+          localStorage.removeItem(NEWS_CACHE_KEY)
+          localStorage.removeItem(NEWS_CACHE_TIMESTAMP_KEY)
+        }
       }
     }
 
@@ -65,9 +71,16 @@ export async function fetchDailyNews(category: string = 'general', maxResults: n
   } catch (error) {
     console.error('Error fetching news:', error)
 
-    const cachedNews = localStorage.getItem(NEWS_CACHE_KEY)
-    if (cachedNews) {
-      return JSON.parse(cachedNews)
+    // Try to use cached news as fallback
+    try {
+      const cachedNews = localStorage.getItem(NEWS_CACHE_KEY)
+      if (cachedNews) {
+        return JSON.parse(cachedNews)
+      }
+    } catch {
+      // Cache is corrupted, clear it
+      localStorage.removeItem(NEWS_CACHE_KEY)
+      localStorage.removeItem(NEWS_CACHE_TIMESTAMP_KEY)
     }
 
     return []

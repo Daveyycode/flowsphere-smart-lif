@@ -4,6 +4,18 @@
  * Records last unlock after 21:00 (bedtime) and first unlock after 4:00 (wake time)
  */
 
+/**
+ * Safely parse sleep history from localStorage
+ */
+function getSleepHistory(): SleepHistory {
+  try {
+    const stored = localStorage.getItem('flowsphere-sleep-history')
+    return stored ? JSON.parse(stored) : {}
+  } catch {
+    return {}
+  }
+}
+
 export interface SleepData {
   bedtime: string | null
   wakeTime: string | null
@@ -25,8 +37,7 @@ export function recordUnlockEvent(): void {
   const today = now.toDateString()
 
   // Get existing sleep data
-  const storedHistory = localStorage.getItem('flowsphere-sleep-history')
-  const history: SleepHistory = storedHistory ? JSON.parse(storedHistory) : {}
+  const history: SleepHistory = getSleepHistory()
 
   if (!history[today]) {
     history[today] = {
@@ -85,8 +96,7 @@ export function recordUnlockEvent(): void {
  */
 export function getTodaySleepData(): SleepData {
   const today = new Date().toDateString()
-  const storedHistory = localStorage.getItem('flowsphere-sleep-history')
-  const history: SleepHistory = storedHistory ? JSON.parse(storedHistory) : {}
+  const history: SleepHistory = getSleepHistory()
 
   return history[today] || {
     bedtime: null,
@@ -101,8 +111,7 @@ export function getTodaySleepData(): SleepData {
  * Get average sleep data for the past N days
  */
 export function getAverageSleepData(days: number = 7): { hours: number; quality: number } {
-  const storedHistory = localStorage.getItem('flowsphere-sleep-history')
-  const history: SleepHistory = storedHistory ? JSON.parse(storedHistory) : {}
+  const history: SleepHistory = getSleepHistory()
 
   const recentDays = Object.values(history)
     .filter(data => data.hours > 0)
@@ -124,20 +133,37 @@ export function getAverageSleepData(days: number = 7): { hours: number; quality:
 /**
  * Initialize sleep tracking by listening to user activity
  * This should be called when the app loads
+ *
+ * MEMORY LEAK FIX (Dec 6, 2025):
+ * - Now returns cleanup function to remove event listeners
+ * - Prevents memory leaks when component unmounts or app reinitializes
+ *
+ * @returns Cleanup function to remove event listeners
  */
-export function initializeSleepTracking(): void {
+export function initializeSleepTracking(): () => void {
   // Record unlock event on app load
   recordUnlockEvent()
 
-  // Record on visibility change (when app comes to foreground)
-  document.addEventListener('visibilitychange', () => {
+  // Create named handlers so we can remove them later
+  const handleVisibilityChange = () => {
     if (!document.hidden) {
       recordUnlockEvent()
     }
-  })
+  }
+
+  const handleFocus = () => {
+    recordUnlockEvent()
+  }
+
+  // Record on visibility change (when app comes to foreground)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   // Record on focus (when user interacts with app)
-  window.addEventListener('focus', () => {
-    recordUnlockEvent()
-  })
+  window.addEventListener('focus', handleFocus)
+
+  // Return cleanup function to prevent memory leaks
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('focus', handleFocus)
+  }
 }

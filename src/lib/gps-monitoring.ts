@@ -4,6 +4,7 @@
  */
 
 import type { FamilyMember, SafeZone } from '@/components/family-view'
+import { logger } from '@/lib/security-utils'
 
 export interface GPSAlert {
   id: string
@@ -250,7 +251,8 @@ export class GPSMonitoringService {
     try {
       const stored = localStorage.getItem(this.alertsKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to load GPS alerts from storage', error)
       return []
     }
   }
@@ -298,7 +300,8 @@ export class GPSMonitoringService {
       const stored = localStorage.getItem(this.alertHistoryKey)
       const alerts: GPSAlert[] = stored ? JSON.parse(stored) : []
       return alerts.slice(0, limit)
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to load GPS alert history from storage', error)
       return []
     }
   }

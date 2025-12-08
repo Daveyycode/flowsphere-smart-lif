@@ -3,6 +3,8 @@
  * Application-based camera connection and monitoring
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface CCTVCamera {
   id: string
   name: string
@@ -153,7 +155,7 @@ export async function controlPTZ(
   }
 
   // In production, would send actual PTZ commands
-  console.log(`PTZ action: ${action}`, value)
+  logger.debug(`PTZ action: ${action}`, value, 'CCTV')
   await new Promise(resolve => setTimeout(resolve, 500))
 }
 
@@ -262,7 +264,7 @@ export function monitorCameras(
  */
 export async function toggleRecording(camera: CCTVCamera, enable: boolean): Promise<void> {
   // In production, would send actual recording command to camera
-  console.log(`Recording ${enable ? 'started' : 'stopped'} for ${camera.name}`)
+  logger.info(`Recording ${enable ? 'started' : 'stopped'} for ${camera.name}`, null, 'CCTV')
   await new Promise(resolve => setTimeout(resolve, 500))
 }
 
@@ -283,7 +285,7 @@ export async function getCameraRecordings(
 }>> {
   // In production, would fetch actual recordings from NVR/camera
   // For now, return mock data
-  const recordings = []
+  const recordings: Array<{ id: string; timestamp: string; duration: number; thumbnailUrl: string; videoUrl: string; events: string[] }> = []
   const daysDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
 
   for (let i = 0; i < Math.min(daysDiff, 10); i++) {

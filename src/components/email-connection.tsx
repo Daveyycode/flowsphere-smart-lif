@@ -16,6 +16,7 @@ import { OutlookProvider } from '@/lib/email/outlook-provider'
 import { ICloudProvider } from '@/lib/email/icloud-provider'
 import { EmailAccountStore, EmailAccount } from '@/lib/email/email-service'
 import { toast } from 'sonner'
+import { authApi } from '@/lib/api'
 
 interface EmailConnectionProps {
   currentPlan?: 'basic' | 'pro' | 'gold' | 'family'
@@ -46,48 +47,46 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
 
   const handleOAuthCallback = async () => {
     const urlParams = new URLSearchParams(window.location.search)
-    const code = urlParams.get('code')
-    const provider = window.location.pathname.includes('gmail') ? 'gmail'
-                   : window.location.pathname.includes('yahoo') ? 'yahoo'
-                   : window.location.pathname.includes('outlook') ? 'outlook'
-                   : window.location.pathname.includes('icloud') ? 'icloud'
-                   : null
+    const authToken = urlParams.get('auth_token')
+    const provider = urlParams.get('provider')
+    const error = urlParams.get('error')
 
-    if (code && provider) {
+    // Handle OAuth error
+    if (error) {
+      toast.error(`Failed to connect: ${error}`)
+      window.history.replaceState({}, document.title, window.location.pathname)
+      return
+    }
+
+    // Handle successful OAuth callback
+    if (authToken && provider) {
       try {
         toast.info('Connecting your account...')
 
-        let tokens, userInfo
-        if (provider === 'gmail') {
-          tokens = await gmailProvider.exchangeCodeForTokens(code)
-          userInfo = await gmailProvider.getUserInfo(tokens.accessToken)
-        } else if (provider === 'yahoo') {
-          tokens = await yahooProvider.exchangeCodeForTokens(code)
-          userInfo = await yahooProvider.getUserInfo(tokens.accessToken)
-        } else if (provider === 'outlook') {
-          tokens = await outlookProvider.exchangeCodeForTokens(code)
-          userInfo = await outlookProvider.getUserInfo(tokens.accessToken)
+        // Complete OAuth flow with backend
+        const response = await authApi.completeOAuth(authToken)
+
+        if (response.success && response.data) {
+          const account: EmailAccount = {
+            id: response.data.account.id,
+            provider: response.data.account.provider as any,
+            email: response.data.account.email,
+            name: response.data.account.name,
+            accessToken: response.data.account.accessToken,
+            refreshToken: response.data.account.refreshToken,
+            expiresAt: response.data.account.expiresAt,
+            isActive: true,
+            connectedAt: response.data.account.connectedAt
+          }
+
+          EmailAccountStore.saveAccount(account)
+          loadAccounts()
+
+          const providerName = provider === 'google' ? 'Gmail' : provider.charAt(0).toUpperCase() + provider.slice(1)
+          toast.success(`${providerName} account connected! Email monitoring is now active.`)
         } else {
-          tokens = await icloudProvider.exchangeCodeForTokens(code)
-          userInfo = await icloudProvider.getUserInfo(tokens.accessToken)
+          toast.error(`Failed to connect: ${response.error || 'Unknown error'}`)
         }
-
-        const account: EmailAccount = {
-          id: `${provider}-${Date.now()}`,
-          provider: provider as any,
-          email: userInfo.email,
-          name: userInfo.name,
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          expiresAt: Date.now() + tokens.expiresIn * 1000,
-          isActive: true,
-          connectedAt: new Date().toISOString()
-        }
-
-        EmailAccountStore.saveAccount(account)
-        loadAccounts()
-
-        toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} account connected! Email monitoring is now active.`)
 
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname)
@@ -96,6 +95,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
         const errorMsg = error instanceof Error ? error.message : 'Unknown error'
         console.error('Error details:', errorMsg)
         toast.error(`Failed to connect: ${errorMsg}`)
+        window.history.replaceState({}, document.title, window.location.pathname)
       }
     }
   }
@@ -110,7 +110,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     }
   }
 
-  const handleConnect = (provider: 'gmail' | 'yahoo' | 'outlook' | 'icloud') => {
+  const handleConnect = (provider: 'google' | 'yahoo' | 'outlook' | 'apple') => {
     // Check email limit based on plan
     const limit = getEmailLimit()
     if (accounts.length >= limit) {
@@ -120,34 +120,11 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
       return
     }
 
-    // Check if API credentials are configured
-    const hasCredentials =
-      (provider === 'gmail' && import.meta.env.VITE_GOOGLE_CLIENT_ID) ||
-      (provider === 'yahoo' && import.meta.env.VITE_YAHOO_CLIENT_ID) ||
-      (provider === 'outlook' && import.meta.env.VITE_OUTLOOK_CLIENT_ID) ||
-      (provider === 'icloud' && import.meta.env.VITE_APPLE_CLIENT_ID)
-
-    if (!hasCredentials) {
-      setShowApiSetup(true)
-      return
-    }
-
     setIsConnecting(true)
 
     try {
-      let authUrl
-      if (provider === 'gmail') {
-        authUrl = gmailProvider.getAuthUrl()
-      } else if (provider === 'yahoo') {
-        authUrl = yahooProvider.getAuthUrl()
-      } else if (provider === 'outlook') {
-        authUrl = outlookProvider.getAuthUrl()
-      } else {
-        authUrl = icloudProvider.getAuthUrl()
-      }
-
-      // Redirect to OAuth
-      window.location.href = authUrl
+      // Use backend OAuth API
+      authApi.initiateOAuth(provider, window.location.origin)
     } catch (error) {
       console.error('Connection error:', error)
       toast.error('Failed to initiate connection')
@@ -179,16 +156,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
   }
 
   const getProviderIcon = (provider: string) => {
-    return provider === 'gmail' ? '📧'
+    return (provider === 'gmail' || provider === 'google') ? '📧'
          : provider === 'yahoo' ? '📨'
-         : provider === 'icloud' ? '☁️'
+         : (provider === 'icloud' || provider === 'apple') ? '☁️'
          : '📬'
   }
 
   const getProviderColor = (provider: string) => {
-    return provider === 'gmail' ? 'bg-blue-500/10 text-blue-500'
+    return (provider === 'gmail' || provider === 'google') ? 'bg-blue-500/10 text-blue-500'
          : provider === 'yahoo' ? 'bg-purple-500/10 text-purple-500'
-         : provider === 'icloud' ? 'bg-gray-500/10 text-gray-600'
+         : (provider === 'icloud' || provider === 'apple') ? 'bg-gray-500/10 text-gray-600'
          : 'bg-cyan-500/10 text-cyan-500'
   }
 
@@ -224,7 +201,9 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
                                 {account.isActive ? 'Active' : 'Paused'}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {account.provider.charAt(0).toUpperCase() + account.provider.slice(1)}
+                                {account.provider === 'google' || account.provider === 'gmail' ? 'Gmail'
+                                 : account.provider === 'apple' || account.provider === 'icloud' ? 'iCloud'
+                                 : account.provider.charAt(0).toUpperCase() + account.provider.slice(1)}
                               </span>
                             </div>
                           </div>
@@ -257,16 +236,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
           {/* Connection Buttons */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
             <Button
-              onClick={() => handleConnect('gmail')}
+              onClick={() => handleConnect('google')}
               disabled={isConnecting}
               variant="outline"
               className="h-auto py-4 flex flex-col items-center gap-2"
             >
               <span className="text-2xl">📧</span>
               <span className="font-semibold">Gmail</span>
-              {accounts.filter(a => a.provider === 'gmail').length > 0 && (
+              {accounts.filter(a => a.provider === 'google' || a.provider === 'gmail').length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  {accounts.filter(a => a.provider === 'gmail').length} connected
+                  {accounts.filter(a => a.provider === 'google' || a.provider === 'gmail').length} connected
                 </Badge>
               )}
             </Button>
@@ -287,16 +266,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             </Button>
 
             <Button
-              onClick={() => handleConnect('icloud')}
+              onClick={() => handleConnect('apple')}
               disabled={isConnecting}
               variant="outline"
               className="h-auto py-4 flex flex-col items-center gap-2"
             >
               <span className="text-2xl">☁️</span>
               <span className="font-semibold">iCloud Mail</span>
-              {accounts.filter(a => a.provider === 'icloud').length > 0 && (
+              {accounts.filter(a => a.provider === 'apple' || a.provider === 'icloud').length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  {accounts.filter(a => a.provider === 'icloud').length} connected
+                  {accounts.filter(a => a.provider === 'apple' || a.provider === 'icloud').length} connected
                 </Badge>
               )}
             </Button>

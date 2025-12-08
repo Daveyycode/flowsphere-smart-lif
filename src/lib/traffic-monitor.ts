@@ -3,6 +3,8 @@
  * Learns user's daily routine and provides real-time traffic alerts
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface UserLocation {
   name: string
   address: string
@@ -146,12 +148,12 @@ export async function startProactiveMonitoring(
 ): Promise<() => void> {
 
   if (!preferences.monitoringEnabled) {
-    console.log('Proactive monitoring disabled')
+    logger.info('Proactive monitoring disabled', null, 'TrafficMonitor')
     return () => {}
   }
 
   const checkInterval = 5 * 60 * 1000 // Check every 5 minutes
-  let intervals: NodeJS.Timeout[] = []
+  const intervals: NodeJS.Timeout[] = []
 
   // Monitor routine-based departures
   routines.forEach(routine => {
@@ -230,7 +232,7 @@ async function checkAndAlert(
           trafficLevel: traffic.trafficLevel,
           bestAlternative: traffic.alternativeRoutes[0] ? {
             name: traffic.alternativeRoutes[0].name,
-            time: traffic.alternativeRoutes[0].travelTime,
+            time: traffic.alternativeRoutes[0].time,
             savings: traffic.alternativeRoutes[0].savings
           } : undefined
         }
@@ -264,7 +266,7 @@ async function checkAndAlert(
             priority: 'urgent',
             type: 'accident',
             title: `🚨 ${incident.type.toUpperCase()} on Your Route`,
-            message: `${incident.description} on ${incident.affectedRoads[0]}. Expected delay: ${incident.delay} minutes.`,
+            message: `${incident.description} on ${incident.affectedRoads?.[0] || incident.location}. Expected delay: ${incident.delay} minutes.`,
             actionable: true,
             actions: [
               { label: 'View Alternative Route', type: 'view-route' },
@@ -276,9 +278,9 @@ async function checkAndAlert(
     }
 
     // Routine reminder with traffic info
-    const trafficEmoji = traffic.trafficLevel === 'light' ? '🟢' :
-                        traffic.trafficLevel === 'moderate' ? '🟡' :
-                        traffic.trafficLevel === 'heavy' ? '🟠' : '🔴'
+    const trafficEmoji = traffic.trafficLevel === 'low' ? '🟢' :
+                        traffic.trafficLevel === 'medium' ? '🟡' :
+                        traffic.trafficLevel === 'high' ? '🟠' : '🔴'
 
     onAlert({
       id: `routine-${Date.now()}`,
@@ -303,7 +305,7 @@ async function checkAndAlert(
     })
 
   } catch (error) {
-    console.error('Error checking traffic for alert:', error)
+    logger.error('Error checking traffic for alert:', error, 'TrafficMonitor')
   }
 }
 
@@ -335,7 +337,7 @@ async function monitorIncidents(
       }
     })
   } catch (error) {
-    console.error('Error monitoring incidents:', error)
+    logger.error('Error monitoring incidents:', error, 'TrafficMonitor')
   }
 }
 
@@ -370,9 +372,9 @@ export async function getNextTripTraffic(
     const { getRouteTraffic } = await import('./traffic-service')
     const traffic = await getRouteTraffic(from, to)
 
-    const trafficEmoji = traffic.trafficLevel === 'light' ? '🟢' :
-                        traffic.trafficLevel === 'moderate' ? '🟡' :
-                        traffic.trafficLevel === 'heavy' ? '🟠' : '🔴'
+    const trafficEmoji = traffic.trafficLevel === 'low' ? '🟢' :
+                        traffic.trafficLevel === 'medium' ? '🟡' :
+                        traffic.trafficLevel === 'high' ? '🟠' : '🔴'
 
     return {
       id: `next-trip-${Date.now()}`,
@@ -395,13 +397,13 @@ export async function getNextTripTraffic(
         trafficLevel: traffic.trafficLevel,
         bestAlternative: traffic.alternativeRoutes[0] ? {
           name: traffic.alternativeRoutes[0].name,
-          time: traffic.alternativeRoutes[0].travelTime,
+          time: traffic.alternativeRoutes[0].time,
           savings: traffic.alternativeRoutes[0].savings
         } : undefined
       }
     }
   } catch (error) {
-    console.error('Error getting next trip traffic:', error)
+    logger.error('Error getting next trip traffic:', error, 'TrafficMonitor')
     return null
   }
 }

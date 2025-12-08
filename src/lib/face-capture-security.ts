@@ -4,6 +4,8 @@
  * NO SOUNDS, VIBRATIONS, OR ALERTS
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface CapturedFace {
   id: string
   timestamp: string
@@ -247,7 +249,7 @@ export class FaceCaptureSecurityManager {
       return capturedFace
 
     } catch (error) {
-      console.error('Silent capture failed:', error)
+      logger.error('Silent capture failed', error, 'FaceCapture')
       // Fail silently - no user notification
       return null
     }
@@ -396,7 +398,7 @@ export class FaceCaptureSecurityManager {
       faces.push(face)
       localStorage.setItem(this.storageKey, JSON.stringify(faces))
     } catch (error) {
-      console.error('Failed to save captured face:', error)
+      logger.error('Failed to save captured face', error, 'FaceCapture')
     }
   }
 
@@ -476,12 +478,12 @@ export class FaceCaptureSecurityManager {
    */
   private notifyCEOSilently(face: CapturedFace): void {
     // In production, this would send a backend notification to CEO
-    // For now, just log it (CEO will see in dashboard)
-    console.log('[SECURITY] Face captured:', {
+    // For now, log using secure logger (CEO will see in dashboard)
+    logger.info('[SECURITY] Face captured', {
       type: face.attempt.type,
       timestamp: face.timestamp,
       email: face.attempt.email
-    })
+    }, 'FaceCapture')
 
     // Could also send email to CEO
     // this.sendCEOEmail(face)

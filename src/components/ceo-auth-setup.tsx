@@ -2,6 +2,8 @@
  * CEO Authentication Setup
  * One-time QR code generation for authenticator app setup
  * Allows CEO to change username after initial setup
+ *
+ * SECURITY: Uses real TOTP verification via otpauth library
  */
 
 import { useState, useEffect } from 'react'
@@ -13,8 +15,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import QRCode from 'qrcode'
+import * as OTPAuth from 'otpauth'
 
 interface CEOAuthSetupProps {
   onSetupComplete: () => void
@@ -38,13 +41,9 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
   }, [hasCompletedSetup])
 
   const generateSecret = () => {
-    // Generate a random 32-character base32 secret
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-    let secret = ''
-    for (let i = 0; i < 32; i++) {
-      secret += charset.charAt(Math.floor(Math.random() * charset.length))
-    }
-    return secret
+    // Generate cryptographically secure secret using OTPAuth library
+    const otpSecret = new OTPAuth.Secret({ size: 20 })
+    return otpSecret.base32
   }
 
   const generateQRCode = async () => {
@@ -78,13 +77,39 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
   }
 
   const verifyCode = () => {
-    // In a real implementation, this would verify against the TOTP algorithm
-    // For demo purposes, we'll accept any 6-digit code
-    if (verificationCode.length === 6 && /^\d+$/.test(verificationCode)) {
-      setIsVerified(true)
-      toast.success('Verification successful!')
-    } else {
-      toast.error('Invalid code. Please enter a 6-digit code from your authenticator app')
+    // SECURITY: Real TOTP verification using otpauth library
+    if (!verificationCode || verificationCode.length !== 6 || !/^\d{6}$/.test(verificationCode)) {
+      toast.error('Invalid code format. Please enter a 6-digit code.')
+      return
+    }
+
+    try {
+      const totp = new OTPAuth.TOTP({
+        issuer: 'FlowSphere',
+        label: 'CEO',
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(secret)
+      })
+
+      // Validate with a time window of ±1 period (30 seconds)
+      const delta = totp.validate({
+        token: verificationCode.trim(),
+        window: 1
+      })
+
+      if (delta !== null) {
+        // Store the secret for future logins
+        localStorage.setItem('flowsphere_ceo_setup_totp_secret', secret)
+        setIsVerified(true)
+        toast.success('Verification successful! Your authenticator is configured.')
+      } else {
+        toast.error('Invalid code. Make sure you scanned the QR code and the time is synced.')
+      }
+    } catch (error) {
+      console.error('[CEO Auth Setup] TOTP verification error:', error)
+      toast.error('Verification failed. Please try again.')
     }
   }
 

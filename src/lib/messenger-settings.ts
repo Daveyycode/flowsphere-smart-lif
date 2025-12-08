@@ -3,6 +3,8 @@
  * Customize conversations with nicknames, themes, and preferences
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface ContactTheme {
   primaryColor: string
   accentColor: string
@@ -272,7 +274,8 @@ export class MessengerSettingsManager {
     try {
       const data = localStorage.getItem(this.conversationSettingsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get conversation settings from storage', error, 'MessengerSettings')
       return []
     }
   }

@@ -3,6 +3,8 @@
  * Scan QR codes to add contacts permanently
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface Contact {
   id: string
   userId: string // Unique user ID from QR code
@@ -183,7 +185,8 @@ export class ContactManager {
     try {
       const data = localStorage.getItem(this.storageKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get contacts from storage', error, 'QRContactSystem')
       return []
     }
   }
@@ -445,7 +448,8 @@ export class ContactManager {
     try {
       const data = localStorage.getItem(this.requestsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get contact requests from storage', error, 'QRContactSystem')
       return []
     }
   }

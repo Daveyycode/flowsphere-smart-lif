@@ -124,7 +124,7 @@ export async function generateScriptFromNotes(
  */
 function improveSentenceStructure(text: string): string {
   // Split into sentences
-  let sentences = text.split(/([.!?]+)/).filter(s => s.trim().length > 0)
+  const sentences = text.split(/([.!?]+)/).filter(s => s.trim().length > 0)
 
   // Combine sentence content with punctuation
   const structuredSentences: string[] = []
@@ -339,7 +339,7 @@ export function formatScriptForEmail(script: string, subject?: string): string {
 export async function generateScriptVariations(
   transcript: string
 ): Promise<Record<string, GeneratedScript>> {
-  const tones: Array<ScriptOptions['tone']> = ['professional', 'casual', 'formal', 'friendly']
+  const tones: ('professional' | 'casual' | 'formal' | 'friendly')[] = ['professional', 'casual', 'formal', 'friendly']
 
   const variations: Record<string, GeneratedScript> = {}
 

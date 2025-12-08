@@ -4,6 +4,8 @@
  * View and control timer from any device (phone, laptop, tablet)
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface TimerState {
   id: string
   userId: string
@@ -171,12 +173,12 @@ export class SmartTimerSyncManager {
     const state = this.getCurrentState()
     if (!state) return null
 
-    state.status = 'completed'
-
-    // Calculate final elapsed time
+    // Calculate final elapsed time before marking as completed
     if (state.status === 'running' && state.startTime) {
       state.elapsedTime += Date.now() - state.startTime
     }
+
+    state.status = 'completed'
 
     state.lastSync = Date.now()
 
@@ -220,7 +222,8 @@ export class SmartTimerSyncManager {
       if (state.userId !== this.userId) return null
 
       return state
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get current timer state', error, 'SmartTimerSync')
       return null
     }
   }
@@ -318,7 +321,8 @@ export class SmartTimerSyncManager {
       })
 
       return active
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get active devices', error, 'SmartTimerSync')
       return []
     }
   }
@@ -351,7 +355,7 @@ export class SmartTimerSyncManager {
         storageArea: localStorage
       }))
     } catch (error) {
-      console.error('Failed to save timer state:', error)
+      logger.error('Failed to save timer state:', error, 'TimerSync')
     }
   }
 
@@ -427,8 +431,8 @@ export class SmartTimerSyncManager {
             this.stopAutoSync()
           }
         }
-      } catch {
-        // Ignore parse errors
+      } catch (error) {
+        logger.debug('Sync event parse error (expected for non-timer events)', error)
       }
     }
   }
@@ -441,7 +445,7 @@ export class SmartTimerSyncManager {
       try {
         callback(state)
       } catch (error) {
-        console.error('Listener error:', error)
+        logger.error('Listener error:', error, 'TimerSync')
       }
     })
   }
@@ -497,8 +501,8 @@ export class SmartTimerSyncManager {
 
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
-    } catch {
-      // Fail silently if audio not available
+    } catch (error) {
+      logger.debug('Audio beep not available', error)
     }
   }
 

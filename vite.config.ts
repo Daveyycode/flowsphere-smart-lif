@@ -1,22 +1,35 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
-import { defineConfig, PluginOption } from "vite";
+import { defineConfig } from "vite";
 import { VitePWA } from 'vite-plugin-pwa';
-
-import sparkPlugin from "@github/spark/spark-vite-plugin";
-import createIconImportProxy from "@github/spark/vitePhosphorIconProxyPlugin";
 import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Development server port
+  server: {
+    port: 5000,
+    strictPort: true,
+  },
+  // Remove console.log in production builds
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+    pure: mode === 'production' ? ['console.log', 'console.info', 'console.debug', 'console.warn'] : [],
+  },
+  build: {
+    // Ensure minification and optimization
+    minify: 'esbuild',
+    sourcemap: false,
+    // Target modern browsers for smaller bundle
+    target: 'esnext',
+    // Suppress chunk size warning since we have PWA caching
+    chunkSizeWarningLimit: 2500,
+  },
   plugins: [
     react(),
     tailwindcss(),
-    // DO NOT REMOVE
-    createIconImportProxy() as PluginOption,
-    sparkPlugin() as PluginOption,
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['icon-192.png', 'icon-512.png'],
@@ -47,6 +60,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for large bundles
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -71,4 +85,4 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
-});
+}));

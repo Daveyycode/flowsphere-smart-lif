@@ -3,6 +3,8 @@
  * Replaces GitHub Spark LLM with Groq for all AI features
  */
 
+import { logger } from '@/lib/security-utils'
+
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -67,7 +69,7 @@ export async function groqChat(
     const data = await response.json()
     return data.choices[0]?.message?.content || ''
   } catch (error) {
-    console.error('Groq AI error:', error)
+    logger.error('Groq AI error', error, 'GroqAI')
     throw error
   }
 }
@@ -112,7 +114,7 @@ export async function groqChatWithHistory(
     const data = await response.json()
     return data.choices[0]?.message?.content || ''
   } catch (error) {
-    console.error('Groq AI error:', error)
+    logger.error('Groq AI error', error, 'GroqAI')
     throw error
   }
 }
@@ -186,5 +188,9 @@ export async function* groqChatStream(
  * Check if Groq is properly configured
  */
 export function isGroqConfigured(): boolean {
-  return !!GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_')
+  const isConfigured = !!GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_')
+  if (!isConfigured) {
+    console.warn('[Groq] API key not configured. Key exists:', !!GROQ_API_KEY, 'Starts with gsk_:', GROQ_API_KEY?.startsWith('gsk_'))
+  }
+  return isConfigured
 }

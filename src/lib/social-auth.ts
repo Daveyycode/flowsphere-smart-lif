@@ -3,6 +3,8 @@
  * Sign in/up with Facebook, Twitter, Instagram, Gmail, Yahoo, Outlook
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface AuthProvider {
   id: string
   name: string
@@ -459,7 +461,8 @@ export class SocialAuthManager {
     try {
       const data = localStorage.getItem(this.storageKey)
       return data ? JSON.parse(data) : null
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to load current user from storage', error)
       return null
     }
   }

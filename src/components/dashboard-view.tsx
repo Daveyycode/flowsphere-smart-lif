@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EmergencyDialog } from '@/components/emergency-dialog'
 import { ComingSoonSection } from '@/components/coming-soon-section'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { DeviceInfo } from '@/hooks/use-mobile'
 import { getResponsiveSize, getResponsiveLayout, getTouchTargetSize } from '@/lib/responsive-utils'
 import { cn } from '@/lib/utils'
@@ -84,7 +84,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'weather') => void
   deviceInfo: DeviceInfo
 }
 
@@ -100,7 +100,7 @@ export function DashboardView({ stats, recentActivity, onTabChange, deviceInfo }
   }
 
   const availableBoxes: QuickAccessBox[] = [
-    { id: 'weather', label: 'Weather', description: 'Local forecast', icon: Cloud, color: 'blue-mid', action: 'dashboard' },
+    { id: 'weather', label: 'Weather', description: 'Local forecast', icon: Cloud, color: 'blue-mid', action: 'weather' },
     { id: 'emergency', label: 'Emergency Hotlines', description: 'Quick access hotlines', icon: Lightning, color: 'destructive', action: 'emergency' },
     { id: 'meeting-notes', label: 'Meeting Notes', description: 'Voice transcription', icon: Notebook, color: 'accent', action: 'meeting-notes' },
     { id: 'traffic', label: 'Traffic Update', description: 'Real-time conditions', icon: MapTrifold, color: 'mint', action: 'traffic' },
@@ -108,7 +108,7 @@ export function DashboardView({ stats, recentActivity, onTabChange, deviceInfo }
     { id: 'family', label: 'Family Safety', description: 'Track loved ones', icon: UsersIcon, color: 'coral', action: 'family' }
   ]
 
-  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['emergency', 'meeting-notes', 'traffic', 'locks', 'family'])
+  const [quickAccessBoxes, setQuickAccessBoxes] = useKV<string[]>('flowsphere-quick-access', ['weather', 'emergency', 'meeting-notes', 'traffic', 'locks', 'family'])
   const [isCustomizing, setIsCustomizing] = useState(false)
   const [showEmergencyDialog, setShowEmergencyDialog] = useState(false)
 
@@ -124,6 +124,7 @@ export function DashboardView({ stats, recentActivity, onTabChange, deviceInfo }
     setQuickAccessBoxes((current) => {
       const currentBoxes = current || ['weather', 'emergency', 'meeting-notes', 'traffic', 'locks', 'family']
 
+      // Don't allow removing if already at 6 items (max)
       if (currentBoxes.includes(boxId)) {
         if (currentBoxes.length <= 3) {
           toast.error('You must have at least 3 boxes')

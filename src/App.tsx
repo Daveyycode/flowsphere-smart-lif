@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { initializeSleepTracking, getTodaySleepData } from '@/lib/sleep-tracking'
+import { initializeSecurity } from '@/lib/security-utils'
+import { NotificationSyncStore } from '@/lib/shared-data-store'
+import { DemoModeIndicator } from '@/components/demo-mode-indicator'
 import { LandingPage } from '@/components/landing-page'
 import { AuthModal } from '@/components/auth-modal'
 import { Layout } from '@/components/layout'
@@ -22,6 +25,8 @@ import { MeetingNotes } from '@/components/meeting-notes'
 import { PermissionsSettings } from '@/components/permissions-settings'
 import { TrafficUpdate } from '@/components/traffic-update'
 import { AIVoiceSettings } from '@/components/ai-voice-settings'
+import { Vault } from '@/components/vault'
+import { WeatherView } from '@/components/weather-view'
 import { Toaster } from '@/components/ui/sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
@@ -36,14 +41,15 @@ import {
   initialAutomations
 } from '@/lib/initial-data'
 import { getEffectiveTier, getRemainingTrialDays } from '@/lib/subscription-utils'
+import { EmailMonitorService } from '@/components/email-monitor-service'
 
 function App() {
   const { mode, colorTheme, toggleMode, setColorTheme } = useTheme()
   const deviceInfo = useDeviceInfo()
-  
+
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers, setFamilyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -73,23 +79,30 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
+    const isDemoMode = import.meta.env.DEV
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Only authenticate if session exists AND email is verified
-      if (session && session.user.email_confirmed_at) {
+      // In demo mode, accept any session. In production, require email verification.
+      if (session && (isDemoMode || session.user?.email_confirmed_at)) {
         setIsAuthenticated(true)
       }
+    }).catch((error) => {
+      // Handle session fetch error gracefully
+      console.error('Failed to get session:', error)
     })
 
     // Listen for auth state changes
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only authenticate if session exists AND email is verified
-      if (session && session.user.email_confirmed_at) {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // In demo mode, accept any session. In production, require email verification.
+      if (session && (isDemoMode || session.user?.email_confirmed_at)) {
         setIsAuthenticated(true)
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        // Only reset auth state on explicit sign out, not on session checks
         setIsAuthenticated(false)
       }
+      // Don't reset isAuthenticated on other events - preserve manual auth state
     })
 
     return () => authSubscription.unsubscribe()
@@ -103,14 +116,29 @@ function App() {
     }
   }, [isAuthenticated, trialStartDate, setTrialStartDate])
 
-  // Auto-prompt permissions on first login
+  // Auto-prompt permissions on first login (only if no email accounts)
   useEffect(() => {
     if (isAuthenticated && !hasSeenPermissionsPrompt) {
-      // Show permissions page after a brief delay
-      setTimeout(() => {
-        setCurrentTab('permissions')
+      // Check if email accounts already connected
+      const emailAccounts = localStorage.getItem('flowsphere-email-accounts')
+      let hasEmailAccounts = false
+      try {
+        hasEmailAccounts = emailAccounts ? JSON.parse(emailAccounts).length > 0 : false
+      } catch {
+        // Invalid JSON in localStorage, ignore
+        hasEmailAccounts = false
+      }
+
+      if (!hasEmailAccounts) {
+        // Show permissions page after a brief delay
+        setTimeout(() => {
+          setCurrentTab('permissions')
+          setHasSeenPermissionsPrompt(true)
+        }, 2000)
+      } else {
+        // Skip prompt if already has email accounts
         setHasSeenPermissionsPrompt(true)
-      }, 2000)
+      }
     }
   }, [isAuthenticated, hasSeenPermissionsPrompt, setHasSeenPermissionsPrompt])
 
@@ -121,6 +149,11 @@ function App() {
     }
   }, [isAuthenticated])
 
+  // Initialize security utilities on app start
+  useEffect(() => {
+    initializeSecurity()
+  }, [])
+
   useEffect(() => {
     const today = new Date().toDateString()
     if (isAuthenticated && lastBriefDate !== today) {
@@ -129,6 +162,39 @@ function App() {
     }
   }, [isAuthenticated, lastBriefDate, setShowMorningBrief, setLastBriefDate])
 
+  // SYNC FIX: Subscribe to email notifications from shared store
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const unsubscribe = NotificationSyncStore.subscribe((notification) => {
+      // Add email notification to the notifications list
+      const newNotification: Notification = {
+        id: notification.id,
+        type: notification.category === 'emergency' ? 'urgent' :
+              notification.category === 'important' ? 'important' : 'email',
+        title: notification.title,
+        message: notification.message,
+        time: new Date(notification.timestamp).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        }),
+        isRead: false
+      }
+
+      setNotificationsList((current) => {
+        // Avoid duplicates
+        const exists = (current || []).some(n => n.id === notification.id)
+        if (exists) return current
+        return [newNotification, ...(current || [])].slice(0, 50) // Keep last 50
+      })
+
+      // Also add to recent activity
+      addActivity('email', `New ${notification.category} email from ${notification.from}`)
+    })
+
+    return unsubscribe
+  }, [isAuthenticated, setNotificationsList])
+
   const stats = {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
     totalDevices: devices?.length || 0,
@@ -136,18 +202,40 @@ function App() {
     automations: automations?.length || 0
   }
 
-  // Recent activity will be populated from actual device, family, and automation events
-  const recentActivity: Array<{id: string, type: string, message: string, time: string}> = []
+  // Recent activity tracked from actual device, family, and automation events
+  const [recentActivity, setRecentActivity] = useKV<Array<{id: string, type: string, message: string, time: string}>>('flowsphere-recent-activity', [])
+
+  // Helper function to add activity
+  const addActivity = (type: string, message: string) => {
+    const newActivity = {
+      id: Date.now().toString(),
+      type,
+      message,
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    }
+    setRecentActivity((current) => [newActivity, ...(current || [])].slice(0, 10)) // Keep last 10 activities
+  }
 
   const handleDeviceUpdate = (id: string, updates: Partial<Device>) => {
-    setDevices((currentDevices) => 
-      (currentDevices || []).map(device => 
+    setDevices((currentDevices) => {
+      const device = (currentDevices || []).find(d => d.id === id)
+      if (device && updates.isOn !== undefined) {
+        addActivity('device', `${device.name} turned ${updates.isOn ? 'on' : 'off'}`)
+      } else if (device && updates.brightness !== undefined) {
+        addActivity('device', `${device.name} brightness set to ${updates.brightness}%`)
+      } else if (device && updates.temperature !== undefined) {
+        addActivity('device', `${device.name} temperature set to ${updates.temperature}°`)
+      } else if (device && updates.locked !== undefined) {
+        addActivity('device', `${device.name} ${updates.locked ? 'locked' : 'unlocked'}`)
+      }
+      return (currentDevices || []).map(device =>
         device.id === id ? { ...device, ...updates } : device
       )
-    )
+    })
   }
 
   const handleAddDevice = (newDevice: Omit<Device, 'id'>) => {
+    addActivity('device', `New device added: ${newDevice.name}`)
     setDevices((currentDevices) => [
       ...(currentDevices || []),
       { ...newDevice, id: Date.now().toString() }
@@ -155,12 +243,22 @@ function App() {
   }
 
   const handleDeleteDevice = (id: string) => {
+    const device = (devices || []).find(d => d.id === id)
+    if (device) {
+      addActivity('device', `Device removed: ${device.name}`)
+    }
     setDevices((currentDevices) =>
       (currentDevices || []).filter(device => device.id !== id)
     )
   }
 
   const handleUpdateFamilyMember = (id: string, updates: Partial<FamilyMember>) => {
+    const member = (familyMembers || []).find(m => m.id === id)
+    if (member && updates.location) {
+      addActivity('family', `${member.name} location updated: ${updates.location}`)
+    } else if (member && updates.status) {
+      addActivity('family', `${member.name} status: ${updates.status}`)
+    }
     setFamilyMembers((currentMembers) =>
       (currentMembers || []).map(member =>
         member.id === id ? { ...member, ...updates } : member
@@ -190,6 +288,10 @@ function App() {
   }
 
   const handleToggleAutomation = (id: string, isActive: boolean) => {
+    const automation = (automations || []).find(a => a.id === id)
+    if (automation) {
+      addActivity('automation', `${automation.name} ${isActive ? 'activated' : 'deactivated'}`)
+    }
     setAutomations((current) =>
       (current || []).map(automation =>
         automation.id === id ? { ...automation, isActive } : automation
@@ -198,12 +300,17 @@ function App() {
   }
 
   const handleDeleteAutomation = (id: string) => {
+    const automation = (automations || []).find(a => a.id === id)
+    if (automation) {
+      addActivity('automation', `Automation removed: ${automation.name}`)
+    }
     setAutomations((current) =>
       (current || []).filter(automation => automation.id !== id)
     )
   }
 
   const handleAddAutomation = (newAutomation: Omit<Automation, 'id'>) => {
+    addActivity('automation', `New automation created: ${newAutomation.name}`)
     setAutomations((current) => [
       ...(current || []),
       { ...newAutomation, id: Date.now().toString() }
@@ -226,7 +333,7 @@ function App() {
     localStorage.removeItem('flowsphere_ceo_email')
   }
 
-  const handleNavigateFromSettings = (destination: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => {
+  const handleNavigateFromSettings = (destination: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice' | 'vault') => {
     setCurrentTab(destination)
   }
 
@@ -260,6 +367,12 @@ function App() {
 
   return (
     <>
+      {/* Global Email Monitoring Service */}
+      <EmailMonitorService />
+
+      {/* Demo/Development Mode Indicator */}
+      <DemoModeIndicator variant="floating" />
+
       <Layout currentTab={currentTab} onTabChange={handleTabChange}>
         {currentTab === 'dashboard' && showMorningBrief && (
           <MorningBrief
@@ -280,7 +393,7 @@ function App() {
             {currentTab === 'dashboard' && (
               <DashboardView
                 stats={stats}
-                recentActivity={recentActivity}
+                recentActivity={recentActivity || []}
                 onTabChange={handleTabChange}
                 deviceInfo={deviceInfo}
               />
@@ -321,6 +434,7 @@ function App() {
             {currentTab === 'meeting-notes' && <MeetingNotes />}
             {currentTab === 'permissions' && <PermissionsSettings />}
             {currentTab === 'traffic' && <TrafficUpdate deviceInfo={deviceInfo} />}
+            {currentTab === 'weather' && <WeatherView deviceInfo={deviceInfo} />}
             {currentTab === 'ai-voice' && <AIVoiceSettings />}
             {currentTab === 'settings' && (
               <SettingsView
@@ -334,6 +448,9 @@ function App() {
                 onNavigate={handleNavigateFromSettings}
                 onLogout={handleLogout}
               />
+            )}
+            {currentTab === 'vault' && (
+              <Vault onNavigate={(view) => setCurrentTab(view as typeof currentTab)} />
             )}
             {currentTab === 'subscription' && (
               <SubscriptionManagement 

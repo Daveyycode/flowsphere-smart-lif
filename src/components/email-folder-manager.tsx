@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import {
   EmailFolder,
   EmailCategorization,
@@ -48,7 +48,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
 
   // Auto-categorize emails on mount or when emails change
   useEffect(() => {
-    if (emails.length > 0 && categorizations.length === 0) {
+    if (emails.length > 0 && (categorizations || []).length === 0) {
       handleAutoCategorize()
     }
   }, [emails])
@@ -81,12 +81,12 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
   }
 
   const applyFolderChanges = (cats: EmailCategorization[]) => {
-    const updatedFolders = applyCategorizationsToFolders(cats, folders)
+    const updatedFolders = applyCategorizationsToFolders(cats, folders || [])
     setFolders(updatedFolders)
   }
 
   const handleVerifyCategorizat = (emailId: string, approved: boolean, newFolder?: string) => {
-    const updatedCategorizations = categorizations.map(cat => {
+    const updatedCategorizations = (categorizations || []).map(cat => {
       if (cat.emailId === emailId) {
         return {
           ...cat,
@@ -109,7 +109,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
   }
 
   const handleVerifyAll = () => {
-    const updatedCategorizations = categorizations.map(cat => ({
+    const updatedCategorizations = (categorizations || []).map(cat => ({
       ...cat,
       verified: true
     }))
@@ -123,10 +123,10 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
   }
 
   const handleMoveEmail = (emailId: string, fromPath: string, toPath: string) => {
-    const updatedFolders = moveEmailToFolder(emailId, fromPath, toPath, folders)
+    const updatedFolders = moveEmailToFolder(emailId, fromPath, toPath, folders || [])
     setFolders(updatedFolders)
 
-    const updatedCategorizations = categorizations.map(cat =>
+    const updatedCategorizations = (categorizations || []).map(cat =>
       cat.emailId === emailId ? { ...cat, suggestedFolder: toPath, verified: true } : cat
     )
     setCategorizations(updatedCategorizations)
@@ -135,14 +135,14 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
   }
 
   const getEmailsForFolder = (folderPath: string): EmailMessage[] => {
-    const folder = folders.find(f => f.path === folderPath)
+    const folder = (folders || []).find(f => f.path === folderPath)
     if (!folder) return []
 
     return emails.filter(email => folder.emailIds.includes(email.id))
   }
 
-  const stats = getFolderStats(folders)
-  const filteredFolders = folders.filter(folder =>
+  const stats = getFolderStats(folders || [])
+  const filteredFolders = (folders || []).filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -295,7 +295,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>
-                    {folders.find(f => f.path === selectedFolder)?.name} Emails
+                    {(folders || []).find(f => f.path === selectedFolder)?.name} Emails
                   </CardTitle>
                   <Button
                     variant="ghost"
@@ -394,7 +394,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
                         const email = emails.find(e => e.id === categorization.emailId)
                         if (!email) return null
 
-                        const suggestedFolder = folders.find(
+                        const suggestedFolder = (folders || []).find(
                           f => f.path === categorization.suggestedFolder
                         )
 

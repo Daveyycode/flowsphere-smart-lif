@@ -2,6 +2,8 @@
  * PWA utilities for native-like features
  */
 
+import { logger } from '@/lib/security-utils'
+
 // Register service worker
 export async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -10,7 +12,7 @@ export async function registerServiceWorker() {
         scope: '/'
       })
 
-      console.log('Service Worker registered successfully:', registration.scope)
+      logger.info('Service Worker registered successfully:', registration.scope, 'PWA')
 
       // Check for updates
       registration.addEventListener('updatefound', () => {
@@ -30,7 +32,7 @@ export async function registerServiceWorker() {
 
       return registration
     } catch (error) {
-      console.error('Service Worker registration failed:', error)
+      logger.error('Service Worker registration failed:', error, 'PWA')
       return null
     }
   }
@@ -40,7 +42,7 @@ export async function registerServiceWorker() {
 // Request notification permission
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {
-    console.log('This browser does not support notifications')
+    logger.info('This browser does not support notifications', null, 'PWA')
     return false
   }
 
@@ -67,9 +69,8 @@ export async function showNotification(title: string, options?: NotificationOpti
       return registration.showNotification(title, {
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        vibrate: [200, 100, 200],
         ...options
-      })
+      } as NotificationOptions)
     } else {
       // Fallback to regular notification
       return new Notification(title, {
@@ -154,7 +155,7 @@ export function sendSMS(phoneNumber: string, message?: string) {
 // Open email client
 export function openEmail(email: string, subject?: string, body?: string) {
   let url = `mailto:${email}`
-  const params = []
+  const params: string[] = []
   if (subject) params.push(`subject=${encodeURIComponent(subject)}`)
   if (body) params.push(`body=${encodeURIComponent(body)}`)
   if (params.length) url += '?' + params.join('&')
@@ -169,7 +170,7 @@ export async function shareContent(data: ShareData) {
       return true
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        console.error('Share failed:', error)
+        logger.error('Share failed:', error, 'PWA')
       }
       return false
     }

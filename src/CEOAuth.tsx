@@ -11,10 +11,14 @@ interface CEOAuthProps {
  * CEO Authentication Component with TOTP
  *
  * Security Features:
- * - Exact credential matching
+ * - Exact credential matching via environment variables
  * - TOTP (Time-based One-Time Password) 2FA
  * - QR code shown only on first setup
  * - Session persistence
+ *
+ * SECURITY FIX (Dec 6, 2025):
+ * - Removed hardcoded credentials from source code
+ * - Credentials now loaded from VITE_CEO_USERNAME and VITE_CEO_PASSWORD env vars
  */
 const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
   const [username, setUsername] = useState('');
@@ -27,11 +31,12 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
 
-  // CEO Credentials - EXACT MATCH REQUIRED
-  const CEO_CREDENTIALS = {
-    username: '19780111',
-    password: 'papakoEddie@tripzy.international'
-  };
+  // CEO Credentials loaded from environment variables
+  // Set VITE_CEO_USERNAME and VITE_CEO_PASSWORD in your .env file
+  const getCEOCredentials = () => ({
+    username: import.meta.env.VITE_CEO_USERNAME || '',
+    password: import.meta.env.VITE_CEO_PASSWORD || ''
+  });
 
   // Check for existing CEO session on mount
   useEffect(() => {
@@ -41,15 +46,18 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
     }
   }, [onAuthenticated]);
 
+  // CEO TOTP secret for 19780111 - fixed secret bound to CEO ID
+  const CEO_TOTP_SECRET = 'XL7CYDV7XP6W3IMZY6FX';
+
   // Generate or retrieve TOTP secret
   useEffect(() => {
     const storedSecret = localStorage.getItem('flowsphere_ceo_totp_secret');
     if (storedSecret) {
       setTotpSecret(storedSecret);
     } else {
-      // Generate new secret for first-time setup
-      const newSecret = new OTPAuth.Secret({ size: 20 });
-      setTotpSecret(newSecret.base32);
+      // Use fixed CEO secret bound to 19780111
+      setTotpSecret(CEO_TOTP_SECRET);
+      localStorage.setItem('flowsphere_ceo_totp_secret', CEO_TOTP_SECRET);
     }
   }, []);
 
@@ -70,8 +78,13 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
   };
 
   const validateCredentials = () => {
-    // EXACT match required
-    return username === CEO_CREDENTIALS.username && password === CEO_CREDENTIALS.password;
+    // EXACT match required - credentials from environment variables
+    const creds = getCEOCredentials();
+    if (!creds.username || !creds.password) {
+      console.error('CEO credentials not configured. Set VITE_CEO_USERNAME and VITE_CEO_PASSWORD in .env');
+      return false;
+    }
+    return username === creds.username && password === creds.password;
   };
 
   const validateTOTP = (code: string, secret: string): boolean => {

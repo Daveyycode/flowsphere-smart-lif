@@ -3,6 +3,8 @@
  * Real-time email verification for user registration
  */
 
+import { logger } from '@/lib/security-utils'
+
 /**
  * OTP Configuration
  */
@@ -163,7 +165,7 @@ export class OTPVerificationManager {
         email: data.email
       }
     } catch (error) {
-      console.error('Registration error:', error)
+      logger.error('Registration error', error, 'OTPVerification')
       return {
         success: false,
         message: 'Registration failed',
@@ -248,7 +250,7 @@ export class OTPVerificationManager {
         message: 'Email verified successfully!'
       }
     } catch (error) {
-      console.error('Verification error:', error)
+      logger.error('Verification error', error, 'OTPVerification')
       return {
         success: false,
         message: 'Verification failed',
@@ -324,7 +326,7 @@ export class OTPVerificationManager {
         nextResendIn: this.config.resendCooldown
       }
     } catch (error) {
-      console.error('Resend error:', error)
+      logger.error('Resend error', error, 'OTPVerification')
       return {
         success: false,
         message: 'Failed to resend code',
@@ -521,7 +523,7 @@ Never share your verification code with anyone.
     //   text: template.text,
     //   html: template.html
     // })
-    console.log('[SendGrid] Would send email to:', email)
+    logger.info('[SendGrid] Would send email', { email }, 'OTPVerification')
     return true
   }
 
@@ -539,7 +541,7 @@ Never share your verification code with anyone.
     //   text: template.text,
     //   html: template.html
     // })
-    console.log('[Mailgun] Would send email to:', email)
+    logger.info('[Mailgun] Would send email', { email }, 'OTPVerification')
     return true
   }
 
@@ -565,7 +567,7 @@ Never share your verification code with anyone.
     //   text: template.text,
     //   html: template.html
     // })
-    console.log('[SMTP] Would send email to:', email)
+    logger.info('[SMTP] Would send email', { email }, 'OTPVerification')
     return true
   }
 
@@ -573,15 +575,14 @@ Never share your verification code with anyone.
    * Mock email sending (for development)
    */
   private sendViaMock(email: string, template: EmailTemplate, code: string): boolean {
-    console.log('\n📧 ========== MOCK EMAIL ==========')
-    console.log('To:', email)
-    console.log('Subject:', template.subject)
-    console.log('\n🔐 VERIFICATION CODE:', code)
-    console.log('⏱️  Expires in:', this.config.expiryMinutes, 'minutes')
-    console.log('\nℹ️  In production, this would be sent via', this.config.emailProvider)
-    console.log('===================================\n')
+    // SECURITY: Never log OTP codes to console, even in development
+    // The code is stored in localStorage for UI access during testing
+    logger.info('[Mock Email] Verification email sent', {
+      email,
+      expiresInMinutes: this.config.expiryMinutes
+    }, 'OTPVerification')
 
-    // Also log to localStorage for easy access in UI
+    // Store in localStorage for easy access in development UI (not logged to console)
     const mockEmails = JSON.parse(localStorage.getItem('flowsphere-mock-emails') || '[]')
     mockEmails.unshift({
       to: email,
@@ -687,7 +688,8 @@ Never share your verification code with anyone.
     try {
       const data = localStorage.getItem(this.otpKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get OTP records from storage', error, 'OTPVerification')
       return []
     }
   }
@@ -720,7 +722,8 @@ Never share your verification code with anyone.
       const data = localStorage.getItem(this.registrationKey)
       const registrations = data ? JSON.parse(data) : {}
       return registrations[email.toLowerCase()] || null
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get pending registration', error, 'OTPVerification')
       return null
     }
   }
@@ -749,7 +752,8 @@ Never share your verification code with anyone.
   }> {
     try {
       return JSON.parse(localStorage.getItem('flowsphere-mock-emails') || '[]')
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get mock emails', error, 'OTPVerification')
       return []
     }
   }
@@ -776,7 +780,7 @@ export class OTPCleanupService {
     this.intervalId = setInterval(() => {
       const cleaned = this.manager.cleanupExpiredOTPs()
       if (cleaned > 0) {
-        console.log(`[OTP Cleanup] Removed ${cleaned} expired OTP records`)
+        logger.info('[OTP Cleanup] Removed expired OTP records', { count: cleaned }, 'OTPVerification')
       }
     }, 60 * 60 * 1000) // 1 hour
 

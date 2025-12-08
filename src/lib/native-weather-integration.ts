@@ -4,6 +4,7 @@
  */
 
 import { WeatherData, WeatherForecastManager } from './weather-forecast'
+import { logger } from '@/lib/security-utils'
 
 export interface NativeWeatherCapabilities {
   geolocation: boolean
@@ -351,7 +352,8 @@ export class NativeWeatherIntegration {
         severeWeather: true,
         temperature: true
       }
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to load weather notification settings', error)
       return {
         enabled: true,
         alerts: true,

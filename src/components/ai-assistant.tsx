@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkle, X, PaperPlaneRight, SpeakerHigh, Gear, Microphone, Activity } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { Device, Automation } from '@/components/devices-automations-view'
 import { FamilyMember } from '@/components/family-view'
@@ -93,18 +93,51 @@ export function AIAssistant({
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your FlowSphere AI assistant! I understand simple commands - just say \"dark mode\", \"lights on\", \"family\", \"notifications\", or \"good morning scene\". No need for full sentences! Toggle the mic button for continuous hands-free control. For sensitive actions (like calling family), I'll confirm first."
+      content: "Hi! I'm your FlowSphere AI assistant! I'm here to help you with everything - from controlling your smart home to answering questions and having natural conversations. Just talk to me naturally! Toggle the mic button for hands-free control, or type your messages. I can help with devices, family tracking, schedules, and pretty much anything you need. What can I help you with today?"
     }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Ref to store pending handoff query
+  const pendingHandoffRef = useRef<string | null>(null)
+  const handleSendRef = useRef<((overrideInput?: string) => Promise<void>) | null>(null)
+
+  // Listen for handoff events from Email Assistant
+  useEffect(() => {
+    const handleHandoff = (event: CustomEvent<{ query: string }>) => {
+      const { query } = event.detail
+      if (query) {
+        setIsOpen(true)
+        setInput(query)
+        pendingHandoffRef.current = query
+      }
+    }
+
+    window.addEventListener('flowsphere-open-ai-assistant', handleHandoff as EventListener)
+    return () => {
+      window.removeEventListener('flowsphere-open-ai-assistant', handleHandoff as EventListener)
+    }
+  }, [])
+
+  // Process pending handoff when panel opens
+  useEffect(() => {
+    if (isOpen && pendingHandoffRef.current && handleSendRef.current) {
+      const query = pendingHandoffRef.current
+      pendingHandoffRef.current = null
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        handleSendRef.current?.(query)
+      }, 300)
+    }
+  }, [isOpen])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState('')
   const [pendingConfirmation, setPendingConfirmation] = useState<{action: string; command: string} | null>(null)
   
   const [selectedVoice, setSelectedVoice] = useKV<string>('flowsphere-ai-voice', 'female-warm')
-  const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', false)
+  const [voiceEnabled, setVoiceEnabled] = useKV<boolean>('flowsphere-ai-voice-enabled', true)
   const [speechRate, setSpeechRate] = useKV<number>('flowsphere-ai-speech-rate', 0.95)
   const [speechPitch, setSpeechPitch] = useKV<number>('flowsphere-ai-speech-pitch', 1.0)
   const [userName] = useKV<string>('flowsphere-user-name', 'Sarah Johnson')
@@ -115,6 +148,10 @@ export function AIAssistant({
   const [groqRecorder] = useState(() => new GroqAudioRecorder())
   const [useGroqVoice, setUseGroqVoice] = useState(false)
 
+  // Refs for cleanup - prevent memory leaks
+  const timeoutRefs = useRef<NodeJS.Timeout[]>([])
+  const recognitionRef = useRef<any>(null)
+
   useEffect(() => {
     // Detect iOS devices
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -123,17 +160,30 @@ export function AIAssistant({
 
     // Force Groq on iOS/mobile devices (Web Speech API is unreliable there)
     if ((isIOS || isMobile) && hasAudioRecording) {
-      console.log('Using Groq voice services (mobile/iOS detected)')
       setUseGroqVoice(true)
     } else {
-      console.log('Using Web Speech API (desktop)')
       setUseGroqVoice(false)
     }
 
     return () => {
+      // Clear all pending timeouts to prevent memory leaks
+      timeoutRefs.current.forEach(id => clearTimeout(id))
+      timeoutRefs.current = []
+
+      // Stop speech synthesis
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel()
       }
+
+      // Stop speech recognition
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch {
+          // Ignore if already stopped
+        }
+      }
+
       if (micToggled) {
         setMicToggled(false)
         setIsListening(false)
@@ -269,7 +319,6 @@ export function AIAssistant({
       // Only process final results (not interim)
       if (!lastResult.isFinal && micToggled) {
         // Show interim results as user speaks
-        console.log('🎤 Hearing:', transcript)
         setInterimTranscript(transcript)
         return
       }
@@ -342,7 +391,7 @@ export function AIAssistant({
               speakText(aiResponse)
             } catch (aiError) {
               console.error('AI API error:', aiError)
-              const response = "I heard you, but I'm not sure how to help with that. Try commands like 'turn on lights', 'open family', 'dark mode', or 'check notifications'."
+              const response = "I'm here to help! You can ask me things like: control your smart home devices, check on family members, manage notifications, or change app settings. What would you like to do?"
               const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -370,21 +419,21 @@ export function AIAssistant({
     }
 
     recognition.onerror = (event: any) => {
-      console.log('Recognition error:', event.error)
 
       // Handle different error types
       if (event.error === 'no-speech') {
         // User didn't speak, just restart immediately
         if (micToggled) {
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             if (micToggled) {
               try {
                 recognition.start()
-              } catch (e) {
-                console.log('Could not restart recognition')
+              } catch {
+                // Could not restart recognition
               }
             }
           }, 50)
+          timeoutRefs.current.push(timeoutId)
         }
       } else if (event.error === 'audio-capture') {
         toast.error('⚠️ Microphone access denied. Please enable microphone permissions.')
@@ -398,32 +447,33 @@ export function AIAssistant({
         console.error('Voice recognition error:', event.error)
         // Try to recover
         if (micToggled) {
-          setTimeout(() => {
+          const timeoutId = setTimeout(() => {
             if (micToggled) {
               try {
                 recognition.start()
-              } catch (e) {
-                console.log('Could not restart after error')
+              } catch {
+                // Could not restart after error
               }
             }
           }, 500)
+          timeoutRefs.current.push(timeoutId)
         }
       }
     }
 
     recognition.onend = () => {
-      console.log('Recognition ended')
       if (micToggled) {
         // Automatically restart immediately for continuous listening
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (micToggled) {
             try {
               recognition.start()
-            } catch (e) {
-              console.log('Recognition already started')
+            } catch {
+              // Recognition already started
             }
           }
         }, 50)
+        timeoutRefs.current.push(timeoutId)
       } else {
         setIsListening(false)
       }
@@ -435,17 +485,28 @@ export function AIAssistant({
   const startGroqVoiceRecognition = async () => {
     try {
       setIsListening(true)
-      toast.success('🎤 Recording with Groq... Speak now!')
+      toast.success('🎤 Listening... Speak now! (Auto-sends after 3s silence)')
 
-      // Start recording
-      await groqRecorder.startRecording()
-
-      // Auto-stop after 5 seconds to transcribe (like continuous Web Speech API)
-      setTimeout(async () => {
+      // Set up silence detection callback - auto-stop when user finishes speaking
+      groqRecorder.setOnSilenceDetected(async () => {
         if (groqRecorder.isRecording() && micToggled) {
           await stopGroqVoiceRecognition()
         }
-      }, 5000) // 5 seconds of recording per segment
+      })
+
+      // Configure for 3 second silence detection
+      groqRecorder.configureSilenceDetection(15, 3000)
+
+      // Start recording with VAD enabled
+      await groqRecorder.startRecording(true)
+
+      // Safety timeout - auto-stop after 30 seconds max to prevent indefinite recording
+      const timeoutId = setTimeout(async () => {
+        if (groqRecorder.isRecording() && micToggled) {
+          await stopGroqVoiceRecognition()
+        }
+      }, 30000) // 30 seconds max
+      timeoutRefs.current.push(timeoutId)
 
     } catch (error) {
       console.error('Error starting Groq recording:', error)
@@ -472,8 +533,6 @@ export function AIAssistant({
         toast.error('Could not understand speech. Please try again.')
         return
       }
-
-      console.log('Groq transcript:', transcript)
 
       // IMPORTANT: Capture micToggled state at time of transcript
       const wasMicToggled = micToggled
@@ -564,7 +623,7 @@ export function AIAssistant({
               }
             } catch (aiError) {
               console.error('AI API error:', aiError)
-              const response = "I heard you, but I'm not sure how to help with that. Try commands like 'turn on lights', 'open family', 'dark mode', or 'check notifications'."
+              const response = "I'm here to help! You can ask me things like: control your smart home devices, check on family members, manage notifications, or change app settings. What would you like to do?"
               const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -584,7 +643,7 @@ export function AIAssistant({
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: "I'm having trouble right now. Please try again."
+            content: "Give me just a moment. Could you try saying that again?"
           }
           setMessages(prev => [...prev, errorMessage])
         } finally {
@@ -622,19 +681,17 @@ export function AIAssistant({
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel()
       }
-      toast.success('Continuous listening disabled')
+      toast.success('Hands-free mode disabled')
     } else {
       setMicToggled(true)
 
       // Use Groq or Web Speech API based on availability
       if (useGroqVoice) {
-        toast.info('🚧 Continuous voice coming soon! For now, use the mic button for single commands.')
-        setMicToggled(false)
-        // await startGroqVoiceRecognition()
+        toast.success('🎤 Hands-free mode active! Speak naturally - I\'ll respond when you pause.')
+        await startGroqVoiceRecognition()
       } else {
-        toast.info('🚧 Continuous voice coming soon! For now, use the mic button for single commands.')
-        setMicToggled(false)
-        // startVoiceRecognition()
+        toast.success('🎤 Hands-free mode active! Speak naturally - I\'ll respond when you pause.')
+        startVoiceRecognition()
       }
     }
   }
@@ -704,28 +761,32 @@ export function AIAssistant({
 
     // No activation phrase required - commands work directly
 
+    // GREETING DETECTION - Don't trigger commands if it's just a greeting
+    const isGreeting = containsAny(['good morning', 'good afternoon', 'good evening', 'goodmorning', 'goodafternoon', 'goodevening', 'hello', 'hi', 'hey', 'greetings'])
+
     // QUICK NAVIGATION SHORTCUTS - Single word or very short commands
-    if (containsAny(['dashboard', 'home', 'main']) && !containsAny(['light', 'device', 'automation'])) {
+    // Skip if it's part of a greeting (e.g., "good afternoon dashboard" shouldn't open dashboard)
+    if (containsAny(['dashboard', 'home', 'main']) && !containsAny(['light', 'device', 'automation']) && !isGreeting) {
       onTabChange?.('dashboard')
       return { executed: true, response: "Opening dashboard." }
     }
-    if (containsAny(['family', 'families', 'kid', 'kids', 'children', 'child', 'member', 'members'])) {
+    if (containsAny(['family', 'families', 'kid', 'kids', 'children', 'child', 'member', 'members']) && !isGreeting) {
       onTabChange?.('family')
       return { executed: true, response: "Opening family tracking." }
     }
-    if (containsAny(['notification', 'notifications', 'email', 'emails', 'message', 'messages', 'inbox', 'mail'])) {
+    if (containsAny(['notification', 'notifications', 'email', 'emails', 'message', 'messages', 'inbox', 'mail']) && !isGreeting) {
       onTabChange?.('notifications')
       return { executed: true, response: "Opening notifications." }
     }
-    if (containsAny(['device', 'devices', 'smart home', 'smarthome', 'automation', 'automations'])) {
+    if (containsAny(['device', 'devices', 'smart home', 'smarthome', 'automation', 'automations']) && !isGreeting) {
       onTabChange?.('devices')
       return { executed: true, response: "Opening devices." }
     }
-    if (containsAny(['setting', 'settings', 'preference', 'preferences', 'config', 'configuration'])) {
+    if (containsAny(['setting', 'settings', 'preference', 'preferences', 'config', 'configuration']) && !isGreeting) {
       onTabChange?.('settings')
       return { executed: true, response: "Opening settings." }
     }
-    if (containsAny(['prayer', 'prayers', 'bible', 'scripture', 'devotion', 'devotions'])) {
+    if (containsAny(['prayer', 'prayers', 'bible', 'scripture', 'devotion', 'devotions']) && !isGreeting) {
       onTabChange?.('prayer')
       return { executed: true, response: "Opening prayer time." }
     }
@@ -888,7 +949,7 @@ export function AIAssistant({
 
     if (containsAny(['call', 'dial', 'phone', 'ring', 'contact'])) {
       // Check if user is trying to call by relationship
-      let requestedRelationship = null
+      let requestedRelationship: string | null = null
       for (const [relation, keywords] of Object.entries(relationshipMappings)) {
         if (keywords.some(keyword => input.includes(keyword))) {
           requestedRelationship = relation
@@ -1426,17 +1487,19 @@ export function AIAssistant({
           speakText(aiResponse)
         } catch (aiError) {
           console.error('AI API error:', aiError)
-          // Fallback to simple response if AI fails
-          let response = `I'm not sure how to help with "${userInput}". `
+          // Fallback to friendly response if AI fails
+          let response = "I'm here to help with your smart home and family! "
 
           // Provide context-aware suggestions based on what's available
           if (devices.length > 0) {
-            response += `Try: "turn on ${devices[0].name}", `
+            response += `You can say things like "turn on ${devices[0].name}", `
+          } else {
+            response += `You can try `
           }
           if (familyMembers.length > 0) {
-            response += `"open family", `
+            response += `"check on family", `
           }
-          response += `"dark mode", "open notifications", or "good night scene".`
+          response += `"switch to dark mode", or "show my notifications". What would you like to do?`
 
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -1453,13 +1516,16 @@ export function AIAssistant({
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I'm having trouble connecting right now. Please try again in a moment."
+        content: "Give me just a moment. Could you try that again?"
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Keep handleSendRef updated for handoff functionality
+  handleSendRef.current = handleSend
 
   return (
     <>
@@ -1609,7 +1675,7 @@ export function AIAssistant({
                     size="icon"
                     variant={micToggled ? "default" : "outline"}
                     className={micToggled ? 'bg-red-500 hover:bg-red-600 relative overflow-hidden' : ''}
-                    title={micToggled ? "Stop continuous listening" : "Start continuous listening"}
+                    title={micToggled ? "Stop hands-free mode" : "Start hands-free mode (auto-responds after you pause)"}
                   >
                     {micToggled ? (
                       <motion.div
@@ -1630,7 +1696,7 @@ export function AIAssistant({
                     )}
                   </Button>
                   <Input
-                    placeholder={micToggled ? "🎤 Listening continuously..." : "Ask me anything..."}
+                    placeholder={micToggled ? "🎤 Hands-free mode - speak naturally, I'll respond when you pause..." : "Ask me anything..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {

@@ -89,7 +89,7 @@ export async function analyzeComplaint(complaint: Complaint): Promise<AIResoluti
   const categoryKB = knowledgeBase[category]
 
   // Find matching pattern
-  let matchedPattern = null
+  let matchedPattern: { keywords: string[]; solution: string } | null = null
   let maxMatches = 0
 
   for (const pattern of categoryKB.patterns) {

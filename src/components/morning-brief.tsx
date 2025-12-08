@@ -22,10 +22,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { detectExitPhrase } from '@/lib/voice-commands'
 import { getTodaySleepData } from '@/lib/sleep-tracking'
+import { WeatherStore, TrafficStore, NotificationSyncStore } from '@/lib/shared-data-store'
 
 interface MorningBriefProps {
   isVisible: boolean
@@ -37,6 +38,32 @@ interface DailyNote {
   id: string
   text: string
   createdAt: string
+}
+
+interface BriefData {
+  weather: {
+    condition: string
+    temperature: number
+    high: number
+    low: number
+  }
+  sleep: {
+    hours: number
+    quality: number
+  }
+  traffic: {
+    status: string
+    duration: string
+    delay: string
+  }
+  schedule: {
+    events: number
+    nextEvent: string
+  }
+  notifications: {
+    unread: number
+    important: number
+  }
 }
 
 export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBriefProps) {
@@ -56,7 +83,7 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
   const sleepData = getTodaySleepData()
 
   // Configurable brief data - stored in useKV for persistence and user customization
-  const [briefData, setBriefData] = useKV('flowsphere-brief-data', {
+  const [briefData, setBriefData] = useKV<BriefData>('flowsphere-brief-data', {
     weather: {
       condition: 'sunny',
       temperature: 72,
@@ -77,27 +104,116 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
       nextEvent: 'No upcoming events'
     },
     notifications: {
-      urgent: 0,
-      work: 0,
-      total: 0
+      unread: 0,
+      important: 0
     }
   })
 
   // Update sleep data whenever it changes
   useEffect(() => {
-    if (sleepData.hours > 0) {
-      setBriefData((prev) => ({
-        ...prev,
+    if (sleepData.hours > 0 && briefData) {
+      setBriefData({
+        ...briefData,
         sleep: {
           hours: sleepData.hours,
           quality: sleepData.quality
         }
+      })
+    }
+  }, [sleepData.hours, sleepData.quality, briefData, setBriefData])
+
+  // Sync weather data from shared store
+  useEffect(() => {
+    const cachedWeather = WeatherStore.get()
+    if (cachedWeather && briefData) {
+      setBriefData(prev => ({
+        ...prev!,
+        weather: {
+          condition: cachedWeather.condition.toLowerCase().includes('rain') ? 'rainy' :
+                     cachedWeather.condition.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+          temperature: cachedWeather.temperature,
+          high: cachedWeather.high,
+          low: cachedWeather.low
+        }
       }))
     }
-  }, [sleepData.hours, sleepData.quality, setBriefData])
+
+    // Subscribe to weather updates
+    const unsubscribe = WeatherStore.subscribe((weatherData) => {
+      setBriefData(prev => ({
+        ...prev!,
+        weather: {
+          condition: weatherData.condition.toLowerCase().includes('rain') ? 'rainy' :
+                     weatherData.condition.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+          temperature: weatherData.temperature,
+          high: weatherData.high,
+          low: weatherData.low
+        }
+      }))
+    })
+
+    return unsubscribe
+  }, [])
+
+  // Sync traffic data from shared store
+  useEffect(() => {
+    const cachedTraffic = TrafficStore.get()
+    if (cachedTraffic && briefData) {
+      setBriefData(prev => ({
+        ...prev!,
+        traffic: {
+          status: cachedTraffic.status,
+          duration: cachedTraffic.duration,
+          delay: cachedTraffic.delay
+        }
+      }))
+    }
+
+    // Subscribe to traffic updates
+    const unsubscribe = TrafficStore.subscribe((trafficData) => {
+      setBriefData(prev => ({
+        ...prev!,
+        traffic: {
+          status: trafficData.status,
+          duration: trafficData.duration,
+          delay: trafficData.delay
+        }
+      }))
+    })
+
+    return unsubscribe
+  }, [])
+
+  // Sync notification counts from shared store
+  useEffect(() => {
+    const counts = NotificationSyncStore.getCounts()
+    if (briefData) {
+      setBriefData(prev => ({
+        ...prev!,
+        notifications: {
+          unread: counts.unread,
+          important: counts.important
+        }
+      }))
+    }
+
+    // Subscribe to new notifications
+    const unsubscribe = NotificationSyncStore.subscribe(() => {
+      const updatedCounts = NotificationSyncStore.getCounts()
+      setBriefData(prev => ({
+        ...prev!,
+        notifications: {
+          unread: updatedCounts.unread,
+          important: updatedCounts.important
+        }
+      }))
+    })
+
+    return unsubscribe
+  }, [])
 
   const getWeatherIcon = () => {
-    switch (briefData.weather.condition) {
+    switch (briefData?.weather?.condition) {
       case 'sunny': return Sun
       case 'rainy': return CloudRain
       default: return Cloud
@@ -252,12 +368,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
     setIsPlaying(true)
 
     // Build voice script with notes/reminders
-    let voiceScript = `${greeting}! You slept ${briefData.sleep.hours} hours with ${briefData.sleep.quality}% quality.
-    Weather is ${briefData.weather.condition} at ${briefData.weather.temperature} degrees.
-    Traffic to work is ${briefData.traffic.status}, about ${briefData.traffic.duration}.
-    You have ${briefData.schedule.events} meetings today.
-    Your next event is ${briefData.schedule.nextEvent}.
-    You have ${briefData.notifications.urgent} urgent notifications and ${briefData.notifications.work} work messages.`
+    let voiceScript = `${greeting}! You slept ${briefData?.sleep?.hours} hours with ${briefData?.sleep?.quality}% quality.
+    Weather is ${briefData?.weather?.condition} at ${briefData?.weather?.temperature} degrees.
+    Traffic to work is ${briefData?.traffic?.status}, about ${briefData?.traffic?.duration}.
+    You have ${briefData?.schedule?.events} meetings today.
+    Your next event is ${briefData?.schedule?.nextEvent}.
+    You have ${briefData?.notifications.unread} unread notifications and ${briefData?.notifications.important} important messages.`
 
     // Add daily notes/reminders if any exist
     if (dailyNotes && dailyNotes.length > 0) {
@@ -436,12 +552,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                       <WeatherIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral" weight="fill" />
                     </div>
                     <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
-                      {briefData.weather.high}° / {briefData.weather.low}°
+                      {briefData?.weather?.high}° / {briefData?.weather?.low}°
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Weather</h4>
-                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData.weather.temperature}°F</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{briefData.weather.condition}</p>
+                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData?.weather?.temperature}°F</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{briefData?.weather?.condition}</p>
                 </motion.button>
 
                 <motion.button
@@ -459,12 +575,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                       <MoonStars className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" weight="fill" />
                     </div>
                     <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
-                      {briefData.sleep.quality}%
+                      {briefData?.sleep?.quality}%
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Sleep</h4>
-                  <p className="text-lg sm:text-xl font-bold mb-1.5">{briefData.sleep.hours}h</p>
-                  <Progress value={briefData.sleep.quality} className="h-1" />
+                  <p className="text-lg sm:text-xl font-bold mb-1.5">{briefData?.sleep?.hours}h</p>
+                  <Progress value={briefData?.sleep?.quality} className="h-1" />
                 </motion.button>
 
                 <motion.button
@@ -483,14 +599,14 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                     </div>
                     <Badge
                       variant="secondary"
-                      className={`text-[10px] sm:text-xs px-1.5 py-0 ${briefData.traffic.status === 'heavy' ? 'bg-destructive/20' : ''}`}
+                      className={`text-[10px] sm:text-xs px-1.5 py-0 ${briefData?.traffic?.status === 'heavy' ? 'bg-destructive/20' : ''}`}
                     >
-                      {briefData.traffic.status}
+                      {briefData?.traffic?.status}
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Commute</h4>
-                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData.traffic.duration}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{briefData.traffic.delay} from usual</p>
+                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData?.traffic?.duration}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{briefData?.traffic?.delay} from usual</p>
                 </motion.button>
 
                 <motion.button
@@ -508,18 +624,18 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                       <Envelope className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" weight="fill" />
                     </div>
                     <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
-                      {briefData.notifications.urgent + briefData.notifications.work}
+                      {(briefData?.notifications?.unread ?? 0) + (briefData?.notifications?.important ?? 0)}
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Important</h4>
                   <p className="text-[10px] sm:text-xs mb-0.5 leading-tight">
-                    📄 {briefData.notifications.urgent} bills due
+                    📄 {briefData?.notifications?.unread} bills due
                   </p>
                   <p className="text-[10px] sm:text-xs mb-0.5 leading-tight">
-                    ✉️ {briefData.notifications.work} work emails
+                    ✉️ {briefData?.notifications?.important} work emails
                   </p>
                   <p className="text-[10px] sm:text-xs leading-tight">
-                    📅 {briefData.schedule.events} events today
+                    📅 {briefData?.schedule?.events} events today
                   </p>
                 </motion.button>
               </div>

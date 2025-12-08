@@ -274,7 +274,7 @@ export function generateMorningBedModeDigest(
         type: 'notification' as const,
         from: notif.title,
         subject: notif.message,
-        timestamp: notif.timestamp,
+        timestamp: notif.timestamp || notif.time || new Date().toISOString(),
         important: notif.priority === 'high'
       }))
     })

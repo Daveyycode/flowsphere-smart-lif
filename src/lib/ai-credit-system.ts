@@ -17,7 +17,7 @@ export interface CreditTransaction {
   type: 'purchase' | 'usage' | 'refund'
   amount: number
   description: string
-  feature: 'ai-call' | 'ai-email' | 'ai-sms' | 'ai-search' | 'ai-booking'
+  feature: 'ai-call' | 'ai-email' | 'ai-sms' | 'ai-search' | 'ai-booking' | 'ai-analysis'
   timestamp: string
   status: 'completed' | 'pending' | 'failed'
 }

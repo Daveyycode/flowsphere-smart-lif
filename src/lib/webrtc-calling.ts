@@ -3,6 +3,8 @@
  * Real-time peer-to-peer communication
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface CallConfig {
   iceServers: RTCIceServer[]
   videoEnabled: boolean
@@ -92,7 +94,7 @@ export class WebRTCCallManager {
       this.updateCallStatus('initiating')
 
       // Get local media stream
-      await this.getLocalStream(type === 'video', true)
+      await this.initLocalStream(type === 'video', true)
 
       // Create peer connection
       this.createPeerConnection()
@@ -119,7 +121,7 @@ export class WebRTCCallManager {
         callId: this.callSession.id
       }
     } catch (error) {
-      console.error('Error initiating call:', error)
+      logger.error('Error initiating call:', error, 'WebRTC')
       this.updateCallStatus('ended')
       throw error
     }
@@ -150,7 +152,7 @@ export class WebRTCCallManager {
       this.updateCallStatus('connecting')
 
       // Get local media stream
-      await this.getLocalStream(type === 'video', true)
+      await this.initLocalStream(type === 'video', true)
 
       // Create peer connection
       this.createPeerConnection()
@@ -173,7 +175,7 @@ export class WebRTCCallManager {
 
       return answer
     } catch (error) {
-      console.error('Error answering call:', error)
+      logger.error('Error answering call:', error, 'WebRTC')
       this.updateCallStatus('ended')
       throw error
     }
@@ -187,7 +189,7 @@ export class WebRTCCallManager {
       await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(answer))
       this.updateCallStatus('active')
     } catch (error) {
-      console.error('Error handling answer:', error)
+      logger.error('Error handling answer:', error, 'WebRTC')
       throw error
     }
   }
@@ -199,14 +201,14 @@ export class WebRTCCallManager {
     try {
       await this.peerConnection?.addIceCandidate(new RTCIceCandidate(candidate))
     } catch (error) {
-      console.error('Error adding ICE candidate:', error)
+      logger.error('Error adding ICE candidate:', error, 'WebRTC')
     }
   }
 
   /**
-   * Get local media stream
+   * Initialize local media stream
    */
-  private async getLocalStream(video: boolean, audio: boolean): Promise<void> {
+  private async initLocalStream(video: boolean, audio: boolean): Promise<void> {
     try {
       const constraints: MediaStreamConstraints = {
         video: video ? this.config.videoConstraints : false,
@@ -215,7 +217,7 @@ export class WebRTCCallManager {
 
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
     } catch (error) {
-      console.error('Error getting local stream:', error)
+      logger.error('Error getting local stream:', error, 'WebRTC')
       throw new Error('Camera/Microphone access denied')
     }
   }
@@ -232,7 +234,7 @@ export class WebRTCCallManager {
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         // In production, send this to signaling server
-        console.log('ICE candidate:', event.candidate)
+        logger.debug('ICE candidate:', event.candidate, 'WebRTC')
       }
     }
 
@@ -249,7 +251,7 @@ export class WebRTCCallManager {
     // Handle connection state
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection?.connectionState
-      console.log('Connection state:', state)
+      logger.debug('Connection state:', state, 'WebRTC')
 
       if (state === 'connected') {
         this.updateCallStatus('active')
@@ -261,7 +263,7 @@ export class WebRTCCallManager {
     // Handle ICE connection state
     this.peerConnection.oniceconnectionstatechange = () => {
       const state = this.peerConnection?.iceConnectionState
-      console.log('ICE connection state:', state)
+      logger.debug('ICE connection state:', state, 'WebRTC')
 
       if (state === 'failed') {
         this.endCall()
@@ -282,16 +284,16 @@ export class WebRTCCallManager {
     if (!this.dataChannel) return
 
     this.dataChannel.onopen = () => {
-      console.log('Data channel opened')
+      logger.debug('Data channel opened', null, 'WebRTC')
     }
 
     this.dataChannel.onmessage = (event) => {
-      console.log('Data channel message:', event.data)
+      logger.debug('Data channel message:', event.data, 'WebRTC')
       // Handle chat messages during call
     }
 
     this.dataChannel.onclose = () => {
-      console.log('Data channel closed')
+      logger.debug('Data channel closed', null, 'WebRTC')
     }
   }
 
@@ -361,7 +363,7 @@ export class WebRTCCallManager {
       this.localStream.removeTrack(videoTrack)
       this.localStream.addTrack(newVideoTrack)
     } catch (error) {
-      console.error('Error switching camera:', error)
+      logger.error('Error switching camera:', error, 'WebRTC')
     }
   }
 
@@ -500,7 +502,8 @@ export class CallHistoryManager {
     try {
       const data = localStorage.getItem(this.storageKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to load call history from storage', error)
       return []
     }
   }
@@ -574,7 +577,7 @@ export class SignalingService {
         this.ws = new WebSocket(url)
 
         this.ws.onopen = () => {
-          console.log('Signaling server connected')
+          logger.info('Signaling server connected', null, 'WebRTC')
           resolve()
         }
 
@@ -584,12 +587,12 @@ export class SignalingService {
         }
 
         this.ws.onerror = (error) => {
-          console.error('Signaling error:', error)
+          logger.error('Signaling error:', error, 'WebRTC')
           reject(error)
         }
 
         this.ws.onclose = () => {
-          console.log('Signaling server disconnected')
+          logger.info('Signaling server disconnected', null, 'WebRTC')
         }
       } catch (error) {
         reject(error)

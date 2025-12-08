@@ -4,6 +4,8 @@
  * Prompts before all configurations as requested
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface TermsDocument {
   id: string
   type: 'terms' | 'privacy' | 'consent' | 'eula'
@@ -114,7 +116,8 @@ export class TermsConditionsManager {
     try {
       const stored = localStorage.getItem(this.documentsKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get terms documents from storage', error, 'TermsConditions')
       return []
     }
   }
@@ -210,7 +213,8 @@ export class TermsConditionsManager {
     try {
       const stored = localStorage.getItem(this.consentsKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get user consents from storage', error, 'TermsConditions')
       return []
     }
   }
@@ -550,7 +554,8 @@ You can disable location tracking at any time, though family safety features wil
     try {
       // In production, get from backend
       return undefined
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get IP address', error, 'TermsConditions')
       return undefined
     }
   }

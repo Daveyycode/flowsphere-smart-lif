@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { motion } from 'framer-motion'
-import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning, CreditCard, Camera, MagnifyingGlass, Funnel, ShieldCheck, DotsThreeVertical, Plus, X as XIcon } from '@phosphor-icons/react'
+import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning, CreditCard, Camera, MagnifyingGlass, Funnel, ShieldCheck, DotsThreeVertical, Plus, X as XIcon, Gear, Robot, Sparkle } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -16,10 +16,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { speakText, stopSpeaking } from '@/lib/audio-summary'
+import { speakWithGroq } from '@/lib/groq-voice'
 import { SubscriptionMonitoring } from '@/components/subscription-monitoring'
 import { CCTVGuardAI } from '@/components/cctv-guard-ai'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { fetchDailyNews, NewsItem } from '@/lib/news-api'
+import { semanticEmailSearch, getEmailStats, reclassifyAllEmails } from '@/lib/email/semantic-search'
+import { globalEmailMonitor } from '@/lib/email/email-monitor'
+import { Email, EmailAccountStore } from '@/lib/email/email-service'
+import { emailDatabase } from '@/lib/email/email-database'
+import { UnifiedEmailSearch } from '@/components/unified-email-search'
 
 declare const spark: {
   llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
@@ -28,7 +34,7 @@ declare const spark: {
 
 export interface Notification {
   id: string
-  category: 'urgent' | 'work' | 'personal' | 'subscription' | 'misc'
+  category: 'urgent' | 'work' | 'personal' | 'subscription' | 'bills'
   title: string
   message: string
   time: string
@@ -76,22 +82,17 @@ export function NotificationsResourcesView({
   const [showSearchFilters, setShowSearchFilters] = useState(false)
   const [searchTimeRange, setSearchTimeRange] = useState<'all' | 'today' | 'week' | 'month'>('all')
   const [searchAccount, setSearchAccount] = useState<string>('all')
-  const [searchSender, setSearchSender] = useState<string>('all')
+  const [searchSender, setSearchSender] = useState<string>('')
   const [showConsentDialog, setShowConsentDialog] = useState(false)
   const [hasSearchConsent, setHasSearchConsent] = useKV<boolean>('flowsphere-email-search-consent', false)
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<Notification[]>([])
+  const [searchResults, setSearchResults] = useState<Email[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const [emailStats, setEmailStats] = useState({ total: 0, urgent: 0, work: 0, personal: 0, subscription: 0, misc: 0 })
 
   // Connected Accounts Management
   const [showAccountsDialog, setShowAccountsDialog] = useState(false)
-  const [connectedAccounts, setConnectedAccounts] = useKV<Array<{
-    id: string
-    type: 'email' | 'social'
-    provider: string
-    email: string
-    isActive: boolean
-  }>>('flowsphere-connected-accounts', [])
+  const [connectedAccounts, setConnectedAccounts] = useState(EmailAccountStore.getAccounts())
   const [newAccountEmail, setNewAccountEmail] = useState('')
   const [newAccountType, setNewAccountType] = useState<'email' | 'social'>('email')
   const [newAccountProvider, setNewAccountProvider] = useState('gmail')
@@ -102,9 +103,160 @@ export function NotificationsResourcesView({
   const [emergencyContacts, setEmergencyContacts] = useKV<string[]>('flowsphere-emergency-contacts', [])
   const [newContact, setNewContact] = useState('')
 
+  // Work Categorization Settings
+  const [showWorkSettings, setShowWorkSettings] = useState(false)
+  const [workSettings, setWorkSettings] = useState<{
+    workKeywords: string[]
+    workDomains: string[]
+    personalDomains: string[]
+  }>({
+    workKeywords: [],
+    workDomains: [],
+    personalDomains: []
+  })
+  const [newWorkKeyword, setNewWorkKeyword] = useState('')
+  const [newWorkDomain, setNewWorkDomain] = useState('')
+  const [newPersonalDomain, setNewPersonalDomain] = useState('')
+
   const [gameSessions, setGameSessions] = useKV<GameSession[]>('flowsphere-game-sessions', [])
 
   const [dailyLimit] = useState(120)
+
+  // Unified Email Search Popup with integrated AI Assistant
+  const [showUnifiedSearch, setShowUnifiedSearch] = useState(false)
+  const [unifiedSearchCategory, setUnifiedSearchCategory] = useState<'all' | 'urgent' | 'work' | 'personal' | 'subs' | 'bills'>('all')
+  const [unifiedSearchMode, setUnifiedSearchMode] = useState<'search' | 'ai'>('ai')
+
+  // Actual emails from database for display
+  const [databaseEmails, setDatabaseEmails] = useState<Email[]>([])
+
+  // Selected email for preview dialog
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
+  const [showEmailPreview, setShowEmailPreview] = useState(false)
+
+  // Latest AI response for "Hear Summary" button
+  const [latestAIResponse, setLatestAIResponse] = useState<string | null>(null)
+
+  // Handle handoff from Email AI Assistant to General AI Assistant
+  const handleHandoffToGeneralAI = (query: string) => {
+    // Dispatch event to open the general AI assistant with the query
+    const event = new CustomEvent('flowsphere-open-ai-assistant', {
+      detail: { query }
+    })
+    window.dispatchEvent(event)
+    toast.success('Switching to General AI Assistant...')
+  }
+
+  // Handle category tab click to open search popup
+  const handleCategoryClick = (category: string) => {
+    // Map category names
+    const categoryMap: Record<string, 'all' | 'urgent' | 'work' | 'personal' | 'subs' | 'bills'> = {
+      'all': 'all',
+      'urgent': 'urgent',
+      'work': 'work',
+      'personal': 'personal',
+      'subscription': 'subs',
+      'bills': 'bills'
+    }
+    setUnifiedSearchCategory(categoryMap[category] || 'all')
+    setShowUnifiedSearch(true)
+  }
+
+  // Load work categorization settings
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('flowsphere-work-categorization')
+      if (stored) {
+        setWorkSettings(JSON.parse(stored))
+      } else {
+        // Set default settings
+        const defaults = {
+          workKeywords: ['project', 'meeting', 'deadline', 'team', 'office', 'task', 'report', 'client'],
+          workDomains: [],
+          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com']
+        }
+        setWorkSettings(defaults)
+        localStorage.setItem('flowsphere-work-categorization', JSON.stringify(defaults))
+      }
+    } catch (error) {
+      console.error('Failed to load work settings:', error)
+    }
+  }, [])
+
+  // Load email stats and perform initial sync
+  useEffect(() => {
+    const loadEmailData = async () => {
+      try {
+        // Load accounts
+        const accounts = EmailAccountStore.getAccounts()
+        setConnectedAccounts(accounts)
+
+        // Load stats
+        let stats = await getEmailStats()
+        setEmailStats(stats)
+
+        // Perform initial sync if no emails and has accounts
+        if (stats.total === 0 && accounts.length > 0) {
+          console.log('No emails in database, performing initial sync...')
+          await globalEmailMonitor.performInitialSync()
+          // Reload stats after sync
+          stats = await getEmailStats()
+          setEmailStats(stats)
+        }
+
+        // If we have emails but most are uncategorized, reclassify them
+        if (stats.total > 0 && stats.misc > stats.total * 0.8) {
+          console.log('Most emails uncategorized, reclassifying with rules...')
+          await reclassifyAllEmails()
+          const newStats = await getEmailStats()
+          setEmailStats(newStats)
+          toast.success(`Reclassified ${stats.total} emails`)
+        }
+
+        // Load actual emails from database for display
+        const emails = await emailDatabase.getAllEmails()
+        // Sort by timestamp (newest first)
+        emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        setDatabaseEmails(emails)
+        console.log(`Loaded ${emails.length} emails from database`)
+      } catch (error) {
+        console.error('Failed to load email data:', error)
+      }
+    }
+
+    loadEmailData()
+
+    // Listen for rule changes to trigger reclassification
+    const handleRulesChange = async () => {
+      console.log('Email rules changed, reclassifying...')
+      await reclassifyAllEmails()
+      const stats = await getEmailStats()
+      setEmailStats(stats)
+      // Reload emails
+      const emails = await emailDatabase.getAllEmails()
+      emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      setDatabaseEmails(emails)
+      toast.success('Emails reclassified with new rules')
+    }
+    window.addEventListener('flowsphere-email-rules-updated', handleRulesChange)
+
+    // Refresh stats, accounts, and emails every 30 seconds
+    const interval = setInterval(async () => {
+      const accounts = EmailAccountStore.getAccounts()
+      setConnectedAccounts(accounts)
+      const stats = await getEmailStats()
+      setEmailStats(stats)
+      // Reload emails
+      const emails = await emailDatabase.getAllEmails()
+      emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      setDatabaseEmails(emails)
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('flowsphere-email-rules-updated', handleRulesChange)
+    }
+  }, [])
 
   // Fetch real-time news on component mount
   useEffect(() => {
@@ -164,25 +316,54 @@ export function NotificationsResourcesView({
     }
   }
 
-  const categoryCounts = {
-    all: notifications.length,
-    urgent: notifications.filter(n => n.category === 'urgent').length,
-    work: notifications.filter(n => n.category === 'work').length,
-    personal: notifications.filter(n => n.category === 'personal').length,
-    subscription: notifications.filter(n => n.category === 'subscription').length,
-    misc: notifications.filter(n => n.category === 'misc').length
+  // Map database categories to UI categories
+  const mapCategoryToUI = (dbCategory?: string) => {
+    switch (dbCategory) {
+      case 'emergency':
+      case 'important':
+        return 'urgent'
+      case 'work':
+        return 'work'
+      case 'personal':
+        return 'personal'
+      case 'subscription':
+        return 'subscription'
+      default:
+        return 'bills'
+    }
   }
 
+  // Filter emails by selected category
+  const filteredEmails = selectedCategory === 'all'
+    ? databaseEmails
+    : databaseEmails.filter(email => {
+        const uiCategory = mapCategoryToUI(email.category)
+        // Map 'subscription' tab to 'subscription' category
+        if (selectedCategory === 'subscription') return uiCategory === 'subscription'
+        return uiCategory === selectedCategory
+      })
+
+  const categoryCounts = {
+    all: databaseEmails.length,
+    urgent: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'urgent').length,
+    work: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'work').length,
+    personal: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'personal').length,
+    subscription: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'subscription').length,
+    misc: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'bills').length
+  }
+
+  // Also keep filtered notifications for backward compatibility
   const filteredNotifications = selectedCategory === 'all'
     ? notifications
     : notifications.filter(n => n.category === selectedCategory)
 
-  // Get unique senders from notifications
-  const uniqueSenders = Array.from(new Set(notifications.map(n => n.source)))
+  // Get unique senders from database emails
+  const uniqueSenders = Array.from(new Set(databaseEmails.map(e => e.from.email)))
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      toast.error('Please enter a search term')
+    // Allow search by query OR sender
+    if (!searchQuery.trim() && !searchSender.trim()) {
+      toast.error('Please enter a search term or sender email')
       return
     }
 
@@ -196,33 +377,24 @@ export function NotificationsResourcesView({
   }
 
   const handleAddAccount = () => {
-    if (!newAccountEmail.trim()) {
-      toast.error('Please enter an email address')
-      return
-    }
-
-    const newAccount = {
-      id: Date.now().toString(),
-      type: newAccountType,
-      provider: newAccountProvider,
-      email: newAccountEmail,
-      isActive: true
-    }
-
-    setConnectedAccounts([...(connectedAccounts || []), newAccount])
-    setNewAccountEmail('')
-    toast.success(`${newAccountProvider} account added successfully!`)
+    toast.info('Please go to Settings > Connected Email Accounts to add accounts')
+    setShowAccountsDialog(false)
   }
 
   const handleRemoveAccount = (id: string) => {
-    setConnectedAccounts((connectedAccounts || []).filter(acc => acc.id !== id))
+    EmailAccountStore.removeAccount(id)
+    setConnectedAccounts(EmailAccountStore.getAccounts())
     toast.success('Account removed')
   }
 
   const handleToggleAccount = (id: string) => {
-    setConnectedAccounts((connectedAccounts || []).map(acc =>
-      acc.id === id ? { ...acc, isActive: !acc.isActive } : acc
-    ))
+    const account = EmailAccountStore.getAccount(id)
+    if (account) {
+      const updated = { ...account, isActive: !account.isActive }
+      EmailAccountStore.saveAccount(updated)
+      setConnectedAccounts(EmailAccountStore.getAccounts())
+      toast.success(updated.isActive ? 'Account enabled' : 'Account paused')
+    }
   }
 
   const performSearch = async () => {
@@ -230,53 +402,56 @@ export function NotificationsResourcesView({
     setShowConsentDialog(false)
 
     try {
-      // Filter by time range
-      let timeFiltered = [...notifications]
-      const now = new Date()
+      // Use semantic search with email database
+      // If no query but has sender, use empty query to get all emails then filter
+      const result = await semanticEmailSearch({
+        query: searchQuery.trim() || '',
+        limit: 1000 // Increase limit when filtering by sender only
+      })
 
-      if (searchTimeRange === 'today') {
-        timeFiltered = timeFiltered.filter(n => {
-          const notifTime = new Date(n.time)
-          return notifTime.toDateString() === now.toDateString()
-        })
-      } else if (searchTimeRange === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        timeFiltered = timeFiltered.filter(n => new Date(n.time) >= weekAgo)
-      } else if (searchTimeRange === 'month') {
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        timeFiltered = timeFiltered.filter(n => new Date(n.time) >= monthAgo)
+      const searchLabel = searchQuery.trim() ? `"${searchQuery}"` : 'sender filter'
+      console.log(`🔍 Found ${result.totalCount} emails matching ${searchLabel}`)
+
+      // Apply additional filters
+      let filtered = result.emails
+
+      // Filter by account
+      if (searchAccount !== 'all') {
+        const selectedAccount = connectedAccounts.find(acc => acc.id === searchAccount)
+        if (selectedAccount) {
+          filtered = filtered.filter(email => email.provider === selectedAccount.provider)
+        }
       }
 
       // Filter by sender
-      if (searchSender !== 'all') {
-        timeFiltered = timeFiltered.filter(n => n.source === searchSender)
+      if (searchSender.trim()) {
+        const senderLower = searchSender.toLowerCase().trim()
+        filtered = filtered.filter(email =>
+          email.from.name.toLowerCase().includes(senderLower) ||
+          email.from.email.toLowerCase().includes(senderLower)
+        )
       }
 
-      // AI-powered semantic search
-      const searchTerm = searchQuery.toLowerCase().trim()
-
-      // Try to use AI for semantic search (finding related terms)
-      let aiExpandedTerms: string[] = [searchTerm]
-
-      try {
-        const prompt = `Given the search term "${searchQuery}", list related terms, synonyms, and common abbreviations that might appear in emails. For example, "DOLE" could relate to "Department of Labor and Employment", "labor department", etc. Return ONLY a comma-separated list of terms, no explanations.`
-
-        const response = await window.spark.llm(prompt, 'gpt-4o-mini')
-        const terms = response.split(',').map(t => t.trim().toLowerCase())
-        aiExpandedTerms = [searchTerm, ...terms]
-      } catch (error) {
-        console.log('AI expansion not available, using direct search')
+      // Filter by time range
+      const now = Date.now()
+      if (searchTimeRange === 'today') {
+        const todayStart = new Date().setHours(0, 0, 0, 0)
+        filtered = filtered.filter(email => new Date(email.timestamp).getTime() >= todayStart)
+      } else if (searchTimeRange === 'week') {
+        const weekAgo = now - 7 * 24 * 60 * 60 * 1000
+        filtered = filtered.filter(email => new Date(email.timestamp).getTime() >= weekAgo)
+      } else if (searchTimeRange === 'month') {
+        const monthAgo = now - 30 * 24 * 60 * 60 * 1000
+        filtered = filtered.filter(email => new Date(email.timestamp).getTime() >= monthAgo)
       }
 
-      // Search through notifications
-      const results = timeFiltered.filter(n => {
-        const searchableText = `${n.title} ${n.message} ${n.source}`.toLowerCase()
-        return aiExpandedTerms.some(term => searchableText.includes(term))
-      })
-
-      setSearchResults(results)
+      setSearchResults(filtered)
       setShowSearchResults(true)
-      toast.success(`Found ${results.length} result${results.length !== 1 ? 's' : ''}`)
+
+      const resultMessage = searchQuery.trim()
+        ? `Found ${filtered.length} email${filtered.length !== 1 ? 's' : ''}`
+        : `Found ${filtered.length} email${filtered.length !== 1 ? 's' : ''} from sender`
+      toast.success(resultMessage)
     } catch (error) {
       console.error('Search error:', error)
       toast.error('Search failed')
@@ -314,6 +489,79 @@ export function NotificationsResourcesView({
     toast.success('Emergency contact removed')
   }
 
+  const saveWorkSettings = (newSettings: typeof workSettings) => {
+    setWorkSettings(newSettings)
+    localStorage.setItem('flowsphere-work-categorization', JSON.stringify(newSettings))
+    toast.success('Work categorization settings saved')
+  }
+
+  const handleAddWorkKeyword = () => {
+    const keyword = newWorkKeyword.trim().toLowerCase()
+    if (keyword && !workSettings.workKeywords.includes(keyword)) {
+      const updated = { ...workSettings, workKeywords: [...workSettings.workKeywords, keyword] }
+      saveWorkSettings(updated)
+      setNewWorkKeyword('')
+    } else if (workSettings.workKeywords.includes(keyword)) {
+      toast.error('Keyword already exists')
+      setNewWorkKeyword('')
+    }
+  }
+
+  const handleRemoveWorkKeyword = (keywordToRemove: string) => {
+    // Remove only the first occurrence to handle any existing duplicates gracefully
+    const index = workSettings.workKeywords.indexOf(keywordToRemove)
+    if (index > -1) {
+      const newKeywords = [...workSettings.workKeywords]
+      newKeywords.splice(index, 1)
+      const updated = { ...workSettings, workKeywords: newKeywords }
+      saveWorkSettings(updated)
+    }
+  }
+
+  const handleAddWorkDomain = () => {
+    const domain = newWorkDomain.trim().toLowerCase()
+    if (domain && !workSettings.workDomains.includes(domain)) {
+      const updated = { ...workSettings, workDomains: [...workSettings.workDomains, domain] }
+      saveWorkSettings(updated)
+      setNewWorkDomain('')
+    } else if (workSettings.workDomains.includes(domain)) {
+      toast.error('Domain already exists')
+      setNewWorkDomain('')
+    }
+  }
+
+  const handleRemoveWorkDomain = (domainToRemove: string) => {
+    const index = workSettings.workDomains.indexOf(domainToRemove)
+    if (index > -1) {
+      const newDomains = [...workSettings.workDomains]
+      newDomains.splice(index, 1)
+      const updated = { ...workSettings, workDomains: newDomains }
+      saveWorkSettings(updated)
+    }
+  }
+
+  const handleAddPersonalDomain = () => {
+    const domain = newPersonalDomain.trim().toLowerCase()
+    if (domain && !workSettings.personalDomains.includes(domain)) {
+      const updated = { ...workSettings, personalDomains: [...workSettings.personalDomains, domain] }
+      saveWorkSettings(updated)
+      setNewPersonalDomain('')
+    } else if (workSettings.personalDomains.includes(domain)) {
+      toast.error('Domain already exists')
+      setNewPersonalDomain('')
+    }
+  }
+
+  const handleRemovePersonalDomain = (domainToRemove: string) => {
+    const index = workSettings.personalDomains.indexOf(domainToRemove)
+    if (index > -1) {
+      const newDomains = [...workSettings.personalDomains]
+      newDomains.splice(index, 1)
+      const updated = { ...workSettings, personalDomains: newDomains }
+      saveWorkSettings(updated)
+    }
+  }
+
   const handleAudioSummary = async () => {
     if (isSpeaking) {
       stopSpeaking()
@@ -324,10 +572,29 @@ export function NotificationsResourcesView({
     }
 
     setIsSummarizing(true)
-    
+
     try {
+      // If AI Assistant popup is open and has a response, read that instead
+      if (showUnifiedSearch && latestAIResponse) {
+        toast.info('Reading AI assistant response...')
+        setIsSpeaking(true)
+        try {
+          await speakWithGroq(latestAIResponse, 'nova')
+          setIsSpeaking(false)
+          toast.success('AI summary completed')
+        } catch (error) {
+          console.error('Groq TTS error:', error)
+          // Fallback to browser TTS
+          await speakText(latestAIResponse)
+          setIsSpeaking(false)
+          toast.success('AI summary completed')
+        }
+        setIsSummarizing(false)
+        return
+      }
+
       const unreadNotifications = notifications.filter(n => !n.isRead)
-      
+
       if (unreadNotifications.length === 0) {
         await speakText('You have no unread notifications. You are all caught up!')
         toast.success('No unread notifications')
@@ -366,11 +633,11 @@ export function NotificationsResourcesView({
           summary += `Your most urgent item: ${firstUrgent.title}.`
         }
       }
-      
+
       setIsSpeaking(true)
       await speakText(summary)
       setIsSpeaking(false)
-      
+
       toast.success('Audio summary completed')
     } catch (error) {
       console.error('Error generating audio summary:', error)
@@ -437,116 +704,91 @@ export function NotificationsResourcesView({
         </TabsList>
 
         <TabsContent value="notifications" className="space-y-6">
-          {/* AI-Powered Search Box */}
+          {/* AI Email Assistant + Search Quick Access */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-lg">
-                  <div className="flex items-center gap-2">
-                    <MagnifyingGlass className="w-5 h-5" weight="duotone" />
-                    AI-Powered Email Search
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                      <Robot className="w-7 h-7 text-white" weight="fill" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        AI Email Assistant
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          <Sparkle className="w-2.5 h-2.5 mr-0.5" weight="fill" />
+                          Powered by Groq
+                        </Badge>
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Ask questions, search across all accounts, compose emails with AI help
+                      </p>
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowAccountsDialog(true)}
-                    className="h-8 gap-1.5"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Account
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search Input */}
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      placeholder='Search emails (e.g., "DOLE", "department of labor")...'
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="pl-10"
-                    />
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => {
+                        setUnifiedSearchMode('ai')
+                        setShowUnifiedSearch(true)
+                      }}
+                      className="gap-2"
+                    >
+                      <Robot className="w-4 h-4" weight="fill" />
+                      Ask AI
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUnifiedSearchMode('search')
+                        setShowUnifiedSearch(true)
+                      }}
+                      className="gap-2"
+                    >
+                      <MagnifyingGlass className="w-4 h-4" />
+                      Search
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setShowWorkSettings(true)}
+                    >
+                      <Gear className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setShowAccountsDialog(true)}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => setShowSearchFilters(!showSearchFilters)}
-                    variant="outline"
-                    size="icon"
-                  >
-                    <Funnel className="w-5 h-5" />
-                  </Button>
-                  <Button onClick={handleSearch} disabled={isSearching}>
-                    {isSearching ? 'Searching...' : 'Search'}
-                  </Button>
                 </div>
 
-                {/* Search Filters */}
-                {showSearchFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2"
-                  >
-                    <div className="space-y-2">
-                      <Label className="text-sm">Time Range</Label>
-                      <Select value={searchTimeRange} onValueChange={(v: any) => setSearchTimeRange(v)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">All Accounts</Label>
-                      <Select value={searchAccount} onValueChange={setSearchAccount}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Accounts</SelectItem>
-                          {(connectedAccounts || []).map(account => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.label} ({account.type})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Sender</Label>
-                      <Select value={searchSender} onValueChange={setSearchSender}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Senders</SelectItem>
-                          {uniqueSenders.map(sender => (
-                            <SelectItem key={sender} value={sender}>{sender}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </motion.div>
-                )}
-
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" />
-                  AI searches your emails semantically - finding related terms and synonyms
-                </p>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t">
+                  <div className="text-center p-2 rounded-lg bg-muted/50">
+                    <p className="text-2xl font-bold text-primary">{categoryCounts.all}</p>
+                    <p className="text-xs text-muted-foreground">Total Emails</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-red-500/10">
+                    <p className="text-2xl font-bold text-red-500">{categoryCounts.urgent}</p>
+                    <p className="text-xs text-muted-foreground">Urgent</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-blue-500/10">
+                    <p className="text-2xl font-bold text-blue-500">{categoryCounts.work}</p>
+                    <p className="text-xs text-muted-foreground">Work</p>
+                  </div>
+                  <div className="text-center p-2 rounded-lg bg-green-500/10">
+                    <p className="text-2xl font-bold text-green-500">{databaseEmails.filter(e => !e.read).length}</p>
+                    <p className="text-xs text-muted-foreground">Unread</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -573,27 +815,30 @@ export function NotificationsResourcesView({
                       {searchResults.length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">No results found</p>
                       ) : (
-                        searchResults.map((notif) => (
-                          <Card key={notif.id} className="p-4">
+                        searchResults.map((email) => (
+                          <Card key={email.id} className="p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Badge variant={getCategoryColor(notif.category) as any}>
-                                    {notif.category}
+                                  <Badge variant={getCategoryColor(email.category || 'bills') as any}>
+                                    {email.category || 'bills'}
                                   </Badge>
-                                  <span className="text-xs text-muted-foreground">{notif.time}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(email.timestamp).toLocaleString()}
+                                  </span>
                                 </div>
-                                <h4 className="font-semibold mb-1">{notif.title}</h4>
-                                <p className="text-sm text-muted-foreground mb-2">{notif.message}</p>
-                                <p className="text-xs text-muted-foreground">From: {notif.source}</p>
+                                <h4 className="font-semibold mb-1">{email.subject}</h4>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {email.snippet || email.body?.substring(0, 150) + '...'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  From: {email.from.name} ({email.from.email})
+                                </p>
                               </div>
                               <div className="flex gap-2">
-                                <Button size="sm" variant="ghost" onClick={() => onMarkRead(notif.id)}>
-                                  <CheckCircle className="w-4 h-4" />
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => onDelete(notif.id)}>
-                                  <Trash className="w-4 h-4" />
-                                </Button>
+                                <Badge variant={email.read ? 'secondary' : 'default'} className="text-xs">
+                                  {email.read ? 'Read' : 'Unread'}
+                                </Badge>
                               </div>
                             </div>
                           </Card>
@@ -677,29 +922,79 @@ export function NotificationsResourcesView({
           </motion.div>
 
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-4">
-            <TabsList className="w-full justify-start overflow-x-auto">
-              <TabsTrigger value="all">
-                All ({categoryCounts.all})
-              </TabsTrigger>
-              <TabsTrigger value="urgent">
-                Urgent ({categoryCounts.urgent})
-              </TabsTrigger>
-              <TabsTrigger value="work">
-                Work ({categoryCounts.work})
-              </TabsTrigger>
-              <TabsTrigger value="personal">
-                Personal ({categoryCounts.personal})
-              </TabsTrigger>
-              <TabsTrigger value="subscription">
-                Subscription ({categoryCounts.subscription})
-              </TabsTrigger>
-              <TabsTrigger value="misc">
-                Misc ({categoryCounts.misc})
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-2">
+              <TabsList className="flex-1 justify-start overflow-x-auto">
+                <TabsTrigger value="all" className="gap-1">
+                  All ({categoryCounts.all})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-primary/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('all'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+                <TabsTrigger value="urgent" className="gap-1 text-red-500">
+                  Urgent ({categoryCounts.urgent})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-red-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('urgent'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+                <TabsTrigger value="work" className="gap-1 text-blue-500">
+                  Work ({categoryCounts.work})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-blue-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('work'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+                <TabsTrigger value="personal" className="gap-1 text-green-500">
+                  Personal ({categoryCounts.personal})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-green-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('personal'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+                <TabsTrigger value="subscription" className="gap-1 text-purple-500">
+                  Subs ({categoryCounts.subscription})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-purple-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('subscription'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+                <TabsTrigger value="bills" className="gap-1 text-gray-500">
+                  Bills ({categoryCounts.misc})
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 ml-1 hover:bg-gray-500/20"
+                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('bills'); }}
+                  >
+                    <MagnifyingGlass className="w-3 h-3" />
+                  </Button>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value={selectedCategory} className="space-y-3">
-              {filteredNotifications.length === 0 ? (
+              {filteredEmails.length === 0 ? (
                 <Card>
                   <CardContent className="p-12 text-center">
                     <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -707,25 +1002,51 @@ export function NotificationsResourcesView({
                     </div>
                     <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
                     <p className="text-muted-foreground text-sm">
-                      No {selectedCategory === 'all' ? '' : selectedCategory} notifications at this time
+                      {databaseEmails.length === 0
+                        ? 'No emails synced yet. Connect your email account to get started.'
+                        : `No ${selectedCategory === 'all' ? '' : selectedCategory} emails at this time`}
                     </p>
                   </CardContent>
                 </Card>
               ) : (
                 <ScrollArea className="h-[600px] pr-4">
                   <div className="space-y-3">
-                    {filteredNotifications.map((notification, index) => {
-                      const Icon = getCategoryIcon(notification.category)
-                      const color = getCategoryColor(notification.category)
-                      
+                    {filteredEmails.slice(0, 50).map((email, index) => {
+                      const uiCategory = mapCategoryToUI(email.category)
+                      const Icon = getCategoryIcon(uiCategory)
+                      const color = getCategoryColor(uiCategory)
+                      const emailDate = new Date(email.timestamp)
+                      const now = new Date()
+                      const diffMs = now.getTime() - emailDate.getTime()
+                      const diffMins = Math.floor(diffMs / (1000 * 60))
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+                      let timeDisplay = ''
+                      if (diffMins < 60) {
+                        timeDisplay = `${diffMins} min ago`
+                      } else if (diffHours < 24) {
+                        timeDisplay = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+                      } else if (diffDays < 7) {
+                        timeDisplay = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+                      } else {
+                        timeDisplay = emailDate.toLocaleDateString()
+                      }
+
                       return (
                         <motion.div
-                          key={notification.id}
+                          key={email.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
                         >
-                          <Card className={`${notification.isRead ? 'bg-muted/30' : 'bg-card'} hover:shadow-md transition-all`}>
+                          <Card
+                            className={`${email.read ? 'bg-muted/30' : 'bg-card border-l-4 border-l-primary'} hover:shadow-md transition-all cursor-pointer`}
+                            onClick={() => {
+                              setSelectedEmail(email)
+                              setShowEmailPreview(true)
+                            }}
+                          >
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
                                 <div className={`w-10 h-10 rounded-full bg-${color}/10 flex items-center justify-center flex-shrink-0`}>
@@ -735,38 +1056,46 @@ export function NotificationsResourcesView({
                                   <div className="flex items-start justify-between mb-1">
                                     <div className="flex-1">
                                       <div className="flex items-center space-x-2 mb-1">
-                                        <h4 className={`text-sm font-semibold ${notification.isRead ? 'text-muted-foreground' : ''}`}>
-                                          {notification.title}
+                                        <h4 className={`text-sm font-semibold truncate ${email.read ? 'text-muted-foreground' : ''}`}>
+                                          {email.from.name || email.from.email}
                                         </h4>
-                                        <Badge variant="secondary" className="text-xs">
-                                          {notification.source}
+                                        <Badge
+                                          variant="secondary"
+                                          className={`text-xs ${
+                                            uiCategory === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                            uiCategory === 'work' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                            uiCategory === 'personal' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                            uiCategory === 'subscription' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                            ''
+                                          }`}
+                                        >
+                                          {uiCategory}
                                         </Badge>
+                                        {!email.read && (
+                                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                        )}
                                       </div>
-                                      <p className={`text-sm ${notification.isRead ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                        {notification.message}
+                                      <p className={`text-sm font-medium truncate ${email.read ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                        {email.subject}
                                       </p>
-                                      <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                                      <p className="text-xs text-muted-foreground truncate mt-1">
+                                        {email.snippet || email.body?.substring(0, 100)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-1">{timeDisplay}</p>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-1">
-                                  {!notification.isRead && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => onMarkRead(notification.id)}
-                                    >
-                                      <CheckCircle className="w-4 h-4" weight="duotone" />
-                                    </Button>
-                                  )}
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => onDelete(notification.id)}
+                                    className="h-8 w-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toast.info(`Email: ${email.subject}`)
+                                    }}
                                   >
-                                    <Trash className="w-4 h-4" weight="duotone" />
+                                    <CheckCircle className="w-4 h-4" weight="duotone" />
                                   </Button>
                                 </div>
                               </div>
@@ -1200,12 +1529,8 @@ export function NotificationsResourcesView({
                         className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <div className={`p-2 rounded-lg ${account.type === 'email' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
-                            {account.type === 'email' ? (
-                              <Envelope className={`w-5 h-5 ${account.isActive ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                            ) : (
-                              <UserIcon className={`w-5 h-5 ${account.isActive ? 'text-purple-500' : 'text-muted-foreground'}`} />
-                            )}
+                          <div className="p-2 rounded-lg bg-blue-500/10">
+                            <Envelope className={`w-5 h-5 ${account.isActive ? 'text-blue-500' : 'text-muted-foreground'}`} />
                           </div>
                           <div className="flex-1">
                             <p className="font-medium capitalize">{account.provider}</p>
@@ -1249,6 +1574,264 @@ export function NotificationsResourcesView({
           <DialogFooter>
             <Button onClick={() => setShowAccountsDialog(false)}>Done</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Work Categorization Settings Dialog */}
+      <Dialog open={showWorkSettings} onOpenChange={setShowWorkSettings}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Email Categorization Settings</DialogTitle>
+            <DialogDescription>
+              Configure how FlowSphere categorizes your emails into Work and Personal categories
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Work Keywords */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-semibold">Work Keywords</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Emails containing these words will be categorized as "Work"
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg min-h-[80px]">
+                {workSettings.workKeywords.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No work keywords added yet</p>
+                ) : (
+                  workSettings.workKeywords.map((keyword, index) => (
+                    <Badge key={`${keyword}-${index}`} variant="secondary" className="gap-1">
+                      {keyword}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 p-0"
+                        onClick={() => handleRemoveWorkKeyword(keyword)}
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., project, meeting, deadline..."
+                  value={newWorkKeyword}
+                  onChange={(e) => setNewWorkKeyword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddWorkKeyword()}
+                />
+                <Button onClick={handleAddWorkKeyword} size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Work Domains */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-semibold">Work Email Domains</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Emails from these domains will be categorized as "Work"
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg min-h-[80px]">
+                {workSettings.workDomains.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No work domains added yet</p>
+                ) : (
+                  workSettings.workDomains.map((domain, index) => (
+                    <Badge key={`${domain}-${index}`} variant="secondary" className="gap-1">
+                      {domain}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 p-0"
+                        onClick={() => handleRemoveWorkDomain(domain)}
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., company.com, work.com..."
+                  value={newWorkDomain}
+                  onChange={(e) => setNewWorkDomain(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddWorkDomain()}
+                />
+                <Button onClick={handleAddWorkDomain} size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Personal Domains */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-semibold">Personal Email Domains</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Emails from individuals using these domains will be categorized as "Personal"
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg min-h-[80px]">
+                {workSettings.personalDomains.map((domain, index) => (
+                  <Badge key={`${domain}-${index}`} variant="secondary" className="gap-1">
+                    {domain}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0"
+                      onClick={() => handleRemovePersonalDomain(domain)}
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g., gmail.com, yahoo.com..."
+                  value={newPersonalDomain}
+                  onChange={(e) => setNewPersonalDomain(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddPersonalDomain()}
+                />
+                <Button onClick={handleAddPersonalDomain} size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground p-3 bg-accent/10 rounded-lg">
+              <p className="font-semibold mb-1">How categorization works:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>Urgent:</strong> Emails with emergency keywords (urgent, alert, critical)</li>
+                <li><strong>Work:</strong> Emails matching your work keywords or from work domains</li>
+                <li><strong>Personal:</strong> Emails from individuals using personal domains</li>
+                <li><strong>Subscription:</strong> Billing, renewals, and service notifications</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowWorkSettings(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unified Email Search Popup with AI Assistant */}
+      <UnifiedEmailSearch
+        open={showUnifiedSearch}
+        onOpenChange={setShowUnifiedSearch}
+        initialCategory={unifiedSearchCategory}
+        initialMode={unifiedSearchMode}
+        onLatestAIResponse={setLatestAIResponse}
+        onHandoffToGeneral={handleHandoffToGeneralAI}
+      />
+
+      {/* Email Preview Dialog */}
+      <Dialog open={showEmailPreview} onOpenChange={setShowEmailPreview}>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          {selectedEmail && (
+            <>
+              <DialogHeader className="border-b pb-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'bg-red-100 dark:bg-red-900/30' :
+                    mapCategoryToUI(selectedEmail.category) === 'work' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                    mapCategoryToUI(selectedEmail.category) === 'personal' ? 'bg-green-100 dark:bg-green-900/30' :
+                    mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                    'bg-gray-100 dark:bg-gray-800'
+                  }`}>
+                    <Envelope className={`w-6 h-6 ${
+                      mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'text-red-600' :
+                      mapCategoryToUI(selectedEmail.category) === 'work' ? 'text-blue-600' :
+                      mapCategoryToUI(selectedEmail.category) === 'personal' ? 'text-green-600' :
+                      mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'text-purple-600' :
+                      'text-gray-600'
+                    }`} weight="duotone" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <DialogTitle className="text-lg font-semibold mb-1">
+                      {selectedEmail.subject || '(No Subject)'}
+                    </DialogTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">
+                        {selectedEmail.from.name || selectedEmail.from.email}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        &lt;{selectedEmail.from.email}&gt;
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{new Date(selectedEmail.timestamp).toLocaleString()}</span>
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${
+                          mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                          mapCategoryToUI(selectedEmail.category) === 'work' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                          mapCategoryToUI(selectedEmail.category) === 'personal' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                          ''
+                        }`}
+                      >
+                        {mapCategoryToUI(selectedEmail.category)}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <ScrollArea className="flex-1 mt-4">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  {selectedEmail.body ? (
+                    <div
+                      dangerouslySetInnerHTML={{ __html: selectedEmail.body }}
+                      className="whitespace-pre-wrap"
+                    />
+                  ) : selectedEmail.snippet ? (
+                    <p className="text-muted-foreground">{selectedEmail.snippet}</p>
+                  ) : (
+                    <p className="text-muted-foreground italic">No content available</p>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <DialogFooter className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 w-full justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {selectedEmail.read ? 'Read' : 'Unread'} • {selectedEmail.provider}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowEmailPreview(false)}>
+                      Close
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        // Open in Gmail/email client
+                        if (selectedEmail.provider === 'gmail') {
+                          window.open(`https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`, '_blank')
+                        }
+                        setShowEmailPreview(false)
+                      }}
+                    >
+                      Open in {selectedEmail.provider === 'gmail' ? 'Gmail' : 'Email'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

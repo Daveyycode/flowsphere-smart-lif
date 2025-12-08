@@ -193,7 +193,7 @@ export function DevicesAutomationsView({
   }
 
   const handleAddDevice = () => {
-    const deviceToAdd: any = {
+    const deviceToAdd: Omit<Device, 'id'> = {
       ...newDevice,
       brightness: newDevice.type === 'light' ? 100 : undefined,
       temperature: newDevice.type === 'thermostat' ? 72 : undefined,
@@ -501,7 +501,7 @@ export function DevicesAutomationsView({
                     <Label htmlFor="device-type">Device Type</Label>
                     <Select
                       value={newDevice.type}
-                      onValueChange={(value: any) => setNewDevice({ ...newDevice, type: value })}
+                      onValueChange={(value: Device['type']) => setNewDevice({ ...newDevice, type: value })}
                     >
                       <SelectTrigger id="device-type">
                         <SelectValue />
@@ -643,7 +643,7 @@ export function DevicesAutomationsView({
                     <Label htmlFor="trigger-type">Trigger Type</Label>
                     <Select
                       value={newAutomation.trigger}
-                      onValueChange={(value: any) => setNewAutomation({ ...newAutomation, trigger: value })}
+                      onValueChange={(value: Automation['trigger']) => setNewAutomation({ ...newAutomation, trigger: value })}
                     >
                       <SelectTrigger id="trigger-type">
                         <SelectValue />
@@ -676,7 +676,7 @@ export function DevicesAutomationsView({
                     <Label htmlFor="icon-select">Icon</Label>
                     <Select
                       value={newAutomation.icon}
-                      onValueChange={(value: any) => setNewAutomation({ ...newAutomation, icon: value })}
+                      onValueChange={(value: Automation['icon']) => setNewAutomation({ ...newAutomation, icon: value })}
                     >
                       <SelectTrigger id="icon-select">
                         <SelectValue />

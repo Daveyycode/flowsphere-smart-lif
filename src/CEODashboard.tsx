@@ -70,6 +70,23 @@ interface RevenueData {
   churnedCustomers: number;
 }
 
+interface CEOInsight {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  priority: 'high' | 'medium' | 'low';
+  metric: string;
+  impact: string;
+  description: string;
+  action: string;
+}
+
+interface SubscriptionTier {
+  tier: string;
+  color: string;
+  users: number;
+  revenue: number;
+}
+
 interface SystemMetric {
   name: string;
   value: number;
@@ -277,13 +294,13 @@ const CEODashboard: React.FC = () => {
   ];
 
   // Subscription breakdown - fetch from backend
-  const subscriptionBreakdown = [];
+  const subscriptionBreakdown: SubscriptionTier[] = [];
 
   // Recent activity - fetch from backend/logs
   const recentActivity: Activity[] = [];
 
   // CEO Insights - AI-generated insights from real data
-  const ceoInsights = [];
+  const ceoInsights: CEOInsight[] = [];
 
   // ============================================================================
   // UTILITY FUNCTIONS
@@ -429,7 +446,7 @@ const CEODashboard: React.FC = () => {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <insight.icon className="w-5 h-5" style={{ color: colors.textMuted }} />
+                  <span style={{ color: colors.textMuted }}><insight.icon className="w-5 h-5" /></span>
                   <h3 className="font-semibold" style={{ color: colors.text }}>{insight.title}</h3>
                 </div>
                 <span
@@ -768,7 +785,7 @@ const CEODashboard: React.FC = () => {
                   className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: colors.surface }}
                 >
-                  <insight.icon className="w-6 h-6" style={{ color: colors.primary }} />
+                  <span style={{ color: colors.primary }}><insight.icon className="w-6 h-6" /></span>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-3">

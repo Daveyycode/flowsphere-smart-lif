@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/security-utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShieldCheck, Eye, EyeClosed, User, Lock, QrCode } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { FaceCaptureSecurityManager } from '@/lib/face-capture-security'
 import { ActiveSessionsMonitor } from '@/lib/active-sessions-monitor'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { rotateUsername, createLoginAttempt, type CEOCredentials } from '@/lib/ceo-auth'
 import { TermsCheckbox } from '@/components/terms-checkbox'
 
@@ -273,7 +274,8 @@ async function getIPAddress(): Promise<string | undefined> {
   try {
     // In production, this would call your backend
     return undefined
-  } catch {
+  } catch (error) {
+    logger.debug('Failed to fetch IP address', error)
     return undefined
   }
 }

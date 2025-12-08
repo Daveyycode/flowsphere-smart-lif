@@ -33,3 +33,8 @@ pids
 
 .spark-workbench-id
 .vercel
+
+# Archived files
+.archive/
+.backup-before-transfer/
+❌🤖ARCHIVED-DOCS-DONT-SEARCH❌/

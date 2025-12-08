@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useState, useEffect, useMemo } from 'react'
+import { useKV } from '@/hooks/use-kv'
 import { motion } from 'framer-motion'
 import {
   CreditCard,
@@ -18,9 +18,14 @@ import {
   DeviceMobile,
   Database,
   EnvelopeSimple,
-  Link,
   CheckCircle as CheckIcon,
-  X
+  Envelope,
+  Robot,
+  Sparkle,
+  CaretDown,
+  CaretRight,
+  Lightning,
+  ArrowClockwise
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,10 +36,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { EmailAccountStore, Email } from '@/lib/email/email-service'
+import { emailDatabase } from '@/lib/email/email-database'
+import { groqChatWithHistory, isGroqConfigured, GroqMessage } from '@/lib/groq-ai'
+import { EmailAIClassifier } from '@/lib/email/email-ai-classifier'
+import { extractSubscriptionsFromEmails, ExtractedSubscription, analyzeSubscriptions } from '@/lib/email/subscription-extractor'
 
-declare const spark: {
-  llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
-  llm: (prompt: string, model?: string, jsonMode?: boolean) => Promise<string>
+// Initialize the AI classifier
+const emailClassifier = new EmailAIClassifier()
+
+// Interface for grouped emails by sender
+interface EmailGroup {
+  senderEmail: string
+  senderName: string
+  emails: Email[]
+  latestEmail: Email
+  count: number
+  isExpanded: boolean
 }
 
 export interface Subscription {
@@ -84,19 +102,100 @@ export function SubscriptionMonitoring({ className, currentFlowSpherePlan = 'bas
     smartDevicePack: 0,
     extendedMemory: false
   })
-  
+
   // Start with empty subscriptions - users will add their own or AI will detect them
   const [subscriptions, setSubscriptions] = useKV<Subscription[]>('flowsphere-subscriptions', [])
 
   const [aiAlerts, setAiAlerts] = useKV<AIAlert[]>('flowsphere-subscription-alerts', mockAIAlerts)
 
-  // Email accounts for automatic subscription detection
+  // Real email accounts from EmailAccountStore
+  const [realEmailAccounts, setRealEmailAccounts] = useState(EmailAccountStore.getActiveAccounts())
+
+  // Subscription emails from database - only TRUE subscriptions
+  const [subscriptionEmails, setSubscriptionEmails] = useState<Email[]>([])
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<string>('')
+  const [showAiResult, setShowAiResult] = useState(false)
+  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  // AI-extracted subscriptions from emails
+  const [aiExtractedSubs, setAiExtractedSubs] = useKV<ExtractedSubscription[]>('flowsphere-ai-extracted-subs', [])
+  const [isExtractingSubs, setIsExtractingSubs] = useState(false)
+  const [extractionInsights, setExtractionInsights] = useState<string[]>([])
+
+  // Email accounts for automatic subscription detection (legacy - kept for compatibility)
   const [connectedEmails, setConnectedEmails] = useKV<{provider: string, email: string, connected: boolean}[]>('flowsphere-connected-emails', [])
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false)
   const [newEmail, setNewEmail] = useState({ provider: 'gmail', email: '' })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  
+
+  // Group emails by sender (within a week) - memoized for performance
+  const groupedEmails = useMemo(() => {
+    const groups: Map<string, EmailGroup> = new Map()
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+    subscriptionEmails.forEach(email => {
+      const senderKey = email.from.email.toLowerCase()
+      const emailDate = new Date(email.timestamp)
+
+      if (!groups.has(senderKey)) {
+        groups.set(senderKey, {
+          senderEmail: email.from.email,
+          senderName: email.from.name || email.from.email.split('@')[0],
+          emails: [email],
+          latestEmail: email,
+          count: 1,
+          isExpanded: expandedGroups.has(senderKey)
+        })
+      } else {
+        const group = groups.get(senderKey)!
+        // Only group emails within a week
+        const latestDate = new Date(group.latestEmail.timestamp)
+        if (emailDate > oneWeekAgo || Math.abs(emailDate.getTime() - latestDate.getTime()) < 7 * 24 * 60 * 60 * 1000) {
+          group.emails.push(email)
+          group.count++
+          if (emailDate > new Date(group.latestEmail.timestamp)) {
+            group.latestEmail = email
+          }
+        } else {
+          // Different week, create new key with date
+          const weekKey = `${senderKey}-${emailDate.toISOString().split('T')[0]}`
+          if (!groups.has(weekKey)) {
+            groups.set(weekKey, {
+              senderEmail: email.from.email,
+              senderName: email.from.name || email.from.email.split('@')[0],
+              emails: [email],
+              latestEmail: email,
+              count: 1,
+              isExpanded: expandedGroups.has(weekKey)
+            })
+          }
+        }
+      }
+    })
+
+    // Sort by latest email date
+    return Array.from(groups.values()).sort((a, b) =>
+      new Date(b.latestEmail.timestamp).getTime() - new Date(a.latestEmail.timestamp).getTime()
+    )
+  }, [subscriptionEmails, expandedGroups])
+
+  // Toggle email group expansion
+  const toggleGroupExpansion = (senderKey: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(senderKey)) {
+        newSet.delete(senderKey)
+      } else {
+        newSet.add(senderKey)
+      }
+      return newSet
+    })
+  }
+
   const [newSub, setNewSub] = useState({
     name: '',
     category: 'other' as Subscription['category'],
@@ -104,6 +203,90 @@ export function SubscriptionMonitoring({ className, currentFlowSpherePlan = 'bas
     billingCycle: 'monthly' as Subscription['billingCycle'],
     nextBillingDate: ''
   })
+
+  // Load and verify subscription emails on mount
+  useEffect(() => {
+    const loadAndVerifySubscriptionEmails = async () => {
+      try {
+        setIsVerifyingEmails(true)
+        // Get emails already categorized as subscription
+        const subscriptionEmails = await emailDatabase.getEmailsByCategory('subscription')
+
+        // Also check 'regular' category for emails that might be subscriptions (fallback/uncategorized)
+        const regularEmails = await emailDatabase.getEmailsByCategory('regular')
+
+        // Combine and dedupe
+        const combined = [...subscriptionEmails]
+        const existingIds = new Set(combined.map(e => e.id))
+        regularEmails.forEach(email => {
+          if (!existingIds.has(email.id)) {
+            combined.push(email)
+          }
+        })
+
+        // Filter to only TRUE subscription emails using AI classifier
+        const verifiedEmails: Email[] = []
+
+        for (const email of combined) {
+          const result = emailClassifier.isRealSubscriptionEmail(email)
+          if (result.isSubscription && result.confidence >= 0.7) {
+            verifiedEmails.push(email)
+          }
+        }
+
+        // Sort by date and set
+        setSubscriptionEmails(verifiedEmails.sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        ))
+      } catch (error) {
+        console.error('Failed to load subscription emails:', error)
+      } finally {
+        setIsVerifyingEmails(false)
+      }
+    }
+    loadAndVerifySubscriptionEmails()
+
+    // Refresh email accounts
+    setRealEmailAccounts(EmailAccountStore.getActiveAccounts())
+  }, [])
+
+  // Re-scan and verify all emails with AI (manual trigger)
+  const handleRescanEmails = async () => {
+    setIsVerifyingEmails(true)
+    toast.info('Scanning emails for subscriptions...')
+
+    try {
+      // Get ALL emails from database
+      const allEmails = await emailDatabase.getAllEmails()
+
+      // Use AI to verify each email
+      const verifiedEmails: Email[] = []
+      const batchSize = 10
+
+      for (let i = 0; i < Math.min(allEmails.length, 100); i += batchSize) {
+        const batch = allEmails.slice(i, i + batchSize)
+
+        await Promise.all(batch.map(async (email) => {
+          // Try AI verification first
+          const result = await emailClassifier.verifySubscriptionWithAI(email)
+          if (result.isSubscription && result.confidence >= 0.6) {
+            verifiedEmails.push(email)
+          }
+        }))
+      }
+
+      setSubscriptionEmails(verifiedEmails.sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ))
+
+      toast.success(`Found ${verifiedEmails.length} subscription emails`)
+    } catch (error) {
+      console.error('Email scan error:', error)
+      toast.error('Failed to scan emails')
+    } finally {
+      setIsVerifyingEmails(false)
+    }
+  }
 
   const totalMonthlySpend = subscriptions?.reduce((sum, sub) => {
     if (!sub.isActive) return sum
@@ -198,120 +381,237 @@ export function SubscriptionMonitoring({ className, currentFlowSpherePlan = 'bas
     toast.success('Email account disconnected')
   }
 
-  const handleAIAnalysis = async () => {
-    // AI analysis enabled - simulated for now, ready for real integration
-    setIsAnalyzing(true)
+  // AI-powered subscription extraction from emails
+  const handleExtractSubscriptions = async () => {
+    if (subscriptionEmails.length === 0) {
+      toast.error('No subscription emails to analyze')
+      return
+    }
+
+    setIsExtractingSubs(true)
+    toast.info('Extracting subscription details from emails...')
 
     try {
-      // Simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Extract subscriptions using Groq AI
+      const extracted = await extractSubscriptionsFromEmails(subscriptionEmails)
 
-      // Generate insights based on current subscriptions
-      if (subscriptions && subscriptions.length > 0) {
-        const insights: AIAlert[] = []
+      if (extracted.length > 0) {
+        // Merge with existing AI-extracted subs (avoid duplicates by sender)
+        const existingSenders = new Set((aiExtractedSubs || []).map(s => s.senderEmail.toLowerCase()))
+        const newSubs = extracted.filter(s => !existingSenders.has(s.senderEmail.toLowerCase()))
 
-        // Check for price increases
-        subscriptions.forEach(sub => {
-          if (sub.lastAmount && sub.amount > sub.lastAmount) {
-            insights.push({
-              id: `alert-${Date.now()}-${Math.random()}`,
-              subscriptionId: sub.id,
-              subscriptionName: sub.name,
-              type: 'price-increase',
-              message: `${sub.name} price increased from $${sub.lastAmount.toFixed(2)} to $${sub.amount.toFixed(2)}`,
-              suggestion: 'Consider reviewing this subscription or looking for alternatives',
-              potentialSavings: (sub.amount - sub.lastAmount) * 12,
-              timestamp: new Date().toISOString(),
-              isRead: false
-            })
-          }
-        })
-
-        // Check for high-cost subscriptions
-        subscriptions.forEach(sub => {
-          if (sub.amount > 50) {
-            insights.push({
-              id: `alert-${Date.now()}-${Math.random()}`,
-              subscriptionId: sub.id,
-              subscriptionName: sub.name,
-              type: 'unused',
-              message: `${sub.name} costs $${sub.amount.toFixed(2)}/month`,
-              suggestion: 'High-cost subscription detected. Consider if you\'re getting full value',
-              potentialSavings: sub.amount * 12,
-              timestamp: new Date().toISOString(),
-              isRead: false
-            })
-          }
-        })
-
-        if (insights.length > 0) {
-          setAiAlerts((current) => [...insights, ...(current || [])])
-          toast.success(`AI found ${insights.length} insight${insights.length > 1 ? 's' : ''}!`)
+        if (newSubs.length > 0) {
+          setAiExtractedSubs((current) => [...(current || []), ...newSubs])
+          toast.success(`Extracted ${newSubs.length} new subscription(s) from emails!`)
         } else {
-          toast.success('Your subscriptions look optimized!')
+          toast.info('No new subscriptions found (all already tracked)')
         }
+
+        // Generate analysis insights
+        const analysis = await analyzeSubscriptions([...(aiExtractedSubs || []), ...newSubs])
+        setExtractionInsights(analysis.insights)
       } else {
-        toast.info('Add subscriptions to get AI insights')
+        toast.info('No billable subscriptions detected in emails')
       }
     } catch (error) {
-      console.error('AI analysis error:', error)
-      toast.error('Failed to analyze subscriptions')
+      console.error('Subscription extraction error:', error)
+      toast.error('Failed to extract subscriptions')
     } finally {
-      setIsAnalyzing(false)
+      setIsExtractingSubs(false)
     }
-    return
+  }
 
-    /* Original code commented out to prevent 401 errors
+  // Merge manual subscriptions with AI-extracted for display
+  const allActiveSubscriptions = useMemo(() => {
+    const manualSubs = (subscriptions || []).map(sub => ({
+      ...sub,
+      source: 'manual' as const
+    }))
+
+    const aiSubs = (aiExtractedSubs || []).map(sub => ({
+      id: sub.id,
+      name: sub.name,
+      category: sub.category === 'ai-services' ? 'software' as const :
+               sub.category === 'cloud' ? 'software' as const :
+               sub.category === 'productivity' ? 'software' as const :
+               sub.category as Subscription['category'],
+      amount: sub.amount,
+      currency: sub.currency,
+      billingCycle: sub.billingCycle as Subscription['billingCycle'],
+      nextBillingDate: sub.nextBillingDate,
+      isActive: sub.status === 'active',
+      addedBy: 'ai' as const,
+      aiDetectedDate: sub.extractedAt,
+      notes: `Detected from ${sub.emailCount} email(s)`,
+      source: 'ai' as const,
+      originalCategory: sub.category,
+      confidence: sub.confidence
+    }))
+
+    return [...manualSubs, ...aiSubs]
+  }, [subscriptions, aiExtractedSubs])
+
+  // Calculate totals including AI-extracted subscriptions
+  const totalMonthlySpendCombined = useMemo(() => {
+    return allActiveSubscriptions.reduce((sum, sub) => {
+      if (!sub.isActive) return sum
+      if (sub.billingCycle === 'monthly') return sum + sub.amount
+      if (sub.billingCycle === 'yearly') return sum + (sub.amount / 12)
+      if (sub.billingCycle === 'weekly') return sum + (sub.amount * 4)
+      return sum
+    }, 0)
+  }, [allActiveSubscriptions])
+
+  // Upcoming bills from both manual and AI-extracted
+  const upcomingBillsCombined = useMemo(() => {
+    const today = new Date()
+    return allActiveSubscriptions
+      .filter(sub => sub.isActive && sub.nextBillingDate)
+      .map(sub => ({
+        ...sub,
+        daysUntil: Math.ceil((new Date(sub.nextBillingDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      }))
+      .filter(bill => bill.daysUntil >= 0 && bill.daysUntil <= 30)
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+      .slice(0, 10)
+  }, [allActiveSubscriptions])
+
+  // Remove AI-extracted subscription
+  const handleRemoveAiSubscription = (id: string) => {
+    setAiExtractedSubs((current) => (current || []).filter(s => s.id !== id))
+    toast.success('Subscription removed')
+  }
+
+  const handleAIAnalysis = async () => {
     setIsAnalyzing(true)
+    setShowAiResult(false)
 
     try {
+      // Gather all data for AI analysis
       const subsData = subscriptions?.map(s => ({
         name: s.name,
         category: s.category,
         amount: s.amount,
         cycle: s.billingCycle,
-        hasIncreased: s.lastAmount && s.amount > s.lastAmount
+        nextBilling: s.nextBillingDate
+      })) || []
+
+      const emailData = subscriptionEmails.slice(0, 20).map(e => ({
+        from: e.from.email,
+        subject: e.subject,
+        date: e.timestamp,
+        snippet: (e.snippet || e.body || '').substring(0, 200)
       }))
 
-      const prompt = spark.llmPrompt`You are a friendly financial advisor AI. Analyze these subscriptions: ${JSON.stringify(subsData)}
+      // Use Groq AI for analysis
+      if (isGroqConfigured()) {
+        const systemPrompt = `You are FlowSphere's Subscription Analyst AI. Analyze user's subscriptions and subscription-related emails to provide insights.
 
-Find potential issues:
-1. Subscriptions that may have increased in price
-2. Duplicate or overlapping services
-3. High-cost subscriptions that could be optimized
+Your tasks:
+1. Identify potential subscription services from emails
+2. Detect price changes or billing issues
+3. Find duplicate or overlapping services
+4. Suggest money-saving opportunities
+5. Alert about upcoming renewals
 
-Return a JSON object with a single property "insights" containing an array of insight objects with: type, subscriptionName, message, suggestion, potentialSavings (number).
+Be friendly, specific, and helpful. Format your response with clear sections and bullet points.`
 
-Be friendly, helpful, and mention how saving money could help others (like the message about a dollar being a day's meal).`
+        const userPrompt = `Analyze my subscriptions and subscription emails:
 
-      const result = await spark.llm(prompt, 'gpt-4o-mini', true)
-      const parsed = JSON.parse(result)
+**Current Tracked Subscriptions (${subsData.length}):**
+${subsData.length > 0 ? JSON.stringify(subsData, null, 2) : 'None tracked yet'}
 
-      if (parsed.insights && parsed.insights.length > 0) {
-        const newAlerts: AIAlert[] = parsed.insights.map((insight: any, index: number) => ({
-          id: `alert-${Date.now()}-${index}`,
-          subscriptionId: subscriptions?.find(s => s.name === insight.subscriptionName)?.id || '',
-          subscriptionName: insight.subscriptionName,
-          type: insight.type as AIAlert['type'],
-          message: insight.message,
-          suggestion: insight.suggestion,
-          potentialSavings: insight.potentialSavings,
-          timestamp: new Date().toISOString(),
-          isRead: false
-        }))
+**Recent Subscription Emails (${emailData.length}):**
+${emailData.length > 0 ? JSON.stringify(emailData, null, 2) : 'No subscription emails found'}
 
-        setAiAlerts((current) => [...newAlerts, ...(current || [])])
-        toast.success(`AI found ${newAlerts.length} new insights!`)
+Please provide:
+1. Summary of my subscription situation
+2. Any subscriptions detected from emails that I should track
+3. Potential savings opportunities
+4. Upcoming bills to watch
+5. Recommendations for optimization`
+
+        const messages: GroqMessage[] = [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+
+        const response = await groqChatWithHistory(messages, {
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.6,
+          max_tokens: 2048
+        })
+
+        setAiAnalysisResult(response)
+        setShowAiResult(true)
+        toast.success('AI analysis complete!')
+
+        // Also generate alerts from the analysis
+        const insights: AIAlert[] = []
+
+        // Auto-detect subscriptions from emails
+        subscriptionEmails.slice(0, 10).forEach(email => {
+          const knownServices = ['netflix', 'spotify', 'amazon', 'apple', 'google', 'microsoft', 'adobe', 'dropbox', 'zoom', 'slack', 'github', 'notion']
+          const emailText = `${email.from.email} ${email.subject}`.toLowerCase()
+
+          knownServices.forEach(service => {
+            if (emailText.includes(service) && !subscriptions?.some(s => s.name.toLowerCase().includes(service))) {
+              insights.push({
+                id: `alert-${Date.now()}-${Math.random()}`,
+                subscriptionId: '',
+                subscriptionName: service.charAt(0).toUpperCase() + service.slice(1),
+                type: 'unused',
+                message: `Detected ${service.charAt(0).toUpperCase() + service.slice(1)} in your emails`,
+                suggestion: 'Consider adding this to your tracked subscriptions',
+                timestamp: new Date().toISOString(),
+                isRead: false
+              })
+            }
+          })
+        })
+
+        if (insights.length > 0) {
+          setAiAlerts((current) => [...insights.slice(0, 5), ...(current || [])])
+        }
       } else {
-        toast.success('Your subscriptions look optimized!')
+        // Fallback local analysis
+        let result = '## Subscription Analysis\n\n'
+
+        if (subsData.length > 0) {
+          result += `### Tracked Subscriptions (${subsData.length})\n`
+          subsData.forEach(s => {
+            result += `- **${s.name}**: $${s.amount}/${s.cycle}\n`
+          })
+          result += '\n'
+        }
+
+        if (emailData.length > 0) {
+          result += `### Subscription Emails Found (${emailData.length})\n`
+          emailData.slice(0, 5).forEach(e => {
+            result += `- From: ${e.from}\n  Subject: ${e.subject}\n`
+          })
+          result += '\n'
+        }
+
+        result += '### Recommendations\n'
+        result += '- Configure Groq API key for detailed AI insights\n'
+        result += '- Track all subscriptions for better monitoring\n'
+        result += '- Review subscription emails regularly\n'
+
+        setAiAnalysisResult(result)
+        setShowAiResult(true)
+        toast.success('Analysis complete (basic mode)')
       }
     } catch (error) {
       console.error('AI analysis error:', error)
       toast.error('Failed to analyze subscriptions')
+
+      // Show fallback message
+      setAiAnalysisResult('Unable to complete AI analysis. Please try again later.')
+      setShowAiResult(true)
     } finally {
       setIsAnalyzing(false)
     }
-    */
   }
 
   const getCategoryIcon = (category: Subscription['category']) => {
@@ -402,7 +702,7 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sub-category">Category</Label>
-                  <Select value={newSub.category} onValueChange={(value: any) => setNewSub({ ...newSub, category: value })}>
+                  <Select value={newSub.category} onValueChange={(value: Subscription['category']) => setNewSub({ ...newSub, category: value })}>
                     <SelectTrigger id="sub-category">
                       <SelectValue />
                     </SelectTrigger>
@@ -428,7 +728,7 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sub-cycle">Billing Cycle</Label>
-                  <Select value={newSub.billingCycle} onValueChange={(value: any) => setNewSub({ ...newSub, billingCycle: value })}>
+                  <Select value={newSub.billingCycle} onValueChange={(value: Subscription['billingCycle']) => setNewSub({ ...newSub, billingCycle: value })}>
                     <SelectTrigger id="sub-cycle">
                       <SelectValue />
                     </SelectTrigger>
@@ -464,55 +764,15 @@ Be friendly, helpful, and mention how saving money could help others (like the m
               <EnvelopeSimple className="w-5 h-5 text-accent" weight="fill" />
               Connected Email Accounts
             </div>
-            <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" weight="bold" />
-                  Connect Email
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Connect Email Account</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="provider">Email Provider</Label>
-                    <Select value={newEmail.provider} onValueChange={(value) => setNewEmail({ ...newEmail, provider: value })}>
-                      <SelectTrigger id="provider">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="gmail">Gmail</SelectItem>
-                        <SelectItem value="yahoo">Yahoo Mail</SelectItem>
-                        <SelectItem value="outlook">Outlook</SelectItem>
-                        <SelectItem value="icloud">iCloud Mail</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-address">Email Address</Label>
-                    <Input
-                      id="email-address"
-                      type="email"
-                      value={newEmail.email}
-                      onChange={(e) => setNewEmail({ ...newEmail, email: e.target.value })}
-                      placeholder="your.email@example.com"
-                    />
-                  </div>
-                  <Button onClick={handleConnectEmail} className="w-full">
-                    Connect Account
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Badge variant="secondary" className="text-xs">
+              {realEmailAccounts.length} connected
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {connectedEmails && connectedEmails.length > 0 ? (
+          {realEmailAccounts.length > 0 ? (
             <div className="space-y-2">
-              {connectedEmails.map((account, index) => (
+              {realEmailAccounts.map((account, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-accent/5 rounded-lg border border-accent/20">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
@@ -523,20 +783,10 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                       <p className="text-sm text-muted-foreground">{account.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-mint text-mint-foreground">
-                      <CheckIcon className="w-3 h-3 mr-1" weight="fill" />
-                      Connected
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDisconnectEmail(account.email)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Badge className="bg-mint text-mint-foreground">
+                    <CheckIcon className="w-3 h-3 mr-1" weight="fill" />
+                    Connected
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -544,11 +794,193 @@ Be friendly, helpful, and mention how saving money could help others (like the m
             <div className="text-center py-8 text-muted-foreground">
               <EnvelopeSimple className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="font-semibold mb-1">No email accounts connected</p>
-              <p className="text-sm">Connect your email to automatically detect subscriptions</p>
+              <p className="text-sm">Go to Notifications tab to connect your email accounts</p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Subscription Emails Section - Grouped by Sender with Count Badges */}
+      <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-accent/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Envelope className="w-5 h-5 text-purple-500" weight="fill" />
+              Subscription Emails
+              {isVerifyingEmails && (
+                <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRescanEmails}
+                disabled={isVerifyingEmails}
+                className="text-xs h-7"
+              >
+                <Robot className="w-3 h-3 mr-1" />
+                AI Scan
+              </Button>
+              <Badge variant="secondary" className="bg-purple-500/20 text-purple-500 text-xs">
+                {groupedEmails.length} senders • {subscriptionEmails.length} emails
+              </Badge>
+            </div>
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Only showing true subscription emails (billing, renewals, memberships)
+          </p>
+        </CardHeader>
+        <CardContent className="pt-2">
+          {groupedEmails.length > 0 ? (
+            <ScrollArea className="h-[250px]">
+              <div className="space-y-1">
+                {groupedEmails.map((group, index) => (
+                  <motion.div
+                    key={group.senderEmail + index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.02 }}
+                  >
+                    {/* Grouped Email Header */}
+                    <div
+                      className="flex items-center gap-2 p-2 bg-background rounded-lg border hover:border-purple-500/50 cursor-pointer transition-all"
+                      onClick={() => group.count > 1 ? toggleGroupExpansion(group.senderEmail.toLowerCase()) : setSelectedEmail(group.latestEmail)}
+                    >
+                      {/* Expand/Collapse Icon */}
+                      {group.count > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleGroupExpansion(group.senderEmail.toLowerCase())
+                          }}
+                        >
+                          {expandedGroups.has(group.senderEmail.toLowerCase()) ? (
+                            <CaretDown className="w-3 h-3" />
+                          ) : (
+                            <CaretRight className="w-3 h-3" />
+                          )}
+                        </Button>
+                      )}
+
+                      {/* Sender Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-xs truncate">{group.senderName}</span>
+                          {group.count > 1 && (
+                            <Badge className="h-4 px-1.5 text-[10px] bg-purple-500 text-white">
+                              {group.count}
+                            </Badge>
+                          )}
+                          {group.emails.some(e => !e.read) && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {group.latestEmail.subject}
+                        </p>
+                      </div>
+
+                      {/* Date */}
+                      <div className="text-[10px] text-muted-foreground flex-shrink-0">
+                        {new Date(group.latestEmail.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+
+                    {/* Expanded Emails */}
+                    {expandedGroups.has(group.senderEmail.toLowerCase()) && group.count > 1 && (
+                      <div className="ml-6 mt-1 space-y-1 border-l-2 border-purple-500/30 pl-2">
+                        {group.emails.slice(0, 5).map((email) => (
+                          <div
+                            key={email.id}
+                            className="flex items-center gap-2 p-1.5 rounded bg-muted/50 hover:bg-muted cursor-pointer transition-colors text-xs"
+                            onClick={() => setSelectedEmail(email)}
+                          >
+                            <div className="flex-1 truncate">{email.subject}</div>
+                            <div className="text-[10px] text-muted-foreground flex-shrink-0">
+                              {new Date(email.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                        ))}
+                        {group.emails.length > 5 && (
+                          <p className="text-[10px] text-muted-foreground pl-2">
+                            +{group.emails.length - 5} more emails
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Envelope className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No subscription emails found</p>
+              <p className="text-xs">Connect your email to see billing & renewal notifications</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* AI Analysis Result Dialog */}
+      <Dialog open={showAiResult} onOpenChange={setShowAiResult}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Robot className="w-5 h-5 text-primary" weight="fill" />
+              AI Subscription Analysis
+              <Badge variant="secondary" className="ml-auto">
+                <Sparkle className="w-3 h-3 mr-1" weight="fill" />
+                Powered by Groq
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+              {aiAnalysisResult}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Preview Dialog */}
+      <Dialog open={!!selectedEmail} onOpenChange={() => setSelectedEmail(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Envelope className="w-5 h-5" />
+              Email Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedEmail && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">From</p>
+                <p className="font-medium">{selectedEmail.from.name || selectedEmail.from.email}</p>
+                <p className="text-sm text-muted-foreground">{selectedEmail.from.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Subject</p>
+                <p className="font-medium">{selectedEmail.subject}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Date</p>
+                <p>{new Date(selectedEmail.timestamp).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Content</p>
+                <div className="p-3 bg-muted rounded-lg text-sm max-h-[200px] overflow-auto">
+                  {selectedEmail.body || selectedEmail.snippet || 'No content available'}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Card className="border-primary/50 bg-gradient-to-br from-blue-mid/5 via-accent/5 to-primary/5">
         <CardHeader>
@@ -631,7 +1063,12 @@ Be friendly, helpful, and mention how saving money could help others (like the m
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Spend</p>
-                <p className="text-2xl font-bold">${totalMonthlySpend.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${totalMonthlySpendCombined.toFixed(2)}</p>
+                {totalMonthlySpendCombined > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {allActiveSubscriptions.filter(s => s.isActive).length} active subscription{allActiveSubscriptions.filter(s => s.isActive).length !== 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -645,7 +1082,7 @@ Be friendly, helpful, and mention how saving money could help others (like the m
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Yearly Total</p>
-                <p className="text-2xl font-bold">${totalYearlySpend.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${(totalMonthlySpendCombined * 12).toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -665,6 +1102,28 @@ Be friendly, helpful, and mention how saving money could help others (like the m
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Extraction Insights */}
+      {extractionInsights.length > 0 && (
+        <Card className="border-accent/50 bg-gradient-to-br from-accent/5 to-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Sparkle className="w-4 h-4 text-accent" weight="fill" />
+              AI Budget Insights
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              {extractionInsights.map((insight, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <Lightning className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" weight="fill" />
+                  <span>{insight}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {aiAlerts && aiAlerts.filter(a => !a.isRead).length > 0 && (
         <Card className="border-primary/50 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -735,45 +1194,78 @@ Be friendly, helpful, and mention how saving money could help others (like the m
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" weight="duotone" />
-              Active Subscriptions
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" weight="duotone" />
+                Active Subscriptions
+                {allActiveSubscriptions.filter(s => s.isActive).length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {allActiveSubscriptions.filter(s => s.isActive).length}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                onClick={handleExtractSubscriptions}
+                disabled={isExtractingSubs || subscriptionEmails.length === 0}
+                size="sm"
+                variant="outline"
+                className="gap-2 text-xs"
+              >
+                {isExtractingSubs ? (
+                  <>
+                    <ArrowClockwise className="w-3 h-3 animate-spin" />
+                    Extracting...
+                  </>
+                ) : (
+                  <>
+                    <Lightning className="w-3 h-3" weight="fill" />
+                    Extract from Emails
+                  </>
+                )}
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[500px] pr-4">
               <div className="space-y-3">
-                {subscriptions?.filter(s => s.isActive).map((sub, index) => (
+                {allActiveSubscriptions.filter(s => s.isActive).map((sub, index) => (
                   <motion.div
                     key={sub.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className="bg-secondary/30">
+                    <Card className={`bg-secondary/30 ${sub.source === 'ai' ? 'border-accent/30' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
                           <div className="flex gap-3 flex-1">
                             <div className="text-3xl">{getCategoryIcon(sub.category)}</div>
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h4 className="font-semibold">{sub.name}</h4>
                                 {sub.addedBy === 'ai' && (
-                                  <Badge variant="secondary" className="text-xs">AI Detected</Badge>
+                                  <Badge className="text-xs bg-accent/20 text-accent border-accent/30">
+                                    <Robot className="w-3 h-3 mr-1" />
+                                    AI Detected
+                                  </Badge>
+                                )}
+                                {sub.source === 'ai' && 'confidence' in sub && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {Math.round((sub.confidence as number) * 100)}% confidence
+                                  </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground capitalize">{sub.category}</p>
+                              <p className="text-sm text-muted-foreground capitalize">
+                                {'originalCategory' in sub ? sub.originalCategory : sub.category}
+                              </p>
                               <div className="flex items-center gap-2 mt-2">
                                 <p className="text-lg font-bold text-primary">
                                   ${sub.amount.toFixed(2)}
                                 </p>
                                 <span className="text-xs text-muted-foreground">/ {sub.billingCycle}</span>
                               </div>
-                              {sub.lastAmount && sub.amount > sub.lastAmount && (
-                                <Badge variant="destructive" className="mt-2 text-xs gap-1">
-                                  <TrendUp className="w-3 h-3" />
-                                  Increased from ${sub.lastAmount.toFixed(2)}
-                                </Badge>
+                              {sub.notes && (
+                                <p className="text-xs text-muted-foreground mt-1">{sub.notes}</p>
                               )}
                               <p className="text-xs text-muted-foreground mt-2">
                                 Next bill: {formatDate(sub.nextBillingDate)}
@@ -783,7 +1275,7 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteSubscription(sub.id)}
+                            onClick={() => sub.source === 'ai' ? handleRemoveAiSubscription(sub.id) : handleDeleteSubscription(sub.id)}
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash className="w-4 h-4" weight="duotone" />
@@ -793,11 +1285,22 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                     </Card>
                   </motion.div>
                 ))}
-                {(!subscriptions || subscriptions.filter(s => s.isActive).length === 0) && (
+                {allActiveSubscriptions.filter(s => s.isActive).length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No active subscriptions</p>
-                    <p className="text-sm">Add one to start tracking</p>
+                    <p className="text-sm mb-4">Add manually or extract from emails</p>
+                    {subscriptionEmails.length > 0 && (
+                      <Button
+                        onClick={handleExtractSubscriptions}
+                        disabled={isExtractingSubs}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Lightning className="w-4 h-4" weight="fill" />
+                        Extract from {subscriptionEmails.length} Emails
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -807,39 +1310,63 @@ Be friendly, helpful, and mention how saving money could help others (like the m
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" weight="duotone" />
-              Upcoming Bills
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" weight="duotone" />
+                Upcoming Bills
+                {upcomingBillsCombined.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {upcomingBillsCombined.length} due this month
+                  </Badge>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingBills.map((sub, index) => {
-                const daysUntil = Math.ceil((new Date(sub.nextBillingDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                const isUrgent = daysUntil <= 3
-                
+              {upcomingBillsCombined.map((bill, index) => {
+                const isUrgent = bill.daysUntil <= 3
+                const isDueToday = bill.daysUntil === 0
+
                 return (
                   <motion.div
-                    key={sub.id}
+                    key={bill.id}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className={isUrgent ? 'border-destructive/50 bg-destructive/5' : 'bg-muted/30'}>
+                    <Card className={
+                      isDueToday ? 'border-destructive bg-destructive/10' :
+                      isUrgent ? 'border-destructive/50 bg-destructive/5' :
+                      'bg-muted/30'
+                    }>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="text-2xl">{getCategoryIcon(sub.category)}</div>
+                            <div className="text-2xl">{getCategoryIcon(bill.category)}</div>
                             <div>
-                              <h4 className="font-semibold">{sub.name}</h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">{bill.name}</h4>
+                                {bill.source === 'ai' && (
+                                  <Robot className="w-3 h-3 text-accent" />
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground">
-                                {formatDate(sub.nextBillingDate)}
+                                {isDueToday ? 'Due Today!' :
+                                 bill.daysUntil === 1 ? 'Due Tomorrow' :
+                                 `Due in ${bill.daysUntil} days`}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-lg">${sub.amount.toFixed(2)}</p>
-                            {isUrgent && (
+                            <p className="font-bold text-lg">${bill.amount.toFixed(2)}</p>
+                            {isDueToday && (
+                              <Badge variant="destructive" className="text-xs mt-1">
+                                <Warning className="w-3 h-3 mr-1" />
+                                Today!
+                              </Badge>
+                            )}
+                            {isUrgent && !isDueToday && (
                               <Badge variant="destructive" className="text-xs mt-1">
                                 Due Soon!
                               </Badge>
@@ -851,10 +1378,21 @@ Be friendly, helpful, and mention how saving money could help others (like the m
                   </motion.div>
                 )
               })}
-              {upcomingBills.length === 0 && (
+              {upcomingBillsCombined.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No upcoming bills</p>
+                  <p className="text-sm">Extract subscriptions from emails to see upcoming bills</p>
+                </div>
+              )}
+              {upcomingBillsCombined.length > 0 && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total due this month:</span>
+                    <span className="font-bold text-lg">
+                      ${upcomingBillsCombined.reduce((sum, b) => sum + b.amount, 0).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

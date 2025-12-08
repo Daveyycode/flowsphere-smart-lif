@@ -7,6 +7,7 @@
  */
 
 import type { DashboardAnalytics, UserFeedback, SecurityAlert } from './ceo-dashboard'
+import { logger } from '@/lib/security-utils'
 
 /**
  * Competitive App Analysis
@@ -753,7 +754,8 @@ export class CEOAIAssistant {
     try {
       const data = localStorage.getItem(this.suggestionsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get feature suggestions from storage', error, 'CEOAIAssistant')
       return []
     }
   }
@@ -772,7 +774,8 @@ export class CEOAIAssistant {
     try {
       const data = localStorage.getItem(this.trendsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get market trends from storage', error, 'CEOAIAssistant')
       return []
     }
   }
@@ -784,7 +787,8 @@ export class CEOAIAssistant {
     try {
       const data = localStorage.getItem(this.reportsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get executive reports from storage', error, 'CEOAIAssistant')
       return []
     }
   }
@@ -828,7 +832,7 @@ export class CEOAIAssistant {
     criticalIssues: UserFeedback[],
     alerts: SecurityAlert[]
   ): string {
-    const parts = []
+    const parts: string[] = []
 
     // User growth
     if (analytics.users.growth > 10) {

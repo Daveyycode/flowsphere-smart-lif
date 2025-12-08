@@ -3,6 +3,8 @@
  * Real-time responsive weather updates with forecasts
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface WeatherData {
   location: {
     city: string
@@ -439,7 +441,8 @@ export class WeatherForecastManager {
       }
 
       return data
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get cached weather data', error, 'WeatherForecast')
       return null
     }
   }
@@ -458,7 +461,8 @@ export class WeatherForecastManager {
     try {
       const saved = localStorage.getItem(this.locationKey)
       return saved ? JSON.parse(saved) : null
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get saved location', error, 'WeatherForecast')
       return null
     }
   }

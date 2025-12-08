@@ -139,11 +139,15 @@ export function useSupabaseStorage<T>(
         },
         (payload) => {
           if (payload.new && payload.new[column]) {
-            const parsedData = typeof payload.new[column] === 'string'
-              ? JSON.parse(payload.new[column])
-              : payload.new[column]
-            setStoredValue(parsedData)
-            window.localStorage.setItem(key, JSON.stringify(parsedData))
+            try {
+              const parsedData = typeof payload.new[column] === 'string'
+                ? JSON.parse(payload.new[column])
+                : payload.new[column]
+              setStoredValue(parsedData)
+              window.localStorage.setItem(key, JSON.stringify(parsedData))
+            } catch (error) {
+              console.error(`Error parsing realtime data for key "${key}":`, error)
+            }
           }
         }
       )

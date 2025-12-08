@@ -244,7 +244,8 @@ export function getResponsiveSize(
   category: keyof typeof responsiveSizes,
   size: string
 ): string {
-  const sizeMap = responsiveSizes[category][size as keyof typeof responsiveSizes[typeof category]]
+  const categoryMap = responsiveSizes[category] as Record<string, Record<string, string>>
+  const sizeMap = categoryMap[size]
   return sizeMap?.[device] || sizeMap?.desktop || ''
 }
 

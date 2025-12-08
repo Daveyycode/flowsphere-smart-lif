@@ -20,7 +20,12 @@ import {
   Eye,
   EyeSlash,
   Key,
-  Check
+  Check,
+  CreditCard,
+  Link as LinkIcon,
+  Copy,
+  ArrowsClockwise,
+  Plus
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,13 +36,43 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-declare const spark: {
-  llm: (prompt: string, model?: string, jsonMode?: boolean) => Promise<string>
-}
+import { ceoAI } from '@/lib/claude-ai'
+import { paymongo, PayMongoPaymentLink } from '@/lib/paymongo'
 
 interface CEODashboardProps {
   onClose: () => void
+}
+
+interface BankAccount {
+  name: string
+  balance: number
+  type: string
+  last4: string
+}
+
+interface Suggestion {
+  id: number
+  type: string
+  title: string
+  description: string
+  impact: string
+  priority: string
+  metric?: string
+  action?: string
+}
+
+interface RecentActivity {
+  event: string
+  details: string
+  time: string
+  type: string
+}
+
+interface SubscriptionTier {
+  tier: string
+  users: number
+  revenue: number
+  color: string
 }
 
 export function CEODashboard({ onClose }: CEODashboardProps) {
@@ -54,21 +89,51 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     openai: localStorage.getItem('flowsphere-ceo-openai-key') || '',
     anthropic: localStorage.getItem('flowsphere-ceo-anthropic-key') || '',
     stripe: localStorage.getItem('flowsphere-ceo-stripe-key') || '',
+    paymongoSecret: localStorage.getItem('flowsphere-ceo-paymongo-secret') || '',
+    paymongoPublic: localStorage.getItem('flowsphere-ceo-paymongo-public') || '',
     plaid: localStorage.getItem('flowsphere-ceo-plaid-key') || '',
     bankOfAmerica: localStorage.getItem('flowsphere-ceo-boa-key') || '',
     chase: localStorage.getItem('flowsphere-ceo-chase-key') || '',
-    wellsFargo: localStorage.getItem('flowsphere-ceo-wells-key') || ''
+    wellsFargo: localStorage.getItem('flowsphere-ceo-wells-key') || '',
+    // Philippine Banks for payment receiving
+    bdo: localStorage.getItem('flowsphere-ceo-bdo-key') || '',
+    bpi: localStorage.getItem('flowsphere-ceo-bpi-key') || '',
+    metrobank: localStorage.getItem('flowsphere-ceo-metrobank-key') || '',
+    unionbank: localStorage.getItem('flowsphere-ceo-unionbank-key') || '',
+    gotyme: localStorage.getItem('flowsphere-ceo-gotyme-key') || '',
+    gcash: localStorage.getItem('flowsphere-ceo-gcash-key') || '',
+    maya: localStorage.getItem('flowsphere-ceo-maya-key') || '',
+    otherBanks: localStorage.getItem('flowsphere-ceo-otherbanks-key') || ''
   })
   const [showKeys, setShowKeys] = useState({
     openai: false,
     anthropic: false,
     stripe: false,
+    paymongoSecret: false,
+    paymongoPublic: false,
     plaid: false,
     bankOfAmerica: false,
     chase: false,
-    wellsFargo: false
+    wellsFargo: false,
+    // Philippine Banks
+    bdo: false,
+    bpi: false,
+    metrobank: false,
+    unionbank: false,
+    gotyme: false,
+    gcash: false,
+    maya: false,
+    otherBanks: false
   })
   const [isSavingKeys, setIsSavingKeys] = useState(false)
+
+  // PayMongo Payments state
+  const [paymentLinks, setPaymentLinks] = useState<PayMongoPaymentLink[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false)
+  const [showCreatePayment, setShowCreatePayment] = useState(false)
+  const [newPaymentAmount, setNewPaymentAmount] = useState('')
+  const [newPaymentDescription, setNewPaymentDescription] = useState('')
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false)
 
   // Real data - connect your analytics and banking APIs
   const metrics = {
@@ -79,11 +144,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     churnRate: 0
   }
 
-  const bankAccounts: Array<{name: string, balance: number, type: string, last4: string}> = []
+  const bankAccounts: BankAccount[] = []
 
-  const suggestions: Array<{id: number, type: string, title: string, description: string, impact: string, priority: string}> = []
+  const suggestions: Suggestion[] = []
 
-  const recentActivity: Array<{event: string, details: string, time: string, type: string}> = []
+  const recentActivity: RecentActivity[] = []
 
   const handleExecutiveAI = async () => {
     if (!aiPrompt.trim()) {
@@ -91,77 +156,62 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
       return
     }
 
+    // Check if Claude AI is configured
+    if (!ceoAI.isConfigured()) {
+      toast.error('Please add your Anthropic API key in the API Keys section below')
+      setAiResponse(`# Claude AI Not Configured\n\nTo use the CEO Executive AI, please add your **Anthropic API key** in the "API Keys & Integrations" section below.\n\n## How to get an API key:\n1. Visit [console.anthropic.com](https://console.anthropic.com)\n2. Create an account or sign in\n3. Go to API Keys section\n4. Generate a new key (starts with "sk-ant-...")\n5. Paste it in the Anthropic API Key field below\n\nOnce configured, you'll have access to:\n- **Workflow Generation** - Create detailed action plans\n- **Issue Analysis** - Debug and troubleshoot problems\n- **Report Generation** - Generate executive reports\n- **Security Guard** - Analyze risks and vulnerabilities`)
+      return
+    }
+
     setIsAiProcessing(true)
     setAiResponse('')
 
     try {
-      let systemPrompt = ''
+      let response = ''
 
       if (aiMode === 'workflow') {
-        systemPrompt = `You are a CEO Executive AI assistant specializing in workflow creation. Based on the user's request, create a detailed workflow with steps, responsibilities, and timelines. Format the response in a clear, actionable way with numbered steps.
-
-Context:
-- Company: FlowSphere (Life management platform)
-- Users: ${metrics.totalUsers.toLocaleString()}
-- Monthly Revenue: $${metrics.revenue.toLocaleString()}
-- Growth Rate: ${metrics.growth}%
-
-User Request: ${aiPrompt}
-
-Generate a comprehensive workflow that includes:
-1. Overview and objectives
-2. Step-by-step process
-3. Team responsibilities
-4. Timeline estimates
-5. Success metrics`
+        response = await ceoAI.generateWorkflow(aiPrompt, {
+          totalUsers: metrics.totalUsers,
+          revenue: metrics.revenue,
+          growthRate: metrics.growth
+        })
       } else if (aiMode === 'issues') {
-        systemPrompt = `You are a CEO Executive AI assistant specializing in issue analysis and solution generation. Analyze the user's concern and provide:
-1. Root cause analysis
-2. Impact assessment
-3. Recommended solutions (ranked by priority)
-4. Implementation steps
-5. Risk mitigation strategies
-
-Current Business Context:
-- Active Users: ${metrics.activeUsers.toLocaleString()}
-- Churn Rate: ${metrics.churnRate}%
-- Growth: ${metrics.growth}%
-
-Issue/Concern: ${aiPrompt}
-
-Provide actionable insights and solutions.`
+        response = await ceoAI.analyzeIssues(aiPrompt, {
+          activeUsers: metrics.activeUsers,
+          churnRate: metrics.churnRate,
+          growthRate: metrics.growth
+        })
       } else if (aiMode === 'report') {
-        systemPrompt = `You are a CEO Executive AI assistant specializing in executive report generation. Create a professional executive report based on the user's request.
-
-Business Metrics:
-- Total Users: ${metrics.totalUsers.toLocaleString()}
-- Active Users: ${metrics.activeUsers.toLocaleString()}
-- Monthly Revenue: $${metrics.revenue.toLocaleString()}
-- Growth Rate: ${metrics.growth}%
-- Churn Rate: ${metrics.churnRate}%
-
-Recent Business Insights:
-${suggestions.map(s => `- ${s.title}: ${s.description}`).join('\n')}
-
-Report Request: ${aiPrompt}
-
-Generate a comprehensive executive report with:
-1. Executive Summary
-2. Key Findings
-3. Data Analysis
-4. Recommendations
-5. Next Steps`
+        response = await ceoAI.generateReport(aiPrompt, {
+          totalUsers: metrics.totalUsers,
+          activeUsers: metrics.activeUsers,
+          revenue: metrics.revenue,
+          growthRate: metrics.growth,
+          churnRate: metrics.churnRate,
+          suggestions: suggestions.map(s => ({ title: s.title, description: s.description }))
+        })
       }
 
-      const response = await window.spark.llm(systemPrompt, 'gpt-4o')
       setAiResponse(response)
       toast.success('Analysis complete!')
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Executive AI error:', error)
-      toast.error('AI analysis failed. Using fallback response.')
 
-      // Fallback response
-      setAiResponse(`# Executive AI Response\n\n**Mode:** ${aiMode.toUpperCase()}\n\n**Request:** ${aiPrompt}\n\n## Analysis\n\nThis feature requires GitHub Spark authentication for full AI capabilities. However, based on your request, here are general recommendations:\n\n1. Review current metrics and identify areas for improvement\n2. Align team resources with strategic priorities\n3. Set measurable KPIs for tracking progress\n4. Schedule regular review meetings\n5. Document decisions and outcomes\n\n*For detailed AI-powered analysis, please deploy to GitHub Spark platform.*`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      if (errorMessage === 'NO_API_KEY') {
+        toast.error('Please add your Anthropic API key')
+        setAiResponse(`# API Key Required\n\nPlease add your Anthropic API key in the "API Keys & Integrations" section below to use Claude AI.`)
+      } else if (errorMessage === 'INVALID_API_KEY') {
+        toast.error('Invalid API key')
+        setAiResponse(`# Invalid API Key\n\nThe Anthropic API key appears to be invalid. Please check your key and try again.\n\nMake sure your key starts with "sk-ant-..."`)
+      } else if (errorMessage === 'RATE_LIMITED') {
+        toast.error('Rate limited - please try again later')
+        setAiResponse(`# Rate Limited\n\nToo many requests. Please wait a moment and try again.`)
+      } else {
+        toast.error('AI analysis failed')
+        setAiResponse(`# Analysis Error\n\n**Mode:** ${aiMode.toUpperCase()}\n\n**Request:** ${aiPrompt}\n\n## Error\n\n${errorMessage}\n\nPlease check your API key configuration and try again.`)
+      }
     } finally {
       setIsAiProcessing(false)
     }
@@ -171,9 +221,12 @@ Generate a comprehensive executive report with:
     setIsSavingKeys(true)
     try {
       Object.entries(apiKeys).forEach(([key, value]) => {
-        const storageKey = key === 'bankOfAmerica' ? 'flowsphere-ceo-boa-key'
-          : key === 'wellsFargo' ? 'flowsphere-ceo-wells-key'
-          : `flowsphere-ceo-${key}-key`
+        let storageKey = `flowsphere-ceo-${key}-key`
+        if (key === 'bankOfAmerica') storageKey = 'flowsphere-ceo-boa-key'
+        else if (key === 'wellsFargo') storageKey = 'flowsphere-ceo-wells-key'
+        else if (key === 'paymongoSecret') storageKey = 'flowsphere-ceo-paymongo-secret'
+        else if (key === 'paymongoPublic') storageKey = 'flowsphere-ceo-paymongo-public'
+
         if (value) {
           localStorage.setItem(storageKey, value)
         } else {
@@ -186,6 +239,78 @@ Generate a comprehensive executive report with:
       toast.error('Failed to save API keys')
     } finally {
       setTimeout(() => setIsSavingKeys(false), 500)
+    }
+  }
+
+  // PayMongo Payment Functions
+  const loadPaymentLinks = async () => {
+    if (!paymongo.isConfigured()) {
+      toast.error('Please configure PayMongo API keys first')
+      return
+    }
+
+    setIsLoadingPayments(true)
+    try {
+      const links = await paymongo.listPaymentLinks()
+      setPaymentLinks(links.filter(l => !l.attributes.archived).slice(0, 10))
+    } catch (error) {
+      console.error('Failed to load payment links:', error)
+      toast.error('Failed to load payment links')
+    } finally {
+      setIsLoadingPayments(false)
+    }
+  }
+
+  const createPaymentLink = async () => {
+    if (!newPaymentAmount || !newPaymentDescription) {
+      toast.error('Please enter amount and description')
+      return
+    }
+
+    const amount = parseFloat(newPaymentAmount)
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount')
+      return
+    }
+
+    setIsCreatingPayment(true)
+    try {
+      const link = await paymongo.createPaymentLink({
+        amount: paymongo.parseAmount(amount),
+        description: newPaymentDescription,
+        remarks: 'FlowSphere Payment'
+      })
+
+      setPaymentLinks(prev => [link, ...prev])
+      setNewPaymentAmount('')
+      setNewPaymentDescription('')
+      setShowCreatePayment(false)
+      toast.success('Payment link created!')
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(link.attributes.checkout_url)
+      toast.success('Link copied to clipboard!')
+    } catch (error: unknown) {
+      console.error('Failed to create payment link:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create payment link'
+      toast.error(errorMessage)
+    } finally {
+      setIsCreatingPayment(false)
+    }
+  }
+
+  const copyPaymentLink = (url: string) => {
+    navigator.clipboard.writeText(url)
+    toast.success('Payment link copied!')
+  }
+
+  const refreshPaymentStatus = async (linkId: string) => {
+    try {
+      const updatedLink = await paymongo.getPaymentLink(linkId)
+      setPaymentLinks(prev => prev.map(l => l.id === linkId ? updatedLink : l))
+      toast.success('Payment status refreshed')
+    } catch (error) {
+      toast.error('Failed to refresh status')
     }
   }
 
@@ -520,6 +645,174 @@ Generate a comprehensive executive report with:
             </Card>
           </motion.div>
 
+          {/* PayMongo Payment Links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="mb-8"
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" weight="duotone" />
+                    Payment Links
+                    <Badge variant="secondary" className="ml-2">PayMongo</Badge>
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadPaymentLinks}
+                      disabled={isLoadingPayments}
+                    >
+                      <ArrowsClockwise className={cn("w-4 h-4 mr-1", isLoadingPayments && "animate-spin")} />
+                      Refresh
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreatePayment(!showCreatePayment)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Create Link
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Create Payment Form */}
+                {showCreatePayment && (
+                  <div className="p-4 bg-muted/30 rounded-lg border space-y-3">
+                    <h4 className="font-medium text-sm">Create Payment Link</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Amount (PHP)</label>
+                        <Input
+                          type="number"
+                          placeholder="100.00"
+                          value={newPaymentAmount}
+                          onChange={(e) => setNewPaymentAmount(e.target.value)}
+                          min="1"
+                          step="0.01"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Description</label>
+                        <Input
+                          placeholder="Payment for..."
+                          value={newPaymentDescription}
+                          onChange={(e) => setNewPaymentDescription(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={createPaymentLink}
+                        disabled={isCreatingPayment}
+                        className="flex-1"
+                      >
+                        {isCreatingPayment ? 'Creating...' : 'Create & Copy Link'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowCreatePayment(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Links List */}
+                {!paymongo.isConfigured() ? (
+                  <div className="text-center py-8 space-y-3">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center">
+                      <CreditCard className="w-8 h-8 text-primary" weight="duotone" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1">PayMongo Not Configured</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Add your PayMongo API keys below to create payment links
+                      </p>
+                    </div>
+                  </div>
+                ) : paymentLinks.length === 0 ? (
+                  <div className="text-center py-8 space-y-3">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center">
+                      <LinkIcon className="w-8 h-8 text-primary" weight="duotone" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1">No Payment Links</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Create a payment link or click Refresh to load existing ones
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {paymentLinks.map((link) => (
+                      <div
+                        key={link.id}
+                        className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">
+                              {link.attributes.description}
+                            </p>
+                            <Badge
+                              variant="secondary"
+                              className={paymongo.getStatusColor(link.attributes.status)}
+                            >
+                              {link.attributes.status}
+                            </Badge>
+                          </div>
+                          <p className="text-lg font-bold text-primary">
+                            {paymongo.formatAmount(link.attributes.amount)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Ref: {link.attributes.reference_number}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyPaymentLink(link.attributes.checkout_url)}
+                            title="Copy link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => refreshPaymentStatus(link.id)}
+                            title="Refresh status"
+                          >
+                            <ArrowsClockwise className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.open(link.attributes.checkout_url, '_blank')}
+                            title="Open payment page"
+                          >
+                            <LinkIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Accepts GCash, Maya, Credit/Debit Cards, and Bank Transfers
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* CEO Executive AI */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -710,23 +1003,70 @@ Generate a comprehensive executive report with:
                     <CurrencyDollar className="w-4 h-4" weight="duotone" />
                     Payment Processing
                   </h4>
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">Stripe Secret Key</label>
-                    <div className="flex gap-2">
-                      <Input
-                        type={showKeys.stripe ? 'text' : 'password'}
-                        placeholder="sk_live_..."
-                        value={apiKeys.stripe}
-                        onChange={(e) => updateApiKey('stripe', e.target.value)}
-                        className="font-mono text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => toggleKeyVisibility('stripe')}
-                      >
-                        {showKeys.stripe ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Stripe Secret Key</label>
+                      <div className="flex gap-2">
+                        <Input
+                          type={showKeys.stripe ? 'text' : 'password'}
+                          placeholder="sk_live_..."
+                          value={apiKeys.stripe}
+                          onChange={(e) => updateApiKey('stripe', e.target.value)}
+                          className="font-mono text-sm"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => toggleKeyVisibility('stripe')}
+                        >
+                          {showKeys.stripe ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* PayMongo for Philippine Payments */}
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-primary font-medium mb-3 flex items-center gap-2">
+                        <span>🇵🇭</span> PayMongo (GCash, Maya, Cards)
+                      </p>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">PayMongo Secret Key</label>
+                        <div className="flex gap-2">
+                          <Input
+                            type={showKeys.paymongoSecret ? 'text' : 'password'}
+                            placeholder="sk_live_..."
+                            value={apiKeys.paymongoSecret}
+                            onChange={(e) => updateApiKey('paymongoSecret', e.target.value)}
+                            className="font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => toggleKeyVisibility('paymongoSecret')}
+                          >
+                            {showKeys.paymongoSecret ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2 mt-2">
+                        <label className="text-xs text-muted-foreground">PayMongo Public Key</label>
+                        <div className="flex gap-2">
+                          <Input
+                            type={showKeys.paymongoPublic ? 'text' : 'password'}
+                            placeholder="pk_live_..."
+                            value={apiKeys.paymongoPublic}
+                            onChange={(e) => updateApiKey('paymongoPublic', e.target.value)}
+                            className="font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => toggleKeyVisibility('paymongoPublic')}
+                          >
+                            {showKeys.paymongoPublic ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -814,6 +1154,170 @@ Generate a comprehensive executive report with:
                         >
                           {showKeys.wellsFargo ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </Button>
+                      </div>
+                    </div>
+
+                    {/* Philippine Banks Section */}
+                    <div className="col-span-2 mt-4 pt-4 border-t">
+                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        <span>🇵🇭</span> Philippine Payment Receivers
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Configure your Philippine bank accounts to receive payments from users
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">BDO Unibank Account</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.bdo ? 'text' : 'password'}
+                              placeholder="Account number..."
+                              value={apiKeys.bdo}
+                              onChange={(e) => updateApiKey('bdo', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('bdo')}
+                            >
+                              {showKeys.bdo ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">BPI Account</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.bpi ? 'text' : 'password'}
+                              placeholder="Account number..."
+                              value={apiKeys.bpi}
+                              onChange={(e) => updateApiKey('bpi', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('bpi')}
+                            >
+                              {showKeys.bpi ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">Metrobank Account</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.metrobank ? 'text' : 'password'}
+                              placeholder="Account number..."
+                              value={apiKeys.metrobank}
+                              onChange={(e) => updateApiKey('metrobank', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('metrobank')}
+                            >
+                              {showKeys.metrobank ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">UnionBank Account</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.unionbank ? 'text' : 'password'}
+                              placeholder="Account number..."
+                              value={apiKeys.unionbank}
+                              onChange={(e) => updateApiKey('unionbank', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('unionbank')}
+                            >
+                              {showKeys.unionbank ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">GCash Number</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.gcash ? 'text' : 'password'}
+                              placeholder="+63..."
+                              value={apiKeys.gcash}
+                              onChange={(e) => updateApiKey('gcash', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('gcash')}
+                            >
+                              {showKeys.gcash ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">Maya Number</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.maya ? 'text' : 'password'}
+                              placeholder="+63..."
+                              value={apiKeys.maya}
+                              onChange={(e) => updateApiKey('maya', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('maya')}
+                            >
+                              {showKeys.maya ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">GoTyme Bank Account</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.gotyme ? 'text' : 'password'}
+                              placeholder="Account number..."
+                              value={apiKeys.gotyme}
+                              onChange={(e) => updateApiKey('gotyme', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('gotyme')}
+                            >
+                              {showKeys.gotyme ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2 col-span-2">
+                          <label className="text-xs text-muted-foreground">Other Banks (Name: Account)</label>
+                          <div className="flex gap-2">
+                            <Input
+                              type={showKeys.otherBanks ? 'text' : 'password'}
+                              placeholder="Bank Name: Account Number..."
+                              value={apiKeys.otherBanks}
+                              onChange={(e) => updateApiKey('otherBanks', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => toggleKeyVisibility('otherBanks')}
+                            >
+                              {showKeys.otherBanks ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

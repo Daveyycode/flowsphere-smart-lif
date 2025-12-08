@@ -105,7 +105,7 @@ export function monitorAccountSecurity(
 
         if (distance > 100) { // >100km away
           suspicionReasons.push(`Login from ${login.location.city} (${Math.round(distance)}km away)`)
-          riskLevel = riskLevel === 'high' ? 'high' : 'medium'
+          riskLevel = 'medium'
         }
       }
 

@@ -4,6 +4,8 @@
  * Responsive theme management with system preference detection
  */
 
+import { logger } from '@/lib/security-utils'
+
 export type ThemeColor = 'orange' | 'blue' | 'green' | 'purple' | 'pink' | 'teal'
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
@@ -376,8 +378,8 @@ export class ThemeManager {
       if (stored) {
         return JSON.parse(stored)
       }
-    } catch {
-      // Fallback to default
+    } catch (error) {
+      logger.error('Failed to get theme config from storage, using default', error, 'ThemeSystem')
     }
 
     // Default configuration

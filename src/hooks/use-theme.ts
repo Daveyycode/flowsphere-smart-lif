@@ -1,4 +1,4 @@
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { useEffect } from 'react'
 
 export type ColorTheme = 'neon-noir' | 'aurora-borealis' | 'cosmic-latte' | 'candy-shop' | 'black-gray' | 'custom'

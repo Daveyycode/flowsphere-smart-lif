@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -30,54 +30,12 @@ interface NewsItem {
   url?: string
 }
 
-const mockNews: NewsItem[] = [
-  {
-    id: '1',
-    title: 'Tech stocks rally as AI innovation accelerates',
-    source: 'Financial Times',
-    category: 'Business',
-    time: '2 hours ago'
-  },
-  {
-    id: '2',
-    title: 'New study reveals benefits of family time',
-    source: 'Health News',
-    category: 'Health',
-    time: '4 hours ago'
-  },
-  {
-    id: '3',
-    title: 'Smart home devices see 40% adoption increase',
-    source: 'Tech Daily',
-    category: 'Technology',
-    time: '5 hours ago'
-  },
-  {
-    id: '4',
-    title: 'Weather alert: Clear skies expected this weekend',
-    source: 'Weather Channel',
-    category: 'Weather',
-    time: '6 hours ago'
-  }
-]
+// News data - will be populated from real news API or user's news sources
+const mockNews: NewsItem[] = []
 
 export function ResourcesView() {
-  const [gameSessions, setGameSessions] = useKV<GameSession[]>('flowsphere-game-sessions', [
-    {
-      id: '1',
-      childName: 'Alex',
-      game: 'Minecraft',
-      duration: 45,
-      date: new Date().toISOString()
-    },
-    {
-      id: '2',
-      childName: 'Emma',
-      game: 'Roblox',
-      duration: 30,
-      date: new Date().toISOString()
-    }
-  ])
+  // Game sessions - starts empty, will be populated by real user data
+  const [gameSessions, setGameSessions] = useKV<GameSession[]>('flowsphere-game-sessions', [])
 
   const [dailyLimit] = useState(120)
 

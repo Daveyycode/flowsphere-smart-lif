@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Archive, Trash, SpeakerHigh, Stop } from '@phosphor-icons/react'
+import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Archive, Trash, SpeakerHigh, Stop, Gear, Clock, UserList, X } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { speakText, stopSpeaking } from '@/lib/audio-summary'
 
@@ -19,11 +22,14 @@ declare const spark: {
 
 export interface Notification {
   id: string
-  category: 'urgent' | 'work' | 'personal' | 'subscription' | 'misc'
+  category: 'urgent' | 'work' | 'personal' | 'subscription' | 'bills' | 'important'
+  priority?: 'high' | 'medium' | 'low'
   title: string
   message: string
   time: string
+  timestamp?: string
   isRead: boolean
+  read?: boolean
   source: string
 }
 
@@ -48,6 +54,17 @@ export function NotificationsView({
 }: NotificationsViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSummarizing, setIsSummarizing] = useState(false)
+  const [showDndSettings, setShowDndSettings] = useState(false)
+
+  // DND Configuration
+  const [dndScheduleEnabled, setDndScheduleEnabled] = useKV<boolean>('flowsphere-dnd-schedule-enabled', false)
+  const [dndStartTime, setDndStartTime] = useKV<string>('flowsphere-dnd-start', '22:00')
+  const [dndEndTime, setDndEndTime] = useKV<string>('flowsphere-dnd-end', '07:00')
+  const [allowedContacts, setAllowedContacts] = useKV<string[]>('flowsphere-dnd-allowed-contacts', [])
+  const [newContact, setNewContact] = useState('')
+  const [repeatCallsRequired, setRepeatCallsRequired] = useKV<number>('flowsphere-dnd-repeat-calls', 3)
+  const [allowAllFamily, setAllowAllFamily] = useKV<boolean>('flowsphere-dnd-allow-family', true)
+  const [allowEmergencyServices, setAllowEmergencyServices] = useKV<boolean>('flowsphere-dnd-allow-emergency', true)
   const [isSpeaking, setIsSpeaking] = useState(false)
 
   const getCategoryIcon = (category: string) => {
@@ -76,7 +93,7 @@ export function NotificationsView({
     work: notifications.filter(n => n.category === 'work').length,
     personal: notifications.filter(n => n.category === 'personal').length,
     subscription: notifications.filter(n => n.category === 'subscription').length,
-    misc: notifications.filter(n => n.category === 'misc').length
+    misc: notifications.filter(n => n.category === 'bills').length
   }
 
   const filteredNotifications = selectedCategory === 'all' 
@@ -86,6 +103,19 @@ export function NotificationsView({
   const handleDndToggle = (enabled: boolean) => {
     onDndToggle(enabled)
     toast.success(enabled ? 'Do Not Disturb enabled' : 'Do Not Disturb disabled')
+  }
+
+  const handleAddContact = () => {
+    if (newContact.trim()) {
+      setAllowedContacts([...(allowedContacts || []), newContact.trim()])
+      setNewContact('')
+      toast.success('Contact added to bypass list')
+    }
+  }
+
+  const handleRemoveContact = (contact: string) => {
+    setAllowedContacts((allowedContacts || []).filter(c => c !== contact))
+    toast.success('Contact removed from bypass list')
   }
 
   const handleAudioSummary = async () => {
@@ -196,39 +226,185 @@ Keep it brief and informative. Return only the summary text, no additional forma
                       {dndEnabled ? 'Your notifications are silenced' : 'Enable to silence notifications while you sleep'}
                     </p>
                   </div>
-                  <Switch
-                    checked={dndEnabled}
-                    onCheckedChange={handleDndToggle}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <Dialog open={showDndSettings} onOpenChange={setShowDndSettings}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Gear className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Do Not Disturb Configuration</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-6 py-4">
+                          {/* Schedule Settings */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Clock className="w-5 h-5 text-primary" />
+                                <Label className="text-base">Automatic Schedule</Label>
+                              </div>
+                              <Switch
+                                checked={dndScheduleEnabled}
+                                onCheckedChange={setDndScheduleEnabled}
+                              />
+                            </div>
+                            {dndScheduleEnabled && (
+                              <div className="grid grid-cols-2 gap-4 pl-7">
+                                <div className="space-y-2">
+                                  <Label className="text-sm">Start Time</Label>
+                                  <Input
+                                    type="time"
+                                    value={dndStartTime}
+                                    onChange={(e) => setDndStartTime(e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm">End Time</Label>
+                                  <Input
+                                    type="time"
+                                    value={dndEndTime}
+                                    onChange={(e) => setDndEndTime(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Repeat Calls Threshold */}
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <Phone className="w-5 h-5 text-primary" />
+                              <Label className="text-base">Bypass on Repeated Calls</Label>
+                            </div>
+                            <div className="pl-7 space-y-2">
+                              <p className="text-sm text-muted-foreground">
+                                Allow calls through if the same number calls multiple times within 10 minutes
+                              </p>
+                              <div className="flex items-center space-x-3">
+                                <Slider
+                                  value={[repeatCallsRequired || 3]}
+                                  onValueChange={(value) => setRepeatCallsRequired(value[0])}
+                                  min={1}
+                                  max={5}
+                                  step={1}
+                                  className="flex-1"
+                                />
+                                <span className="text-sm font-medium w-12">{repeatCallsRequired} calls</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Bypass Options */}
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <UserList className="w-5 h-5 text-primary" />
+                              <Label className="text-base">Quick Bypass</Label>
+                            </div>
+                            <div className="pl-7 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Allow all family members</span>
+                                <Switch
+                                  checked={allowAllFamily}
+                                  onCheckedChange={setAllowAllFamily}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Allow emergency services (911, etc.)</span>
+                                <Switch
+                                  checked={allowEmergencyServices}
+                                  onCheckedChange={setAllowEmergencyServices}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Allowed Contacts List */}
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <UserList className="w-5 h-5 text-primary" />
+                              <Label className="text-base">Always Allow Contacts</Label>
+                            </div>
+                            <div className="pl-7 space-y-3">
+                              <p className="text-sm text-muted-foreground">
+                                Add contacts that can always reach you during Do Not Disturb
+                              </p>
+                              <div className="flex space-x-2">
+                                <Input
+                                  placeholder="Name or phone number"
+                                  value={newContact}
+                                  onChange={(e) => setNewContact(e.target.value)}
+                                  onKeyPress={(e) => e.key === 'Enter' && handleAddContact()}
+                                />
+                                <Button onClick={handleAddContact} size="sm">
+                                  Add
+                                </Button>
+                              </div>
+                              {(allowedContacts || []).length > 0 && (
+                                <ScrollArea className="h-32 rounded-md border p-3">
+                                  <div className="space-y-2">
+                                    {(allowedContacts || []).map((contact, index) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center justify-between bg-muted/50 rounded px-3 py-2"
+                                      >
+                                        <span className="text-sm">{contact}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => handleRemoveContact(contact)}
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </ScrollArea>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end pt-4">
+                            <Button onClick={() => {
+                              setShowDndSettings(false)
+                              toast.success('DND settings saved')
+                            }}>
+                              Save Changes
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Switch
+                      checked={dndEnabled}
+                      onCheckedChange={handleDndToggle}
+                    />
+                  </div>
                 </div>
-                
+
                 {dndEnabled && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 mt-4"
+                    className="space-y-2 mt-4"
                   >
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Phone className="w-4 h-4 text-primary" weight="duotone" />
-                      <span className="text-muted-foreground">
-                        Emergency override: {emergencyOverride} calls within 10 minutes
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      <CheckCircle className="w-4 h-4 text-primary" weight="duotone" />
+                      <span>
+                        {dndScheduleEnabled
+                          ? `Active ${dndStartTime} - ${dndEndTime}`
+                          : 'Manual mode'}
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Emergency Override Threshold</Label>
-                      <div className="flex items-center space-x-3">
-                        <Slider
-                          value={[emergencyOverride]}
-                          onValueChange={(value) => onEmergencyOverrideChange(value[0])}
-                          min={1}
-                          max={5}
-                          step={1}
-                          className="flex-1"
-                        />
-                        <span className="text-sm font-medium w-8">{emergencyOverride}</span>
+                    {(allowedContacts || []).length > 0 && (
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <UserList className="w-4 h-4 text-primary" weight="duotone" />
+                        <span>{(allowedContacts || []).length} contact(s) can bypass</span>
                       </div>
-                    </div>
+                    )}
                   </motion.div>
                 )}
               </div>
@@ -254,8 +430,8 @@ Keep it brief and informative. Return only the summary text, no additional forma
           <TabsTrigger value="subscription">
             Subscription ({categoryCounts.subscription})
           </TabsTrigger>
-          <TabsTrigger value="misc">
-            Misc ({categoryCounts.misc})
+          <TabsTrigger value="bills">
+            Bills ({categoryCounts.misc})
           </TabsTrigger>
         </TabsList>
 

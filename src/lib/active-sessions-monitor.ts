@@ -5,6 +5,7 @@
  */
 
 import { FaceCaptureSecurityManager, CapturedFace, SuspiciousActivityDetector } from './face-capture-security'
+import { logger } from '@/lib/security-utils'
 
 export interface LoginSession {
   id: string
@@ -210,7 +211,8 @@ export class ActiveSessionsMonitor {
 
       return validSessions
 
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get sessions from storage', error, 'ActiveSessionsMonitor')
       return []
     }
   }
@@ -348,7 +350,8 @@ export class ActiveSessionsMonitor {
     try {
       const stored = localStorage.getItem(this.socialAccountsKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get social accounts from storage', error, 'ActiveSessionsMonitor')
       return []
     }
   }
@@ -511,7 +514,8 @@ export class ActiveSessionsMonitor {
     try {
       // In production, call backend API to get IP
       return undefined
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to get IP address', error)
       return undefined
     }
   }
@@ -539,7 +543,8 @@ export class ActiveSessionsMonitor {
       }
 
       return undefined
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to get geolocation', error)
       return undefined
     }
   }

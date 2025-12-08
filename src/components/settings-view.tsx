@@ -14,8 +14,31 @@ import { useTheme, ColorTheme, CustomColors, applyColorsRealTime } from '@/hooks
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { VoiceCommandTester } from '@/components/voice-command-tester'
-import { EmailConnection } from '@/components/email-connection'
 import { useState, useRef, useEffect } from 'react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CaretUpDown, Envelope } from '@phosphor-icons/react'
+import { useKV } from '@/hooks/use-kv'
+import { EmailAccountStore, EmailAccount } from '@/lib/email/email-service'
+import { authApi } from '@/lib/api'
+
+interface PermissionsState {
+  gmail: boolean
+  outlook: boolean
+  yahoo: boolean
+  calls: boolean
+  sms: boolean
+  calendar: boolean
+  googleCalendar: boolean
+  outlookCalendar: boolean
+  location: boolean
+  familyLocation: boolean
+  homeDevices: boolean
+  cameras: boolean
+  notifications: boolean
+  contacts: boolean
+  storage: boolean
+  hasSeenPrompt: boolean
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -34,7 +57,7 @@ interface SettingsViewProps {
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
   onUserNameChange: (name: string) => void
   onUserEmailChange: (email: string) => void
-  onNavigate: (tab: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice') => void
+  onNavigate: (tab: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice' | 'vault') => void
   onLogout?: () => void
 }
 
@@ -70,17 +93,242 @@ export function SettingsView({
       setEditEmail(userEmail)
     }
   }, [showAccountEdit, userName, userEmail])
-  const [socialAccounts, setSocialAccounts] = useState(() => {
+  // Social accounts - support multiple accounts per service (stored as arrays)
+  const [socialAccounts, setSocialAccounts] = useState<Record<string, string[]>>(() => {
     const stored = localStorage.getItem('flowsphere-social-accounts')
-    return stored ? JSON.parse(stored) : {
-      google: '',
-      yahoo: '',
-      outlook: '',
-      facebook: '',
-      twitter: '',
-      instagram: ''
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      // Migrate old format (strings) to new format (arrays)
+      const migrated: Record<string, string[]> = {}
+      for (const [key, value] of Object.entries(parsed)) {
+        if (Array.isArray(value)) {
+          migrated[key] = value as string[]
+        } else if (typeof value === 'string' && value.trim()) {
+          migrated[key] = [value]
+        } else {
+          migrated[key] = []
+        }
+      }
+      return migrated
+    }
+    return {
+      google: [],
+      yahoo: [],
+      outlook: [],
+      facebook: [],
+      twitter: [],
+      instagram: []
     }
   })
+
+  // Temporary input values for adding new social media accounts
+  const [newAccountInputs, setNewAccountInputs] = useState<Record<string, string>>({
+    facebook: '',
+    twitter: '',
+    instagram: ''
+  })
+
+  // OAuth email accounts state
+  const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([])
+  const [isConnectingEmail, setIsConnectingEmail] = useState(false)
+  const [showCustomEmailSetup, setShowCustomEmailSetup] = useState(false)
+  const [customEmailConfig, setCustomEmailConfig] = useState({
+    email: '',
+    password: '',
+    imapHost: '',
+    imapPort: '993',
+    smtpHost: '',
+    smtpPort: '587',
+    name: ''
+  })
+
+  // Load email accounts on mount
+  useEffect(() => {
+    loadEmailAccounts()
+    handleOAuthCallback()
+  }, [])
+
+  const loadEmailAccounts = () => {
+    const accounts = EmailAccountStore.getAccounts()
+    setEmailAccounts(accounts)
+  }
+
+  const handleOAuthCallback = async () => {
+    const urlParams = new URLSearchParams(window.location.search)
+    // Backend returns a JWT token after successful OAuth (auth_token param)
+    const token = urlParams.get('auth_token')
+    const error = urlParams.get('error')
+
+    if (error) {
+      toast.error('Failed to connect account', {
+        description: urlParams.get('message') || 'Please try again'
+      })
+      window.history.replaceState({}, document.title, window.location.pathname)
+      return
+    }
+
+    if (token) {
+      try {
+        toast.info('Connecting your account...')
+
+        // Exchange token with backend to get account data
+        const result = await authApi.completeOAuth(token)
+
+        if (!result.success || !result.data?.account) {
+          throw new Error(result.error || 'Failed to complete OAuth')
+        }
+
+        const accountData = result.data.account
+        const account: EmailAccount = {
+          id: accountData.id,
+          provider: accountData.provider as 'gmail' | 'yahoo' | 'outlook',
+          email: accountData.email,
+          name: accountData.name,
+          picture: accountData.picture,
+          accessToken: accountData.accessToken,
+          refreshToken: accountData.refreshToken,
+          expiresAt: accountData.expiresAt,
+          isActive: accountData.isActive,
+          connectedAt: accountData.connectedAt
+        }
+
+        EmailAccountStore.saveAccount(account)
+        loadEmailAccounts()
+
+        toast.success(`${accountData.provider.charAt(0).toUpperCase() + accountData.provider.slice(1)} connected successfully!`)
+
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } catch (error) {
+        console.error('OAuth callback error:', error)
+        toast.error('Failed to connect account. Please try again.')
+      }
+    }
+  }
+
+  const handleConnectEmail = (provider: 'gmail' | 'yahoo' | 'outlook' | 'icloud') => {
+    setIsConnectingEmail(true)
+
+    try {
+      // Use backend OAuth proxy - redirects to provider
+      authApi.initiateOAuth(provider, window.location.origin)
+    } catch (error) {
+      console.error('Connection error:', error)
+      toast.error('Failed to initiate connection')
+      setIsConnectingEmail(false)
+    }
+  }
+
+  const handleDisconnectEmail = (accountId: string) => {
+    EmailAccountStore.removeAccount(accountId)
+    loadEmailAccounts()
+    toast.success('Account disconnected')
+  }
+
+  const handleAddCustomEmail = () => {
+    if (!customEmailConfig.email || !customEmailConfig.password || !customEmailConfig.imapHost) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    const account: EmailAccount = {
+      id: `custom-${Date.now()}`,
+      provider: 'custom' as any,
+      email: customEmailConfig.email,
+      name: customEmailConfig.name || customEmailConfig.email.split('@')[0],
+      accessToken: btoa(JSON.stringify({
+        password: customEmailConfig.password,
+        imapHost: customEmailConfig.imapHost,
+        imapPort: customEmailConfig.imapPort,
+        smtpHost: customEmailConfig.smtpHost,
+        smtpPort: customEmailConfig.smtpPort
+      })),
+      refreshToken: '',
+      expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+      isActive: true,
+      connectedAt: new Date().toISOString()
+    }
+
+    EmailAccountStore.saveAccount(account)
+    loadEmailAccounts()
+    setShowCustomEmailSetup(false)
+    setCustomEmailConfig({
+      email: '',
+      password: '',
+      imapHost: '',
+      imapPort: '993',
+      smtpHost: '',
+      smtpPort: '587',
+      name: ''
+    })
+    toast.success('Custom email connected!')
+  }
+
+  // Email provider logos (inline SVG)
+  const ProviderLogo = ({ provider, size = 24 }: { provider: string; size?: number }) => {
+    switch (provider) {
+      case 'gmail':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="#EA4335"/>
+            <path d="M4 6L12 11L20 6" fill="#EA4335"/>
+            <path d="M2 6V18C2 19.1 2.9 20 4 20H8V9.5L2 6Z" fill="#4285F4"/>
+            <path d="M22 6V18C22 19.1 21.1 20 20 20H16V9.5L22 6Z" fill="#34A853"/>
+            <path d="M8 20V9.5L12 12.5L16 9.5V20H8Z" fill="#FBBC05"/>
+          </svg>
+        )
+      case 'yahoo':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="4" fill="#6001D2"/>
+            <path d="M7 7L10.5 13.5V17H13.5V13.5L17 7H14L12 11L10 7H7Z" fill="white"/>
+            <circle cx="12" cy="18.5" r="1.5" fill="white"/>
+          </svg>
+        )
+      case 'outlook':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="4" fill="#0078D4"/>
+            <path d="M3 6.5V17.5C3 18.3 3.7 19 4.5 19H10V5H4.5C3.7 5 3 5.7 3 6.5Z" fill="#0078D4"/>
+            <ellipse cx="6.5" cy="12" rx="2.5" ry="3.5" fill="white"/>
+            <path d="M10 5V19H19.5C20.3 19 21 18.3 21 17.5V6.5C21 5.7 20.3 5 19.5 5H10Z" fill="#0364B8"/>
+            <path d="M13 8L17 12L13 16V8Z" fill="white" fillOpacity="0.8"/>
+          </svg>
+        )
+      case 'icloud':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="4" fill="#3693F3"/>
+            <path d="M18.5 14.5C19.9 14.5 21 13.4 21 12C21 10.8 20.1 9.8 18.9 9.5C18.9 7.5 17.3 6 15.3 6C14 6 12.9 6.7 12.3 7.7C11.7 7.3 11 7 10.2 7C8.2 7 6.5 8.7 6.5 10.7C6.5 10.8 6.5 10.9 6.5 11C5.1 11.2 4 12.4 4 13.8C4 15.4 5.3 16.5 6.8 16.5H18.5V14.5Z" fill="white"/>
+          </svg>
+        )
+      case 'custom':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <rect width="24" height="24" rx="4" fill="#6B7280"/>
+            <path d="M4 6C4 5.4 4.4 5 5 5H19C19.6 5 20 5.4 20 6V18C20 18.6 19.6 19 19 19H5C4.4 19 4 18.6 4 18V6Z" stroke="white" strokeWidth="1.5"/>
+            <path d="M4 6L12 12L20 6" stroke="white" strokeWidth="1.5"/>
+          </svg>
+        )
+      default:
+        return (
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+            <Envelope className="w-4 h-4" />
+          </div>
+        )
+    }
+  }
+
+  const getProviderName = (provider: string) => {
+    const names: Record<string, string> = {
+      gmail: 'Gmail',
+      yahoo: 'Yahoo Mail',
+      outlook: 'Outlook',
+      icloud: 'iCloud Mail',
+      custom: 'Custom Email'
+    }
+    return names[provider] || provider
+  }
 
   // Security sessions state
   const [showSessions, setShowSessions] = useState(false)
@@ -125,6 +373,26 @@ export function SettingsView({
   // PWA Install state
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
+
+  // Permissions state - synced with permissions-settings.tsx
+  const [permissions] = useKV<PermissionsState>('flowsphere-permissions', {
+    gmail: false,
+    outlook: false,
+    yahoo: false,
+    calls: false,
+    sms: false,
+    calendar: false,
+    googleCalendar: false,
+    outlookCalendar: false,
+    location: false,
+    familyLocation: false,
+    homeDevices: false,
+    cameras: false,
+    notifications: true,
+    contacts: false,
+    storage: true,
+    hasSeenPrompt: false
+  })
 
   // Apply font settings in real-time as they change
   useEffect(() => {
@@ -205,7 +473,7 @@ export function SettingsView({
 
       if (newCount === 7) {
         // SECRET PASSAGE: 7 taps opens Vault
-        onTabChange('vault')
+        onNavigate('vault')
         toast.success('🔒 Vault Access Granted!', {
           description: 'Secure storage unlocked'
         })
@@ -309,6 +577,34 @@ export function SettingsView({
     localStorage.setItem('flowsphere-social-accounts', JSON.stringify(socialAccounts))
     toast.success('Account details saved!')
     setShowAccountEdit(false)
+  }
+
+  // Add a new account to a service
+  const handleAddAccount = (service: string) => {
+    const value = newAccountInputs[service]?.trim()
+    if (!value) return
+
+    // Check if account already exists
+    if (socialAccounts[service]?.includes(value)) {
+      toast.error('This account is already added')
+      return
+    }
+
+    setSocialAccounts(prev => ({
+      ...prev,
+      [service]: [...(prev[service] || []), value]
+    }))
+    setNewAccountInputs(prev => ({ ...prev, [service]: '' }))
+    toast.success('Account added')
+  }
+
+  // Remove an account from a service
+  const handleRemoveAccount = (service: string, account: string) => {
+    setSocialAccounts(prev => ({
+      ...prev,
+      [service]: prev[service]?.filter(a => a !== account) || []
+    }))
+    toast.success('Account removed')
   }
 
   const handleAddCustomKey = () => {
@@ -533,15 +829,6 @@ export function SettingsView({
           </Card>
         </motion.div>
         */}
-
-        {/* Email & Social Media Connections */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-        >
-          <EmailConnection currentPlan={subscription} />
-        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1107,9 +1394,15 @@ export function SettingsView({
                     <ShieldCheck className="w-4 h-4" />
                     Permissions & Privacy
                   </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-muted-foreground mb-2">
                     Control what FlowSphere can access.
                   </p>
+                  <div className="flex items-center justify-between py-2 mb-3">
+                    <span className="text-xs text-muted-foreground">Permissions Granted</span>
+                    <Badge variant="secondary" className="bg-mint/20 text-mint">
+                      {Object.values(permissions || {}).filter(Boolean).length} / {Object.keys(permissions || {}).length - 1}
+                    </Badge>
+                  </div>
                   <Button
                     variant="outline"
                     className="w-full"
@@ -1255,124 +1548,342 @@ export function SettingsView({
         </DialogContent>
       </Dialog>
 
-      {/* Account Edit Dialog */}
+      {/* Connected Email Accounts Dialog */}
       <Dialog open={showAccountEdit} onOpenChange={setShowAccountEdit}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-accent" weight="duotone" />
-              Edit Account Details
+              <Envelope className="w-5 h-5 text-accent" weight="duotone" />
+              Connected Email Accounts
             </DialogTitle>
             <DialogDescription>
-              Update your personal information and connected accounts.
+              Connect your email and social accounts for cross-platform features.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Basic Info */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Basic Information</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Your name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email Address</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    placeholder="your@email.com"
-                  />
-                </div>
-              </div>
+            {/* Full Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Your name"
+              />
             </div>
 
             <Separator />
 
-            {/* Social Media Connections */}
+            {/* Email Accounts - OAuth Connection */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Envelope className="w-4 h-4" />
+                  Email Accounts
+                </h4>
+                {emailAccounts.length > 0 && (
+                  <Badge variant="secondary" className="text-xs bg-mint/20 text-mint">
+                    {emailAccounts.length} connected
+                  </Badge>
+                )}
+              </div>
+
+              {/* Connected Email Accounts - Dropdown */}
+              {emailAccounts.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-11">
+                      <div className="flex items-center gap-2">
+                        <ProviderLogo provider={emailAccounts[0].provider} size={20} />
+                        <span className="truncate">{emailAccounts[0].email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {emailAccounts.length > 1 && (
+                          <Badge variant="secondary" className="text-xs">+{emailAccounts.length - 1}</Badge>
+                        )}
+                        <CaretUpDown className="w-4 h-4 opacity-50" />
+                      </div>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-2" align="start">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">Connected Accounts</p>
+                      {emailAccounts.map((account) => (
+                        <div key={account.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <ProviderLogo provider={account.provider} size={20} />
+                            <div>
+                              <p className="text-sm font-medium truncate max-w-[180px]">{account.email}</p>
+                              <p className="text-xs text-muted-foreground">{getProviderName(account.provider)}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDisconnectEmail(account.id)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              {/* Connect Email Buttons - Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {/* Gmail */}
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/20"
+                  onClick={() => handleConnectEmail('gmail')}
+                  disabled={isConnectingEmail}
+                >
+                  <ProviderLogo provider="gmail" size={20} />
+                  <span className="text-sm">Gmail</span>
+                </Button>
+
+                {/* Yahoo */}
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 hover:bg-purple-50 hover:border-purple-300 dark:hover:bg-purple-950/20"
+                  onClick={() => handleConnectEmail('yahoo')}
+                  disabled={isConnectingEmail}
+                >
+                  <ProviderLogo provider="yahoo" size={20} />
+                  <span className="text-sm">Yahoo</span>
+                </Button>
+
+                {/* Outlook */}
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950/20"
+                  onClick={() => handleConnectEmail('outlook')}
+                  disabled={isConnectingEmail}
+                >
+                  <ProviderLogo provider="outlook" size={20} />
+                  <span className="text-sm">Outlook</span>
+                </Button>
+
+                {/* iCloud */}
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 hover:bg-sky-50 hover:border-sky-300 dark:hover:bg-sky-950/20"
+                  onClick={() => handleConnectEmail('icloud' as any)}
+                  disabled={isConnectingEmail}
+                >
+                  <ProviderLogo provider="icloud" size={20} />
+                  <span className="text-sm">iCloud</span>
+                </Button>
+
+                {/* Custom/Business Email */}
+                <Button
+                  variant="outline"
+                  className="h-11 gap-2 col-span-2 sm:col-span-2 hover:bg-gray-50 hover:border-gray-400 dark:hover:bg-gray-800/20"
+                  onClick={() => setShowCustomEmailSetup(true)}
+                  disabled={isConnectingEmail}
+                >
+                  <ProviderLogo provider="custom" size={20} />
+                  <span className="text-sm">Custom / Business Email (IMAP)</span>
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                OAuth providers redirect to sign-in. Custom emails require IMAP/SMTP settings.
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Social Media Accounts - Profile Storage */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium flex items-center gap-2">
                   <LinkIcon className="w-4 h-4" />
-                  Connected Accounts
+                  Social Media Profiles
                 </h4>
                 <Badge variant="secondary" className="text-xs">Optional</Badge>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Facebook */}
                 <div className="space-y-2">
-                  <Label htmlFor="social-google" className="text-xs">Google</Label>
-                  <Input
-                    id="social-google"
-                    type="email"
-                    value={socialAccounts.google}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, google: e.target.value})}
-                    placeholder="google@email.com"
-                    className="text-sm"
-                  />
+                  <Label className="text-xs">Facebook</Label>
+                  <div className="flex gap-1">
+                    {socialAccounts.facebook?.length > 0 ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                            <span className="truncate">{socialAccounts.facebook[0]}</span>
+                            <div className="flex items-center gap-1 ml-2">
+                              {socialAccounts.facebook.length > 1 && (
+                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.facebook.length}</Badge>
+                              )}
+                              <CaretUpDown className="w-3 h-3 opacity-50" />
+                            </div>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="start">
+                          <div className="space-y-1">
+                            {socialAccounts.facebook.map((account, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                                <span className="truncate">{account}</span>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('facebook', account)}>
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Separator className="my-2" />
+                            <div className="flex gap-1">
+                              <Input
+                                placeholder="Add username"
+                                value={newAccountInputs.facebook}
+                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, facebook: e.target.value }))}
+                                className="h-8 text-sm"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('facebook')}
+                              />
+                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('facebook')}>
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <Input
+                        placeholder="@username"
+                        value={newAccountInputs.facebook}
+                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, facebook: e.target.value }))}
+                        className="text-sm flex-1 h-9"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('facebook')}
+                      />
+                    )}
+                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('facebook')}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Twitter/X */}
                 <div className="space-y-2">
-                  <Label htmlFor="social-yahoo" className="text-xs">Yahoo</Label>
-                  <Input
-                    id="social-yahoo"
-                    type="email"
-                    value={socialAccounts.yahoo}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, yahoo: e.target.value})}
-                    placeholder="yahoo@email.com"
-                    className="text-sm"
-                  />
+                  <Label className="text-xs">Twitter/X</Label>
+                  <div className="flex gap-1">
+                    {socialAccounts.twitter?.length > 0 ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                            <span className="truncate">{socialAccounts.twitter[0]}</span>
+                            <div className="flex items-center gap-1 ml-2">
+                              {socialAccounts.twitter.length > 1 && (
+                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.twitter.length}</Badge>
+                              )}
+                              <CaretUpDown className="w-3 h-3 opacity-50" />
+                            </div>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="start">
+                          <div className="space-y-1">
+                            {socialAccounts.twitter.map((account, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                                <span className="truncate">{account}</span>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('twitter', account)}>
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Separator className="my-2" />
+                            <div className="flex gap-1">
+                              <Input
+                                placeholder="Add username"
+                                value={newAccountInputs.twitter}
+                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, twitter: e.target.value }))}
+                                className="h-8 text-sm"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('twitter')}
+                              />
+                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('twitter')}>
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <Input
+                        placeholder="@username"
+                        value={newAccountInputs.twitter}
+                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, twitter: e.target.value }))}
+                        className="text-sm flex-1 h-9"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('twitter')}
+                      />
+                    )}
+                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('twitter')}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Instagram */}
                 <div className="space-y-2">
-                  <Label htmlFor="social-outlook" className="text-xs">Outlook</Label>
-                  <Input
-                    id="social-outlook"
-                    type="email"
-                    value={socialAccounts.outlook}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, outlook: e.target.value})}
-                    placeholder="outlook@email.com"
-                    className="text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="social-facebook" className="text-xs">Facebook</Label>
-                  <Input
-                    id="social-facebook"
-                    value={socialAccounts.facebook}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, facebook: e.target.value})}
-                    placeholder="@username"
-                    className="text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="social-twitter" className="text-xs">Twitter/X</Label>
-                  <Input
-                    id="social-twitter"
-                    value={socialAccounts.twitter}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, twitter: e.target.value})}
-                    placeholder="@username"
-                    className="text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="social-instagram" className="text-xs">Instagram</Label>
-                  <Input
-                    id="social-instagram"
-                    value={socialAccounts.instagram}
-                    onChange={(e) => setSocialAccounts({...socialAccounts, instagram: e.target.value})}
-                    placeholder="@username"
-                    className="text-sm"
-                  />
+                  <Label className="text-xs">Instagram</Label>
+                  <div className="flex gap-1">
+                    {socialAccounts.instagram?.length > 0 ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                            <span className="truncate">{socialAccounts.instagram[0]}</span>
+                            <div className="flex items-center gap-1 ml-2">
+                              {socialAccounts.instagram.length > 1 && (
+                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.instagram.length}</Badge>
+                              )}
+                              <CaretUpDown className="w-3 h-3 opacity-50" />
+                            </div>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="start">
+                          <div className="space-y-1">
+                            {socialAccounts.instagram.map((account, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                                <span className="truncate">{account}</span>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('instagram', account)}>
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Separator className="my-2" />
+                            <div className="flex gap-1">
+                              <Input
+                                placeholder="Add username"
+                                value={newAccountInputs.instagram}
+                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, instagram: e.target.value }))}
+                                className="h-8 text-sm"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('instagram')}
+                              />
+                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('instagram')}>
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <Input
+                        placeholder="@username"
+                        value={newAccountInputs.instagram}
+                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, instagram: e.target.value }))}
+                        className="text-sm flex-1 h-9"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('instagram')}
+                      />
+                    )}
+                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('instagram')}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Connect your accounts to enable cross-platform features and notifications.
+                Add your social media usernames to link your profiles.
               </p>
             </div>
           </div>
@@ -1557,6 +2068,116 @@ export function SettingsView({
                 Save Changes
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Email Setup Dialog */}
+      <Dialog open={showCustomEmailSetup} onOpenChange={setShowCustomEmailSetup}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ProviderLogo provider="custom" size={24} />
+              Connect Custom / Business Email
+            </DialogTitle>
+            <DialogDescription>
+              Connect your business email using IMAP/SMTP settings. You'll need your email provider's server details.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="custom-email">Email Address *</Label>
+                <Input
+                  id="custom-email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={customEmailConfig.email}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="custom-name">Display Name</Label>
+                <Input
+                  id="custom-name"
+                  placeholder="Your Name"
+                  value={customEmailConfig.name}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="custom-password">App Password *</Label>
+                <Input
+                  id="custom-password"
+                  type="password"
+                  placeholder="App-specific password"
+                  value={customEmailConfig.password}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, password: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use an app-specific password, not your regular password
+                </p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">IMAP Settings (Incoming)</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  placeholder="imap.example.com"
+                  value={customEmailConfig.imapHost}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, imapHost: e.target.value }))}
+                  className="col-span-2"
+                />
+                <Input
+                  placeholder="993"
+                  value={customEmailConfig.imapPort}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, imapPort: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">SMTP Settings (Outgoing)</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  placeholder="smtp.example.com"
+                  value={customEmailConfig.smtpHost}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, smtpHost: e.target.value }))}
+                  className="col-span-2"
+                />
+                <Input
+                  placeholder="587"
+                  value={customEmailConfig.smtpPort}
+                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                <strong>Common IMAP/SMTP settings:</strong><br/>
+                • Google Workspace: imap.gmail.com / smtp.gmail.com<br/>
+                • Microsoft 365: outlook.office365.com<br/>
+                • GoDaddy: imap.secureserver.net / smtpout.secureserver.net<br/>
+                • Zoho: imap.zoho.com / smtp.zoho.com
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCustomEmailSetup(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCustomEmail}>
+              <Check className="w-4 h-4 mr-2" />
+              Connect Email
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

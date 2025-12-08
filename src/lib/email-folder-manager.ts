@@ -350,12 +350,13 @@ function generateMatchReason(email: EmailMessage, folder: EmailFolder): string {
           reasons.push(`Contains keyword "${value}"`)
         }
         break
-      case 'domain':
+      case 'domain': {
         const domain = email.from.split('@')[1]?.toLowerCase() || ''
         if (domain.includes(value)) {
           reasons.push(`From ${value} domain`)
         }
         break
+      }
     }
   })
 
@@ -369,7 +370,7 @@ export function applyCategorizationsToFolders(
   categorizations: EmailCategorization[],
   folders: EmailFolder[]
 ): EmailFolder[] {
-  const updatedFolders = folders.map(folder => ({ ...folder, emailIds: [], count: 0 }))
+  const updatedFolders = folders.map(folder => ({ ...folder, emailIds: [] as string[], count: 0 }))
 
   categorizations.forEach(cat => {
     if (cat.verified || cat.confidence >= 70) {

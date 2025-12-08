@@ -4,6 +4,8 @@
  * Manages devices, family, automation, energy API, cameras, etc.
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface DeviceConfig {
   id: string
   name: string
@@ -207,7 +209,8 @@ export class ActiveDeviceConfigManager {
       })
 
       return sections
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get configuration sections', error, 'ActiveDeviceConfig')
       return []
     }
   }
@@ -248,7 +251,8 @@ export class ActiveDeviceConfigManager {
     try {
       const stored = localStorage.getItem(this.devicesKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get devices from storage', error, 'ActiveDeviceConfig')
       return []
     }
   }
@@ -302,7 +306,7 @@ export class ActiveDeviceConfigManager {
     }
 
     // In production, this would call the actual device API
-    console.log(`Controlling device ${device.name}: ${action}`, parameters)
+    logger.debug(`Controlling device ${device.name}: ${action}`, parameters)
 
     // Update device status
     device.lastActivity = new Date().toISOString()
@@ -339,7 +343,8 @@ export class ActiveDeviceConfigManager {
     try {
       const stored = localStorage.getItem(this.automationKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get automation rules from storage', error, 'ActiveDeviceConfig')
       return []
     }
   }
@@ -428,7 +433,8 @@ export class ActiveDeviceConfigManager {
     try {
       const stored = localStorage.getItem(this.energyKey)
       return stored ? JSON.parse(stored) : null
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get energy config from storage', error, 'ActiveDeviceConfig')
       return null
     }
   }
@@ -472,7 +478,8 @@ export class ActiveDeviceConfigManager {
     try {
       const stored = localStorage.getItem(this.camerasKey)
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get cameras from storage', error, 'ActiveDeviceConfig')
       return []
     }
   }

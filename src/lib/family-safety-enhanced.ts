@@ -3,6 +3,8 @@
  * GPS monitoring, safe zones, emergency voice memos, real-time tracking
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface FamilyMemberEnhanced {
   id: string
   name: string
@@ -117,7 +119,8 @@ export class EnhancedFamilySafetyManager {
     try {
       const data = localStorage.getItem(this.membersKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get family members from storage', error, 'FamilySafety')
       return []
     }
   }
@@ -381,7 +384,7 @@ export class EnhancedFamilySafetyManager {
       // Show notification
       this.showEmergencyNotification(memo)
     } catch (error) {
-      console.error('Error playing emergency memo:', error)
+      logger.error('Error playing emergency memo:', error)
     }
   }
 
@@ -393,9 +396,8 @@ export class EnhancedFamilySafetyManager {
       new Notification('🚨 EMERGENCY MESSAGE', {
         body: `Emergency voice message from ${memo.fromMemberName}`,
         requireInteraction: true,
-        vibrate: [200, 100, 200],
         tag: 'emergency-memo'
-      })
+      } as NotificationOptions)
     }
   }
 
@@ -419,7 +421,8 @@ export class EnhancedFamilySafetyManager {
     try {
       const data = localStorage.getItem(this.memosKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get voice memos from storage', error, 'FamilySafety')
       return []
     }
   }
@@ -431,7 +434,8 @@ export class EnhancedFamilySafetyManager {
     try {
       const data = localStorage.getItem(this.alertsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get alerts from storage', error, 'FamilySafety')
       return []
     }
   }
@@ -505,10 +509,10 @@ export class EnhancedFamilySafetyManager {
 
   private sendEmailNotification(alert: LocationAlert): void {
     // In production, send actual email
-    console.log('📧 Email notification:', alert.message)
+    logger.info('📧 Email notification:', alert.message)
 
     // Log to console for development
-    console.log({
+    logger.info('Email notification details', {
       to: 'user@example.com',
       subject: `Family Safety Alert: ${alert.memberName}`,
       body: `${alert.message}\n\nLocation: ${alert.location.address}\nTime: ${new Date(alert.timestamp).toLocaleString()}`
@@ -617,7 +621,7 @@ export class LocationTrackingService {
         }
       },
       (error) => {
-        console.error('Location error:', error)
+        logger.error('Location error:', error)
       },
       { enableHighAccuracy: false, timeout: 10000 }
     )

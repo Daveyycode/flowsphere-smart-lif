@@ -3,6 +3,8 @@
  * Biometric authentication + Hidden access patterns
  */
 
+import { logger } from '@/lib/security-utils'
+
 export interface VaultSecuritySettings {
   biometricEnabled: boolean
   biometricType: 'fingerprint' | 'face' | 'both' | null
@@ -20,7 +22,10 @@ export interface VaultSecuritySettings {
     customSelector?: string
     visible: boolean // If false, invisible until triggered
   }
-  fallbackPIN: string | null
+  // PIN is now stored as a hash, not plain text (security fix v2)
+  fallbackPIN: string | null // Legacy: plain text (deprecated)
+  fallbackPINHash: string | null // New: hashed PIN
+  fallbackPINSalt: string | null // Salt for hash verification
   autoLockTimeout: number // minutes, 0 = never
   lastAccess: string
   failedAttempts: number
@@ -87,7 +92,7 @@ export class BiometricAuth {
       return { available: false, types: []
 }
     } catch (error) {
-      console.error('Error checking biometric availability:', error)
+      logger.error('Error checking biometric availability:', error)
       return { available: false, types: [] }
     }
   }
@@ -135,7 +140,7 @@ export class BiometricAuth {
 
       return false
     } catch (error) {
-      console.error('Error registering biometric:', error)
+      logger.error('Error registering biometric:', error)
       return false
     }
   }
@@ -196,7 +201,7 @@ export class BiometricAuth {
         error: 'Authentication failed'
       }
     } catch (error) {
-      console.error('Error during biometric authentication:', error)
+      logger.error('Error during biometric authentication:', error)
       return {
         success: false,
         method: null,
@@ -231,7 +236,7 @@ export class PatternAccessManager {
   ): void {
     const element = document.getElementById(elementId)
     if (!element) {
-      console.error(`Element ${elementId} not found`)
+      logger.error(`Element ${elementId} not found`)
       return
     }
 
@@ -275,7 +280,7 @@ export class PatternAccessManager {
     const triggerElement = document.getElementById(triggerElementId)
 
     if (!hiddenElement || !triggerElement) {
-      console.error('Elements not found')
+      logger.error('Elements not found')
       return
     }
 
@@ -396,7 +401,7 @@ export class VaultSecurityManager {
         return JSON.parse(data)
       }
     } catch (error) {
-      console.error('Error loading vault security settings:', error)
+      logger.error('Error loading vault security settings:', error)
     }
 
     // Return defaults
@@ -422,7 +427,9 @@ export class VaultSecurityManager {
         location: 'footer',
         visible: false
       },
-      fallbackPIN: null,
+      fallbackPIN: null, // Legacy (deprecated)
+      fallbackPINHash: null,
+      fallbackPINSalt: null,
       autoLockTimeout: 15,
       lastAccess: new Date().toISOString(),
       failedAttempts: 0,
@@ -571,9 +578,9 @@ export class VaultSecurityManager {
   }
 
   /**
-   * Authenticate with PIN
+   * Authenticate with PIN (async for secure hash verification)
    */
-  authenticateWithPIN(pin: string): BiometricAuthResult {
+  async authenticateWithPIN(pin: string): Promise<BiometricAuthResult> {
     const settings = this.getSettings()
 
     if (this.isLockedOut()) {
@@ -585,7 +592,23 @@ export class VaultSecurityManager {
       }
     }
 
+    // Check new hashed PIN first
+    if (settings.fallbackPINHash && settings.fallbackPINSalt) {
+      const isValid = await this.verifyPINSecure(pin, settings.fallbackPINHash, settings.fallbackPINSalt)
+      if (isValid) {
+        this.onSuccessfulAuth()
+        return {
+          success: true,
+          method: 'pin',
+          timestamp: new Date().toISOString()
+        }
+      }
+    }
+
+    // Legacy: check plain text PIN (for backward compatibility, will migrate on success)
     if (settings.fallbackPIN && settings.fallbackPIN === pin) {
+      // Migrate to hashed PIN
+      await this.setFallbackPIN(pin)
       this.onSuccessfulAuth()
       return {
         success: true,
@@ -604,11 +627,82 @@ export class VaultSecurityManager {
   }
 
   /**
-   * Set/Update fallback PIN
+   * Verify PIN using secure hash comparison (timing-safe)
    */
-  setFallbackPIN(pin: string): void {
+  private async verifyPINSecure(pin: string, storedHash: string, salt: string): Promise<boolean> {
+    try {
+      const encoder = new TextEncoder()
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(pin),
+        'PBKDF2',
+        false,
+        ['deriveBits']
+      )
+
+      const hashBuffer = await crypto.subtle.deriveBits(
+        {
+          name: 'PBKDF2',
+          salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)),
+          iterations: 310000, // OWASP 2023 recommendation
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        256
+      )
+
+      const computedHash = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+
+      // Timing-safe comparison
+      if (computedHash.length !== storedHash.length) return false
+      let result = 0
+      for (let i = 0; i < computedHash.length; i++) {
+        result |= computedHash.charCodeAt(i) ^ storedHash.charCodeAt(i)
+      }
+      return result === 0
+    } catch (error) {
+      logger.debug('PIN verification failed', error)
+      return false
+    }
+  }
+
+  /**
+   * Set/Update fallback PIN (stores hash, not plain text)
+   */
+  async setFallbackPIN(pin: string): Promise<void> {
     const settings = this.getSettings()
-    settings.fallbackPIN = pin
+
+    // Generate salt
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const saltBase64 = btoa(String.fromCharCode(...salt))
+
+    // Hash the PIN
+    const encoder = new TextEncoder()
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(pin),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    )
+
+    const hashBuffer = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 310000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      256
+    )
+
+    const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+
+    // Store hash and salt, remove plain text
+    settings.fallbackPINHash = hashBase64
+    settings.fallbackPINSalt = saltBase64
+    settings.fallbackPIN = null // Remove legacy plain text
     this.saveSettings(settings)
   }
 

@@ -4,6 +4,8 @@
  * Supports Plaid, Stripe, and manual connections
  */
 
+import { logger } from '@/lib/security-utils'
+
 /**
  * Bank Account
  */
@@ -307,7 +309,8 @@ export class BankIntegrationManager {
     try {
       const data = localStorage.getItem(this.accountsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get bank accounts from storage', error, 'BankIntegration')
       return []
     }
   }
@@ -389,7 +392,8 @@ export class BankIntegrationManager {
     try {
       const data = localStorage.getItem(this.transactionsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get transactions from storage', error, 'BankIntegration')
       return []
     }
   }
@@ -562,7 +566,8 @@ export class BankIntegrationManager {
     try {
       const data = localStorage.getItem(this.budgetsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get budgets from storage', error, 'BankIntegration')
       return []
     }
   }
@@ -689,7 +694,8 @@ export class BankIntegrationManager {
     try {
       const data = localStorage.getItem(this.insightsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get financial insights from storage', error, 'BankIntegration')
       return []
     }
   }

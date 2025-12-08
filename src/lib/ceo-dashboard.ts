@@ -5,6 +5,7 @@
  */
 
 import { BiometricAuth, type BiometricAuthResult } from './vault-security'
+import { logger } from '@/lib/security-utils'
 
 /**
  * CEO Authentication Credentials
@@ -266,6 +267,7 @@ export class CEODashboardManager {
 
       // Log security event
       this.logSecurityEvent({
+        id: `ceo-login-${Date.now()}`,
         type: 'suspicious-login',
         severity: 'info',
         title: 'CEO Login',
@@ -346,7 +348,8 @@ export class CEODashboardManager {
       localStorage.setItem(this.sessionKey, JSON.stringify(session))
 
       return session
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get CEO session', error, 'CEODashboard')
       return null
     }
   }
@@ -484,7 +487,8 @@ export class CEODashboardManager {
     try {
       const data = localStorage.getItem(this.feedbackKey)
       return data ? JSON.parse(data) : this.getMockFeedback()
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get feedback from storage', error, 'CEODashboard')
       return this.getMockFeedback()
     }
   }
@@ -526,7 +530,8 @@ export class CEODashboardManager {
     try {
       const data = localStorage.getItem(this.apiKeysKey)
       return data ? JSON.parse(data) : this.getMockAPIKeys()
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get API keys from storage', error, 'CEODashboard')
       return this.getMockAPIKeys()
     }
   }
@@ -585,7 +590,8 @@ export class CEODashboardManager {
     try {
       const data = localStorage.getItem(this.alertsKey)
       return data ? JSON.parse(data) : []
-    } catch {
+    } catch (error) {
+      logger.error('Failed to get security alerts from storage', error, 'CEODashboard')
       return []
     }
   }
@@ -634,8 +640,8 @@ export class CEODashboardManager {
         // In production, decrypt the data
         return JSON.parse(atob(data))
       }
-    } catch {
-      // Fall through to default
+    } catch (error) {
+      logger.error('Failed to get CEO credentials, using defaults', error, 'CEODashboard')
     }
 
     return { ...this.DEFAULT_CREDENTIALS }

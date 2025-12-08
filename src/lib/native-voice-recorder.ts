@@ -1,4 +1,5 @@
 import { registerPlugin, Capacitor } from '@capacitor/core'
+import { logger } from '@/lib/security-utils'
 
 export interface VoiceRecorderPlugin {
   startRecording(): Promise<{ status: string; message: string }>
@@ -17,11 +18,12 @@ let VoiceRecorder: VoiceRecorderPlugin | null = null
 
 try {
   VoiceRecorder = registerPlugin<VoiceRecorderPlugin>('VoiceRecorder')
-  console.log('[VoiceRecorder] Plugin registered successfully')
-  console.log('[VoiceRecorder] Platform:', Capacitor.getPlatform())
-  console.log('[VoiceRecorder] isNativePlatform:', Capacitor.isNativePlatform())
+  logger.info('[VoiceRecorder] Plugin registered', {
+    platform: Capacitor.getPlatform(),
+    isNative: Capacitor.isNativePlatform()
+  }, 'VoiceRecorder')
 } catch (error) {
-  console.error('[VoiceRecorder] Failed to register plugin:', error)
+  logger.error('[VoiceRecorder] Failed to register plugin', error, 'VoiceRecorder')
 }
 
 export default VoiceRecorder

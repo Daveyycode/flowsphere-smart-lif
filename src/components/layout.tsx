@@ -6,10 +6,12 @@ import { useTheme } from '@/hooks/use-theme'
 import { useDeviceType } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 
+export type TabType = 'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather'
+
 interface LayoutProps {
   children: ReactNode
-  currentTab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice'
-  onTabChange: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice') => void
+  currentTab: TabType
+  onTabChange: (tab: TabType) => void
 }
 
 export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
@@ -73,7 +75,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                       'relative py-2 rounded-lg font-medium transition-colors min-touch-target',
                       isTablet ? 'px-3 text-sm' : 'px-4 text-base',
                       isActive
-                        ? 'text-foreground'
+                        ? 'text-blue-mid dark:text-blue-light font-semibold'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >

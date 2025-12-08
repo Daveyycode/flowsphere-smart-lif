@@ -3,18 +3,49 @@
  * Speech-to-Text (STT) and Text-to-Speech (TTS) using Groq API
  */
 
+import { logger } from '@/lib/security-utils'
+
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 const GROQ_STT_ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions'
 const GROQ_TTS_ENDPOINT = 'https://api.groq.com/openai/v1/audio/speech'
 
 /**
- * Available Groq TTS voices
+ * Available Groq TTS voices (PlayAI voices)
+ * See: https://console.groq.com/docs/text-to-speech
  */
 export const GROQ_VOICES = [
-  'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'
+  'Arista-PlayAI',
+  'Atlas-PlayAI',
+  'Basil-PlayAI',
+  'Briggs-PlayAI',
+  'Calum-PlayAI',
+  'Celeste-PlayAI',
+  'Cheyenne-PlayAI',
+  'Chip-PlayAI',
+  'Cillian-PlayAI',
+  'Deedee-PlayAI',
+  'Fritz-PlayAI',
+  'Gail-PlayAI',
+  'Indigo-PlayAI',
+  'Mamaw-PlayAI',
+  'Mason-PlayAI',
+  'Mikail-PlayAI',
+  'Mitch-PlayAI',
+  'Quinn-PlayAI',
+  'Thunder-PlayAI'
 ] as const
 
 export type GroqVoice = typeof GROQ_VOICES[number]
+
+// Voice aliases for compatibility (map old names to new PlayAI voices)
+const VOICE_MAP: Record<string, GroqVoice> = {
+  'nova': 'Celeste-PlayAI',
+  'alloy': 'Fritz-PlayAI',
+  'echo': 'Atlas-PlayAI',
+  'fable': 'Quinn-PlayAI',
+  'onyx': 'Thunder-PlayAI',
+  'shimmer': 'Arista-PlayAI'
+}
 
 /**
  * Speech-to-Text: Transcribe audio using Groq's Whisper API
@@ -57,14 +88,14 @@ export async function groqSpeechToText(
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Groq STT error:', error)
+      logger.error('Groq STT error:', error)
       throw new Error(`Groq STT failed: ${response.status} ${response.statusText}`)
     }
 
     const text = await response.text()
     return text.trim()
   } catch (error) {
-    console.error('Error in groqSpeechToText:', error)
+    logger.error('Error in groqSpeechToText:', error)
     throw error
   }
 }
@@ -72,16 +103,19 @@ export async function groqSpeechToText(
 /**
  * Text-to-Speech: Convert text to speech using Groq's TTS API
  * @param text The text to convert to speech
- * @param voice The voice to use (default: 'nova')
+ * @param voice The voice to use (default: 'Celeste-PlayAI')
  * @returns Audio blob
  */
 export async function groqTextToSpeech(
   text: string,
-  voice: GroqVoice = 'nova'
+  voice: GroqVoice | string = 'Celeste-PlayAI'
 ): Promise<Blob> {
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured')
   }
+
+  // Map old voice names to new PlayAI voices for compatibility
+  const mappedVoice = VOICE_MAP[voice as string] || voice as GroqVoice
 
   try {
     const response = await fetch(GROQ_TTS_ENDPOINT, {
@@ -91,9 +125,9 @@ export async function groqTextToSpeech(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'playai-dialog',
+        model: 'playai-tts',
         input: text,
-        voice: voice,
+        voice: mappedVoice,
         response_format: 'mp3',
         speed: 1.0
       })
@@ -101,26 +135,26 @@ export async function groqTextToSpeech(
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Groq TTS error:', error)
+      logger.error('Groq TTS error:', error)
       throw new Error(`Groq TTS failed: ${response.status} ${response.statusText}`)
     }
 
     const audioBlob = await response.blob()
     return audioBlob
   } catch (error) {
-    console.error('Error in groqTextToSpeech:', error)
+    logger.error('Error in groqTextToSpeech:', error)
     throw error
   }
 }
 
 /**
- * Play audio from text using Groq TTS
+ * Play audio from text using Groq TTS with browser fallback
  * @param text The text to speak
- * @param voice The voice to use
+ * @param voice The voice to use (default: 'Celeste-PlayAI', also accepts old names like 'nova')
  */
 export async function speakWithGroq(
   text: string,
-  voice: GroqVoice = 'nova'
+  voice: GroqVoice | string = 'Celeste-PlayAI'
 ): Promise<void> {
   try {
     const audioBlob = await groqTextToSpeech(text, voice)
@@ -139,8 +173,57 @@ export async function speakWithGroq(
       audio.play().catch(reject)
     })
   } catch (error) {
-    console.error('Error in speakWithGroq:', error)
-    throw error
+    logger.error('Groq TTS failed, falling back to browser speech:', error)
+    // Fallback to browser's built-in speech synthesis (free, no API needed)
+    return speakWithBrowser(text)
+  }
+}
+
+/**
+ * Browser-based TTS fallback using Web Speech API (free, no API needed)
+ */
+export function speakWithBrowser(text: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('Browser does not support speech synthesis'))
+      return
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(text)
+
+    // Try to find a nice voice
+    const voices = window.speechSynthesis.getVoices()
+    const preferredVoice = voices.find(v =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Google') ||
+      v.name.includes('Female') ||
+      v.lang.startsWith('en')
+    ) || voices[0]
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
+    }
+
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+    utterance.volume = 1.0
+
+    utterance.onend = () => resolve()
+    utterance.onerror = (event) => reject(new Error(event.error))
+
+    window.speechSynthesis.speak(utterance)
+  })
+}
+
+/**
+ * Stop any ongoing speech
+ */
+export function stopSpeaking(): void {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
   }
 }
 
@@ -161,6 +244,7 @@ function isIOS(): boolean {
 /**
  * AudioRecorder class for recording audio on mobile/desktop
  * Uses native iOS plugin on iOS devices, MediaRecorder on others
+ * Supports Voice Activity Detection (VAD) for automatic silence detection
  */
 export class GroqAudioRecorder {
   private mediaRecorder: MediaRecorder | null = null
@@ -169,6 +253,16 @@ export class GroqAudioRecorder {
   private useNativeRecorder: boolean = false
   private nativeRecorder: any = null
   private nativeRecorderPromise: Promise<any> | null = null
+
+  // Voice Activity Detection (VAD)
+  private audioContext: AudioContext | null = null
+  private analyser: AnalyserNode | null = null
+  private vadInterval: NodeJS.Timeout | null = null
+  private silenceStart: number | null = null
+  private hasSpoken: boolean = false
+  private onSilenceDetected: (() => void) | null = null
+  private silenceThreshold: number = 15 // Audio level below this is considered silence
+  private silenceDuration: number = 3000 // 3 seconds of silence before auto-stop
 
   constructor() {
     // iOS voice DISABLED - desktop/web only for now
@@ -183,7 +277,7 @@ export class GroqAudioRecorder {
           return null
         }
         this.nativeRecorder = module.default
-        console.log('[GroqAudioRecorder] Native voice recorder loaded successfully')
+        logger.info('[GroqAudioRecorder] Native voice recorder loaded successfully')
         return module.default
       }).catch(err => {
         console.warn('[GroqAudioRecorder] Failed to load native recorder, falling back to MediaRecorder:', err)
@@ -193,12 +287,76 @@ export class GroqAudioRecorder {
     }
   }
 
-  async startRecording(): Promise<void> {
+  /**
+   * Set callback for when silence is detected (user stopped speaking)
+   */
+  setOnSilenceDetected(callback: () => void): void {
+    this.onSilenceDetected = callback
+  }
+
+  /**
+   * Configure silence detection parameters
+   */
+  configureSilenceDetection(threshold: number = 15, durationMs: number = 3000): void {
+    this.silenceThreshold = threshold
+    this.silenceDuration = durationMs
+  }
+
+  /**
+   * Start Voice Activity Detection to monitor audio levels
+   */
+  private startVAD(): void {
+    if (!this.stream || !this.audioContext || !this.analyser) return
+
+    const dataArray = new Uint8Array(this.analyser.frequencyBinCount)
+    this.hasSpoken = false
+    this.silenceStart = null
+
+    // Check audio levels every 100ms
+    this.vadInterval = setInterval(() => {
+      if (!this.analyser) return
+
+      this.analyser.getByteFrequencyData(dataArray)
+
+      // Calculate average volume
+      const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length
+
+      if (average > this.silenceThreshold) {
+        // User is speaking
+        this.hasSpoken = true
+        this.silenceStart = null
+      } else if (this.hasSpoken) {
+        // Silence detected after user spoke
+        if (this.silenceStart === null) {
+          this.silenceStart = Date.now()
+        } else if (Date.now() - this.silenceStart >= this.silenceDuration) {
+          // Silence duration exceeded - user finished speaking
+          logger.info('[VAD] Silence detected for 3 seconds - user finished speaking')
+          this.stopVAD()
+          if (this.onSilenceDetected) {
+            this.onSilenceDetected()
+          }
+        }
+      }
+    }, 100)
+  }
+
+  /**
+   * Stop Voice Activity Detection
+   */
+  private stopVAD(): void {
+    if (this.vadInterval) {
+      clearInterval(this.vadInterval)
+      this.vadInterval = null
+    }
+  }
+
+  async startRecording(enableVAD: boolean = false): Promise<void> {
     if (this.useNativeRecorder) {
       try {
         // Wait for native recorder to load if not yet loaded
         if (!this.nativeRecorder && this.nativeRecorderPromise) {
-          console.log('Waiting for native recorder to load...')
+          logger.info('Waiting for native recorder to load...')
           await this.nativeRecorderPromise
         }
 
@@ -207,27 +365,42 @@ export class GroqAudioRecorder {
         }
 
         // Check permission first
-        console.log('Checking microphone permission...')
+        logger.info('Checking microphone permission...')
         const { hasPermission } = await this.nativeRecorder.hasPermission()
         if (!hasPermission) {
-          console.log('Requesting microphone permission...')
+          logger.info('Requesting microphone permission...')
           const { granted } = await this.nativeRecorder.requestPermission()
           if (!granted) {
             throw new Error('Microphone permission denied')
           }
         }
 
-        console.log('Starting native recording...')
+        logger.info('Starting native recording...')
         await this.nativeRecorder.startRecording()
-        console.log('Native recording started successfully!')
+        logger.info('Native recording started successfully!')
       } catch (error) {
-        console.error('Error starting native recording:', error)
+        logger.error('Error starting native recording:', error)
         throw error
       }
     } else {
       // Fall back to MediaRecorder
       try {
         this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+        // Set up AudioContext and Analyser for VAD if enabled
+        if (enableVAD) {
+          this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+          this.analyser = this.audioContext.createAnalyser()
+          this.analyser.fftSize = 256
+          this.analyser.smoothingTimeConstant = 0.8
+
+          const source = this.audioContext.createMediaStreamSource(this.stream)
+          source.connect(this.analyser)
+
+          // Start VAD monitoring
+          this.startVAD()
+          logger.info('[VAD] Voice Activity Detection enabled - will auto-stop after 3s silence')
+        }
 
         // Try different MIME types for compatibility
         const mimeTypes = [
@@ -256,7 +429,7 @@ export class GroqAudioRecorder {
 
         this.mediaRecorder.start()
       } catch (error) {
-        console.error('Error starting recording:', error)
+        logger.error('Error starting recording:', error)
         throw error
       }
     }
@@ -267,7 +440,7 @@ export class GroqAudioRecorder {
       try {
         // Wait for native recorder to load if not yet loaded
         if (!this.nativeRecorder && this.nativeRecorderPromise) {
-          console.log('Waiting for native recorder to load before stopping...')
+          logger.info('Waiting for native recorder to load before stopping...')
           await this.nativeRecorderPromise
         }
 
@@ -275,18 +448,18 @@ export class GroqAudioRecorder {
           throw new Error('Native recorder not available')
         }
 
-        console.log('Stopping native recording...')
+        logger.info('Stopping native recording...')
         const result = await this.nativeRecorder.stopRecording()
-        console.log('Native recording stopped, duration:', result.duration)
+        logger.info('Native recording stopped, duration:', result.duration)
 
         // Convert base64 to Blob
         const { base64ToBlob } = await import('./native-voice-recorder')
         const audioBlob = base64ToBlob(result.audioData, result.mimeType)
 
-        console.log('Audio blob created, size:', audioBlob.size, 'type:', audioBlob.type)
+        logger.info('Audio blob created', { size: audioBlob.size, type: audioBlob.type })
         return audioBlob
       } catch (error) {
-        console.error('Error stopping native recording:', error)
+        logger.error('Error stopping native recording:', error)
         throw error
       }
     } else {
@@ -297,12 +470,22 @@ export class GroqAudioRecorder {
           return
         }
 
+        // Stop VAD monitoring
+        this.stopVAD()
+
         this.mediaRecorder.onstop = () => {
           const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' })
 
-          // Clean up
+          // Clean up stream
           if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop())
+          }
+
+          // Clean up audio context
+          if (this.audioContext) {
+            this.audioContext.close().catch(() => {})
+            this.audioContext = null
+            this.analyser = null
           }
 
           resolve(audioBlob)
@@ -320,5 +503,12 @@ export class GroqAudioRecorder {
       return true // This is a simplified check
     }
     return this.mediaRecorder?.state === 'recording'
+  }
+
+  /**
+   * Check if user has started speaking
+   */
+  hasUserSpoken(): boolean {
+    return this.hasSpoken
   }
 }
