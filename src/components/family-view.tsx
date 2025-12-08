@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check } from '@phosphor-icons/react'
+import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrowArrow, Spinner, Warning, MapTrifold } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -9,11 +9,26 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { useDeviceType } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import QRCode from 'qrcode'
+import { useGPSTracking } from '@/hooks/use-gps-tracking'
+import { openInMaps } from '@/lib/gps-tracking'
+
+export interface SafeZone {
+  id: string
+  name: string
+  type: 'home' | 'work' | 'school' | 'custom'
+  coordinates: { lat: number; lng: number }
+  radius: number // in meters
+  address?: string
+  isActive?: boolean
+  alertOnEntry?: boolean
+  alertOnExit?: boolean
+}
 
 export interface FamilyMember {
   id: string
@@ -24,12 +39,14 @@ export interface FamilyMember {
   status: 'home' | 'work' | 'school' | 'traveling'
   lastSeen: string
   phoneNumber?: string
+  relationship?: string
   homeAddress?: string
   workAddress?: string
   schoolAddress?: string
   gpsCoordinates?: { lat: number; lng: number }
   registeredIpLocation?: { lat: number; lng: number; address: string }
   emailNotificationsEnabled?: boolean
+  safeZones?: SafeZone[]
 }
 
 interface FamilyViewProps {
@@ -42,6 +59,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
   const [lastGpsCheck] = useKV<string>('flowsphere-last-gps-check', '')
   const [recordingSOS, setRecordingSOS] = useState<string | null>(null)
   const [sosMessages] = useKV<Record<string, { audioUrl: string; timestamp: string; openedBy: string[] }>>('flowsphere-sos-messages', {})
+
+  // Real GPS tracking
+  const gps = useGPSTracking()
 
   // Edit dialog state
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null)
@@ -87,13 +107,54 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
   const handleGpsToggle = (enabled: boolean) => {
     setGpsMonitoringEnabled(enabled)
     if (enabled) {
-      toast.success('GPS monitoring enabled - Email alerts will be sent when family members move >1km from home')
+      // Start real GPS tracking
+      gps.startTracking()
+      toast.success('GPS monitoring enabled - Real-time location tracking active')
     } else {
+      // Stop GPS tracking
+      gps.stopTracking()
       toast.info('GPS monitoring disabled')
     }
   }
 
+  // Handle real SOS with GPS location
+  const handleRealSOS = (memberName: string) => {
+    if (!gps.currentLocation) {
+      // Try to get location first
+      gps.requestLocation().then(location => {
+        if (location) {
+          gps.sendSOS(memberName, 'Emergency SOS triggered!')
+        }
+      })
+    } else {
+      gps.sendSOS(memberName, 'Emergency SOS triggered!')
+    }
+  }
+
   const [generatedInviteCode, setGeneratedInviteCode] = useState<string | null>(null)
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null)
+
+  // Generate QR code when invite code is created
+  useEffect(() => {
+    if (generatedInviteCode) {
+      const qrData = JSON.stringify({
+        type: 'flowsphere-family-invite',
+        code: generatedInviteCode,
+        url: `${window.location.origin}?invite=${generatedInviteCode}`
+      })
+
+      QRCode.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }).then(setQrCodeDataUrl).catch(console.error)
+    } else {
+      setQrCodeDataUrl(null)
+    }
+  }, [generatedInviteCode])
 
   const handleSendInvite = () => {
     if (!inviteForm.name.trim() || !inviteForm.phoneNumber.trim()) {
@@ -145,6 +206,16 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
     if (generatedInviteCode) {
       navigator.clipboard.writeText(generatedInviteCode)
       toast.success('Invite code copied to clipboard!')
+    }
+  }
+
+  const downloadQRCode = () => {
+    if (qrCodeDataUrl && generatedInviteCode) {
+      const link = document.createElement('a')
+      link.download = `flowsphere-invite-${generatedInviteCode}.png`
+      link.href = qrCodeDataUrl
+      link.click()
+      toast.success('QR code downloaded!')
     }
   }
 
@@ -317,11 +388,177 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
             <div className="flex items-center gap-2 text-xs">
               <Bell className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {gpsMonitoringEnabled 
-                  ? "Active monitoring - Checks every 5 minutes" 
+                {gpsMonitoringEnabled
+                  ? "Active monitoring - Checks every 5 minutes"
                   : "GPS monitoring is currently disabled"}
               </span>
             </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Live GPS Location Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+      >
+        <Card className={cn(
+          "border-2 transition-all duration-300",
+          gps.isTracking
+            ? "border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/5"
+            : "border-muted bg-gradient-to-br from-muted/10 to-transparent"
+        )}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  gps.isTracking ? "bg-green-500/20" : "bg-muted/20"
+                )}>
+                  <NavigationArrow
+                    className={cn(
+                      "w-5 h-5",
+                      gps.isTracking ? "text-green-500 animate-pulse" : "text-muted-foreground"
+                    )}
+                    weight="bold"
+                  />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    Your Live Location
+                    {gps.isTracking && (
+                      <Badge variant="outline" className="text-green-500 border-green-500/50 text-xs">
+                        LIVE
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {gps.isTracking ? "Real-time GPS tracking active" : "Enable tracking to share your location"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant={gps.isTracking ? "destructive" : "default"}
+                size="sm"
+                onClick={() => gps.isTracking ? gps.stopTracking() : gps.startTracking()}
+                disabled={gps.isLoading}
+              >
+                {gps.isLoading ? (
+                  <Spinner className="w-4 h-4 animate-spin mr-2" />
+                ) : gps.isTracking ? (
+                  <Warning className="w-4 h-4 mr-2" />
+                ) : (
+                  <NavigationArrow className="w-4 h-4 mr-2" />
+                )}
+                {gps.isTracking ? "Stop Tracking" : "Start Tracking"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!gps.isSupported ? (
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
+                <Warning className="w-6 h-6 flex-shrink-0" weight="fill" />
+                <div>
+                  <p className="font-medium">GPS Not Available</p>
+                  <p className="text-sm opacity-80">Your browser doesn't support geolocation</p>
+                </div>
+              </div>
+            ) : gps.error ? (
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 text-destructive">
+                <Warning className="w-6 h-6 flex-shrink-0" weight="fill" />
+                <div className="flex-1">
+                  <p className="font-medium">Location Error</p>
+                  <p className="text-sm opacity-80">{gps.error}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => gps.requestLocation()}>
+                  Retry
+                </Button>
+              </div>
+            ) : gps.currentLocation ? (
+              <div className="space-y-3">
+                {/* Location display */}
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
+                  <MapPin className="w-5 h-5 text-green-500 mt-0.5" weight="fill" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {gps.currentLocation.address || `${gps.currentLocation.lat.toFixed(6)}, ${gps.currentLocation.lng.toFixed(6)}`}
+                    </p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <span>Accuracy: {Math.round(gps.currentLocation.accuracy)}m</span>
+                      <span>Updated: {gps.formatTime(gps.currentLocation.timestamp)}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openInMaps(gps.currentLocation!.lat, gps.currentLocation!.lng, 'My Location')}
+                  >
+                    <MapTrifold className="w-4 h-4 mr-1" />
+                    Open Map
+                  </Button>
+                </div>
+
+                {/* Coordinates display */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Latitude</p>
+                    <p className="font-mono text-sm font-medium">{gps.currentLocation.lat.toFixed(6)}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Longitude</p>
+                    <p className="font-mono text-sm font-medium">{gps.currentLocation.lng.toFixed(6)}</p>
+                  </div>
+                </div>
+
+                {/* Speed and altitude if available */}
+                {(gps.currentLocation.speed || gps.currentLocation.altitude) && (
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    {gps.currentLocation.speed && (
+                      <span>Speed: {Math.round(gps.currentLocation.speed * 3.6)} km/h</span>
+                    )}
+                    {gps.currentLocation.altitude && (
+                      <span>Altitude: {Math.round(gps.currentLocation.altitude)}m</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <NavigationArrow className="w-12 h-12 text-muted-foreground mx-auto mb-3" weight="duotone" />
+                <p className="text-muted-foreground mb-3">
+                  Click "Start Tracking" to enable live GPS location sharing
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => gps.requestLocation()}
+                  disabled={gps.isLoading}
+                >
+                  {gps.isLoading ? (
+                    <Spinner className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Crosshair className="w-4 h-4 mr-2" />
+                  )}
+                  Get My Location Now
+                </Button>
+              </div>
+            )}
+
+            {/* SOS Alert Section */}
+            {gps.currentLocation && (
+              <div className="pt-3 border-t border-border/50">
+                <Button
+                  variant="destructive"
+                  className="w-full h-12 text-lg font-bold animate-pulse"
+                  onClick={() => handleRealSOS('Me')}
+                >
+                  🚨 EMERGENCY SOS - Share My Location
+                </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Sends your exact GPS coordinates to all family members
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -794,6 +1031,16 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* QR Code */}
+            {qrCodeDataUrl && (
+              <div className="flex justify-center">
+                <div className="p-4 bg-white rounded-lg border-2 border-accent">
+                  <img src={qrCodeDataUrl} alt="QR Code" className="w-48 h-48" />
+                </div>
+              </div>
+            )}
+
+            {/* Text Code */}
             <div className="p-6 rounded-lg bg-gradient-to-br from-accent/20 to-primary/20 border-2 border-accent">
               <p className="text-xs text-muted-foreground mb-2 text-center">Invite Code</p>
               <p className="text-4xl font-bold text-center tracking-wider font-mono">
@@ -806,15 +1053,24 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 <strong>How to use:</strong>
               </p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Share this code with your family member</li>
-                <li>They should open FlowSphere and go to Family tab</li>
-                <li>Click "Join Family" and enter this code</li>
+                <li>Scan the QR code OR copy the invite code</li>
+                <li>Family member opens FlowSphere and goes to Family tab</li>
+                <li>Click "Join Family" and scan QR or enter code</li>
                 <li>Code expires in 7 days</li>
               </ol>
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={downloadQRCode}
+              className="gap-2"
+            >
+              <DownloadSimple className="w-4 h-4" />
+              Download QR
+            </Button>
             <Button
               type="button"
               variant="outline"
