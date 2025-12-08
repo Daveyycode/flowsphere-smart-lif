@@ -209,11 +209,7 @@ const getColorSchemes = (mode: 'light' | 'dark'): ColorScheme[] => {
 // MAIN COMPONENT
 // ============================================================================
 
-interface CEODashboardProps {
-  onLogout?: () => void;
-}
-
-const CEODashboard: React.FC<CEODashboardProps> = ({ onLogout }) => {
+const CEODashboard: React.FC = () => {
   // State Management
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'revenue' | 'system' | 'insights'>('overview');
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
