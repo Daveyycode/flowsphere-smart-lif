@@ -28,6 +28,8 @@ import { AIVoiceSettings } from '@/components/ai-voice-settings'
 import { Vault } from '@/components/vault'
 import { WeatherView } from '@/components/weather-view'
 import { Toaster } from '@/components/ui/sonner'
+import CEOAuth from '@/CEOAuth'
+import CEODashboard from '@/CEODashboard'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { Lock } from '@phosphor-icons/react'
@@ -46,6 +48,58 @@ import { EmailMonitorService } from '@/components/email-monitor-service'
 function App() {
   const { mode, colorTheme, toggleMode, setColorTheme } = useTheme()
   const deviceInfo = useDeviceInfo()
+
+  // CEO Dashboard routing - check URL path
+  const [ceoView, setCeoView] = useState<'none' | 'login' | 'dashboard'>(() => {
+    const path = window.location.pathname
+    if (path === '/ceo-login' || path === '/ceo-login.html') return 'login'
+    if (path === '/ceo-dashboard' || path === '/ceo-dashboard.html') return 'dashboard'
+    return 'none'
+  })
+  const [ceoAuthenticated, setCeoAuthenticated] = useState(() => {
+    return localStorage.getItem('flowsphere_ceo_authenticated') === 'true'
+  })
+
+  // Handle CEO authentication success
+  const handleCeoAuth = () => {
+    localStorage.setItem('flowsphere_ceo_authenticated', 'true')
+    setCeoAuthenticated(true)
+    setCeoView('dashboard')
+    window.history.pushState({}, '', '/ceo-dashboard')
+  }
+
+  // Handle CEO logout
+  const handleCeoLogout = () => {
+    localStorage.removeItem('flowsphere_ceo_authenticated')
+    setCeoAuthenticated(false)
+    setCeoView('login')
+    window.history.pushState({}, '', '/ceo-login')
+  }
+
+  // Render CEO views if on CEO routes
+  if (ceoView === 'login') {
+    return (
+      <>
+        <CEOAuth onAuthenticated={handleCeoAuth} />
+        <Toaster position="top-center" />
+      </>
+    )
+  }
+
+  if (ceoView === 'dashboard') {
+    if (!ceoAuthenticated) {
+      // Redirect to login if not authenticated
+      window.history.pushState({}, '', '/ceo-login')
+      setCeoView('login')
+      return null
+    }
+    return (
+      <>
+        <CEODashboard onLogout={handleCeoLogout} />
+        <Toaster position="top-center" />
+      </>
+    )
+  }
 
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
