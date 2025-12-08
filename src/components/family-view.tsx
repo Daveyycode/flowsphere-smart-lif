@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrowArrow, Spinner, Warning, MapTrifold } from '@phosphor-icons/react'
+import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrow, Spinner, Warning, MapTrifold } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
