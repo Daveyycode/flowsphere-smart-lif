@@ -332,7 +332,7 @@ function generateInviteCode(): string {
 export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   // Persistent storage
   const [myKeys, setMyKeys] = useKV<{ publicKey: string; privateKey: string } | null>('qr-messenger-keys', null)
-  const [myName, setMyName] = useKV<string>('qr-messenger-name', '')
+  const [myName] = useKV<string>('flowsphere-user-name', '') // Use name from settings
   const [contacts, setContacts] = useKV<Contact[]>('qr-messenger-contacts', [])
   const [messages, setMessages] = useKV<Message[]>('qr-messenger-messages', [])
   const [usedInvites, setUsedInvites] = useKV<string[]>('qr-messenger-used-invites', []) // Track used codes
@@ -1985,27 +1985,10 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               </DialogTitle>
             </DialogHeader>
 
-            {/* Name Setup */}
+            {/* Name reminder - name is set in Settings */}
             {!myName && (
               <div className="p-4 bg-yellow-50 border-b">
-                <Input
-                  placeholder="Enter your name..."
-                  defaultValue=""
-                  onChange={(e) => {
-                    const newName = e.target.value
-                    if (newName.trim()) {
-                      setMyName(newName)
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const newName = e.target.value
-                    if (newName.trim()) {
-                      setMyName(newName)
-                    }
-                  }}
-                  className="mb-2"
-                />
-                <p className="text-xs text-gray-600">Set your name to start messaging</p>
+                <p className="text-sm text-yellow-800">Please set your name in Settings first to use messenger.</p>
               </div>
             )}
 
