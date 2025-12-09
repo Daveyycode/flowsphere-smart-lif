@@ -30,6 +30,9 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
     setIsLoading(true)
 
     try {
+      // Debug: Log Supabase config
+      console.log('[AUTH] Attempting authentication...')
+
       // CEO login detection FIRST - before any validation (silent - logs in as normal user)
       // CEO credentials use username, not email format
       if (verifyCEOCredentials(email, password)) {
@@ -170,7 +173,12 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
       setIsLoading(false)
     } catch (error) {
       console.error('Authentication error:', error)
-      toast.error('An unexpected error occurred')
+      // Check for network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        toast.error('Network error - please check your internet connection and try again')
+      } else {
+        toast.error('An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      }
       setIsLoading(false)
     }
   }

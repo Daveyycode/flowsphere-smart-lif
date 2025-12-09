@@ -71,7 +71,6 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import QRCode from 'qrcode'
 import jsQR from 'jsqr'
-import { SteganographicQR } from './steganographic-qr'
 import { VideoCall, IncomingCall } from './video-call'
 import { generateRoomName, createDemoRoomUrl } from '@/lib/daily-call-service'
 import {
@@ -81,7 +80,7 @@ import {
   type CallInvite
 } from '@/lib/call-signaling'
 // FlowSphere QR System - Modular and replaceable
-import { generateQRCode as generateFlowSphereQR, parseQRData, isValidQRFormat } from '@/lib/flowsphere-qr'
+import { generateQRCode as generateFlowSphereQR, parseQRData } from '@/lib/flowsphere-qr'
 // E2EE Messenger Attachments
 import {
   encryptAttachment,
@@ -269,6 +268,22 @@ interface OneTimeInvite {
   expiresAt: string
   used: boolean // Marks if QR was scanned
   usedBy?: string // Contact ID who used it
+  // Group QR fields
+  isGroupInvite?: boolean // True if this is a group QR
+  groupMaxMembers?: number // Max members allowed (e.g., 5)
+  groupCurrentMembers?: number // Current member count
+  groupId?: string // Group identifier for marking members
+  groupMembers?: string[] // Array of device IDs who joined
+}
+
+// Group conversation marking - identifies members in a group
+interface GroupMarking {
+  groupId: string // Unique group identifier
+  groupName: string // Display name for the group
+  creatorId: string // Who created the group QR
+  memberIds: string[] // All member device IDs
+  maxMembers: number
+  createdAt: string
 }
 
 interface SecureQRMessengerProps {
@@ -324,8 +339,11 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   const [myPrivacySettings, setMyPrivacySettings] = useKV<MyPrivacySettings>('qr-messenger-privacy', DEFAULT_MY_PRIVACY_SETTINGS)
   const [lastOnline, setLastOnline] = useKV<string>('qr-messenger-last-online', new Date().toISOString())
   const [deletedContactIds, setDeletedContactIds] = useKV<string[]>('qr-messenger-deleted-contacts', []) // Track deleted contacts to prevent re-adding
+  const [groupMarkings, setGroupMarkings] = useKV<GroupMarking[]>('qr-messenger-group-markings', []) // Track group conversations
 
   // Local state
+  const [showGroupQRDialog, setShowGroupQRDialog] = useState(false) // Group QR creation dialog
+  const [groupMemberCount, setGroupMemberCount] = useState<number>(5) // Default group size
   const [currentInvite, setCurrentInvite] = useState<OneTimeInvite | null>(null)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
@@ -337,7 +355,6 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const [qrMode, setQrMode] = useState<'normal' | 'stealth'>('normal')
   const [showSettings, setShowSettings] = useState(false)
   const [showDeleteMessageDialog, setShowDeleteMessageDialog] = useState(false)
   const [showDeleteConversationDialog, setShowDeleteConversationDialog] = useState(false)
@@ -956,6 +973,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         userId: userId // Profile ID (changes per interaction)
       }
 
+      // Generate QR code
       const qrDataURL = await generateFlowSphereQR(qrInviteData, 300)
 
       setQrCodeDataURL(qrDataURL)
@@ -966,6 +984,138 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     } catch (error) {
       console.error('QR generation error:', error)
       toast.error('Failed to generate QR code')
+    } finally {
+      setIsGeneratingQR(false)
+    }
+  }
+
+  // Background QR generation (no dialog, no loading state)
+  const generateNewQRInBackground = async () => {
+    if (!myKeys || !myName) return
+
+    try {
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24)
+
+      let supabaseInvite: SupabasePairingInvite | null = null
+      try {
+        supabaseInvite = await createPairingInvite(deviceId, myName, myKeys.publicKey)
+        console.log('[AUTO-REGEN] New invite created:', supabaseInvite?.code)
+      } catch (err) {
+        console.warn('Background invite creation failed:', err)
+      }
+
+      const inviteCode = supabaseInvite?.code || generateInviteCode()
+
+      const invite: OneTimeInvite = {
+        code: inviteCode,
+        publicKey: myKeys.publicKey,
+        name: myName,
+        createdAt: new Date().toISOString(),
+        expiresAt: supabaseInvite?.expires_at || expiresAt.toISOString(),
+        used: false
+      }
+
+      const qrInviteData = {
+        code: invite.code,
+        publicKey: invite.publicKey,
+        name: invite.name,
+        expiresAt: invite.expiresAt,
+        deviceId: deviceId,
+        userId: userId
+      }
+
+      const qrDataURL = await generateFlowSphereQR(qrInviteData, 300)
+      setQrCodeDataURL(qrDataURL)
+      setCurrentInvite(invite)
+      console.log('[AUTO-REGEN] New QR ready for next contact')
+    } catch (error) {
+      console.error('Background QR generation failed:', error)
+    }
+  }
+
+  // ========== GROUP QR CODE GENERATION ==========
+
+  const generateGroupQR = async (maxMembers: number) => {
+    if (!myKeys || !myName) {
+      toast.error('Please set your name first')
+      return
+    }
+
+    if (maxMembers < 2 || maxMembers > 50) {
+      toast.error('Group size must be between 2 and 50 members')
+      return
+    }
+
+    setIsGeneratingQR(true)
+
+    try {
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24)
+
+      // Generate unique group ID
+      const groupId = `GRP_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+
+      let supabaseInvite: SupabasePairingInvite | null = null
+      try {
+        supabaseInvite = await createPairingInvite(deviceId, myName, myKeys.publicKey)
+        console.log('[GROUP] Pairing invite created:', supabaseInvite?.code)
+      } catch (err) {
+        console.warn('Group invite creation failed:', err)
+      }
+
+      const inviteCode = supabaseInvite?.code || generateInviteCode()
+
+      const invite: OneTimeInvite = {
+        code: inviteCode,
+        publicKey: myKeys.publicKey,
+        name: myName,
+        createdAt: new Date().toISOString(),
+        expiresAt: supabaseInvite?.expires_at || expiresAt.toISOString(),
+        used: false,
+        // Group fields
+        isGroupInvite: true,
+        groupMaxMembers: maxMembers,
+        groupCurrentMembers: 0,
+        groupId: groupId,
+        groupMembers: []
+      }
+
+      // Create group marking
+      const newGroupMarking: GroupMarking = {
+        groupId: groupId,
+        groupName: `${myName}'s Group`,
+        creatorId: deviceId,
+        memberIds: [deviceId], // Creator is first member
+        maxMembers: maxMembers,
+        createdAt: new Date().toISOString()
+      }
+      setGroupMarkings(prev => [...(prev || []), newGroupMarking])
+
+      const qrInviteData = {
+        code: invite.code,
+        publicKey: invite.publicKey,
+        name: invite.name,
+        expiresAt: invite.expiresAt,
+        deviceId: deviceId,
+        userId: userId,
+        // Include group info in QR data
+        isGroupInvite: true,
+        groupId: groupId,
+        groupMaxMembers: maxMembers,
+        groupCreatorName: myName
+      }
+
+      const qrDataURL = await generateFlowSphereQR(qrInviteData as any, 300)
+      setQrCodeDataURL(qrDataURL)
+      setCurrentInvite(invite)
+      setShowGroupQRDialog(false)
+      setShowQRDialog(true)
+
+      toast.success(`Group QR created! ${maxMembers} members can join.`)
+    } catch (error) {
+      console.error('Group QR generation error:', error)
+      toast.error('Failed to generate group QR code')
     } finally {
       setIsGeneratingQR(false)
     }
@@ -997,8 +1147,33 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
       // Validation already done by parseQRData, but double-check for safety
 
-      // Check if already used
-      if ((usedInvites || []).includes(scannedInvite.code)) {
+      // Check if it's a group invite
+      const isGroupInvite = (scannedInvite as any).isGroupInvite === true
+      const groupId = (scannedInvite as any).groupId as string | undefined
+      const groupMaxMembers = (scannedInvite as any).groupMaxMembers as number | undefined
+      const groupCreatorName = (scannedInvite as any).groupCreatorName as string | undefined
+
+      // For GROUP invites: Check if this device already scanned this group QR
+      if (isGroupInvite && groupId) {
+        const existingGroupMarking = (groupMarkings || []).find(g => g.groupId === groupId)
+        if (existingGroupMarking) {
+          // Check if this device is already a member (no duplicate scans)
+          if (existingGroupMarking.memberIds.includes(deviceId)) {
+            toast.error('You have already joined this group!')
+            setShowScanner(false)
+            return
+          }
+          // Check if group is full
+          if (existingGroupMarking.memberIds.length >= existingGroupMarking.maxMembers) {
+            toast.error('This group is full! No more members can join.')
+            setShowScanner(false)
+            return
+          }
+        }
+      }
+
+      // For PERSONAL (1:1) invites: Check if already used
+      if (!isGroupInvite && (usedInvites || []).includes(scannedInvite.code)) {
         toast.error('This QR code has already been used')
         return
       }
@@ -1020,14 +1195,17 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         (otherProfileId && c.contactProfileId === otherProfileId) ||
         c.publicKey === scannedInvite.publicKey
       )
-      if (existingContact) {
+      if (existingContact && !isGroupInvite) {
         toast.info(`You're already connected with ${existingContact.name}`)
         setShowScanner(false)
         return
       }
 
-      // Generate conversation ID (sorted for consistency between both users)
-      let conversationId = `conv_${[deviceId, otherDeviceId].sort().join('_')}`
+      // Generate conversation ID
+      // For groups: group_${groupId}, For personal: conv_${inviteCode}
+      let conversationId = isGroupInvite && groupId
+        ? `group_${groupId}`
+        : `conv_${scannedInvite.code}`
 
       // Try to accept via Supabase for BIDIRECTIONAL auto-connect
       let supabaseSuccess = false
@@ -1052,10 +1230,10 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         console.warn('Supabase pairing failed (offline mode):', err)
       }
 
-      // Create new contact locally
+      // Create new contact locally (with group marking if applicable)
       const newContact: Contact = {
         id: otherDeviceId,
-        name: scannedInvite.name,
+        name: isGroupInvite ? `${scannedInvite.name} [${groupCreatorName || 'Group'}]` : scannedInvite.name,
         publicKey: scannedInvite.publicKey,
         pairingCode: scannedInvite.code,
         pairedAt: new Date().toISOString(),
@@ -1066,9 +1244,47 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         contactProfileId: otherProfileId || undefined // Store their shareable User ID
       }
 
-      // Add contact and mark invite as used
+      // Handle group membership tracking
+      if (isGroupInvite && groupId && groupMaxMembers) {
+        // Update or create group marking
+        setGroupMarkings(prev => {
+          const existing = (prev || []).find(g => g.groupId === groupId)
+          if (existing) {
+            // Add this device to existing group
+            return (prev || []).map(g => g.groupId === groupId
+              ? { ...g, memberIds: [...g.memberIds, deviceId] }
+              : g
+            )
+          } else {
+            // Create new group marking (scanner is joining creator's group)
+            const newMarking: GroupMarking = {
+              groupId: groupId,
+              groupName: `${groupCreatorName || scannedInvite.name}'s Group`,
+              creatorId: otherDeviceId,
+              memberIds: [otherDeviceId, deviceId], // Creator + this scanner
+              maxMembers: groupMaxMembers,
+              createdAt: new Date().toISOString()
+            }
+            return [...(prev || []), newMarking]
+          }
+        })
+
+        // Check if group is now full after adding this member
+        const currentGroup = (groupMarkings || []).find(g => g.groupId === groupId)
+        const newMemberCount = (currentGroup?.memberIds.length || 1) + 1
+        if (newMemberCount >= groupMaxMembers) {
+          // Group is full - mark as fully used
+          setUsedInvites([...(usedInvites || []), scannedInvite.code])
+        }
+
+        console.log(`[GROUP] Joined group ${groupId}. Members: ${newMemberCount}/${groupMaxMembers}`)
+      } else {
+        // Personal 1:1 invite - mark as used immediately
+        setUsedInvites([...(usedInvites || []), scannedInvite.code])
+      }
+
+      // Add contact
       setContacts([...(contacts || []), newContact])
-      setUsedInvites([...(usedInvites || []), scannedInvite.code])
 
       // Mark our own invite as used if they scanned ours
       if (currentInvite && currentInvite.code === scannedInvite.code) {
@@ -1077,14 +1293,29 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
       setShowScanner(false)
 
-      if (supabaseSuccess) {
-        toast.success(`Connected with ${newContact.name}! They will see you automatically.`)
+      // Show appropriate success message
+      if (isGroupInvite && groupId) {
+        const currentGroup = (groupMarkings || []).find(g => g.groupId === groupId)
+        const memberCount = (currentGroup?.memberIds.length || 0) + 1
+        toast.success(`Joined ${groupCreatorName || scannedInvite.name}'s group! (${memberCount}/${groupMaxMembers} members)`)
+        sendMessage(`👋 Hey! I joined the group via QR code.`, newContact)
       } else {
-        toast.success(`Connected with ${newContact.name}!`)
-      }
+        if (supabaseSuccess) {
+          toast.success(`Connected with ${newContact.name}! They will see you automatically.`)
+        } else {
+          toast.success(`Connected with ${newContact.name}!`)
+        }
+        sendMessage(`👋 Hey ${newContact.name}! We're now connected securely.`, newContact)
 
-      // Send welcome message (will sync via Supabase if available)
-      sendMessage(`👋 Hey ${newContact.name}! We're now connected securely.`, newContact)
+        // AUTO-REGENERATE: Create new QR code for next contact (1 QR = 1 pair)
+        // This only runs for personal (non-group) invites
+        setTimeout(async () => {
+          console.log('[AUTO-REGEN] Generating new QR code after successful pairing...')
+          setCurrentInvite(null)
+          setQrCodeDataURL('')
+          await generateNewQRInBackground()
+        }, 1000)
+      }
 
     } catch (error) {
       console.error('QR scan error:', error)
@@ -1780,14 +2011,26 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
             {/* Action Buttons */}
             <div className="p-4 space-y-2">
-              <Button
-                onClick={generateOneTimeQR}
-                disabled={!myName || isGeneratingQR}
-                className="w-full"
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                {isGeneratingQR ? 'Generating...' : 'Generate QR Code'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={generateOneTimeQR}
+                  disabled={!myName || isGeneratingQR}
+                  className="flex-1"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  {isGeneratingQR ? 'Generating...' : '1:1 QR'}
+                </Button>
+
+                <Button
+                  onClick={() => setShowGroupQRDialog(true)}
+                  disabled={!myName || isGeneratingQR}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Group QR
+                </Button>
+              </div>
 
               <Button
                 onClick={() => setShowScanner(true)}
@@ -2338,54 +2581,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             <div className="space-y-4">
               {currentInvite && (
                 <>
-                  {/* QR Mode Toggle */}
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Button
-                      variant={qrMode === 'normal' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setQrMode('normal')}
-                    >
-                      Normal QR
-                    </Button>
-                    <Button
-                      variant={qrMode === 'stealth' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setQrMode('stealth')}
-                    >
-                      Stealth QR
-                    </Button>
-                  </div>
-
-                  {qrMode === 'stealth' && (
-                    <p className="text-xs text-center text-gray-500 mb-2">
-                      Faint QR code - harder to see but still scannable in-app
-                    </p>
-                  )}
-
-                  <div className={cn(
-                    "p-6 rounded-lg flex items-center justify-center",
-                    qrMode === 'normal' ? "bg-gray-50" : "bg-gradient-to-br from-gray-100 to-gray-200"
-                  )}>
-                    {qrMode === 'normal' ? (
-                      qrCodeDataURL && (
-                        <img
-                          src={qrCodeDataURL}
-                          alt="QR Code"
-                          className="w-full h-auto max-w-[250px]"
-                        />
-                      )
-                    ) : (
-                      <SteganographicQR
-                        value={JSON.stringify({
-                          code: currentInvite.code,
-                          publicKey: currentInvite.publicKey,
-                          name: currentInvite.name,
-                          expiresAt: currentInvite.expiresAt,
-                          deviceId: deviceId, // Internal device ID for pairing
-                          userId: userId // Shareable User ID
-                        })}
-                        size={250}
-                        hideMode="faint"
+                  <div className="p-6 rounded-lg flex items-center justify-center bg-white border">
+                    {qrCodeDataURL && (
+                      <img
+                        src={qrCodeDataURL}
+                        alt="QR Code"
+                        className="w-full h-auto max-w-[250px]"
                       />
                     )}
                   </div>
@@ -2436,12 +2637,24 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                     </Button>
                   </div>
 
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <p className="text-sm text-blue-900 flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      <strong>One-time use only:</strong> This QR code can only be scanned once
-                    </p>
-                  </div>
+                  {currentInvite.isGroupInvite ? (
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-sm text-purple-900 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <strong>Group QR:</strong> {currentInvite.groupCurrentMembers || 0}/{currentInvite.groupMaxMembers} members joined
+                      </p>
+                      <p className="text-xs text-purple-700 mt-1">
+                        Group ID: {currentInvite.groupId}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm text-blue-900 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        <strong>One-time use only:</strong> This QR code can only be scanned once
+                      </p>
+                    </div>
+                  )}
 
                   {currentInvite.used && (
                     <Button
@@ -2453,6 +2666,65 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   )}
                 </>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Group QR Creation Dialog */}
+        <Dialog open={showGroupQRDialog} onOpenChange={setShowGroupQRDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-600" />
+                Create Group QR Code
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <p className="text-sm text-purple-900">
+                  Create a QR code that multiple people can scan to join a group conversation.
+                  Each person can only scan once (no duplicates allowed).
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="groupSize">How many members can join?</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    id="groupSize"
+                    type="number"
+                    min={2}
+                    max={50}
+                    value={groupMemberCount}
+                    onChange={(e) => setGroupMemberCount(Math.min(50, Math.max(2, parseInt(e.target.value) || 2)))}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-gray-500">members (2-50)</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>✓ Same device cannot scan twice</p>
+                <p>✓ Group members are marked for identification</p>
+                <p>✓ QR expires after all slots are filled or 24 hours</p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowGroupQRDialog(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => generateGroupQR(groupMemberCount)}
+                  disabled={isGeneratingQR || groupMemberCount < 2}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  {isGeneratingQR ? 'Creating...' : `Create for ${groupMemberCount} members`}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

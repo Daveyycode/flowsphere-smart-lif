@@ -110,7 +110,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     }
   }
 
-  const handleConnect = (provider: 'google' | 'yahoo' | 'outlook' | 'apple') => {
+  const handleConnect = async (provider: 'google' | 'yahoo' | 'outlook' | 'apple') => {
     // Check email limit based on plan
     const limit = getEmailLimit()
     if (accounts.length >= limit) {
@@ -123,6 +123,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     setIsConnecting(true)
 
     try {
+      // Check if backend is available first
+      const healthCheck = await authApi.getProviders().catch(() => null)
+      if (!healthCheck?.success) {
+        toast.error('Email connection service temporarily unavailable', {
+          description: 'Please try again later or contact support'
+        })
+        setIsConnecting(false)
+        return
+      }
+
       // Use backend OAuth API
       authApi.initiateOAuth(provider, window.location.origin)
     } catch (error) {

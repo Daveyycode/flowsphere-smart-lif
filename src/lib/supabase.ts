@@ -4,6 +4,13 @@ import { logger } from '@/lib/security-utils'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
+// Log Supabase config status (not the actual values for security)
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[SUPABASE] Missing configuration! URL:', !!supabaseUrl, 'Key:', !!supabaseAnonKey)
+} else {
+  console.log('[SUPABASE] Configuration loaded successfully')
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,

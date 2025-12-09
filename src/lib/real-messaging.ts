@@ -1,6 +1,9 @@
 /**
  * REAL Messaging Service - Connects to Supabase Database
  * No more mock data - everything saves to real database
+ *
+ * Conversation ID is based on invite code - same code on both devices
+ * ensures messages route to the same conversation.
  */
 
 import { supabase } from './supabase'
@@ -318,14 +321,18 @@ export async function createPairingInvite(
 
 /**
  * Accept a pairing invite - creates contacts for BOTH users
- * This is the key function for auto-connect!
+ * Uses the invite code as conversation ID - SAME on both devices!
  */
 export async function acceptPairingInvite(
   inviteCode: string,
   acceptorId: string,
   acceptorName: string,
   acceptorPublicKey: string
-): Promise<{ success: boolean; contact?: any; error?: string }> {
+): Promise<{
+  success: boolean
+  contact?: any
+  error?: string
+}> {
   try {
     // Find the invite
     const { data: invite, error: findError } = await supabase
@@ -335,6 +342,7 @@ export async function acceptPairingInvite(
       .single()
 
     if (findError || !invite) {
+      console.error('[PAIRING] Invite lookup error:', findError)
       return { success: false, error: 'Invalid invite code' }
     }
 
@@ -353,8 +361,14 @@ export async function acceptPairingInvite(
       return { success: false, error: 'Cannot accept your own invite' }
     }
 
+    // ============================================
+    // SIMPLE CONVERSATION ID FROM INVITE CODE
+    // ============================================
+    // Use invite code as conversation ID - SAME on both devices!
+    const conversationId = `conv_${inviteCode}`
+
     // Update invite as accepted
-    await supabase
+    const { error: updateError } = await supabase
       .from('messenger_pairings')
       .update({
         accepted: true,
@@ -365,33 +379,48 @@ export async function acceptPairingInvite(
       })
       .eq('id', invite.id)
 
-    // Generate CONSISTENT conversation ID for both users (sorted for consistency)
-    const sortedIds = [invite.creator_id, acceptorId].sort()
-    const conversationId = `conv_${sortedIds.join('_')}`
+    if (updateError) {
+      console.error('[PAIRING] Update error:', updateError)
+    }
 
-    // Create contact for ACCEPTOR (they get the creator as contact)
-    await supabase.from('messenger_contacts').insert({
+    // ============================================
+    // CREATE CONTACTS FOR BOTH USERS
+    // ============================================
+
+    // Create contact for ACCEPTOR (scanner) - they see the creator
+    const { error: acceptorContactError } = await supabase.from('messenger_contacts').insert({
       user_id: acceptorId,
       contact_user_id: invite.creator_id,
       name: invite.creator_name,
       public_key: invite.creator_public_key,
-      conversation_id: conversationId,
+      conversation_id: conversationId,  // SAME conversation ID!
       status: 'online',
       paired_at: new Date().toISOString()
     })
 
-    // Create contact for CREATOR (they get the acceptor as contact) - AUTO-CONNECT!
-    await supabase.from('messenger_contacts').insert({
+    if (acceptorContactError) {
+      console.error('[PAIRING] Failed to create acceptor contact:', acceptorContactError)
+    }
+
+    // Create contact for CREATOR (QR generator) - they see the acceptor - AUTO-CONNECT!
+    const { error: creatorContactError } = await supabase.from('messenger_contacts').insert({
       user_id: invite.creator_id,
       contact_user_id: acceptorId,
       name: acceptorName,
       public_key: acceptorPublicKey,
-      conversation_id: conversationId,
+      conversation_id: conversationId,  // SAME conversation ID!
       status: 'online',
       paired_at: new Date().toISOString()
     })
 
-    console.log(`[PAIRING] Created bidirectional contacts between ${invite.creator_id} and ${acceptorId}`)
+    if (creatorContactError) {
+      console.error('[PAIRING] Failed to create creator contact:', creatorContactError)
+    }
+
+    console.log(`[PAIRING] Created bidirectional pairing:`)
+    console.log(`  Creator: ${invite.creator_id} -> ${invite.creator_name}`)
+    console.log(`  Acceptor: ${acceptorId} -> ${acceptorName}`)
+    console.log(`  Conversation ID: ${conversationId}`)
 
     return {
       success: true,
@@ -399,7 +428,7 @@ export async function acceptPairingInvite(
         id: invite.creator_id,
         name: invite.creator_name,
         publicKey: invite.creator_public_key,
-        conversationId
+        conversationId: conversationId
       }
     }
   } catch (error) {

@@ -1,7 +1,7 @@
 /* FlowSphere Service Worker - PWA Support */
 
-const CACHE_NAME = 'flowsphere-v1';
-const RUNTIME_CACHE = 'flowsphere-runtime';
+const CACHE_NAME = 'flowsphere-v2';
+const RUNTIME_CACHE = 'flowsphere-runtime-v2';
 
 // Assets to cache on install
 const PRECACHE_URLS = [
