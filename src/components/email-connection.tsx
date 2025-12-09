@@ -8,15 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Envelope, EnvelopeOpen, Check, X, Link as LinkIcon, Warning } from '@phosphor-icons/react'
-import { GmailProvider } from '@/lib/email/gmail-provider'
-import { YahooProvider } from '@/lib/email/yahoo-provider'
-import { OutlookProvider } from '@/lib/email/outlook-provider'
-import { ICloudProvider } from '@/lib/email/icloud-provider'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Envelope, EnvelopeOpen, Check, X, Link as LinkIcon, Warning, Key, Eye, EyeSlash, Info } from '@phosphor-icons/react'
 import { EmailAccountStore, EmailAccount } from '@/lib/email/email-service'
+import {
+  connectGmail,
+  connectOutlook,
+  connectApple,
+  handleOAuthCallback,
+  connectIMAPEmail,
+  getAppPasswordInstructions,
+  IMAPCredentials,
+  IMAP_PRESETS,
+} from '@/lib/email/email-oauth'
 import { toast } from 'sonner'
-import { authApi } from '@/lib/api'
 
 interface EmailConnectionProps {
   currentPlan?: 'basic' | 'pro' | 'gold' | 'family'
@@ -25,77 +32,43 @@ interface EmailConnectionProps {
 export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps) {
   const [accounts, setAccounts] = useState<EmailAccount[]>([])
   const [isConnecting, setIsConnecting] = useState(false)
-  const [showApiSetup, setShowApiSetup] = useState(false)
-
-  const gmailProvider = new GmailProvider()
-  const yahooProvider = new YahooProvider()
-  const outlookProvider = new OutlookProvider()
-  const icloudProvider = new ICloudProvider()
+  const [showIMAPDialog, setShowIMAPDialog] = useState(false)
+  const [imapProvider, setImapProvider] = useState<'yahoo' | 'icloud' | 'imap'>('yahoo')
+  const [imapEmail, setImapEmail] = useState('')
+  const [imapPassword, setImapPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
     loadAccounts()
-
     // Check for OAuth callback
-    handleOAuthCallback()
+    checkOAuthCallback()
   }, [])
 
   const loadAccounts = () => {
     const storedAccounts = EmailAccountStore.getAccounts()
     setAccounts(storedAccounts)
-    // Note: Email monitoring is now handled globally by EmailMonitorService component
   }
 
-  const handleOAuthCallback = async () => {
+  const checkOAuthCallback = async () => {
     const urlParams = new URLSearchParams(window.location.search)
-    const authToken = urlParams.get('auth_token')
-    const provider = urlParams.get('provider')
-    const error = urlParams.get('error')
+    const oauthCallback = urlParams.get('oauth_callback')
 
-    // Handle OAuth error
-    if (error) {
-      toast.error(`Failed to connect: ${error}`)
-      window.history.replaceState({}, document.title, window.location.pathname)
-      return
-    }
-
-    // Handle successful OAuth callback
-    if (authToken && provider) {
+    if (oauthCallback) {
+      setIsConnecting(true)
       try {
-        toast.info('Connecting your account...')
-
-        // Complete OAuth flow with backend
-        const response = await authApi.completeOAuth(authToken)
-
-        if (response.success && response.data) {
-          const account: EmailAccount = {
-            id: response.data.account.id,
-            provider: response.data.account.provider as any,
-            email: response.data.account.email,
-            name: response.data.account.name,
-            accessToken: response.data.account.accessToken,
-            refreshToken: response.data.account.refreshToken,
-            expiresAt: response.data.account.expiresAt,
-            isActive: true,
-            connectedAt: response.data.account.connectedAt
-          }
-
-          EmailAccountStore.saveAccount(account)
+        const account = await handleOAuthCallback()
+        if (account) {
+          toast.success(`${account.email} connected successfully!`)
           loadAccounts()
-
-          const providerName = provider === 'google' ? 'Gmail' : provider.charAt(0).toUpperCase() + provider.slice(1)
-          toast.success(`${providerName} account connected! Email monitoring is now active.`)
-        } else {
-          toast.error(`Failed to connect: ${response.error || 'Unknown error'}`)
         }
-
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname)
       } catch (error) {
         console.error('OAuth callback error:', error)
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-        console.error('Error details:', errorMsg)
-        toast.error(`Failed to connect: ${errorMsg}`)
-        window.history.replaceState({}, document.title, window.location.pathname)
+        toast.error('Failed to connect email account')
+      } finally {
+        setIsConnecting(false)
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search.replace(/[?&]oauth_callback=[^&]+/, ''))
       }
     }
   }
@@ -123,21 +96,73 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     setIsConnecting(true)
 
     try {
-      // Check if backend is available first
-      const healthCheck = await authApi.getProviders().catch(() => null)
-      if (!healthCheck?.success) {
-        toast.error('Email connection service temporarily unavailable', {
-          description: 'Please try again later or contact support'
-        })
-        setIsConnecting(false)
-        return
+      switch (provider) {
+        case 'google':
+          await connectGmail()
+          break
+        case 'outlook':
+          await connectOutlook()
+          break
+        case 'apple':
+          // Apple/iCloud requires app-specific password
+          setImapProvider('icloud')
+          setShowIMAPDialog(true)
+          setIsConnecting(false)
+          return
+        case 'yahoo':
+          // Yahoo requires app-specific password
+          setImapProvider('yahoo')
+          setShowIMAPDialog(true)
+          setIsConnecting(false)
+          return
       }
-
-      // Use backend OAuth API
-      authApi.initiateOAuth(provider, window.location.origin)
     } catch (error) {
       console.error('Connection error:', error)
-      toast.error('Failed to initiate connection')
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+
+      // Check for specific OAuth errors
+      if (errorMsg.includes('provider is not enabled')) {
+        toast.error(`${provider === 'google' ? 'Gmail' : provider} OAuth is not configured`, {
+          description: 'You can use app password connection instead'
+        })
+        // Offer IMAP fallback
+        if (provider === 'google') {
+          setImapProvider('imap')
+          setShowIMAPDialog(true)
+        }
+      } else {
+        toast.error(`Failed to connect: ${errorMsg}`)
+      }
+      setIsConnecting(false)
+    }
+  }
+
+  const handleIMAPConnect = async () => {
+    if (!imapEmail || !imapPassword) {
+      toast.error('Please enter email and app password')
+      return
+    }
+
+    setIsConnecting(true)
+
+    try {
+      const credentials: IMAPCredentials = {
+        email: imapEmail,
+        password: imapPassword,
+        provider: imapProvider,
+        ...IMAP_PRESETS[imapProvider],
+      }
+
+      const account = await connectIMAPEmail(credentials)
+      toast.success(`${account.email} connected successfully!`)
+      loadAccounts()
+      setShowIMAPDialog(false)
+      setImapEmail('')
+      setImapPassword('')
+    } catch (error) {
+      console.error('IMAP connection error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to connect email')
+    } finally {
       setIsConnecting(false)
     }
   }
@@ -146,7 +171,6 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     EmailAccountStore.removeAccount(accountId)
     loadAccounts()
     toast.success('Account disconnected')
-    // Note: Global monitoring service will automatically adjust
   }
 
   const handleToggleActive = (account: EmailAccount) => {
@@ -162,7 +186,6 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     } else {
       toast.success('Account monitoring paused')
     }
-    // Note: Global monitoring service will automatically adjust
   }
 
   const getProviderIcon = (provider: string) => {
@@ -177,6 +200,20 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
          : provider === 'yahoo' ? 'bg-purple-500/10 text-purple-500'
          : (provider === 'icloud' || provider === 'apple') ? 'bg-gray-500/10 text-gray-600'
          : 'bg-cyan-500/10 text-cyan-500'
+  }
+
+  const getProviderDisplayName = (provider: string) => {
+    if (provider === 'google' || provider === 'gmail') return 'Gmail'
+    if (provider === 'apple' || provider === 'icloud') return 'iCloud'
+    return provider.charAt(0).toUpperCase() + provider.slice(1)
+  }
+
+  const getIMAPProviderTitle = () => {
+    switch (imapProvider) {
+      case 'yahoo': return 'Connect Yahoo Mail'
+      case 'icloud': return 'Connect iCloud Mail'
+      default: return 'Connect Email (IMAP)'
+    }
   }
 
   return (
@@ -211,9 +248,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
                                 {account.isActive ? 'Active' : 'Paused'}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {account.provider === 'google' || account.provider === 'gmail' ? 'Gmail'
-                                 : account.provider === 'apple' || account.provider === 'icloud' ? 'iCloud'
-                                 : account.provider.charAt(0).toUpperCase() + account.provider.slice(1)}
+                                {getProviderDisplayName(account.provider)}
                               </span>
                             </div>
                           </div>
@@ -306,6 +341,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             </Button>
           </div>
 
+          {/* Plan Info */}
+          <div className="text-sm text-muted-foreground text-center pt-2">
+            {accounts.length} / {getEmailLimit() === 999 ? '∞' : getEmailLimit()} email accounts connected
+            {currentPlan !== 'family' && (
+              <span className="ml-2 text-primary">
+                (Upgrade for more)
+              </span>
+            )}
+          </div>
+
           {/* Features Info */}
           <Card className="bg-muted/50 border-none mt-4">
             <CardContent className="p-4">
@@ -340,79 +385,90 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
         </CardContent>
       </Card>
 
-      {/* API Setup Dialog */}
-      <Dialog open={showApiSetup} onOpenChange={setShowApiSetup}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* IMAP/App Password Dialog */}
+      <Dialog open={showIMAPDialog} onOpenChange={setShowIMAPDialog}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Warning className="w-5 h-5 text-amber-500" weight="duotone" />
-              API Setup Required
+              <Key className="w-5 h-5" weight="duotone" />
+              {getIMAPProviderTitle()}
             </DialogTitle>
             <DialogDescription>
-              To connect email accounts, you need to set up API credentials. Follow the guide below:
+              {imapProvider === 'yahoo'
+                ? 'Yahoo Mail requires an app-specific password for third-party apps.'
+                : imapProvider === 'icloud'
+                ? 'iCloud Mail requires an app-specific password for FlowSphere.'
+                : 'Enter your email credentials to connect.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-4">
-              <h3 className="font-semibold">Gmail API Setup</h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console</a></li>
-                <li>Create a new project or select existing one</li>
-                <li>Enable Gmail API in API Library</li>
-                <li>Create OAuth 2.0 credentials (Web application)</li>
-                <li>Add authorized redirect URI: <code className="bg-muted px-2 py-1 rounded">{window.location.origin}/auth/gmail/callback</code></li>
-                <li>Copy Client ID and Client Secret</li>
-                <li>Add to .env file:
-                  <pre className="bg-muted p-3 rounded mt-2 text-xs overflow-x-auto">
-{`VITE_GOOGLE_CLIENT_ID=your_client_id
-VITE_GOOGLE_CLIENT_SECRET=your_client_secret`}
-                  </pre>
-                </li>
-              </ol>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="imap-email">Email Address</Label>
+              <Input
+                id="imap-email"
+                type="email"
+                placeholder={imapProvider === 'yahoo' ? 'you@yahoo.com' : imapProvider === 'icloud' ? 'you@icloud.com' : 'you@example.com'}
+                value={imapEmail}
+                onChange={(e) => setImapEmail(e.target.value)}
+              />
             </div>
 
-            <div className="space-y-4">
-              <h3 className="font-semibold">Yahoo Mail API Setup</h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Go to <a href="https://developer.yahoo.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Yahoo Developer Network</a></li>
-                <li>Create a new app</li>
-                <li>Select Mail API permissions</li>
-                <li>Add redirect URI: <code className="bg-muted px-2 py-1 rounded">{window.location.origin}/auth/yahoo/callback</code></li>
-                <li>Copy Client ID and Client Secret</li>
-                <li>Add to .env file:
-                  <pre className="bg-muted p-3 rounded mt-2 text-xs overflow-x-auto">
-{`VITE_YAHOO_CLIENT_ID=your_client_id
-VITE_YAHOO_CLIENT_SECRET=your_client_secret`}
-                  </pre>
-                </li>
-              </ol>
+            <div className="space-y-2">
+              <Label htmlFor="imap-password">App Password</Label>
+              <div className="relative">
+                <Input
+                  id="imap-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="xxxx-xxxx-xxxx-xxxx"
+                  value={imapPassword}
+                  onChange={(e) => setImapPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Use an app-specific password, not your regular password
+              </p>
             </div>
 
-            <div className="space-y-4">
-              <h3 className="font-semibold">Outlook API Setup</h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Go to <a href="https://portal.azure.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Azure Portal</a></li>
-                <li>Register a new app in Azure Active Directory</li>
-                <li>Add Microsoft Graph API permissions (Mail.Read, Mail.Send, Mail.ReadWrite)</li>
-                <li>Add redirect URI: <code className="bg-muted px-2 py-1 rounded">{window.location.origin}/auth/outlook/callback</code></li>
-                <li>Create a client secret</li>
-                <li>Add to .env file:
-                  <pre className="bg-muted p-3 rounded mt-2 text-xs overflow-x-auto">
-{`VITE_OUTLOOK_CLIENT_ID=your_client_id
-VITE_OUTLOOK_CLIENT_SECRET=your_client_secret`}
-                  </pre>
-                </li>
-              </ol>
-            </div>
+            {/* Instructions Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-primary"
+              onClick={() => setShowInstructions(!showInstructions)}
+            >
+              <Info className="w-4 h-4 mr-2" />
+              {showInstructions ? 'Hide' : 'Show'} setup instructions
+            </Button>
 
-            <Card className="bg-amber-500/10 border-amber-500/20">
-              <CardContent className="p-4">
-                <p className="text-sm text-amber-900 dark:text-amber-100">
-                  <strong>Important:</strong> After adding credentials to your .env file, restart the development server for changes to take effect.
-                </p>
-              </CardContent>
-            </Card>
+            {showInstructions && (
+              <Card className="bg-muted/50 border-dashed">
+                <CardContent className="p-4">
+                  <pre className="text-xs whitespace-pre-wrap text-muted-foreground font-mono">
+                    {getAppPasswordInstructions(imapProvider === 'imap' ? 'gmail' : imapProvider)}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowIMAPDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleIMAPConnect} disabled={isConnecting || !imapEmail || !imapPassword}>
+              {isConnecting ? 'Connecting...' : 'Connect'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
