@@ -81,37 +81,19 @@ function decodeFromBase64(encoded: string): string {
 }
 
 /**
- * XOR obfuscation - makes data unreadable without key
- * Not encryption, but good enough to prevent casual decoding
- */
-function xorObfuscate(data: string, key: string): string {
-  let result = ''
-  for (let i = 0; i < data.length; i++) {
-    const charCode = data.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-    result += String.fromCharCode(charCode)
-  }
-  return result
-}
-
-/**
- * Encode data for stealth URL path
- * Uses URL-safe base64 encoding (RFC 4648)
+ * Simple URL-safe base64 encode (no XOR - more reliable)
  */
 function encodeStealthPath(data: string): string {
-  // Step 1: XOR with key
-  const xored = xorObfuscate(data, OBFUSCATION_KEY)
-
-  // Step 2: Base64 encode with URL-safe characters
-  const base64 = btoa(unescape(encodeURIComponent(xored)))
+  // Convert to base64, then make URL-safe
+  const base64 = btoa(unescape(encodeURIComponent(data)))
     .replace(/\+/g, '-')  // URL-safe: + becomes -
     .replace(/\//g, '_')  // URL-safe: / becomes _
     .replace(/=+$/, '')   // Remove padding
-
   return base64
 }
 
 /**
- * Decode stealth path back to data
+ * Simple URL-safe base64 decode
  */
 function decodeStealthPath(encoded: string): string {
   try {
@@ -124,10 +106,7 @@ function decodeStealthPath(encoded: string): string {
     while (base64.length % 4) base64 += '='
 
     // Base64 decode
-    const xored = decodeURIComponent(escape(atob(base64)))
-
-    // XOR to get original
-    return xorObfuscate(xored, OBFUSCATION_KEY)
+    return decodeURIComponent(escape(atob(base64)))
   } catch (e) {
     console.error('[QR] Failed to decode stealth path:', e)
     return ''

@@ -467,7 +467,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       }
     }
     loadSupabaseContacts()
-  }, [deviceId, deletedContactIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceId]) // Only run on mount or deviceId change, not on deletedContactIds change
 
   // Subscribe to new contacts (for auto-connect when someone scans our QR)
   useEffect(() => {
@@ -524,7 +525,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       })
     })
     return () => unsubscribe()
-  }, [deviceId, deletedContactIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceId]) // Only subscribe once per deviceId, not on deletedContactIds change
 
   // Subscribe to messages for current conversation
   useEffect(() => {
