@@ -23,33 +23,26 @@ export function useKV<T>(
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
       try {
-        // Allow value to be a function (like useState)
-        const valueToStore = value instanceof Function ? value(storedValue) : value
+        setStoredValue(prev => {
+          // Allow value to be a function (like useState)
+          const valueToStore = value instanceof Function ? value(prev) : value
 
-        setStoredValue(valueToStore)
+          // Save to localStorage
+          window.localStorage.setItem(key, JSON.stringify(valueToStore))
 
-        // Save to localStorage
-        window.localStorage.setItem(key, JSON.stringify(valueToStore))
-
-        // Dispatch custom event for cross-tab synchronization
-        window.dispatchEvent(
-          new CustomEvent('local-storage', {
-            detail: { key, value: valueToStore }
-          })
-        )
+          return valueToStore
+        })
       } catch (error) {
         console.error(`Error setting localStorage key "${key}":`, error)
       }
     },
-    [key, storedValue]
+    [key]
   )
 
-  // Listen for changes from other tabs
+  // Listen for changes from other tabs (cross-tab sync)
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent | CustomEvent) => {
-      if ('detail' in e && e.detail.key === key) {
-        setStoredValue(e.detail.value)
-      } else if ('key' in e && e.key === key && e.newValue) {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === key && e.newValue) {
         try {
           setStoredValue(JSON.parse(e.newValue))
         } catch (error) {
@@ -58,14 +51,11 @@ export function useKV<T>(
       }
     }
 
-    // Listen for storage events from other tabs
-    window.addEventListener('storage', handleStorageChange as EventListener)
-    // Listen for custom events from same tab
-    window.addEventListener('local-storage', handleStorageChange as EventListener)
+    // Listen for storage events from other tabs only
+    window.addEventListener('storage', handleStorageChange)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange as EventListener)
-      window.removeEventListener('local-storage', handleStorageChange as EventListener)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [key])
 
