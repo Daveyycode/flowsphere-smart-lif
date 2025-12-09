@@ -402,7 +402,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       const keys = generateKeyPair()
       setMyKeys(keys)
     }
-  }, [myKeys, setMyKeys])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
 
   // Load contacts from Supabase on mount
   useEffect(() => {
