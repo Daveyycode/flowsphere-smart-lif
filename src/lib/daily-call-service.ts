@@ -48,6 +48,7 @@ export const initialCallState: CallState = {
 
 // Daily.co API configuration
 const DAILY_DOMAIN = 'cloud-2328ad98f150460ea77fcb36b78d5cb2' // FlowSphere Daily.co domain
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 /**
  * Generate a unique room name for a call between two users
@@ -69,12 +70,34 @@ export function createCallInstance(): DailyCall {
 }
 
 /**
- * Create a demo room URL (for development/testing)
- * In production, you'd create rooms via your backend using Daily.co REST API
+ * Create a room via Edge Function (secure, uses API key on server)
+ */
+export async function createRoom(roomName: string, callType: 'video' | 'audio' = 'video'): Promise<{ url: string } | null> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/daily-room`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ roomName, callType })
+    })
+
+    const data = await response.json()
+    if (data.success && data.room) {
+      return { url: data.room.url }
+    }
+    console.error('Failed to create room:', data.error)
+    return null
+  } catch (error) {
+    console.error('Error creating room:', error)
+    return null
+  }
+}
+
+/**
+ * Create a room URL (fallback to direct URL if Edge Function fails)
  */
 export function createDemoRoomUrl(roomName: string): string {
-  // Daily.co provides free demo rooms at this URL pattern
-  // These rooms expire after 10 minutes of inactivity
   return `https://${DAILY_DOMAIN}.daily.co/${roomName}`
 }
 
