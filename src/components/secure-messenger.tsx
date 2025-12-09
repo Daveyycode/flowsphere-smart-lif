@@ -2564,12 +2564,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             <div className="space-y-4">
               {currentInvite && (
                 <>
-                  <div className="p-6 rounded-lg flex items-center justify-center bg-white border">
+                  <div className="p-4 sm:p-6 rounded-lg flex items-center justify-center bg-white border">
                     {qrCodeDataURL && (
                       <img
                         src={qrCodeDataURL}
                         alt="QR Code"
-                        className="w-full h-auto max-w-[250px]"
+                        className="w-full h-auto max-w-[200px] sm:max-w-[280px]"
                       />
                     )}
                   </div>

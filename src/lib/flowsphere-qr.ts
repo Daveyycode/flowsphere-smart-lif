@@ -95,26 +95,19 @@ function xorObfuscate(data: string, key: string): string {
 
 /**
  * Encode data for stealth URL path
- * XOR + Base64 + character substitution = unreadable gibberish
+ * Uses URL-safe base64 encoding (RFC 4648)
  */
 function encodeStealthPath(data: string): string {
   // Step 1: XOR with key
   const xored = xorObfuscate(data, OBFUSCATION_KEY)
 
-  // Step 2: Base64 encode
+  // Step 2: Base64 encode with URL-safe characters
   const base64 = btoa(unescape(encodeURIComponent(xored)))
+    .replace(/\+/g, '-')  // URL-safe: + becomes -
+    .replace(/\//g, '_')  // URL-safe: / becomes _
+    .replace(/=+$/, '')   // Remove padding
 
-  // Step 3: Make URL-safe and add random chars to break patterns
-  const urlSafe = base64
-    .replace(/\+/g, 'x')
-    .replace(/\//g, 'y')
-    .replace(/=/g, 'z')
-
-  // Step 4: Add random prefix/suffix to vary length
-  const prefix = Math.random().toString(36).substring(2, 4)
-  const suffix = Math.random().toString(36).substring(2, 4)
-
-  return prefix + urlSafe + suffix
+  return base64
 }
 
 /**
@@ -122,21 +115,16 @@ function encodeStealthPath(data: string): string {
  */
 function decodeStealthPath(encoded: string): string {
   try {
-    // Remove prefix/suffix (2 chars each)
-    const core = encoded.substring(2, encoded.length - 2)
-
     // Reverse URL-safe substitution
-    const base64 = core
-      .replace(/x/g, '+')
-      .replace(/y/g, '/')
-      .replace(/z/g, '=')
+    let base64 = encoded
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
 
-    // Pad if needed
-    let padded = base64
-    while (padded.length % 4) padded += '='
+    // Add padding if needed
+    while (base64.length % 4) base64 += '='
 
     // Base64 decode
-    const xored = decodeURIComponent(escape(atob(padded)))
+    const xored = decodeURIComponent(escape(atob(base64)))
 
     // XOR to get original
     return xorObfuscate(xored, OBFUSCATION_KEY)
