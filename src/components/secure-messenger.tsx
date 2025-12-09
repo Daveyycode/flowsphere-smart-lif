@@ -329,7 +329,29 @@ function generateInviteCode(): string {
 
 // ========== MAIN COMPONENT ==========
 
+// Version for cache busting - increment to force localStorage reset
+const MESSENGER_VERSION = 'v2.0.0'
+
 export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
+  // Check version and reset if needed (run once on load)
+  if (typeof window !== 'undefined') {
+    const storedVersion = localStorage.getItem('qr-messenger-version')
+    if (storedVersion !== MESSENGER_VERSION) {
+      console.log('[MESSENGER] Version changed, clearing old data...')
+      // Clear old messenger data
+      const keysToRemove = [
+        'qr-messenger-contacts',
+        'qr-messenger-messages',
+        'qr-messenger-used-invites',
+        'qr-messenger-deleted-contacts',
+        'qr-messenger-group-markings'
+      ]
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      localStorage.setItem('qr-messenger-version', MESSENGER_VERSION)
+      console.log('[MESSENGER] Old data cleared, version updated')
+    }
+  }
+
   // Persistent storage
   const [myKeys, setMyKeys] = useKV<{ publicKey: string; privateKey: string } | null>('qr-messenger-keys', null)
   const [myName] = useKV<string>('flowsphere-user-name', '') // Use name from settings
