@@ -288,9 +288,9 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             >
               <span className="text-2xl">📧</span>
               <span className="font-semibold">Gmail</span>
-              {accounts.filter(a => a.provider === 'google' || a.provider === 'gmail').length > 0 && (
+              {accounts.filter(a => a.provider === 'gmail').length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  {accounts.filter(a => a.provider === 'google' || a.provider === 'gmail').length} connected
+                  {accounts.filter(a => a.provider === 'gmail').length} connected
                 </Badge>
               )}
             </Button>
@@ -318,9 +318,9 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             >
               <span className="text-2xl">☁️</span>
               <span className="font-semibold">iCloud Mail</span>
-              {accounts.filter(a => a.provider === 'apple' || a.provider === 'icloud').length > 0 && (
+              {accounts.filter(a => a.provider === 'icloud').length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  {accounts.filter(a => a.provider === 'apple' || a.provider === 'icloud').length} connected
+                  {accounts.filter(a => a.provider === 'icloud').length} connected
                 </Badge>
               )}
             </Button>
