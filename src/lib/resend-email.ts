@@ -1,8 +1,15 @@
 /**
  * Resend Email Service
- * Direct email sending without browser redirects
+ * SECURITY UPDATE (Dec 9, 2025): Now uses Edge Function to keep API key server-side
+ * Falls back to direct API call if Edge Function not deployed (for dev)
  */
 
+// Supabase configuration for Edge Function
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const EMAIL_EDGE_FUNCTION = `${SUPABASE_URL}/functions/v1/send-email`
+
+// Fallback for local development
 const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY
 const EMAIL_FROM = import.meta.env.VITE_EMAIL_FROM || 'FlowSphere <noreply@myflowsphere.com>'
 
@@ -21,18 +28,56 @@ export interface SendEmailResult {
 }
 
 /**
- * Check if Resend is configured
+ * Check if Resend is configured (Edge Function or direct API)
  */
 export function isResendConfigured(): boolean {
-  return !!RESEND_API_KEY
+  const hasEdgeFunction = !!SUPABASE_URL && !!SUPABASE_ANON_KEY
+  const hasDirectAPI = !!RESEND_API_KEY
+  return hasEdgeFunction || hasDirectAPI
 }
 
 /**
- * Send email using Resend API
+ * Send email using Edge Function (secure) or direct Resend API (fallback)
  */
 export async function sendEmailWithResend(options: SendEmailOptions): Promise<SendEmailResult> {
+  // Try Edge Function first (secure - API key hidden server-side)
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const response = await fetch(EMAIL_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: options.to,
+          subject: options.subject,
+          body: options.body,
+          html: options.html,
+          replyTo: options.replyTo,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        return { success: true, id: data.id }
+      }
+
+      // If Edge Function explicitly fails, return its error
+      if (data.error) {
+        console.warn('[Resend] Edge Function error:', data.error)
+        // Don't fall through - if Edge Function is configured but fails, report it
+        return { success: false, error: data.error }
+      }
+    } catch (error) {
+      console.warn('[Resend] Edge Function unavailable, using direct API')
+    }
+  }
+
+  // Fallback: Direct API call (for development or if Edge Function not deployed)
   if (!RESEND_API_KEY) {
-    return { success: false, error: 'Resend API key not configured' }
+    return { success: false, error: 'Email service not configured' }
   }
 
   try {

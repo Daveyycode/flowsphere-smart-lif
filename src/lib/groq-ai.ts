@@ -1,10 +1,17 @@
 /**
  * Groq AI Integration
- * Replaces GitHub Spark LLM with Groq for all AI features
+ * SECURITY UPDATE (Dec 9, 2025): Now uses Edge Function to keep API key server-side
+ * Falls back to direct API call if Edge Function not deployed (for dev)
  */
 
 import { logger } from '@/lib/security-utils'
 
+// Supabase configuration for Edge Function
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const GROQ_EDGE_FUNCTION = `${SUPABASE_URL}/functions/v1/groq-ai`
+
+// Fallback for local development (will be removed after Edge Function deployed)
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -21,7 +28,7 @@ export interface GroqChatOptions {
 }
 
 /**
- * Send a prompt to Groq AI and get a response
+ * Send a prompt to Groq AI via Edge Function (secure) or direct API (fallback)
  */
 export async function groqChat(
   prompt: string,
@@ -31,11 +38,41 @@ export async function groqChat(
     model = 'llama-3.3-70b-versatile',
     temperature = 0.7,
     max_tokens = 2048,
-    stream = false
   } = options
 
+  // Try Edge Function first (secure - API key hidden server-side)
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const response = await fetch(GROQ_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          model,
+          temperature,
+          max_tokens,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.content) {
+          return data.content
+        }
+      }
+      // If Edge Function fails, fall through to direct API
+      logger.warn('Edge Function failed, falling back to direct API', undefined, 'GroqAI')
+    } catch (error) {
+      logger.warn('Edge Function unavailable, using direct API', error, 'GroqAI')
+    }
+  }
+
+  // Fallback: Direct API call (for development or if Edge Function not deployed)
   if (!GROQ_API_KEY) {
-    throw new Error('Groq API key not configured. Please add VITE_GROQ_API_KEY to your .env file.')
+    throw new Error('Groq AI not configured. Deploy the groq-ai Edge Function or add VITE_GROQ_API_KEY.')
   }
 
   const messages: GroqMessage[] = [
@@ -57,7 +94,7 @@ export async function groqChat(
         messages,
         temperature,
         max_tokens,
-        stream
+        stream: false
       })
     })
 
@@ -87,6 +124,35 @@ export async function groqChatWithHistory(
     max_tokens = 2048
   } = options
 
+  // Try Edge Function first
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const response = await fetch(GROQ_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages,
+          model,
+          temperature,
+          max_tokens,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.content) {
+          return data.content
+        }
+      }
+    } catch (error) {
+      logger.warn('Edge Function unavailable for chat history', error, 'GroqAI')
+    }
+  }
+
+  // Fallback: Direct API
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured')
   }
@@ -120,7 +186,7 @@ export async function groqChatWithHistory(
 }
 
 /**
- * Streaming chat response
+ * Streaming chat response (uses direct API - Edge Functions don't support streaming easily)
  */
 export async function* groqChatStream(
   prompt: string,
@@ -133,7 +199,7 @@ export async function* groqChatStream(
   } = options
 
   if (!GROQ_API_KEY) {
-    throw new Error('Groq API key not configured')
+    throw new Error('Groq API key not configured for streaming')
   }
 
   const messages: GroqMessage[] = [{ role: 'user', content: prompt }]
@@ -185,12 +251,19 @@ export async function* groqChatStream(
 }
 
 /**
- * Check if Groq is properly configured
+ * Check if Groq is properly configured (Edge Function or direct API)
  */
 export function isGroqConfigured(): boolean {
-  const isConfigured = !!GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_')
+  // Edge Function is configured if Supabase is set up
+  const hasEdgeFunction = !!SUPABASE_URL && !!SUPABASE_ANON_KEY
+  // Direct API is configured if key exists
+  const hasDirectAPI = !!GROQ_API_KEY && GROQ_API_KEY.startsWith('gsk_')
+
+  const isConfigured = hasEdgeFunction || hasDirectAPI
+
   if (!isConfigured) {
-    console.warn('[Groq] API key not configured. Key exists:', !!GROQ_API_KEY, 'Starts with gsk_:', GROQ_API_KEY?.startsWith('gsk_'))
+    console.warn('[Groq] Not configured. Edge Function:', hasEdgeFunction, 'Direct API:', hasDirectAPI)
   }
+
   return isConfigured
 }

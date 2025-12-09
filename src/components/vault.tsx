@@ -1633,9 +1633,9 @@ export function Vault({ onNavigate }: VaultProps) {
                 onClick={() => {
                   // Real TOTP verification using otpauth library
                   try {
-                    // CEO TOTP secret for 19780111 - hardcoded fallback
-                    const CEO_TOTP_SECRET = 'XL7CYDV7XP6W3IMZY6FX'
-                    const secret = localStorage.getItem('flowsphere_ceo_totp_secret') || CEO_TOTP_SECRET
+                    // SECURITY FIX (Dec 9, 2025): Removed hardcoded TOTP secret fallback
+                    // TOTP secret must be generated during first-time 2FA setup
+                    const secret = localStorage.getItem('flowsphere_ceo_totp_secret')
                     if (!secret) {
                       toast.error('TOTP not configured', {
                         description: 'Please set up 2FA in CEO Portal first'

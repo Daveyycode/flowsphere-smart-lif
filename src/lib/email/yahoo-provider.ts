@@ -1,18 +1,24 @@
 /**
  * Yahoo Mail Provider - Yahoo Mail API integration
+ * SECURITY UPDATE (Dec 9, 2025): OAuth token exchange now uses Edge Function
+ * Client secret is kept server-side, never exposed to frontend
  */
 
 import { EmailProvider, EmailAccount, Email, SearchOptions, SearchResult } from './email-service'
 
+// Supabase Edge Function for secure OAuth
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const OAUTH_EDGE_FUNCTION = `${SUPABASE_URL}/functions/v1/oauth-exchange`
+
 export class YahooProvider extends EmailProvider {
   private clientId: string
-  private clientSecret: string
   private redirectUri: string
 
   constructor() {
     super()
+    // Only client ID is needed in frontend (it's public)
     this.clientId = import.meta.env.VITE_YAHOO_CLIENT_ID || ''
-    this.clientSecret = import.meta.env.VITE_YAHOO_CLIENT_SECRET || ''
     this.redirectUri = `${window.location.origin}/auth/yahoo/callback`
   }
 
@@ -31,36 +37,43 @@ export class YahooProvider extends EmailProvider {
   }
 
   /**
-   * Exchange authorization code for tokens
+   * Exchange authorization code for tokens via Edge Function (secure)
    */
   async exchangeCodeForTokens(code: string): Promise<{
     accessToken: string
     refreshToken: string
     expiresIn: number
   }> {
-    const response = await fetch('https://api.login.yahoo.com/oauth2/get_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`
-      },
-      body: new URLSearchParams({
-        code,
-        redirect_uri: this.redirectUri,
-        grant_type: 'authorization_code'
+    // Use Edge Function to keep client_secret server-side
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const response = await fetch(OAUTH_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'yahoo',
+          action: 'exchange',
+          code,
+          redirectUri: this.redirectUri,
+        }),
       })
-    })
 
-    if (!response.ok) {
-      throw new Error('Failed to exchange code for tokens')
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to exchange code for tokens')
+      }
+
+      const data = await response.json()
+      return {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresIn: data.expiresIn
+      }
     }
 
-    const data = await response.json()
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: data.expires_in
-    }
+    throw new Error('OAuth service not configured. Deploy the oauth-exchange Edge Function.')
   }
 
   /**
@@ -199,32 +212,45 @@ export class YahooProvider extends EmailProvider {
   }
 
   /**
-   * Refresh access token
+   * Refresh access token via Edge Function (secure)
    */
   async refreshAccessToken(account: EmailAccount): Promise<EmailAccount> {
-    const response = await fetch('https://api.login.yahoo.com/oauth2/get_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`
-      },
-      body: new URLSearchParams({
-        refresh_token: account.refreshToken,
-        grant_type: 'refresh_token'
+    if (!account.refreshToken) {
+      throw new Error('invalid_grant: No refresh token available')
+    }
+
+    // Use Edge Function to keep client_secret server-side
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const response = await fetch(OAUTH_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'yahoo',
+          action: 'refresh',
+          refreshToken: account.refreshToken,
+        }),
       })
-    })
 
-    if (!response.ok) {
-      throw new Error('Failed to refresh token')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorCode = errorData.error || 'unknown_error'
+        console.error('[Yahoo] Token refresh failed:', errorCode)
+        throw new Error(`${errorCode}: Failed to refresh token`)
+      }
+
+      const data = await response.json()
+
+      return {
+        ...account,
+        accessToken: data.accessToken,
+        expiresAt: Date.now() + data.expiresIn * 1000
+      }
     }
 
-    const data = await response.json()
-
-    return {
-      ...account,
-      accessToken: data.access_token,
-      expiresAt: Date.now() + data.expires_in * 1000
-    }
+    throw new Error('OAuth service not configured')
   }
 
   /**

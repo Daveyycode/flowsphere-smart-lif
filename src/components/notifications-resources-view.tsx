@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { sanitizeHTML } from '@/lib/security-utils'
 import { useKV } from '@/hooks/use-kv'
 import { motion } from 'framer-motion'
 import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning, CreditCard, Camera, MagnifyingGlass, Funnel, ShieldCheck, DotsThreeVertical, Plus, X as XIcon, Gear, Robot, Sparkle } from '@phosphor-icons/react'
@@ -1795,7 +1796,7 @@ export function NotificationsResourcesView({
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {selectedEmail.body ? (
                     <div
-                      dangerouslySetInnerHTML={{ __html: selectedEmail.body }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHTML(selectedEmail.body) }}
                       className="whitespace-pre-wrap"
                     />
                   ) : selectedEmail.snippet ? (

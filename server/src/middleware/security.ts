@@ -10,9 +10,14 @@ import { logger } from '../utils/logger.js'
  */
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // In production, always require origin header
     if (!origin) {
-      return callback(null, true)
+      // Only allow no-origin in development for testing tools
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true)
+      }
+      logger.warn('CORS blocked request with no origin')
+      return callback(new Error('Origin required'))
     }
 
     if (config.allowedOrigins.includes(origin)) {

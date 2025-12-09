@@ -46,19 +46,17 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
     }
   }, [onAuthenticated]);
 
-  // CEO TOTP secret for 19780111 - fixed secret bound to CEO ID
-  const CEO_TOTP_SECRET = 'XL7CYDV7XP6W3IMZY6FX';
+  // SECURITY FIX (Dec 9, 2025): Removed hardcoded TOTP secret
+  // TOTP secrets must be generated during first-time setup only
+  // No fallback to hardcoded values - user must complete 2FA setup
 
   // Generate or retrieve TOTP secret
   useEffect(() => {
     const storedSecret = localStorage.getItem('flowsphere_ceo_totp_secret');
     if (storedSecret) {
       setTotpSecret(storedSecret);
-    } else {
-      // Use fixed CEO secret bound to 19780111
-      setTotpSecret(CEO_TOTP_SECRET);
-      localStorage.setItem('flowsphere_ceo_totp_secret', CEO_TOTP_SECRET);
     }
+    // No fallback - if no stored secret, user needs to complete 2FA setup
   }, []);
 
   // Generate QR code when needed

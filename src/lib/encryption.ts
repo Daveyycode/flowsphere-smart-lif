@@ -46,7 +46,7 @@ const ENCRYPTION_CONFIG = {
   keyLength: 256,                // Key length in bits
   ivLength: 12,                  // IV length in bytes (96 bits for GCM)
   saltLength: 16,                // Salt length in bytes
-  iterations: 100000,            // PBKDF2 iterations
+  iterations: 310000,            // PBKDF2 iterations (OWASP 2023 recommendation)
 
   // FUTURE: Custom algorithm placeholder
   // customAlgorithm: 'FLOWSPHERE-CUSTOM-V1',
@@ -168,7 +168,7 @@ export async function encryptData(
       version: ENCRYPTION_CONFIG.version
     }
   } catch (error) {
-    console.error('Encryption failed:', error)
+    logger.error('Encryption failed', error, 'Encryption')
     throw new Error('Failed to encrypt data')
   }
 }
@@ -187,7 +187,7 @@ export async function decryptData(
   try {
     // Check version compatibility
     if (encrypted.version !== ENCRYPTION_CONFIG.version) {
-      console.warn(`Decrypting data from version ${encrypted.version}, current is ${ENCRYPTION_CONFIG.version}`)
+      logger.debug(`Decrypting data from version ${encrypted.version}, current is ${ENCRYPTION_CONFIG.version}`)
       // FUTURE: Add migration logic here when upgrading encryption
     }
 
@@ -211,7 +211,7 @@ export async function decryptData(
 
     return new TextDecoder().decode(decryptedBuffer)
   } catch (error) {
-    console.error('Decryption failed:', error)
+    logger.error('Decryption failed', error, 'Encryption')
     throw new Error('Failed to decrypt data. Incorrect PIN or corrupted data.')
   }
 }
@@ -260,7 +260,7 @@ export async function encryptFile(
       metadata
     }
   } catch (error) {
-    console.error('File encryption failed:', error)
+    logger.error('File encryption failed', error, 'Encryption')
     throw new Error('Failed to encrypt file')
   }
 }
@@ -300,7 +300,7 @@ export async function decryptFile(
 
     return new Blob([decryptedBuffer], { type: originalType })
   } catch (error) {
-    console.error('File decryption failed:', error)
+    logger.error('File decryption failed', error, 'Encryption')
     throw new Error('Failed to decrypt file. Incorrect PIN or corrupted file.')
   }
 }
@@ -468,7 +468,7 @@ export async function encryptDataDeviceBound(
       deviceBound: true
     }
   } catch (error) {
-    console.error('Device-bound encryption failed:', error)
+    logger.error('Device-bound encryption failed', error, 'Encryption')
     throw new Error('Failed to encrypt data')
   }
 }
@@ -496,7 +496,7 @@ export async function decryptDataDeviceBound(
 
     return new TextDecoder().decode(decryptedBuffer)
   } catch (error) {
-    console.error('Device-bound decryption failed:', error)
+    logger.error('Device-bound decryption failed', error, 'Encryption')
     throw new Error('Failed to decrypt. Wrong device or incorrect PIN.')
   }
 }
@@ -533,7 +533,7 @@ export async function encryptFileDeviceBound(
       }
     }
   } catch (error) {
-    console.error('Device-bound file encryption failed:', error)
+    logger.error('Device-bound file encryption failed', error, 'Encryption')
     throw new Error('Failed to encrypt file')
   }
 }
@@ -561,7 +561,7 @@ export async function decryptFileDeviceBound(
 
     return new Blob([decryptedBuffer])
   } catch (error) {
-    console.error('Device-bound file decryption failed:', error)
+    logger.error('Device-bound file decryption failed', error, 'Encryption')
     throw new Error('Failed to decrypt file. Wrong device or incorrect PIN.')
   }
 }

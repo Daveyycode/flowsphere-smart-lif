@@ -301,7 +301,7 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
               <ul className="space-y-1 text-muted-foreground">
                 <li>• This QR code will disappear after setup is complete</li>
                 <li>• Make sure to save your authenticator app backup</li>
-                <li>• Your password remains: papakoEddie@tripzy.international</li>
+                <li>• Your password is managed securely via server-side authentication</li>
                 <li>• Only the username will change after this setup</li>
               </ul>
             </div>

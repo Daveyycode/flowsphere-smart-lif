@@ -179,10 +179,13 @@ export class CEODashboardManager {
   private feedbackKey = 'flowsphere-user-feedback'
   private apiKeysKey = 'flowsphere-api-keys'
 
-  // Default CEO credentials (will be hashed in production)
+  // SECURITY FIX (Dec 9, 2025): Removed hardcoded credentials
+  // CEO credentials are now managed via Supabase Edge Function
+  // See: supabase/functions/ceo-auth/index.ts
+  // Default values are placeholder-only (authentication happens server-side)
   private readonly DEFAULT_CREDENTIALS: CEOCredentials = {
-    username: '19780111',
-    password: 'papakoEddie@tripzy.international',
+    username: '', // Set via Supabase Edge Function secrets
+    password: '', // Never stored client-side - verified server-side
     biometricEnabled: false,
     sessionTimeout: 30,
     maxFailedAttempts: 3

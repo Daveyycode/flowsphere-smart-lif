@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getColorClasses } from '@/lib/color-utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lightbulb, Thermometer, Lock, Eye, Lightning, TrendUp, Users as UsersIcon, House, Camera, CalendarBlank, Cloud, MapTrifold, Notebook, Plus, PencilSimple, BookOpen, Play, Pause, ArrowClockwise } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -396,8 +397,8 @@ export function DashboardView({ stats, recentActivity, onTabChange, deviceInfo }
               >
                 <CardContent className={cn(isMobile ? "p-2.5" : "p-3")}>
                   <div className={cn("flex items-start justify-between", isMobile ? "mb-2" : "mb-2.5")}>
-                    <div className={cn("rounded-xl bg-${stat.color}/10 flex items-center justify-center", isMobile ? "w-7 h-7" : "w-8 h-8")}>
-                      <Icon className={cn(`text-${stat.color}`, isMobile ? "w-3.5 h-3.5" : "w-4 h-4")} weight="duotone" />
+                    <div className={cn("rounded-xl flex items-center justify-center", getColorClasses(stat.color).bgLight, isMobile ? "w-7 h-7" : "w-8 h-8")}>
+                      <Icon className={cn(getColorClasses(stat.color).text, isMobile ? "w-3.5 h-3.5" : "w-4 h-4")} weight="duotone" />
                     </div>
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                       {stat.trend}

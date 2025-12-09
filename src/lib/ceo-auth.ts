@@ -36,22 +36,27 @@ export interface APIKey {
 }
 
 /**
- * Generate a 6-digit username code
+ * Generate a 6-digit username code using crypto.getRandomValues
  */
 export function generateUsername(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  return (100000 + (array[0] % 900000)).toString()
 }
 
 /**
- * Generate a secure API key
+ * Generate a secure API key using crypto.getRandomValues
  */
 export function generateAPIKey(): string {
   const prefix = 'fsk' // FlowSphere Key
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let key = prefix + '_'
 
+  const randomValues = new Uint32Array(32)
+  crypto.getRandomValues(randomValues)
+
   for (let i = 0; i < 32; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length))
+    key += chars.charAt(randomValues[i] % chars.length)
   }
 
   return key
@@ -134,10 +139,7 @@ export async function reportToAI(
   apiKey: string
 ): Promise<void> {
   // In production, send to actual AI service
-  console.log('Reporting to AI:', {
-    attempt,
-    apiKey: apiKey.substring(0, 10) + '...'
-  })
+  logger.debug('Reporting to AI', { attemptId: attempt.id, success: attempt.success })
 
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500))
@@ -172,10 +174,23 @@ export function rotateUsername(currentCredentials: CEOCredentials): CEOCredentia
 }
 
 /**
- * Hash password (simple hash for demo - use bcrypt in production)
+ * Hash password using SHA-256 (async)
+ * Note: For production, CEO auth uses server-side Edge Function
+ */
+export async function hashPasswordAsync(password: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Hash password (sync version for backwards compatibility)
+ * @deprecated Use hashPasswordAsync for secure hashing
  */
 export function hashPassword(password: string): string {
-  // In production, use proper password hashing (bcrypt, argon2)
+  // Simple hash for backwards compatibility - real auth uses Edge Function
   let hash = 0
   for (let i = 0; i < password.length; i++) {
     const char = password.charCodeAt(i)

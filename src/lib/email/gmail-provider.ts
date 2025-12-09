@@ -1,19 +1,25 @@
 /**
  * Gmail Provider - Gmail API integration
+ * SECURITY UPDATE (Dec 9, 2025): OAuth token exchange now uses Edge Function
+ * Client secret is kept server-side, never exposed to frontend
  */
 
 import { EmailProvider, EmailAccount, Email, SearchOptions, SearchResult } from './email-service'
 
+// Supabase Edge Function for secure OAuth
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const OAUTH_EDGE_FUNCTION = `${SUPABASE_URL}/functions/v1/oauth-exchange`
+
 export class GmailProvider extends EmailProvider {
   private clientId: string
-  private clientSecret: string
   private redirectUri: string
 
   constructor() {
     super()
-    // These will be set from environment variables
+    // Only client ID is needed in frontend (it's public)
+    // Client secret is stored in Edge Function secrets
     this.clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-    this.clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET || ''
     this.redirectUri = `${window.location.origin}/auth/gmail/callback`
   }
 
@@ -40,37 +46,43 @@ export class GmailProvider extends EmailProvider {
   }
 
   /**
-   * Exchange authorization code for tokens
+   * Exchange authorization code for tokens via Edge Function (secure)
    */
   async exchangeCodeForTokens(code: string): Promise<{
     accessToken: string
     refreshToken: string
     expiresIn: number
   }> {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        code,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        redirect_uri: this.redirectUri,
-        grant_type: 'authorization_code'
+    // Use Edge Function to keep client_secret server-side
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const response = await fetch(OAUTH_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'google',
+          action: 'exchange',
+          code,
+          redirectUri: this.redirectUri,
+        }),
       })
-    })
 
-    if (!response.ok) {
-      throw new Error('Failed to exchange code for tokens')
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to exchange code for tokens')
+      }
+
+      const data = await response.json()
+      return {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresIn: data.expiresIn
+      }
     }
 
-    const data = await response.json()
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: data.expires_in
-    }
+    throw new Error('OAuth service not configured. Deploy the oauth-exchange Edge Function.')
   }
 
   /**
@@ -401,49 +413,45 @@ export class GmailProvider extends EmailProvider {
   }
 
   /**
-   * Refresh access token
+   * Refresh access token via Edge Function (secure)
    */
   async refreshAccessToken(account: EmailAccount): Promise<EmailAccount> {
-    // Validate required credentials
-    if (!this.clientId || !this.clientSecret) {
-      throw new Error('invalid_client: Google API credentials not configured')
-    }
-
     if (!account.refreshToken) {
       throw new Error('invalid_grant: No refresh token available')
     }
 
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        refresh_token: account.refreshToken,
-        grant_type: 'refresh_token'
+    // Use Edge Function to keep client_secret server-side
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const response = await fetch(OAUTH_EDGE_FUNCTION, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'google',
+          action: 'refresh',
+          refreshToken: account.refreshToken,
+        }),
       })
-    })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorCode = errorData.error || 'unknown_error'
-      const errorDescription = errorData.error_description || 'Failed to refresh token'
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorCode = errorData.error || 'unknown_error'
+        console.error('[Gmail] Token refresh failed:', errorCode)
+        throw new Error(`${errorCode}: Failed to refresh token`)
+      }
 
-      console.error('[Gmail] Token refresh failed:', errorCode, errorDescription)
+      const data = await response.json()
 
-      // Throw error with Google's error code for better handling
-      throw new Error(`${errorCode}: ${errorDescription}`)
+      return {
+        ...account,
+        accessToken: data.accessToken,
+        expiresAt: Date.now() + data.expiresIn * 1000
+      }
     }
 
-    const data = await response.json()
-
-    return {
-      ...account,
-      accessToken: data.access_token,
-      expiresAt: Date.now() + data.expires_in * 1000
-    }
+    throw new Error('OAuth service not configured')
   }
 
   /**

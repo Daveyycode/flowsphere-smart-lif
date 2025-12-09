@@ -2,6 +2,34 @@
 
 **FlowSphere** is a comprehensive home and family management application that handles email monitoring, home automation, kids tracking, voice notes, secure vault, maps, and AI integrations.
 
+---
+
+## 🚨 CLAUDE: MUST READ FIRST! 🚨
+
+**BEFORE DOING ANYTHING IN THIS PROJECT:**
+
+1. **READ [`CEO-MASTER-FILE.md`](./CEO-MASTER-FILE.md) FIRST** - Contains:
+   - Current session tasks and priorities
+   - Active bugs and errors to fix
+   - Security protocols
+   - CEO credentials status
+   - Daily session logs
+
+2. **Check the bug report:** [`COMPREHENSIVE-BUG-REPORT-DEC-9-2025.md`](./COMPREHENSIVE-BUG-REPORT-DEC-9-2025.md)
+
+3. **Update CEO-MASTER-FILE.md at END of every session**
+
+### Critical Rules:
+- ❌ NEVER recreate files (use Edit tool only)
+- ❌ NEVER expose credentials in frontend code (no VITE_ prefix for secrets)
+- ❌ NEVER add fake/mock data
+- ❌ NEVER touch unrelated features
+- ✅ ALWAYS read CEO-MASTER-FILE.md first
+- ✅ ALWAYS update session log when done
+- ✅ ALWAYS run `npm run build` to verify changes
+
+---
+
 ## 🚀 Quick Start
 
 ```bash

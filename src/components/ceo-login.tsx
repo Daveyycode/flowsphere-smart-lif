@@ -12,6 +12,7 @@ import { FaceCaptureSecurityManager } from '@/lib/face-capture-security'
 import { ActiveSessionsMonitor } from '@/lib/active-sessions-monitor'
 import { useKV } from '@/hooks/use-kv'
 import { rotateUsername, createLoginAttempt, type CEOCredentials } from '@/lib/ceo-auth'
+import { loginAsCEO } from '@/lib/ceo-check'
 import { TermsCheckbox } from '@/components/terms-checkbox'
 
 interface CEOLoginProps {
@@ -26,10 +27,12 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
   const [attempts, setAttempts] = useState(0)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
-  // Get current rotating username and stored credentials
+  // SECURITY FIX (Dec 9, 2025): Removed hardcoded credentials
+  // CEO authentication now uses server-side verification via Supabase Edge Function
+  // See: supabase/functions/ceo-auth/index.ts and src/lib/ceo-check.ts
   const [ceoCredentials, setCeoCredentials] = useKV<CEOCredentials>('flowsphere-ceo-credentials', {
-    username: '778101', // Default 6-digit rotating code
-    password: 'papakoEddie@tripzy.international',
+    username: '', // Verified server-side only
+    password: '', // Never stored client-side
     lastRotation: new Date().toISOString(),
     deviceId: 'device-' + Math.random().toString(36).substring(7)
   })
@@ -46,15 +49,12 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
     setIsLoading(true)
 
     try {
-      // Simulate small delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // SECURITY FIX (Dec 9, 2025): Use server-side authentication
+      // Credentials are verified via Supabase Edge Function - never client-side
+      const result = await loginAsCEO(username, password)
 
-      // Validate against rotating username and stored password
-      const isValidUsername = username === ceoCredentials?.username
-      const isValidPassword = password === ceoCredentials?.password
-
-      if (isValidUsername && isValidPassword) {
-        // Successful CEO login
+      if (result.success) {
+        // Successful CEO login (verified server-side)
         const attempt = createLoginAttempt(username, true, 'manual')
         setLoginAttempts([...(loginAttempts || []), attempt])
 
@@ -65,13 +65,9 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
           'CEO Executive'
         )
 
-        toast.success('Welcome, CEO! Username rotating for security...')
+        toast.success('Welcome, CEO! Secure session established.')
 
-        // Rotate username for next login
-        const newCredentials = rotateUsername(ceoCredentials!)
-        setCeoCredentials(newCredentials)
-
-        // Store CEO auth in localStorage
+        // Store CEO auth in localStorage (session token stored by loginAsCEO)
         localStorage.setItem('flowsphere-ceo-authenticated', 'true')
         localStorage.setItem('flowsphere-ceo-login-time', new Date().toISOString())
 
@@ -81,9 +77,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
         const faceCapture = new FaceCaptureSecurityManager()
         const sessionsMonitor = new ActiveSessionsMonitor()
 
-        const failureReason = !isValidUsername
-          ? 'Invalid username (6-digit code)'
-          : 'Invalid password'
+        const failureReason = result.error || 'Invalid credentials'
 
         const attempt = createLoginAttempt(username, false, 'manual', failureReason)
         setLoginAttempts([...(loginAttempts || []), attempt])
@@ -105,7 +99,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
         if (attempts >= 2) {
           toast.error('Multiple failed attempts detected. Security team notified.')
         } else {
-          toast.error('Invalid credentials. Check your QR code for current username.')
+          toast.error(result.error || 'Invalid credentials.')
         }
 
         // Clear password field
