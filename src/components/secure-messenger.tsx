@@ -720,7 +720,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     checkExpiredMessages() // Check immediately on mount
 
     return () => clearInterval(interval)
-  }, [messages, setMessages])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run once on mount, interval handles the rest
 
   // Mark messages as seen when viewing chat (and trigger auto-delete timer)
   useEffect(() => {
@@ -747,7 +748,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         return m
       }))
     }
-  }, [selectedContact, messages])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContact?.id]) // Only run when selected contact changes, not on every message update
 
   // ========== CAMERA QR SCANNING ==========
 
