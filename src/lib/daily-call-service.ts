@@ -47,9 +47,7 @@ export const initialCallState: CallState = {
 }
 
 // Daily.co API configuration
-// NOTE: For production, create rooms via your backend with Daily.co API key
-// For demo/development, we use Daily.co's free demo rooms
-const DAILY_DOMAIN = 'flowsphere' // Replace with your Daily.co domain when you have one
+const DAILY_DOMAIN = 'cloud-2328ad98f150460ea77fcb36b78d5cb2' // FlowSphere Daily.co domain
 
 /**
  * Generate a unique room name for a call between two users
