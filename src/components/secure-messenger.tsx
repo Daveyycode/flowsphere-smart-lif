@@ -1241,15 +1241,18 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           scannedInvite.code,
           deviceId,
           myName,
-          myKeys.publicKey
+          myKeys.publicKey,
+          // Pass the group conversationId so Supabase uses the same one
+          isGroupInvite && groupId ? `group_${groupId}` : undefined
         )
         if (result.success) {
           supabaseSuccess = true
-          // Use conversation ID from Supabase if available (ensures consistency)
-          if (result.contact?.conversationId) {
+          // For GROUP chats: keep the group conversationId (don't overwrite)
+          // For personal chats: use conversation ID from Supabase for consistency
+          if (!isGroupInvite && result.contact?.conversationId) {
             conversationId = result.contact.conversationId
           }
-          console.log('[SUPABASE] Bidirectional pairing created! ConversationId:', conversationId)
+          console.log('[SUPABASE] Bidirectional pairing created! ConversationId:', conversationId, isGroupInvite ? '(GROUP)' : '')
         } else {
           console.warn('[SUPABASE] Pairing failed:', result.error)
         }

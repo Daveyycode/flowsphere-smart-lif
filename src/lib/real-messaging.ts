@@ -322,12 +322,14 @@ export async function createPairingInvite(
 /**
  * Accept a pairing invite - creates contacts for BOTH users
  * Uses the invite code as conversation ID - SAME on both devices!
+ * For GROUP chats, pass customConversationId to use a group-specific ID
  */
 export async function acceptPairingInvite(
   inviteCode: string,
   acceptorId: string,
   acceptorName: string,
-  acceptorPublicKey: string
+  acceptorPublicKey: string,
+  customConversationId?: string // For group chats, pass `group_${groupId}`
 ): Promise<{
   success: boolean
   contact?: any
@@ -351,8 +353,11 @@ export async function acceptPairingInvite(
       return { success: false, error: 'Invite has expired' }
     }
 
-    // Check if already accepted
-    if (invite.accepted) {
+    // For GROUP invites: don't check if already accepted (multiple people can join)
+    const isGroupInvite = customConversationId?.startsWith('group_')
+
+    // Check if already accepted (only for personal 1:1 invites)
+    if (invite.accepted && !isGroupInvite) {
       return { success: false, error: 'Invite already used' }
     }
 
@@ -362,25 +367,32 @@ export async function acceptPairingInvite(
     }
 
     // ============================================
-    // SIMPLE CONVERSATION ID FROM INVITE CODE
+    // CONVERSATION ID
     // ============================================
-    // Use invite code as conversation ID - SAME on both devices!
-    const conversationId = `conv_${inviteCode}`
+    // For groups: use custom ID (group_${groupId})
+    // For personal: use invite code (conv_${inviteCode})
+    const conversationId = customConversationId || `conv_${inviteCode}`
+    console.log('[PAIRING] Using conversationId:', conversationId, isGroupInvite ? '(GROUP)' : '')
 
     // Update invite as accepted
-    const { error: updateError } = await supabase
-      .from('messenger_pairings')
-      .update({
-        accepted: true,
-        accepted_by_id: acceptorId,
-        accepted_by_name: acceptorName,
-        accepted_by_public_key: acceptorPublicKey,
-        accepted_at: new Date().toISOString()
-      })
-      .eq('id', invite.id)
+    // For GROUP invites: don't mark as fully accepted so others can still join
+    if (!isGroupInvite) {
+      const { error: updateError } = await supabase
+        .from('messenger_pairings')
+        .update({
+          accepted: true,
+          accepted_by_id: acceptorId,
+          accepted_by_name: acceptorName,
+          accepted_by_public_key: acceptorPublicKey,
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', invite.id)
 
-    if (updateError) {
-      console.error('[PAIRING] Update error:', updateError)
+      if (updateError) {
+        console.error('[PAIRING] Update error:', updateError)
+      }
+    } else {
+      console.log('[PAIRING] Group invite - not marking as fully accepted')
     }
 
     // ============================================
