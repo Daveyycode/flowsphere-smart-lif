@@ -2075,7 +2075,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               </Button>
             </div>
 
-            {/* Contacts List */}
+            {/* Contacts List - sorted by most recent message */}
             <div className="flex-1 min-h-0 overflow-y-auto">
               <div className="p-2">
                 {(contacts || []).length === 0 ? (
@@ -2085,7 +2085,22 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                     <p className="text-xs">Generate or scan a QR code</p>
                   </div>
                 ) : (
-                  (contacts || []).map(contact => (
+                  // Sort contacts by most recent message (newest first)
+                  [...(contacts || [])].sort((a, b) => {
+                    // Get last message time for each contact
+                    const getLastMessageTime = (contact: Contact) => {
+                      const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
+                      if (contactMessages.length === 0) {
+                        // No messages - use paired date or current time
+                        return new Date(contact.pairedAt || 0).getTime()
+                      }
+                      // Get the most recent message timestamp
+                      const lastMsg = contactMessages[contactMessages.length - 1]
+                      return new Date(lastMsg.timestamp || lastMsg.createdAt || 0).getTime()
+                    }
+                    // Sort descending (newest first)
+                    return getLastMessageTime(b) - getLastMessageTime(a)
+                  }).map(contact => (
                     <motion.div
                       key={contact.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -2904,37 +2919,39 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   Visibility
                 </h4>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="show-online" className="text-sm">Show Online Status</Label>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="show-online" className="text-sm font-medium">Show Online Status</Label>
                     <p className="text-xs text-gray-500">Let others see when you're online</p>
                   </div>
                   <Switch
                     id="show-online"
                     checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showOnlineStatus}
-                    onCheckedChange={(checked) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, showOnlineStatus: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      console.log('[PRIVACY] Show Online Status:', checked)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showOnlineStatus: checked }))
+                    }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="show-last-seen" className="text-sm">Show Last Seen</Label>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="show-last-seen" className="text-sm font-medium">Show Last Seen</Label>
                     <p className="text-xs text-gray-500">Let others see when you were last active</p>
                   </div>
                   <Switch
                     id="show-last-seen"
                     checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showLastSeen}
-                    onCheckedChange={(checked) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, showLastSeen: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      console.log('[PRIVACY] Show Last Seen:', checked)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showLastSeen: checked }))
+                    }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="show-id" className="text-sm flex items-center gap-1">
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="show-id" className="text-sm font-medium flex items-center gap-1">
                       <IdentificationCard className="w-3 h-3" />
                       Show Unique ID
                     </Label>
@@ -2943,9 +2960,10 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   <Switch
                     id="show-id"
                     checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showUniqueId}
-                    onCheckedChange={(checked) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, showUniqueId: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      console.log('[PRIVACY] Show Unique ID:', checked)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showUniqueId: checked }))
+                    }}
                   />
                 </div>
               </div>
@@ -2957,23 +2975,24 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   Security
                 </h4>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="allow-screenshots" className="text-sm">Allow Screenshots</Label>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="allow-screenshots" className="text-sm font-medium">Allow Screenshots</Label>
                     <p className="text-xs text-gray-500">Let others screenshot your conversation</p>
                   </div>
                   <Switch
                     id="allow-screenshots"
                     checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowScreenshots}
-                    onCheckedChange={(checked) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, allowScreenshots: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      console.log('[PRIVACY] Allow Screenshots:', checked)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, allowScreenshots: checked }))
+                    }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="allow-save" className="text-sm flex items-center gap-1">
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="allow-save" className="text-sm font-medium flex items-center gap-1">
                       <FloppyDisk className="w-3 h-3" />
                       Allow Saving Media
                     </Label>
@@ -2982,9 +3001,10 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   <Switch
                     id="allow-save"
                     checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowSaveMedia}
-                    onCheckedChange={(checked) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, allowSaveMedia: checked })
-                    }
+                    onCheckedChange={(checked) => {
+                      console.log('[PRIVACY] Allow Save Media:', checked)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, allowSaveMedia: checked }))
+                    }}
                   />
                 </div>
               </div>
@@ -2996,19 +3016,20 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   Disappearing Messages
                 </h4>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="auto-delete" className="text-sm">Auto-Delete Timer</Label>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex-1 pr-4">
+                    <Label htmlFor="auto-delete" className="text-sm font-medium">Auto-Delete Timer</Label>
                     <p className="text-xs text-gray-500">Messages disappear after being seen</p>
                   </div>
                   <Select
                     value={String((myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer)}
-                    onValueChange={(value) =>
-                      setMyPrivacySettings({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...myPrivacySettings, autoDeleteTimer: Number(value) })
-                    }
+                    onValueChange={(value) => {
+                      console.log('[PRIVACY] Auto-Delete Timer:', value)
+                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, autoDeleteTimer: Number(value) }))
+                    }}
                   >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
+                    <SelectTrigger className="w-[120px] h-9">
+                      <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
                       {AUTO_DELETE_OPTIONS.map(option => (
