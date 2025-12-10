@@ -26,8 +26,7 @@ import {
   createCallInstance,
   joinRoom,
   leaveRoom,
-  checkBrowserSupport,
-  requestMediaPermissions
+  checkBrowserSupport
 } from '@/lib/daily-call-service'
 import type { DailyCall } from '@daily-co/daily-js'
 
@@ -325,6 +324,8 @@ export function VideoCall({
     if (!isOpen || !roomUrl) return
 
     const initCall = async () => {
+      console.log('[VIDEO-CALL] Initializing call:', { roomUrl, callType, userName })
+
       // Check browser support
       const support = checkBrowserSupport()
       if (!support.supported) {
@@ -332,20 +333,28 @@ export function VideoCall({
         return
       }
 
-      // Request permissions
-      const permissions = await requestMediaPermissions(callType === 'video', true)
-      if (!permissions.granted) {
-        setError(permissions.error || 'Permission denied')
-        return
-      }
+      // Skip pre-permission check - let Daily.co handle it
+      // This avoids "Invalid constraint" errors from browser inconsistencies
+      console.log('[VIDEO-CALL] Browser supported, creating call instance...')
 
       setIsJoining(true)
       try {
         const call = createCallInstance()
         setCallObject(call)
+
+        console.log('[VIDEO-CALL] Joining room:', roomUrl)
         await joinRoom(call, roomUrl, userName, callType === 'video')
+        console.log('[VIDEO-CALL] Successfully joined room')
       } catch (err: any) {
-        setError(err.message || 'Failed to join call')
+        console.error('[VIDEO-CALL] Failed to join:', err)
+        // Provide more helpful error messages
+        let errorMessage = err.message || 'Failed to join call'
+        if (errorMessage.includes('constraint')) {
+          errorMessage = 'Camera/microphone not available. Try an audio call instead.'
+        } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+          errorMessage = 'Call room not found. Please try again.'
+        }
+        setError(errorMessage)
       } finally {
         setIsJoining(false)
       }

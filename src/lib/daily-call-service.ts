@@ -65,7 +65,11 @@ export function generateRoomName(userId1: string, userId2: string): string {
  */
 export function createCallInstance(): DailyCall {
   return Daily.createCallObject({
-    subscribeToTracksAutomatically: true
+    subscribeToTracksAutomatically: true,
+    // Use permissive audio/video constraints to avoid "Invalid constraint" errors
+    dailyConfig: {
+      experimentalChromeVideoMuteLightOff: true
+    }
   })
 }
 
@@ -265,15 +269,53 @@ export async function requestMediaPermissions(video: boolean = true, audio: bool
   error?: string
 }> {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video, audio })
+    // Use flexible constraints - don't fail if specific settings aren't available
+    const constraints: MediaStreamConstraints = {}
+
+    if (audio) {
+      constraints.audio = true
+    }
+
+    if (video) {
+      // Use flexible video constraints that work across devices
+      constraints.video = {
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    }
+
+    // At least one must be requested
+    if (!constraints.audio && !constraints.video) {
+      constraints.audio = true
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints)
     // Stop tracks after getting permission
     stream.getTracks().forEach(track => track.stop())
     return { granted: true }
   } catch (error: any) {
+    console.error('[CALL] Media permission error:', error.name, error.message)
+
+    // If video failed, try audio only
+    if (video && error.name === 'OverconstrainedError') {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        audioStream.getTracks().forEach(track => track.stop())
+        return { granted: true } // Audio works, video might not be available
+      } catch {
+        // Audio also failed
+      }
+    }
+
     return {
       granted: false,
       error: error.name === 'NotAllowedError'
         ? 'Camera/microphone permission denied'
+        : error.name === 'OverconstrainedError'
+        ? 'Camera not available on this device'
+        : error.name === 'NotFoundError'
+        ? 'No camera or microphone found'
         : error.message
     }
   }

@@ -72,7 +72,7 @@ import { cn } from '@/lib/utils'
 import QRCode from 'qrcode'
 import jsQR from 'jsqr'
 import { VideoCall, IncomingCall } from './video-call'
-import { generateRoomName, createDemoRoomUrl } from '@/lib/daily-call-service'
+import { generateRoomName, createRoom } from '@/lib/daily-call-service'
 import {
   sendCallInvite,
   updateCallStatus,
@@ -1423,19 +1423,27 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   // ========== ATTACHMENT HANDLERS ==========
 
   // Helper: Generate consistent shared key for E2EE attachments
-  // IMPORTANT: Both sender and receiver must derive the SAME key
+  // IMPORTANT: Both sender and receiver MUST derive the EXACT SAME key
+  // Uses ONLY sorted device IDs - the only guaranteed consistent data on both sides
   const getSharedAttachmentKey = (contact: Contact): string => {
-    // Priority 1: Use conversationId (same for both users)
-    if (contact.conversationId) {
-      return contact.conversationId
-    }
-
-    // Priority 2: Generate from sorted user IDs (deterministic)
+    // Get both device IDs
     const myId = deviceId
     const theirId = contact.contactUserId || contact.id
-    const sortedIds = [myId, theirId].sort().join('_')
-    console.log('[E2EE] Generated shared key from IDs:', sortedIds.substring(0, 20) + '...')
-    return sortedIds
+
+    // Sort IDs alphabetically to ensure same order regardless of who is sender/receiver
+    const sortedIds = [myId, theirId].sort()
+
+    // Create a deterministic shared key using only the IDs
+    // DO NOT add conversationId or pairingCode - they may not be set on both sides!
+    const sharedKey = `flowsphere-e2e::${sortedIds[0]}::${sortedIds[1]}`
+
+    console.log('[E2EE] Shared key derived from:', {
+      myId: myId.substring(0, 15),
+      theirId: theirId.substring(0, 15),
+      keyPreview: sharedKey.substring(0, 30) + '...'
+    })
+
+    return sharedKey
   }
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1835,10 +1843,24 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
     // Generate room name based on user IDs
     const roomName = generateRoomName(deviceId, selectedContact.contactUserId || selectedContact.id)
-    const roomUrl = createDemoRoomUrl(roomName)
 
     console.log('[CALL] Starting', type, 'call with', selectedContact.name)
-    console.log('[CALL] Room URL:', roomUrl)
+    console.log('[CALL] Creating room:', roomName)
+
+    // Create room via Edge Function (secure, API key on server)
+    toast.loading('Setting up call...')
+    const roomResult = await createRoom(roomName, type)
+
+    if (!roomResult?.url) {
+      toast.dismiss()
+      toast.error('Failed to create call room. Please check Daily.co API key.')
+      console.error('[CALL] Room creation failed - check DAILY_API_KEY in Supabase secrets')
+      return
+    }
+
+    const roomUrl = roomResult.url
+    console.log('[CALL] Room created via API:', roomUrl)
+    toast.dismiss()
 
     // Send call invite to the other user via Supabase
     const toUserId = selectedContact.contactUserId || selectedContact.id

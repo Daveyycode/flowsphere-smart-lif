@@ -15,10 +15,16 @@ serve(async (req) => {
     const DAILY_API_KEY = Deno.env.get('DAILY_API_KEY')
 
     if (!DAILY_API_KEY) {
+      console.error('[daily-room] DAILY_API_KEY not found in environment')
       throw new Error('DAILY_API_KEY not configured')
     }
 
+    // Log key prefix for debugging (never log full key)
+    const keyPrefix = DAILY_API_KEY.substring(0, 8)
+    console.log('[daily-room] Using API key starting with:', keyPrefix)
+
     const { roomName, callType } = await req.json()
+    console.log('[daily-room] Creating room:', roomName, 'type:', callType)
 
     if (!roomName) {
       throw new Error('roomName is required')
@@ -46,7 +52,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Daily.co API error:', error)
+      console.error('[daily-room] Daily.co API error:', response.status, error)
 
       // If room already exists, try to get it
       if (response.status === 400) {
@@ -69,6 +75,7 @@ serve(async (req) => {
     }
 
     const room = await response.json()
+    console.log('[daily-room] Room created successfully:', room.url)
 
     return new Response(
       JSON.stringify({ success: true, room }),
