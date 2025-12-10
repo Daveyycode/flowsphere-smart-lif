@@ -242,7 +242,12 @@ export async function encryptAttachment(
     const encryptedData = btoa(binary)
 
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 10)
+    const randomBytes = new Uint8Array(8)
+    crypto.getRandomValues(randomBytes)
+    const random = Array.from(randomBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .substring(0, 10)
     const attachmentId = `att_${timestamp}_${random}`
 
     // Decide storage location based on size

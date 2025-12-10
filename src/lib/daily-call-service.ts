@@ -47,7 +47,7 @@ export const initialCallState: CallState = {
 }
 
 // Daily.co API configuration
-const DAILY_DOMAIN = 'cloud-2328ad98f150460ea77fcb36b78d5cb2' // FlowSphere Daily.co domain
+const DAILY_DOMAIN = 'cloud-87436c13eb554a17a903c7d6d1e1d014' // FlowSphere Daily.co domain
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 /**
@@ -77,20 +77,26 @@ export function createCallInstance(): DailyCall {
  * Create a room via Edge Function (secure, uses API key on server)
  */
 export async function createRoom(roomName: string, callType: 'video' | 'audio' = 'video'): Promise<{ url: string } | null> {
+  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/daily-room`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY
       },
       body: JSON.stringify({ roomName, callType })
     })
 
     const data = await response.json()
+    console.log('[DAILY] Create room response:', data)
+
     if (data.success && data.room) {
       return { url: data.room.url }
     }
-    console.error('Failed to create room:', data.error)
+    console.error('Failed to create room:', data.error || data.message)
     return null
   } catch (error) {
     console.error('Error creating room:', error)

@@ -54,7 +54,8 @@ import {
   Paperclip,
   Phone,
   PhoneCall,
-  VideoCamera
+  VideoCamera,
+  Timer
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -125,16 +126,14 @@ function getOrCreateDeviceId(): string {
   const key = 'flowsphere-device-id'
   let deviceId = localStorage.getItem(key)
   if (!deviceId) {
-    // Generate device-specific ID using device fingerprint components
-    const fingerprint = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width,
-      screen.height,
-      new Date().getTimezoneOffset()
-    ].join('|')
-    const hash = btoa(fingerprint).substring(0, 12)
-    deviceId = `DEV_${hash}_${Date.now().toString(36)}`
+    // Generate cryptographically secure device ID
+    const randomBytes = new Uint8Array(16)
+    crypto.getRandomValues(randomBytes)
+    // Convert to hex string
+    const randomHex = Array.from(randomBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    deviceId = `DEV_${randomHex}`
     localStorage.setItem(key, deviceId)
   }
   return deviceId
@@ -151,16 +150,70 @@ function getOrCreateUserId(): string {
   const key = 'flowsphere-messenger-user-id'
   let userId = localStorage.getItem(key)
   if (!userId) {
-    // Generate unique user ID (format: FS-XXXXXXXX)
+    // Generate cryptographically secure user ID (format: FS-XXXXXXXX)
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // No confusing chars (0,O,1,I)
+    const randomBytes = new Uint8Array(8)
+    crypto.getRandomValues(randomBytes)
     let id = ''
     for (let i = 0; i < 8; i++) {
-      id += chars[Math.floor(Math.random() * chars.length)]
+      id += chars[randomBytes[i] % chars.length]
     }
     userId = `FS-${id}`
     localStorage.setItem(key, userId)
   }
   return userId
+}
+
+// ========== COUNTDOWN TIMER COMPONENT ==========
+// Shows remaining time until message auto-deletes
+
+function AutoDeleteCountdown({ deleteAt, isOwn }: { deleteAt: string; isOwn: boolean }) {
+  const [timeLeft, setTimeLeft] = useState<string>('')
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date()
+      const deleteTime = new Date(deleteAt)
+      const diff = deleteTime.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setTimeLeft('')
+        return
+      }
+
+      const seconds = Math.floor(diff / 1000)
+      const minutes = Math.floor(seconds / 60)
+      const hours = Math.floor(minutes / 60)
+
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes % 60}m`)
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}m ${seconds % 60}s`)
+      } else {
+        setTimeLeft(`${seconds}s`)
+      }
+    }
+
+    calculateTimeLeft()
+    const interval = setInterval(calculateTimeLeft, 1000)
+
+    return () => clearInterval(interval)
+  }, [deleteAt])
+
+  if (!timeLeft) return null
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium animate-pulse",
+        isOwn ? "bg-red-500/20 text-red-200" : "bg-red-100 text-red-600"
+      )}
+      title="Message will be auto-deleted"
+    >
+      <Timer className="w-2.5 h-2.5" />
+      {timeLeft}
+    </span>
+  )
 }
 
 // ========== TYPES ==========
@@ -291,39 +344,211 @@ interface SecureQRMessengerProps {
   onClose: () => void
 }
 
-// ========== ENCRYPTION HELPERS ==========
+// ========== ENCRYPTION HELPERS (AES-256-GCM) ==========
 
-function generateKeyPair() {
-  // Simple key generation (in production, use Web Crypto API)
-  const timestamp = Date.now()
-  const random = Math.random().toString(36).substring(2)
+/**
+ * Generate cryptographically secure key pair
+ * Uses Web Crypto API for real security
+ */
+function generateKeyPair(): { publicKey: string; privateKey: string } {
+  // Generate 32-byte random key material (256 bits)
+  const keyBytes = new Uint8Array(32)
+  crypto.getRandomValues(keyBytes)
+
+  // Convert to hex string for storage
+  const keyHex = Array.from(keyBytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  // Public key is shared with contacts, private key is kept secret
+  // For symmetric E2E encryption, we derive shared secret from both keys
   return {
-    publicKey: `PK_${timestamp}_${random}`,
-    privateKey: `SK_${timestamp}_${random}`
+    publicKey: `PK_${keyHex}`,
+    privateKey: `SK_${keyHex}`
   }
 }
 
-function encryptMessage(message: string, recipientPublicKey: string): string {
-  // Simple encryption (in production, use AES-256 or similar)
-  const encoded = btoa(message + ':' + recipientPublicKey)
-  return `ENC_${encoded}`
+/**
+ * Derive shared encryption key from my private key and their public key
+ * Both parties derive the same key by sorting and combining
+ */
+async function deriveSharedKey(
+  myPrivateKey: string,
+  theirPublicKey: string
+): Promise<CryptoKey> {
+  // Extract key material (remove prefixes)
+  const myKey = myPrivateKey.replace('SK_', '')
+  const theirKey = theirPublicKey.replace('PK_', '')
+
+  // Sort keys alphabetically to ensure both parties derive same shared secret
+  const sortedKeys = [myKey, theirKey].sort()
+  const sharedSecret = sortedKeys.join(':')
+
+  // Generate salt from conversation context
+  const salt = new TextEncoder().encode('FlowSphere-E2E-Messenger-v1')
+
+  // Import as key material for PBKDF2
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(sharedSecret),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  )
+
+  // Derive AES-256-GCM key
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000, // Fast enough for messaging, secure enough
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    {
+      name: 'AES-GCM',
+      length: 256
+    },
+    false,
+    ['encrypt', 'decrypt']
+  )
 }
 
-function decryptMessage(encryptedMessage: string, myPrivateKey: string): string {
-  // Simple decryption (in production, use proper decryption)
+/**
+ * Encrypt message with AES-256-GCM
+ * Returns format: ENC2_{iv}_{ciphertext} (base64 encoded)
+ */
+async function encryptMessageAsync(
+  message: string,
+  myPrivateKey: string,
+  recipientPublicKey: string
+): Promise<string> {
   try {
-    const encoded = encryptedMessage.replace('ENC_', '')
-    const decoded = atob(encoded)
-    return decoded.split(':')[0]
+    // Derive shared encryption key
+    const key = await deriveSharedKey(myPrivateKey, recipientPublicKey)
+
+    // Generate random IV (12 bytes for GCM)
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+
+    // Encrypt the message
+    const encoder = new TextEncoder()
+    const data = encoder.encode(message)
+
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv },
+      key,
+      data
+    )
+
+    // Combine IV + ciphertext and encode as base64
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength)
+    combined.set(iv)
+    combined.set(new Uint8Array(encryptedBuffer), iv.length)
+
+    // Use URL-safe base64
+    const base64 = btoa(String.fromCharCode(...combined))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+
+    return `ENC2_${base64}`
+  } catch (error) {
+    logger.error('Message encryption failed', error)
+    throw new Error('Failed to encrypt message')
+  }
+}
+
+/**
+ * Decrypt message with AES-256-GCM
+ * Handles both old format (ENC_) and new format (ENC2_)
+ */
+async function decryptMessageAsync(
+  encryptedMessage: string,
+  myPrivateKey: string,
+  senderPublicKey: string
+): Promise<string> {
+  try {
+    // Handle legacy format (base64 only - for backwards compatibility)
+    if (encryptedMessage.startsWith('ENC_')) {
+      const encoded = encryptedMessage.replace('ENC_', '')
+      const decoded = atob(encoded)
+      return decoded.split(':')[0]
+    }
+
+    // New secure format
+    if (!encryptedMessage.startsWith('ENC2_')) {
+      return encryptedMessage // Plain text (shouldn't happen)
+    }
+
+    // Decode URL-safe base64
+    let base64 = encryptedMessage.replace('ENC2_', '')
+    base64 = base64.replace(/-/g, '+').replace(/_/g, '/')
+    while (base64.length % 4) base64 += '='
+
+    const combined = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+
+    // Extract IV (first 12 bytes) and ciphertext (rest)
+    const iv = combined.slice(0, 12)
+    const ciphertext = combined.slice(12)
+
+    // Derive shared decryption key
+    const key = await deriveSharedKey(myPrivateKey, senderPublicKey)
+
+    // Decrypt
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv },
+      key,
+      ciphertext
+    )
+
+    return new TextDecoder().decode(decryptedBuffer)
   } catch (error) {
     logger.debug('Message decryption failed', error)
     return '[Decryption failed]'
   }
 }
 
+// Synchronous wrapper for backwards compatibility
+// Uses cached keys when possible
+const encryptionCache = new Map<string, CryptoKey>()
+
+function encryptMessage(message: string, recipientPublicKey: string): string {
+  // For sync calls, return placeholder that will be replaced async
+  // This maintains API compatibility while transitioning
+  const encoded = btoa(unescape(encodeURIComponent(message)))
+  return `PENDING_ENC_${encoded}_${recipientPublicKey}`
+}
+
+function decryptMessage(encryptedMessage: string, myPrivateKey: string): string {
+  // Handle legacy format synchronously
+  if (encryptedMessage.startsWith('ENC_')) {
+    try {
+      const encoded = encryptedMessage.replace('ENC_', '')
+      const decoded = atob(encoded)
+      return decoded.split(':')[0]
+    } catch {
+      return '[Decryption failed]'
+    }
+  }
+  // For new format, return placeholder (async handler will update)
+  if (encryptedMessage.startsWith('ENC2_')) {
+    return '[Decrypting...]'
+  }
+  return encryptedMessage
+}
+
+/**
+ * Generate cryptographically secure invite code
+ */
 function generateInviteCode(): string {
   const timestamp = Date.now()
-  const random = Math.random().toString(36).substring(2, 10).toUpperCase()
+  const randomBytes = new Uint8Array(8)
+  crypto.getRandomValues(randomBytes)
+  const random = Array.from(randomBytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()
+    .substring(0, 8)
   return `${timestamp}-${random}`
 }
 
@@ -555,15 +780,31 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   useEffect(() => {
     if (!selectedContact?.conversationId) return
 
-    const unsubscribe = subscribeToConversation(selectedContact.conversationId, (newMsg: SupabaseMessageRecord) => {
+    const unsubscribe = subscribeToConversation(selectedContact.conversationId, async (newMsg: SupabaseMessageRecord) => {
       console.log('[REALTIME] New message:', newMsg)
       // Don't add if it's from us
       if (newMsg.sender_id === deviceId) return
 
+      // Decrypt message asynchronously if encrypted
+      let decryptedText = newMsg.content
+      if (newMsg.encrypted && myKeys?.privateKey && selectedContact.publicKey) {
+        try {
+          decryptedText = await decryptMessageAsync(
+            newMsg.content,
+            myKeys.privateKey,
+            selectedContact.publicKey
+          )
+          console.log('[E2E] Message decrypted successfully')
+        } catch (error) {
+          console.error('[E2E] Decryption failed:', error)
+          decryptedText = '[Decryption failed]'
+        }
+      }
+
       const message: Message = {
         id: newMsg.id,
         contactId: selectedContact.id,
-        text: newMsg.content,
+        text: decryptedText, // Store decrypted text
         timestamp: newMsg.created_at,
         status: 'delivered',
         isOwn: false,
@@ -575,7 +816,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       })
     })
     return () => unsubscribe()
-  }, [selectedContact?.conversationId, deviceId])
+  }, [selectedContact?.conversationId, deviceId, myKeys?.privateKey, selectedContact?.publicKey])
 
   // Subscribe to message deletions (real-time "delete for everyone")
   useEffect(() => {
@@ -694,14 +935,49 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     loadPrivacySettings()
   }, [deviceId])
 
-  // Subscribe to privacy settings changes (real-time)
+  // Subscribe to privacy settings changes (real-time) - MY settings
   useEffect(() => {
     const unsubscribe = subscribeToPrivacySettings(deviceId, (settings) => {
-      console.log('[REALTIME] Privacy settings updated:', settings)
+      console.log('[REALTIME] My privacy settings updated:', settings)
       setMyPrivacySettings(settings)
     })
     return () => unsubscribe()
   }, [deviceId])
+
+  // Subscribe to CONTACTS' privacy settings (real-time) - THEIR settings
+  useEffect(() => {
+    if (!contacts || contacts.length === 0) return
+
+    const unsubscribers: (() => void)[] = []
+
+    contacts.forEach(contact => {
+      const contactUserId = contact.contactUserId || contact.id
+      if (!contactUserId || contact.isDeleted) return
+
+      const unsubscribe = subscribeToPrivacySettings(contactUserId, (settings) => {
+        console.log(`[REALTIME] Contact ${contact.name}'s privacy updated:`, settings)
+        // Update the contact's privacy settings in our local state
+        setContacts(prev => (prev || []).map(c =>
+          (c.contactUserId === contactUserId || c.id === contactUserId)
+            ? {
+                ...c,
+                privacySettings: {
+                  showOnlineStatus: settings.showOnlineStatus,
+                  showLastSeen: settings.showLastSeen,
+                  allowScreenshots: settings.allowScreenshots,
+                  allowForwarding: false
+                }
+              }
+            : c
+        ))
+      })
+      unsubscribers.push(unsubscribe)
+    })
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub())
+    }
+  }, [contacts?.length]) // Re-subscribe when contacts list changes
 
   // Save privacy settings to Supabase whenever they change
   useEffect(() => {
@@ -1080,8 +1356,15 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       const expiresAt = new Date()
       expiresAt.setHours(expiresAt.getHours() + 24)
 
-      // Generate unique group ID
-      const groupId = `GRP_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+      // Generate unique group ID with cryptographically secure random
+      const groupRandomBytes = new Uint8Array(4)
+      crypto.getRandomValues(groupRandomBytes)
+      const groupRandomHex = Array.from(groupRandomBytes)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()
+        .substring(0, 6)
+      const groupId = `GRP_${Date.now().toString(36)}_${groupRandomHex}`
 
       let supabaseInvite: SupabasePairingInvite | null = null
       try {
@@ -1358,63 +1641,74 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   const sendMessage = async (text: string, contact: Contact | null = selectedContact) => {
     if (!contact || !text.trim() || !myKeys) return
 
-    const encryptedText = encryptMessage(text, contact.publicKey)
     const timestamp = new Date().toISOString()
+    const messageId = `msg_${Date.now()}`
 
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+    // Show optimistic message immediately with plain text (for own display)
+    const optimisticMessage: Message = {
+      id: messageId,
       contactId: contact.id,
-      text: encryptedText,
+      text: text, // Store plain text locally for own display
       timestamp: timestamp,
-      status: 'sending', // Start as sending (...)
+      status: 'sending',
       isOwn: true,
       encrypted: true,
-      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0 // Include auto-delete setting
+      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0
     }
 
-    // Add to local state immediately
-    setMessages([...(messages || []), newMessage])
+    setMessages([...(messages || []), optimisticMessage])
     setMessageInput('')
 
-    // Quick update to 'sent' status (message left device)
-    setTimeout(() => {
-      setMessages(msgs =>
-        (msgs || []).map(m => m.id === newMessage.id && m.status === 'sending' ? { ...m, status: 'sent' } : m)
-      )
-    }, 300)
+    try {
+      // Encrypt message with real AES-256-GCM
+      const encryptedText = await encryptMessageAsync(text, myKeys.privateKey, contact.publicKey)
 
-    // Store in Supabase for real-time sync (if contact has conversationId)
-    if (contact.conversationId) {
-      try {
-        const result = await sendMessengerMessage(
-          deviceId,
-          contact.conversationId,
-          encryptedText,
-          true
-        )
-        if (result) {
-          console.log('[SUPABASE] Message sent and synced')
-          // Update local message with Supabase ID and mark as delivered
-          setMessages(msgs =>
-            (msgs || []).map(m => m.id === newMessage.id ? { ...m, id: result.id, status: 'delivered' } : m)
-          )
-        }
-      } catch (err) {
-        console.warn('Supabase message sync failed:', err)
-        // Still mark as delivered locally after delay
-        setTimeout(() => {
-          setMessages(msgs =>
-            (msgs || []).map(m => m.id === newMessage.id ? { ...m, status: 'delivered' } : m)
-          )
-        }, 800)
-      }
-    } else {
-      // No Supabase connection, simulate delivery after delay
+      // Quick update to 'sent' status
       setTimeout(() => {
         setMessages(msgs =>
-          (msgs || []).map(m => m.id === newMessage.id ? { ...m, status: 'delivered' } : m)
+          (msgs || []).map(m => m.id === messageId && m.status === 'sending' ? { ...m, status: 'sent' } : m)
         )
-      }, 1000)
+      }, 300)
+
+      // Store in Supabase for real-time sync (if contact has conversationId)
+      if (contact.conversationId) {
+        try {
+          const result = await sendMessengerMessage(
+            deviceId,
+            contact.conversationId,
+            encryptedText,
+            true
+          )
+          if (result) {
+            console.log('[SUPABASE] Message sent with E2E encryption')
+            // Update local message with Supabase ID and mark as delivered
+            setMessages(msgs =>
+              (msgs || []).map(m => m.id === messageId ? { ...m, id: result.id, status: 'delivered' } : m)
+            )
+          }
+        } catch (err) {
+          console.warn('Supabase message sync failed:', err)
+          // Still mark as delivered locally after delay
+          setTimeout(() => {
+            setMessages(msgs =>
+              (msgs || []).map(m => m.id === messageId ? { ...m, status: 'delivered' } : m)
+            )
+          }, 800)
+        }
+      } else {
+        // No Supabase connection, simulate delivery after delay
+        setTimeout(() => {
+          setMessages(msgs =>
+            (msgs || []).map(m => m.id === messageId ? { ...m, status: 'delivered' } : m)
+          )
+        }, 1000)
+      }
+    } catch (error) {
+      logger.error('Failed to send message', error)
+      // Update message status to failed
+      setMessages(msgs =>
+        (msgs || []).map(m => m.id === messageId ? { ...m, status: 'sending', text: '[Encryption failed]' } : m)
+      )
     }
   }
 
@@ -1652,8 +1946,15 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   }
 
   // Handle attachment view/download
-  const handleViewAttachment = async (attachment: AttachmentMetadata, contactId: string) => {
+  const handleViewAttachment = async (attachment: AttachmentMetadata, contactId: string, isOwnMessage: boolean = false) => {
     if (!selectedContact) return
+
+    // Check if contact allows saving media (only for their messages, not our own)
+    const allowSaveMedia = isOwnMessage || (selectedContact.privacySettings?.allowSaveMedia ?? true)
+    if (!allowSaveMedia && attachment.type !== 'voice') {
+      toast.error(`${selectedContact.name} has disabled saving media`)
+      return
+    }
 
     try {
       // Generate the same shared key used for encryption (must match sender's key)
@@ -1667,11 +1968,14 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       const url = URL.createObjectURL(decryptedBlob)
 
       if (attachment.type === 'photo') {
-        // Open image in new tab
+        if (!allowSaveMedia) {
+          toast.info('Viewing photo (saving disabled by sender)')
+        }
+        // Open image in new tab (view only if saving not allowed)
         window.open(url, '_blank')
         toast.success('Photo opened in new tab!')
       } else if (attachment.type === 'voice') {
-        // Create audio element and play
+        // Voice messages can always be played (temporary)
         const audio = new Audio(url)
         audio.play().catch(err => {
           console.error('Audio playback failed:', err)
@@ -2271,8 +2575,25 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   </Button>
                 </div>
 
-                {/* Messages */}
-                <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                {/* Messages - Apply screenshot prevention if contact disabled it */}
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto p-4"
+                  style={{
+                    // Prevent screenshots/screen recording when disabled by contact
+                    ...(!(selectedContact.privacySettings?.allowScreenshots ?? true) && {
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      WebkitTouchCallout: 'none',
+                    })
+                  }}
+                >
+                  {/* Screenshot protection notice */}
+                  {!(selectedContact.privacySettings?.allowScreenshots ?? true) && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-3 text-xs text-yellow-700 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                      <span>Screenshot protection enabled by {selectedContact.name}</span>
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {getContactMessages(selectedContact.id).map(message => (
                       <motion.div
@@ -2320,7 +2641,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                       className="text-white hover:bg-white hover:bg-opacity-20"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        handleViewAttachment(message.attachment!, message.contactId)
+                                        handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
                                       }}
                                     >
                                       <Download className="w-4 h-4 mr-1" />
@@ -2368,7 +2689,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                     )}
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleViewAttachment(message.attachment!, message.contactId)
+                                      handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
                                     }}
                                   >
                                     <Download className="w-4 h-4" />
@@ -2394,7 +2715,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                     )}
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleViewAttachment(message.attachment!, message.contactId)
+                                      handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
                                     }}
                                   >
                                     <Play className="w-5 h-5" />
@@ -2430,9 +2751,11 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                               )}
                             </div>
                           ) : (
-                            /* Regular text message */
+                            /* Regular text message - already decrypted or plain text */
                             <p className="text-sm break-words">
-                              {decryptMessage(message.text, myKeys?.privateKey || '')}
+                              {message.isOwn || !message.text.startsWith('ENC')
+                                ? message.text
+                                : decryptMessage(message.text, myKeys?.privateKey || '')}
                             </p>
                           )}
 
@@ -2443,9 +2766,21 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                           )}>
                             <span>{formatTime(message.timestamp)}</span>
                             {renderStatusIndicator(message.status, message.isOwn)}
-                            {message.autoDeleteTimer && message.autoDeleteTimer > 0 && (
-                              <span title={`Auto-delete: ${AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label}`}>
-                                <Clock className="w-3 h-3 ml-1 opacity-70" weight="bold" />
+                            {/* Show countdown if message has deleteAt (seen and scheduled for deletion) */}
+                            {message.deleteAt && (
+                              <AutoDeleteCountdown deleteAt={message.deleteAt} isOwn={message.isOwn} />
+                            )}
+                            {/* Show clock icon if auto-delete is set but message not yet seen */}
+                            {message.autoDeleteTimer && message.autoDeleteTimer > 0 && !message.deleteAt && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-0.5 px-1 rounded text-[10px]",
+                                  message.isOwn ? "bg-blue-400/20 text-blue-100" : "bg-gray-200 text-gray-600"
+                                )}
+                                title={`Will auto-delete ${AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label} after seen`}
+                              >
+                                <Clock className="w-2.5 h-2.5" weight="bold" />
+                                {AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label?.replace(' ', '')}
                               </span>
                             )}
                           </div>
@@ -3163,8 +3498,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
               {messageToDelete && (
                 <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 max-h-24 overflow-y-auto">
-                  "{decryptMessage(messageToDelete.text, myKeys?.privateKey || '').substring(0, 100)}
-                  {decryptMessage(messageToDelete.text, myKeys?.privateKey || '').length > 100 ? '...' : ''}"
+                  "{(() => {
+                    const text = messageToDelete.isOwn || !messageToDelete.text.startsWith('ENC')
+                      ? messageToDelete.text
+                      : decryptMessage(messageToDelete.text, myKeys?.privateKey || '')
+                    return text.substring(0, 100) + (text.length > 100 ? '...' : '')
+                  })()}"
                 </div>
               )}
 

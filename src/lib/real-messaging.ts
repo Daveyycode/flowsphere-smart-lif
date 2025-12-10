@@ -288,8 +288,15 @@ export async function createPairingInvite(
   creatorPublicKey: string
 ): Promise<PairingInvite | null> {
   try {
-    // Generate unique code
-    const code = `${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+    // Generate unique code with cryptographically secure random
+    const randomBytes = new Uint8Array(8)
+    crypto.getRandomValues(randomBytes)
+    const randomHex = Array.from(randomBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+      .substring(0, 10)
+    const code = `${Date.now()}-${randomHex}`
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24 hours
 
@@ -510,6 +517,9 @@ export async function sendMessengerMessage(
   content: string,
   encrypted: boolean = true
 ): Promise<any | null> {
+  console.log(`[MESSAGE] Sending to conversation: ${conversationId}`)
+  console.log(`[MESSAGE] From sender: ${senderId.substring(0, 15)}...`)
+
   try {
     const { data, error } = await supabase
       .from('messenger_messages')
@@ -524,13 +534,14 @@ export async function sendMessengerMessage(
       .single()
 
     if (error) {
-      console.error('Error sending message:', error)
+      console.error('[MESSAGE] Error sending message:', error)
       return null
     }
 
+    console.log('[MESSAGE] ✓ Message saved with ID:', data.id)
     return data
   } catch (error) {
-    console.error('Failed to send message:', error)
+    console.error('[MESSAGE] Failed to send message:', error)
     return null
   }
 }
@@ -615,7 +626,15 @@ export function subscribeToConversation(
         onMessage(payload.new)
       }
     )
-    .subscribe()
+    .subscribe((status, err) => {
+      console.log(`[REALTIME] Subscription status for ${conversationId}:`, status)
+      if (err) {
+        console.error('[REALTIME] Subscription error:', err)
+      }
+      if (status === 'SUBSCRIBED') {
+        console.log(`[REALTIME] ✓ Listening for messages in conversation: ${conversationId}`)
+      }
+    })
 
   return () => {
     supabase.removeChannel(channel)
