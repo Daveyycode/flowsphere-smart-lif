@@ -224,9 +224,11 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
           return
       }
     } catch (error) {
-      console.error('Connection error:', error)
+      console.error('[EmailConnection] Connection error:', error)
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      toast.error(`Failed to connect: ${errorMsg}`)
+      toast.error('Failed to initiate connection', {
+        description: errorMsg
+      })
       setIsConnecting(false)
       setConnectingProvider(null)
     }
