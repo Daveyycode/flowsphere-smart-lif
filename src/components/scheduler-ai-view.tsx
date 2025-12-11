@@ -108,7 +108,130 @@ export function SchedulerAIView() {
     const outlookToken = localStorage.getItem('flowsphere-outlook-calendar-token')
     setGoogleConnected(!!googleToken)
     setOutlookConnected(!!outlookToken)
+
+    // Handle OAuth callback
+    handleCalendarOAuthCallback()
   }, [])
+
+  /**
+   * Handle Calendar OAuth callback from redirect
+   * URL format: /auth/{provider}-calendar/callback?code=xxx
+   */
+  const handleCalendarOAuthCallback = async () => {
+    const path = window.location.pathname
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const error = urlParams.get('error')
+
+    // Check if this is a calendar OAuth callback
+    if (!path.includes('/auth/') || !path.includes('-calendar/callback')) {
+      return
+    }
+
+    // Handle OAuth errors
+    if (error) {
+      console.error('[CalendarOAuth] OAuth error:', error)
+      toast.error('Calendar connection failed', {
+        description: urlParams.get('error_description') || error
+      })
+      window.history.replaceState({}, document.title, '/scheduler')
+      return
+    }
+
+    if (!code) {
+      return
+    }
+
+    // Determine provider from path
+    let provider: 'google' | 'outlook' | null = null
+    let redirectUri: string = ''
+
+    if (path.includes('/google-calendar/')) {
+      provider = 'google'
+      redirectUri = `${window.location.origin}/auth/google-calendar/callback`
+    } else if (path.includes('/outlook-calendar/')) {
+      provider = 'outlook'
+      redirectUri = `${window.location.origin}/auth/outlook-calendar/callback`
+    }
+
+    if (!provider) {
+      console.error('[CalendarOAuth] Unknown provider in path:', path)
+      return
+    }
+
+    setIsConnectingGoogle(provider === 'google')
+    setIsConnectingOutlook(provider === 'outlook')
+
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+      const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+
+      // Build request body
+      const requestBody: Record<string, string> = {
+        provider: provider === 'google' ? 'google' : 'outlook',
+        action: 'exchange',
+        code,
+        redirectUri,
+      }
+
+      // Add PKCE code verifier for Outlook
+      if (provider === 'outlook') {
+        const codeVerifier = sessionStorage.getItem('outlook_calendar_code_verifier')
+        if (codeVerifier) {
+          requestBody.codeVerifier = codeVerifier
+          sessionStorage.removeItem('outlook_calendar_code_verifier')
+        }
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/oauth-exchange`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to exchange code for tokens')
+      }
+
+      const tokens = await response.json()
+
+      // Store tokens for calendar access
+      const tokenKey = provider === 'google'
+        ? 'flowsphere-google-calendar-token'
+        : 'flowsphere-outlook-calendar-token'
+
+      localStorage.setItem(tokenKey, JSON.stringify({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: Date.now() + tokens.expiresIn * 1000
+      }))
+
+      if (provider === 'google') {
+        setGoogleConnected(true)
+        toast.success('Google Calendar connected successfully!')
+      } else {
+        setOutlookConnected(true)
+        toast.success('Outlook Calendar connected successfully!')
+      }
+
+      // Clean URL
+      window.history.replaceState({}, document.title, '/scheduler')
+
+    } catch (error) {
+      console.error('[CalendarOAuth] Token exchange failed:', error)
+      toast.error(`Failed to connect ${provider === 'google' ? 'Google' : 'Outlook'} Calendar`, {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+      window.history.replaceState({}, document.title, '/scheduler')
+    } finally {
+      setIsConnectingGoogle(false)
+      setIsConnectingOutlook(false)
+    }
+  }
 
   // Generate AI suggestions on load
   useEffect(() => {
@@ -130,18 +253,25 @@ export function SchedulerAIView() {
         return
       }
 
-      // Construct OAuth URL
-      const redirectUri = encodeURIComponent(window.location.origin + '/auth/google/callback')
-      const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events')
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
+      // Use redirect-based OAuth flow (same as email connection)
+      // Use google-calendar callback path to distinguish from email
+      const redirectUri = `${window.location.origin}/auth/google-calendar/callback`
+      const scope = encodeURIComponent([
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile'
+      ].join(' '))
+      const state = Math.random().toString(36).substring(2, 15)
 
-      // Open in popup or redirect
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
+
+      // Redirect to Google OAuth
       window.location.href = authUrl
 
     } catch (error) {
       toast.error('Failed to connect Google Calendar')
       console.error(error)
-    } finally {
       setIsConnectingGoogle(false)
     }
   }
@@ -158,16 +288,48 @@ export function SchedulerAIView() {
         return
       }
 
-      const redirectUri = encodeURIComponent(window.location.origin + '/auth/outlook/callback')
-      const scope = encodeURIComponent('Calendars.Read Calendars.ReadWrite')
-      const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${outlookClientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`
+      // Generate PKCE code verifier and challenge (required by Microsoft for SPAs)
+      const generateCodeVerifier = (): string => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+        const array = new Uint8Array(64)
+        crypto.getRandomValues(array)
+        return Array.from(array, byte => chars[byte % chars.length]).join('')
+      }
 
+      const generateCodeChallenge = async (verifier: string): Promise<string> => {
+        const encoder = new TextEncoder()
+        const data = encoder.encode(verifier)
+        const digest = await crypto.subtle.digest('SHA-256', data)
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      }
+
+      const codeVerifier = generateCodeVerifier()
+      const codeChallenge = await generateCodeChallenge(codeVerifier)
+
+      // Store code verifier for token exchange
+      sessionStorage.setItem('outlook_calendar_code_verifier', codeVerifier)
+
+      // Use outlook-calendar callback path to distinguish from email
+      const redirectUri = `${window.location.origin}/auth/outlook-calendar/callback`
+      const scope = encodeURIComponent([
+        'openid',
+        'profile',
+        'email',
+        'offline_access',
+        'Calendars.Read',
+        'Calendars.ReadWrite'
+      ].join(' '))
+      const state = Math.random().toString(36).substring(2, 15)
+
+      const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${outlookClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}`
+
+      // Redirect to Microsoft OAuth
       window.location.href = authUrl
 
     } catch (error) {
       toast.error('Failed to connect Outlook Calendar')
       console.error(error)
-    } finally {
       setIsConnectingOutlook(false)
     }
   }

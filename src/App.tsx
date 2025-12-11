@@ -71,6 +71,12 @@ function App() {
     code: string
   } | null>(null)
 
+  // Calendar OAuth callback state
+  const [calendarOAuthCallback, setCalendarOAuthCallback] = useState<{
+    provider: 'google-calendar' | 'outlook-calendar'
+    code: string
+  } | null>(null)
+
   // Check URL for timer routes and email OAuth callbacks on mount
   useEffect(() => {
     const checkRoutes = () => {
@@ -102,8 +108,23 @@ function App() {
         }
       }
 
+      // Check for calendar OAuth callbacks (/auth/{provider}-calendar/callback?code=xxx)
+      const calendarOAuthMatch = path.match(/^\/auth\/(google-calendar|outlook-calendar)\/callback$/i)
+      if (calendarOAuthMatch) {
+        const provider = calendarOAuthMatch[1].toLowerCase() as 'google-calendar' | 'outlook-calendar'
+        const code = searchParams.get('code')
+        if (code) {
+          setCalendarOAuthCallback({ provider, code })
+          // Redirect to scheduler page to handle the token exchange
+          setCurrentTab('scheduler')
+          setIsAuthenticated(true) // Ensure user is authenticated to see scheduler
+          return
+        }
+      }
+
       setTimerRoute(null)
       setEmailOAuthCallback(null)
+      setCalendarOAuthCallback(null)
     }
 
     checkRoutes()
