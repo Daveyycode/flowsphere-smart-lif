@@ -1295,7 +1295,6 @@ export function HashFLPrivacy() {
                 setUser(null)
                 setFiles([])
                 setContacts([])
-                setMessages([])
                 setIntruderLogs([])
                 setPendingInvites([])
                 setIsUnlocked(false)
@@ -1373,7 +1372,7 @@ export function HashFLPrivacy() {
   const tabs = [
     { id: 'home' as const, label: 'Home', icon: Shield },
     { id: 'files' as const, label: 'Files', icon: FolderLock },
-    { id: 'contacts' as const, label: 'Messages', icon: Chat },
+    { id: 'contacts' as const, label: 'Contacts', icon: Users },
     { id: 'settings' as const, label: 'Settings', icon: Gear }
   ]
 
@@ -1452,7 +1451,6 @@ export function HashFLPrivacy() {
           {currentView === 'home' && renderHome()}
           {currentView === 'files' && renderFiles()}
           {currentView === 'contacts' && renderContacts()}
-          {currentView === 'chat' && renderChat()}
           {currentView === 'invite' && renderInvite()}
           {currentView === 'settings' && renderSettings()}
           {currentView === 'intruder-logs' && renderIntruderLogs()}
