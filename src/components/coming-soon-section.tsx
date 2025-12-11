@@ -117,14 +117,6 @@ export function ComingSoonSection({ onNavigate }: ComingSoonSectionProps) {
       bgColor: 'bg-green-500/20',
       isAvailable: true
     },
-    {
-      id: 'tutorbot',
-      title: 'FlowSphere TutorBot',
-      description: 'Future AI robot companion — teaches, observes & adapts to your child\'s learning style.',
-      icon: Robot,
-      iconColor: 'text-gray-400',
-      bgColor: 'bg-gray-500/20'
-    }
   ]
 
   const containerVariants = {

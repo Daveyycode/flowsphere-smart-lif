@@ -56,7 +56,8 @@ import {
   X,
   Info
 } from '@phosphor-icons/react'
-import { chatCompletion, getActiveProvider } from '@/lib/ai-provider-config'
+import { smartCompletion, checkUsageLimits, ChatMessage } from '@/lib/smart-ai-router'
+import { AIUsageWarning, AIUsageStats } from '@/components/ai-setup-guide'
 import { getFocusTracker, FocusSession, FocusStats, formatDuration } from '@/lib/focus-tracking'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -420,9 +421,25 @@ export function KidsLearningCenter({ familyId }: KidsLearningCenterProps) {
   const generateWelcomeMessage = async (subject: Subject) => {
     if (!selectedKid) return
 
+    // Check usage limits before making AI call
+    const limitCheck = checkUsageLimits()
+    if (!limitCheck.canProceed) {
+      toast.error('Daily AI limit reached', {
+        description: 'Add your own API key in Settings to continue learning!'
+      })
+      const fallback: Message = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: `Hi ${selectedKid.name}! I'm your Tutor AI! Ready to learn some ${subject.name}? What would you like to explore today?`,
+        timestamp: Date.now()
+      }
+      setTutorMessages([fallback])
+      return
+    }
+
     setIsAILoading(true)
     try {
-      const systemPrompt = `You are FlowSphere TutorBot, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${subject.name}.
+      const systemPrompt = `You are FlowSphere Tutor AI, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${subject.name}.
 
 Rules:
 - Be encouraging, patient, and fun
@@ -434,7 +451,7 @@ Rules:
 - Keep responses concise but engaging
 - Use emojis sparingly to keep it fun`
 
-      const response = await chatCompletion([
+      const messages: ChatMessage[] = [
         {
           role: 'system',
           content: systemPrompt
@@ -443,7 +460,9 @@ Rules:
           role: 'user',
           content: `Start a ${subject.name} lesson. Introduce yourself briefly and ask what topic the student wants to learn today. Be friendly and engaging!`
         }
-      ])
+      ]
+
+      const response = await smartCompletion(messages, { complexity: 'simple' })
 
       if (response && response.content) {
         const assistantMessage: Message = {
@@ -454,14 +473,18 @@ Rules:
         }
         setTutorMessages([assistantMessage])
       }
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Tutor AI error', error, 'KidsLearningCenter')
       const fallback: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hi ${selectedKid.name}! I'm your TutorBot! Ready to learn some ${subject.name}? What would you like to explore today?`,
+        content: `Hi ${selectedKid.name}! I'm your Tutor AI! Ready to learn some ${subject.name}? What would you like to explore today?`,
         timestamp: Date.now()
       }
       setTutorMessages([fallback])
+      if (error.message?.includes('limit')) {
+        toast.error('AI limit reached', { description: 'Add your own API key in Settings.' })
+      }
     } finally {
       setIsAILoading(false)
     }
@@ -469,6 +492,20 @@ Rules:
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !selectedKid || !selectedSubject) return
+
+    // Check usage limits before making AI call
+    const limitCheck = checkUsageLimits()
+    if (!limitCheck.canProceed) {
+      toast.error('Daily AI limit reached', {
+        description: 'Add your own API key in Settings to continue learning!'
+      })
+      return
+    }
+
+    // Show warning if approaching limit
+    if (limitCheck.warning && limitCheck.canProceed) {
+      toast.warning(limitCheck.warning)
+    }
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -482,7 +519,7 @@ Rules:
     setIsAILoading(true)
 
     try {
-      const systemPrompt = `You are FlowSphere TutorBot, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${selectedSubject.name}.
+      const systemPrompt = `You are FlowSphere Tutor AI, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${selectedSubject.name}.
 
 Rules:
 - Be encouraging, patient, and fun
@@ -493,7 +530,7 @@ Rules:
 - Gently correct mistakes and explain why
 - Keep responses concise but engaging`
 
-      const conversationHistory: Array<{ role: 'system' | 'user' | 'assistant', content: string }> = [
+      const conversationHistory: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         ...tutorMessages.map(m => ({
           role: m.role as 'user' | 'assistant',
@@ -502,7 +539,9 @@ Rules:
         { role: 'user', content: inputMessage.trim() }
       ]
 
-      const response = await chatCompletion(conversationHistory)
+      const response = await smartCompletion(conversationHistory, {
+        complexity: conversationHistory.length > 10 ? 'medium' : 'simple'
+      })
 
       if (response && response.content) {
         const assistantMessage: Message = {
@@ -513,8 +552,13 @@ Rules:
         }
         setTutorMessages(prev => [...prev, assistantMessage])
       }
-    } catch (error) {
-      toast.error('Could not get response. Please try again.')
+    } catch (error: any) {
+      logger.error('Tutor message error', error, 'KidsLearningCenter')
+      if (error.message?.includes('limit')) {
+        toast.error('AI limit reached', { description: 'Add your own API key in Settings.' })
+      } else {
+        toast.error('Could not get response. Please try again.')
+      }
     } finally {
       setIsAILoading(false)
     }
@@ -771,6 +815,8 @@ Rules:
 
     return (
       <div className="space-y-4">
+        {/* AI Usage Warning */}
+        <AIUsageWarning />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

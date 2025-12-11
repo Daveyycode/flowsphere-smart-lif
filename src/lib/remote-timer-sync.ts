@@ -93,9 +93,9 @@ export interface RoomState {
 
 // Events that can be broadcast
 export type RoomEvent =
-  | { type: 'timer_start'; payload: { duration: number; label: string } }
-  | { type: 'timer_pause' }
-  | { type: 'timer_resume' }
+  | { type: 'timer_start'; payload: { duration: number; label: string; startedAt: number } }
+  | { type: 'timer_pause'; payload: { pausedAt: number; remaining: number } }
+  | { type: 'timer_resume'; payload: { startedAt: number } }
   | { type: 'timer_stop' }
   | { type: 'timer_reset' }
   | { type: 'timer_set'; payload: { duration: number; label?: string } }
@@ -219,6 +219,9 @@ export class RemoteTimerManager {
     // Save to localStorage for persistence
     this.saveRoomLocally(roomId, initialState)
 
+    // Save to Supabase database for cross-device sync
+    await this.saveRoomToDatabase(initialState)
+
     // Join the room channel
     this.participantName = creatorName || 'Controller'
     this.role = 'controller'
@@ -232,14 +235,52 @@ export class RemoteTimerManager {
   /**
    * Join an existing room by code
    * For Controllers: Creates room if not found (they are the source of truth)
-   * For Presenters: Waits for controller to share state via broadcast
+   * For Presenters: Fetches from database first, then falls back to broadcast
    */
   async joinRoom(code: string, participantName: string, asController: boolean = false): Promise<RoomState | null> {
     this.roomCode = code.toUpperCase()
     this.participantName = participantName || 'Viewer'
     this.role = asController ? 'controller' : 'viewer'
 
-    // Try to find room in localStorage first
+    const upperCode = code.toUpperCase()
+
+    // STEP 1: Try to fetch from Supabase database FIRST (cross-device persistence)
+    // This is the key fix - database is the source of truth for cross-device sync
+    const dbRoom = await this.fetchRoomFromDatabase(upperCode)
+
+    if (dbRoom) {
+      logger.info('Found room in database', { code: upperCode }, 'RemoteTimer')
+
+      // Add self as participant
+      const participant: RoomParticipant = {
+        id: this.participantId,
+        name: this.participantName,
+        role: this.role,
+        joinedAt: Date.now(),
+        lastSeen: Date.now(),
+        deviceType: getDeviceType(),
+        isController: this.role === 'controller',
+        isConnected: true
+      }
+
+      if (!dbRoom.participants.find(p => p.id === this.participantId)) {
+        dbRoom.participants.push(participant)
+      }
+
+      // Update last seen time
+      dbRoom.lastUpdatedAt = Date.now()
+
+      await this.joinChannel(dbRoom.room.id, dbRoom)
+
+      // Save updated participant list to database
+      if (this.state) {
+        await this.saveRoomToDatabase(this.state)
+      }
+
+      return this.state
+    }
+
+    // STEP 2: Try localStorage (same device persistence)
     const localRoom = this.findRoomByCode(code)
 
     if (localRoom) {
@@ -260,20 +301,27 @@ export class RemoteTimerManager {
       }
 
       await this.joinChannel(localRoom.room.id, localRoom)
+
+      // Also save to database so other devices can find it
+      if (this.state) {
+        await this.saveRoomToDatabase(this.state)
+      }
+
       return this.state
     }
 
-    // For Controllers: Create room immediately if not found locally
-    // Controllers are the source of truth - they don't need to wait for state
+    // STEP 3: For Controllers - Create room if not found anywhere
+    // Controllers are the source of truth - they create the room
     if (asController) {
       logger.info('Controller creating room with code', { code }, 'RemoteTimer')
       const result = await this.createRoomWithCode(code, participantName)
       return result ? this.state : null
     }
 
-    // For Presenters: Try to get state via Supabase Realtime broadcast
-    // Wait for controller to share state (they should already have the room)
-    const upperCode = code.toUpperCase()
+    // STEP 4: For Presenters - Last resort: try broadcast (in case DB isn't set up)
+    // This gives a short window for the controller to share state
+    logger.info('Presenter trying broadcast fallback', { code: upperCode }, 'RemoteTimer')
+
     const tempChannel = supabase.channel(`timer-room-${upperCode}`, {
       config: { broadcast: { self: true } }
     })
@@ -281,11 +329,11 @@ export class RemoteTimerManager {
     return new Promise((resolve) => {
       let resolved = false
       let retryCount = 0
-      const maxRetries = 10 // More retries for presenters (20 seconds total)
+      const maxRetries = 5 // Reduced retries since DB is primary (10 seconds total)
 
       const requestState = async () => {
         if (resolved) return
-        logger.info('Presenter requesting state', { code: upperCode, retry: retryCount }, 'RemoteTimer')
+        logger.info('Presenter requesting state via broadcast', { code: upperCode, retry: retryCount }, 'RemoteTimer')
         await tempChannel.send({
           type: 'broadcast',
           event: 'state_request',
@@ -321,11 +369,11 @@ export class RemoteTimerManager {
               retryCount++
               if (retryCount >= maxRetries) {
                 clearInterval(retryInterval)
-                logger.warn('Presenter could not find room after retries', { code: upperCode, retries: maxRetries }, 'RemoteTimer')
+                logger.warn('Presenter could not find room', { code: upperCode, retries: maxRetries }, 'RemoteTimer')
                 if (!resolved) {
                   resolved = true
                   tempChannel.unsubscribe()
-                  resolve(null) // Room not found - controller hasn't created it yet
+                  resolve(null) // Room not found
                 }
               } else {
                 await requestState()
@@ -404,6 +452,10 @@ export class RemoteTimerManager {
     }
 
     this.saveRoomLocally(roomId, initialState)
+
+    // Save to Supabase database for cross-device sync
+    await this.saveRoomToDatabase(initialState)
+
     this.role = 'controller'
     await this.joinChannel(roomId, initialState)
 
@@ -416,6 +468,11 @@ export class RemoteTimerManager {
   private async joinChannel(roomId: string, initialState: RoomState): Promise<void> {
     this.roomId = roomId
     this.state = initialState
+
+    // IMPORTANT: Start timer loop IMMEDIATELY - don't wait for channel subscription
+    // This ensures the timer counts down even if realtime has issues
+    this.startTimerLoop()
+    this.startSyncLoop()
 
     // Clean up existing channel
     if (this.channel) {
@@ -430,11 +487,20 @@ export class RemoteTimerManager {
 
     this.channel
       .on('broadcast', { event: 'timer_event' }, (payload) => {
+        logger.info('Received timer_event', { type: payload.payload?.type }, 'RemoteTimer')
         this.handleRemoteEvent(payload.payload as RoomEvent)
       })
       .on('broadcast', { event: 'state_sync' }, (payload) => {
         if (payload.payload && payload.payload.lastUpdatedAt > (this.state?.lastUpdatedAt || 0)) {
-          this.state = payload.payload
+          logger.info('Received state_sync, updating state', {}, 'RemoteTimer')
+          // Preserve timer calculation - use startedAt to recalculate remaining
+          const newState = payload.payload as RoomState
+          if (newState.timer.status === 'running' && newState.timer.startedAt) {
+            const now = Date.now()
+            newState.timer.elapsed = now - newState.timer.startedAt
+            newState.timer.remaining = Math.max(0, newState.timer.duration - newState.timer.elapsed)
+          }
+          this.state = newState
           this.notifyListeners()
         }
       })
@@ -447,6 +513,7 @@ export class RemoteTimerManager {
       })
       .on('broadcast', { event: 'message' }, (payload) => {
         if (payload.payload) {
+          logger.info('Received message', { text: (payload.payload as Message).text }, 'RemoteTimer')
           this.handleIncomingMessage(payload.payload as Message)
         }
       })
@@ -454,19 +521,16 @@ export class RemoteTimerManager {
         // Handle presence updates
       })
       .subscribe(async (status) => {
+        logger.info('Channel subscription status', { status, roomId }, 'RemoteTimer')
         if (status === 'SUBSCRIBED') {
-          logger.info('Joined timer room channel', { roomId }, 'RemoteTimer')
+          logger.info('Successfully joined timer room channel', { roomId }, 'RemoteTimer')
 
           // Broadcast state if controller
           if (this.role === 'controller') {
             await this.broadcastState()
           }
-
-          // Start timer update loop
-          this.startTimerLoop()
-
-          // Start periodic state sync (every 5 seconds for controllers)
-          this.startSyncLoop()
+        } else if (status === 'CHANNEL_ERROR') {
+          logger.error('Channel error - realtime may not work', { roomId }, 'RemoteTimer')
         }
       })
 
@@ -474,19 +538,41 @@ export class RemoteTimerManager {
   }
 
   /**
-   * Start periodic state broadcasting (keeps devices in sync)
+   * Start periodic state broadcasting and database sync (keeps devices in sync)
    */
   private startSyncLoop(): void {
     if (this.syncInterval) {
       clearInterval(this.syncInterval)
     }
 
-    // Broadcast state every 5 seconds if we're a controller
+    // Sync every 2 seconds for more responsive updates
     this.syncInterval = setInterval(async () => {
-      if (this.state && this.role === 'controller') {
+      if (!this.state) return
+
+      if (this.role === 'controller') {
+        // Controller: Broadcast state AND save to database
+        this.state.lastUpdatedAt = Date.now()
+
+        // Broadcast via Realtime for instant sync
         await this.broadcastState()
+
+        // Save to database for persistence (cross-device sync)
+        await this.saveRoomToDatabase(this.state)
+      } else {
+        // Presenter: Periodically fetch from database to catch missed updates
+        const dbRoom = await this.fetchRoomFromDatabase(this.state.room.code)
+        if (dbRoom && dbRoom.lastUpdatedAt > this.state.lastUpdatedAt) {
+          logger.info('Presenter syncing from database', { code: this.state.room.code }, 'RemoteTimer')
+          // Preserve local participant info but update timer state
+          const localParticipant = this.state.participants.find(p => p.id === this.participantId)
+          this.state = dbRoom
+          if (localParticipant && !this.state.participants.find(p => p.id === this.participantId)) {
+            this.state.participants.push(localParticipant)
+          }
+          this.notifyListeners()
+        }
       }
-    }, 5000)
+    }, 2000)
   }
 
   /**
@@ -528,20 +614,21 @@ export class RemoteTimerManager {
         this.state.timer.remaining = event.payload.duration
         this.state.timer.elapsed = 0
         this.state.timer.label = event.payload.label
-        this.state.timer.startedAt = Date.now()
+        // Use the synchronized startedAt from the controller
+        this.state.timer.startedAt = event.payload.startedAt
         this.state.timer.pausedAt = null
         break
 
       case 'timer_pause':
         this.state.timer.status = 'paused'
-        this.state.timer.pausedAt = Date.now()
+        // Use synchronized timestamps
+        this.state.timer.pausedAt = event.payload.pausedAt
+        this.state.timer.remaining = event.payload.remaining
         break
 
       case 'timer_resume':
-        if (this.state.timer.pausedAt && this.state.timer.startedAt) {
-          const pauseDuration = Date.now() - this.state.timer.pausedAt
-          this.state.timer.startedAt += pauseDuration
-        }
+        // Use the new calculated startedAt from controller
+        this.state.timer.startedAt = event.payload.startedAt
         this.state.timer.status = 'running'
         this.state.timer.pausedAt = null
         break
@@ -693,58 +780,98 @@ export class RemoteTimerManager {
   async startTimer(duration?: number, label?: string): Promise<void> {
     if (!this.state) return
 
+    const startedAt = Date.now()
     const event: RoomEvent = {
       type: 'timer_start',
       payload: {
         duration: duration || this.state.timer.duration,
-        label: label || this.state.timer.label
+        label: label || this.state.timer.label,
+        startedAt: startedAt // Synchronized timestamp
       }
     }
 
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    // Immediately broadcast full state AND save to DB for reliability
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async pauseTimer(): Promise<void> {
-    const event: RoomEvent = { type: 'timer_pause' }
+    if (!this.state) return
+
+    const pausedAt = Date.now()
+    const remaining = this.state.timer.remaining
+    const event: RoomEvent = {
+      type: 'timer_pause',
+      payload: { pausedAt, remaining }
+    }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async resumeTimer(): Promise<void> {
-    const event: RoomEvent = { type: 'timer_resume' }
+    if (!this.state) return
+
+    // Calculate new startedAt based on remaining time
+    const now = Date.now()
+    const newStartedAt = now - (this.state.timer.duration - this.state.timer.remaining)
+    const event: RoomEvent = {
+      type: 'timer_resume',
+      payload: { startedAt: newStartedAt }
+    }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async stopTimer(): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = { type: 'timer_stop' }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async resetTimer(): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = { type: 'timer_reset' }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async setTimer(duration: number, label?: string): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = {
       type: 'timer_set',
       payload: { duration, label }
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async addTime(seconds: number): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = {
       type: 'timer_add_time',
       payload: { seconds }
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   async sendMessage(text: string, type: Message['type'] = 'info', expiresInSeconds?: number): Promise<void> {
@@ -774,24 +901,34 @@ export class RemoteTimerManager {
       event: 'message',
       payload: message
     })
+
+    // Save to DB for persistence
+    await this.saveRoomToDatabase(this.state)
   }
 
   async dismissMessage(id: string): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = {
       type: 'message_dismiss',
       payload: { id }
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.saveRoomToDatabase(this.state)
   }
 
   async updateSettings(settings: Partial<RoomSettings>): Promise<void> {
+    if (!this.state) return
+
     const event: RoomEvent = {
       type: 'settings_update',
       payload: settings
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
+    await this.broadcastState()
+    await this.saveRoomToDatabase(this.state)
   }
 
   // ==========================================
@@ -852,6 +989,105 @@ export class RemoteTimerManager {
         logger.error('Message listener error', error, 'RemoteTimer')
       }
     })
+  }
+
+  // ==========================================
+  // Database Persistence (Supabase)
+  // ==========================================
+
+  /**
+   * Save room state to Supabase database for cross-device persistence
+   */
+  private async saveRoomToDatabase(state: RoomState): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('timer_rooms')
+        .upsert({
+          code: state.room.code,
+          name: state.room.name,
+          created_by: state.room.createdBy,
+          room_state: state,
+          updated_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }, { onConflict: 'code' })
+
+      if (error) {
+        logger.error('Failed to save room to database', error, 'RemoteTimer')
+        return false
+      }
+
+      logger.info('Room saved to database', { code: state.room.code }, 'RemoteTimer')
+      return true
+    } catch (error) {
+      logger.error('Database save error', error, 'RemoteTimer')
+      return false
+    }
+  }
+
+  /**
+   * Fetch room state from Supabase database
+   */
+  private async fetchRoomFromDatabase(code: string): Promise<RoomState | null> {
+    try {
+      const { data, error } = await supabase
+        .from('timer_rooms')
+        .select('room_state')
+        .eq('code', code.toUpperCase())
+        .single()
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 = no rows found (expected)
+          logger.error('Failed to fetch room from database', error, 'RemoteTimer')
+        }
+        return null
+      }
+
+      if (data?.room_state) {
+        logger.info('Room fetched from database', { code }, 'RemoteTimer')
+        const roomState = data.room_state as RoomState
+
+        // IMPORTANT: Recalculate timer if it's running
+        // The startedAt is the original start time, so we need to calculate current remaining
+        if (roomState.timer.status === 'running' && roomState.timer.startedAt) {
+          const now = Date.now()
+          roomState.timer.elapsed = now - roomState.timer.startedAt
+          roomState.timer.remaining = Math.max(0, roomState.timer.duration - roomState.timer.elapsed)
+
+          // Check if timer should have completed
+          if (roomState.timer.remaining <= 0) {
+            roomState.timer.status = 'completed'
+            roomState.timer.remaining = 0
+          }
+
+          logger.info('Recalculated timer from DB', {
+            startedAt: roomState.timer.startedAt,
+            elapsed: roomState.timer.elapsed,
+            remaining: roomState.timer.remaining
+          }, 'RemoteTimer')
+        }
+
+        return roomState
+      }
+
+      return null
+    } catch (error) {
+      logger.error('Database fetch error', error, 'RemoteTimer')
+      return null
+    }
+  }
+
+  /**
+   * Delete room from database
+   */
+  private async deleteRoomFromDatabase(code: string): Promise<void> {
+    try {
+      await supabase
+        .from('timer_rooms')
+        .delete()
+        .eq('code', code.toUpperCase())
+    } catch (error) {
+      logger.error('Database delete error', error, 'RemoteTimer')
+    }
   }
 
   // ==========================================

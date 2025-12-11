@@ -240,6 +240,53 @@ CREATE POLICY "Users can delete own tasks" ON tasks
   FOR DELETE USING (auth.uid() = user_id);
 
 -- =====================================================
+-- 9. TIMER ROOMS TABLE (Remote Timer Cross-Device Sync)
+-- =====================================================
+-- This table stores timer room state for cross-device synchronization.
+-- Rooms are publicly accessible (by room code) since they're designed
+-- to be shared across devices without requiring authentication.
+
+CREATE TABLE IF NOT EXISTS timer_rooms (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code TEXT UNIQUE NOT NULL,
+  name TEXT DEFAULT 'Timer Room',
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Full room state stored as JSONB for flexibility
+  room_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+  -- Auto-expire after 24 hours of inactivity
+  expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '24 hours')
+);
+
+-- Enable RLS but allow public access (timer rooms are shareable by design)
+ALTER TABLE timer_rooms ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read timer rooms (by knowing the code)
+CREATE POLICY "Anyone can view timer rooms" ON timer_rooms
+  FOR SELECT USING (true);
+
+-- Anyone can create timer rooms
+CREATE POLICY "Anyone can create timer rooms" ON timer_rooms
+  FOR INSERT WITH CHECK (true);
+
+-- Anyone can update timer rooms (for sync)
+CREATE POLICY "Anyone can update timer rooms" ON timer_rooms
+  FOR UPDATE USING (true);
+
+-- Anyone can delete expired timer rooms
+CREATE POLICY "Anyone can delete timer rooms" ON timer_rooms
+  FOR DELETE USING (true);
+
+-- Index for fast code lookup
+CREATE INDEX IF NOT EXISTS idx_timer_rooms_code ON timer_rooms(code);
+
+-- Index for cleanup queries
+CREATE INDEX IF NOT EXISTS idx_timer_rooms_expires ON timer_rooms(expires_at);
+
+-- =====================================================
 -- INDEXES FOR PERFORMANCE
 -- =====================================================
 CREATE INDEX IF NOT EXISTS idx_meetings_user_id ON meetings(user_id);
@@ -275,6 +322,9 @@ CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_event
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_timer_rooms_updated_at BEFORE UPDATE ON timer_rooms
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
