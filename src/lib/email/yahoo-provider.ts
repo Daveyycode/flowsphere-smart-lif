@@ -25,6 +25,7 @@ export class YahooProvider extends EmailProvider {
   /**
    * Get OAuth authorization URL
    * Yahoo OAuth2 requires specific scopes and parameters
+   * NOTE: Yahoo requires the app to have mail permissions enabled in Developer Console
    */
   getAuthUrl(): string {
     // Debug: Log client ID to verify it's being loaded
@@ -36,15 +37,21 @@ export class YahooProvider extends EmailProvider {
       throw new Error('Yahoo OAuth not configured - missing client ID')
     }
 
+    // Yahoo OAuth scopes:
+    // - sdct-r: Read contacts
+    // - sdct-w: Write contacts
+    // - sdps-r: Read profile
+    // - openid: OpenID Connect
+    // NOTE: Yahoo Mail API (mail-r, mail-w) is deprecated. Yahoo now uses IMAP with OAuth.
+    // For email access, use IMAP with OAuth tokens instead of Mail API.
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      // Yahoo uses 'openid' based scopes - mail-r/mail-w may not work
-      // Using profile + email + mail scopes
-      scope: 'openid profile email',
-      // Add nonce for security
-      nonce: Math.random().toString(36).substring(2)
+      // Yahoo standard OAuth scopes - openid for auth, sdps-r for profile info
+      scope: 'openid sdps-r',
+      // Add state for CSRF protection
+      state: Math.random().toString(36).substring(2, 15)
     })
 
     return `https://api.login.yahoo.com/oauth2/request_auth?${params.toString()}`

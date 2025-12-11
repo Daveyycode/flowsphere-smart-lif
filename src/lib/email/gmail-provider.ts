@@ -27,6 +27,15 @@ export class GmailProvider extends EmailProvider {
    * Get OAuth authorization URL
    */
   getAuthUrl(): string {
+    // Debug logging
+    console.log('[Gmail OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 15)}...` : 'MISSING')
+    console.log('[Gmail OAuth] Redirect URI:', this.redirectUri)
+
+    if (!this.clientId) {
+      console.error('[Gmail OAuth] ERROR: VITE_GOOGLE_CLIENT_ID is not set!')
+      throw new Error('Gmail OAuth not configured - missing client ID')
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
@@ -39,10 +48,15 @@ export class GmailProvider extends EmailProvider {
         'https://www.googleapis.com/auth/userinfo.profile'
       ].join(' '),
       access_type: 'offline',
-      prompt: 'consent'
+      prompt: 'consent',
+      // Add state for CSRF protection
+      state: Math.random().toString(36).substring(2, 15)
     })
 
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    console.log('[Gmail OAuth] Auth URL generated successfully')
+
+    return authUrl
   }
 
   /**
