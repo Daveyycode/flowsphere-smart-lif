@@ -24,28 +24,24 @@ export class OutlookProvider extends EmailProvider {
   }
 
   /**
-   * Generate PKCE code verifier and challenge
-   * Required by Microsoft for SPA OAuth flows
+   * Generate PKCE code verifier (43-128 chars, alphanumeric + special)
    */
-  private async generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
-    // Generate random code verifier (43-128 characters)
-    const array = new Uint8Array(32)
+  private generateCodeVerifier(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+    const array = new Uint8Array(64)
     crypto.getRandomValues(array)
-    const codeVerifier = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+    return Array.from(array, byte => chars[byte % chars.length]).join('')
+  }
 
-    // Generate code challenge using SHA-256
+  /**
+   * Generate PKCE code challenge from verifier using SHA-256
+   */
+  private async generateCodeChallenge(verifier: string): Promise<string> {
     const encoder = new TextEncoder()
-    const data = encoder.encode(codeVerifier)
+    const data = encoder.encode(verifier)
     const digest = await crypto.subtle.digest('SHA-256', data)
-
-    // Base64url encode the hash
     const base64 = btoa(String.fromCharCode(...new Uint8Array(digest)))
-    const codeChallenge = base64
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '')
-
-    return { codeVerifier, codeChallenge }
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
   }
 
   /**
@@ -53,7 +49,7 @@ export class OutlookProvider extends EmailProvider {
    * Microsoft OAuth2 requires PKCE for SPA applications
    */
   async getAuthUrlAsync(): Promise<string> {
-    // Debug: Log client ID to verify it's being loaded
+    console.log('[Outlook OAuth] Starting auth flow...')
     console.log('[Outlook OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 8)}...` : 'MISSING')
     console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
 
@@ -62,49 +58,40 @@ export class OutlookProvider extends EmailProvider {
       throw new Error('Outlook OAuth not configured - missing client ID')
     }
 
-    // Generate PKCE challenge
-    const { codeVerifier, codeChallenge } = await this.generatePKCE()
+    try {
+      // Generate PKCE
+      const codeVerifier = this.generateCodeVerifier()
+      const codeChallenge = await this.generateCodeChallenge(codeVerifier)
 
-    // Store code verifier for token exchange (will be retrieved later)
-    this.codeVerifier = codeVerifier
-    sessionStorage.setItem('outlook_pkce_verifier', codeVerifier)
-    console.log('[Outlook OAuth] PKCE code verifier stored')
+      // Store for token exchange
+      sessionStorage.setItem('outlook_pkce_verifier', codeVerifier)
+      console.log('[Outlook OAuth] PKCE generated and stored')
 
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      response_type: 'code',
-      redirect_uri: this.redirectUri,
-      response_mode: 'query',
-      scope: [
-        'openid',
-        'profile',
-        'email',
-        'https://graph.microsoft.com/Mail.Read',
-        'https://graph.microsoft.com/Mail.Send',
-        'https://graph.microsoft.com/Mail.ReadWrite',
-        'https://graph.microsoft.com/User.Read',
-        'offline_access'
-      ].join(' '),
-      // Add state for CSRF protection
-      state: Math.random().toString(36).substring(2),
-      // PKCE parameters - required by Microsoft for SPAs
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256'
-    })
+      const params = new URLSearchParams({
+        client_id: this.clientId,
+        response_type: 'code',
+        redirect_uri: this.redirectUri,
+        response_mode: 'query',
+        scope: 'openid profile email https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access',
+        state: Math.random().toString(36).substring(2),
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      })
 
-    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
-    console.log('[Outlook OAuth] Auth URL generated with PKCE')
-
-    return authUrl
+      const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
+      console.log('[Outlook OAuth] Auth URL ready')
+      return authUrl
+    } catch (error) {
+      console.error('[Outlook OAuth] PKCE generation failed:', error)
+      throw new Error(`Failed to generate PKCE: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   /**
-   * Sync version for backwards compatibility - redirects to async version
+   * Sync version - throws because PKCE requires async
    */
   getAuthUrl(): string {
-    // This is called synchronously, so we need to handle PKCE differently
-    // We'll generate PKCE and redirect in one go
-    throw new Error('Use getAuthUrlAsync() for Outlook OAuth - PKCE is required')
+    throw new Error('Use getAuthUrlAsync() for Outlook OAuth')
   }
 
   /**
