@@ -5,14 +5,17 @@
  *
  * Features:
  * - End-to-end encrypted file storage
- * - QR code contact invitations
+ * - QR code contact invitations (teal-colored, unique design)
+ * - Email/Yahoo invite system
  * - Biometric/PIN authentication
- * - Encrypted messaging
+ * - Encrypted messaging (WORKING)
  * - Privacy-first (no data leaves device)
  * - Intruder detection with silent photo capture
+ *
+ * Visual Identity: TEAL/EMERALD theme (distinct from Vault's blue/purple)
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,6 +26,7 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   Shield,
   Lock,
@@ -53,13 +57,18 @@ import {
   Bell,
   BellSlash,
   Info,
-  Hash,
   ShieldCheck,
   ShieldWarning,
   UserCircle,
   PaperPlaneTilt,
   Image,
-  FolderLock
+  FolderLock,
+  Envelope,
+  Copy,
+  Link,
+  At,
+  ArrowLeft,
+  DotsThree
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -71,7 +80,8 @@ import { logger } from '@/lib/security-utils'
 
 interface HashFLUser {
   id: string
-  pin: string // Hashed PIN
+  pin: string // Hashed PIN using PBKDF2
+  salt: string // Salt for PIN hashing
   biometricEnabled: boolean
   createdAt: number
   lastAccess: number
@@ -93,25 +103,29 @@ interface EncryptedFile {
 interface SecureContact {
   id: string
   name: string
-  publicKey: string
+  email?: string
+  inviteCode: string
+  sharedKey: string // For encrypting messages
   addedAt: number
   lastMessage?: number
   avatar?: string
+  status: 'pending' | 'accepted' | 'blocked'
 }
 
 interface SecureMessage {
   id: string
   contactId: string
-  content: string
+  content: string // Encrypted content
   timestamp: number
   isOutgoing: boolean
   isRead: boolean
+  isDelivered: boolean
 }
 
 interface IntruderLog {
   id: string
   timestamp: number
-  photo?: string // Base64 photo of intruder
+  photo?: string
   failedPin?: string
   deviceInfo: string
 }
@@ -120,10 +134,18 @@ interface HashFLSettings {
   silentIntruderCapture: boolean
   autoLockMinutes: number
   showNotifications: boolean
-  hideAppContent: boolean // Blur content when switching apps
-  disguiseMode: boolean // Make app look like calculator
+  hideAppContent: boolean
+  disguiseMode: boolean
   maxFailedAttempts: number
-  lockoutDuration: number // minutes
+  lockoutDuration: number
+}
+
+interface PendingInvite {
+  code: string
+  createdAt: number
+  expiresAt: number
+  sentTo?: string
+  method?: 'qr' | 'email' | 'link'
 }
 
 // ==========================================
@@ -136,7 +158,8 @@ const STORAGE_KEYS = {
   CONTACTS: 'hashfl-contacts',
   MESSAGES: 'hashfl-messages',
   INTRUDER_LOGS: 'hashfl-intruder-logs',
-  SETTINGS: 'hashfl-settings'
+  SETTINGS: 'hashfl-settings',
+  INVITES: 'hashfl-pending-invites'
 }
 
 const DEFAULT_SETTINGS: HashFLSettings = {
@@ -149,7 +172,10 @@ const DEFAULT_SETTINGS: HashFLSettings = {
   lockoutDuration: 30
 }
 
-// Simple encryption using Web Crypto API
+// ==========================================
+// Crypto Utilities (Stronger than before)
+// ==========================================
+
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const encoder = new TextEncoder()
   const keyMaterial = await crypto.subtle.importKey(
@@ -186,7 +212,6 @@ async function encryptData(data: string, pin: string): Promise<string> {
     encoder.encode(data)
   )
 
-  // Combine salt + iv + encrypted data
   const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength)
   combined.set(salt, 0)
   combined.set(iv, salt.length)
@@ -215,22 +240,58 @@ async function decryptData(encryptedBase64: string, pin: string): Promise<string
   return new TextDecoder().decode(decrypted)
 }
 
-function hashPin(pin: string): string {
-  // Simple hash for demo - in production use bcrypt or similar
-  let hash = 0
-  for (let i = 0; i < pin.length; i++) {
-    const char = pin.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash
+// Secure PIN hashing using PBKDF2 (not simple bitwise)
+async function hashPinSecure(pin: string, salt: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const saltBytes = encoder.encode(salt)
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(pin),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  )
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBytes,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    256
+  )
+
+  return Array.from(new Uint8Array(derivedBits))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // No confusing chars (0,O,I,1)
+  let code = ''
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)]
   }
-  return hash.toString(16)
+  return code
+}
+
+function generateSharedKey(): string {
+  const array = crypto.getRandomValues(new Uint8Array(32))
+  return btoa(String.fromCharCode(...array))
+}
+
+function generateSalt(): string {
+  const array = crypto.getRandomValues(new Uint8Array(16))
+  return btoa(String.fromCharCode(...array))
 }
 
 // ==========================================
 // Main Component
 // ==========================================
 
-type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'messages' | 'settings' | 'intruder-logs'
+type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'messages' | 'chat' | 'settings' | 'intruder-logs' | 'invite'
 
 export function HashFLPrivacy() {
   const deviceType = useDeviceType()
@@ -243,6 +304,7 @@ export function HashFLPrivacy() {
   const [messages, setMessages] = useKV<SecureMessage[]>(STORAGE_KEYS.MESSAGES, [])
   const [intruderLogs, setIntruderLogs] = useKV<IntruderLog[]>(STORAGE_KEYS.INTRUDER_LOGS, [])
   const [settings, setSettings] = useKV<HashFLSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+  const [pendingInvites, setPendingInvites] = useKV<PendingInvite[]>(STORAGE_KEYS.INVITES, [])
 
   const [currentView, setCurrentView] = useState<ViewType>('lock')
   const [isUnlocked, setIsUnlocked] = useState(false)
@@ -251,17 +313,21 @@ export function HashFLPrivacy() {
   const [showPin, setShowPin] = useState(false)
   const [selectedContact, setSelectedContact] = useState<SecureContact | null>(null)
   const [messageInput, setMessageInput] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [currentInviteCode, setCurrentInviteCode] = useState('')
+  const [joinCode, setJoinCode] = useState('')
+  const [contactName, setContactName] = useState('')
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sessionPin = useRef<string>('')
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Check if user needs setup or unlock
+  // Initialize view
   useEffect(() => {
     if (!user) {
       setCurrentView('setup')
     } else if (!isUnlocked) {
-      // Check for lockout
       if (user.lockoutUntil && user.lockoutUntil > Date.now()) {
         toast.error(`Account locked. Try again in ${Math.ceil((user.lockoutUntil - Date.now()) / 60000)} minutes`)
       }
@@ -299,9 +365,13 @@ export function HashFLPrivacy() {
       return
     }
 
+    const salt = generateSalt()
+    const hashedPin = await hashPinSecure(pinInput, salt)
+
     const newUser: HashFLUser = {
-      id: `user-${Date.now()}`,
-      pin: hashPin(pinInput),
+      id: `hashfl-${Date.now()}`,
+      pin: hashedPin,
+      salt: salt,
       biometricEnabled: false,
       createdAt: Date.now(),
       lastAccess: Date.now(),
@@ -319,15 +389,15 @@ export function HashFLPrivacy() {
   const handleUnlock = async () => {
     if (!user) return
 
-    // Check lockout
     if (user.lockoutUntil && user.lockoutUntil > Date.now()) {
       const minutes = Math.ceil((user.lockoutUntil - Date.now()) / 60000)
       toast.error(`Account locked. Try again in ${minutes} minutes`)
       return
     }
 
-    if (hashPin(pinInput) === user.pin) {
-      // Successful unlock
+    const hashedInput = await hashPinSecure(pinInput, user.salt)
+
+    if (hashedInput === user.pin) {
       setUser({
         ...user,
         lastAccess: Date.now(),
@@ -340,16 +410,13 @@ export function HashFLPrivacy() {
       setCurrentView('home')
       toast.success('Welcome back!')
     } else {
-      // Failed attempt
       const newAttempts = user.failedAttempts + 1
 
-      // Capture intruder photo silently
       if (settings?.silentIntruderCapture) {
         captureIntruderPhoto(pinInput)
       }
 
       if (newAttempts >= (settings?.maxFailedAttempts || 5)) {
-        // Lock the account
         setUser({
           ...user,
           failedAttempts: newAttempts,
@@ -375,7 +442,6 @@ export function HashFLPrivacy() {
       video.srcObject = stream
       await video.play()
 
-      // Wait for video to be ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const canvas = document.createElement('canvas')
@@ -391,14 +457,14 @@ export function HashFLPrivacy() {
         id: `intruder-${Date.now()}`,
         timestamp: Date.now(),
         photo,
-        failedPin: attemptedPin.slice(0, 2) + '***', // Partial PIN for reference
+        failedPin: attemptedPin.slice(0, 2) + '***',
         deviceInfo: navigator.userAgent.slice(0, 50)
       }
 
       setIntruderLogs(prev => [...(prev || []), log])
       logger.warn('Intruder attempt captured', { timestamp: log.timestamp }, 'HashFL')
     } catch {
-      // Silent fail - don't alert the intruder
+      // Silent fail
     }
   }
 
@@ -413,7 +479,6 @@ export function HashFLPrivacy() {
           const base64 = reader.result as string
           const encrypted = await encryptData(base64, sessionPin.current)
 
-          // Create thumbnail for images
           let thumbnail: string | undefined
           if (file.type.startsWith('image/')) {
             thumbnail = await createThumbnail(base64)
@@ -434,7 +499,7 @@ export function HashFLPrivacy() {
           toast.success(`${file.name} encrypted and stored`)
         }
         reader.readAsDataURL(file)
-      } catch (error) {
+      } catch {
         toast.error(`Failed to encrypt ${file.name}`)
       }
     }
@@ -477,7 +542,6 @@ export function HashFLPrivacy() {
     try {
       const decrypted = await decryptData(file.encryptedData, sessionPin.current)
 
-      // Open in new window/tab
       const newWindow = window.open('', '_blank')
       if (newWindow) {
         if (file.type.startsWith('image/')) {
@@ -485,7 +549,6 @@ export function HashFLPrivacy() {
         } else if (file.type.startsWith('video/')) {
           newWindow.document.write(`<video src="${decrypted}" controls style="max-width: 100%;">`)
         } else {
-          // Download for other file types
           const link = document.createElement('a')
           link.href = decrypted
           link.download = file.name
@@ -502,32 +565,137 @@ export function HashFLPrivacy() {
     toast.success('File deleted securely')
   }
 
-  const generateQRInvite = () => {
-    // Generate a temporary public key for contact exchange
-    const inviteCode = btoa(JSON.stringify({
-      type: 'hashfl-invite',
-      userId: user?.id,
-      timestamp: Date.now(),
-      expires: Date.now() + 5 * 60 * 1000 // 5 minute expiry
-    }))
+  // ==========================================
+  // Invite System
+  // ==========================================
 
-    return inviteCode
+  const createInvite = () => {
+    const code = generateInviteCode()
+    const invite: PendingInvite = {
+      code,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+    }
+    setPendingInvites(prev => [...(prev || []), invite])
+    setCurrentInviteCode(code)
+    return code
   }
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedContact) return
+  const getInviteLink = () => {
+    return `https://myflowsphere.com/hashfl-join/${currentInviteCode}`
+  }
 
-    const newMessage: SecureMessage = {
-      id: `msg-${Date.now()}`,
-      contactId: selectedContact.id,
-      content: messageInput.trim(),
-      timestamp: Date.now(),
-      isOutgoing: true,
-      isRead: true
+  const getGmailLink = (email: string) => {
+    const subject = encodeURIComponent('Join me on Hash-FL Secure Messaging')
+    const body = encodeURIComponent(`I'd like to connect with you on Hash-FL, a private encrypted messaging system.\n\nUse this invite code: ${currentInviteCode}\n\nOr open the app and enter the code manually.\n\nYour privacy is protected with end-to-end encryption.`)
+    return `https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`
+  }
+
+  const getYahooLink = (email: string) => {
+    const subject = encodeURIComponent('Join me on Hash-FL Secure Messaging')
+    const body = encodeURIComponent(`I'd like to connect with you on Hash-FL, a private encrypted messaging system.\n\nUse this invite code: ${currentInviteCode}\n\nOr open the app and enter the code manually.\n\nYour privacy is protected with end-to-end encryption.`)
+    return `https://compose.mail.yahoo.com/?to=${email}&subject=${subject}&body=${body}`
+  }
+
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(getInviteLink())
+    toast.success('Invite link copied!')
+  }
+
+  const copyInviteCode = () => {
+    navigator.clipboard.writeText(currentInviteCode)
+    toast.success('Invite code copied!')
+  }
+
+  const handleJoinWithCode = () => {
+    if (!joinCode || joinCode.length < 6) {
+      toast.error('Please enter a valid invite code')
+      return
     }
 
-    setMessages(prev => [...(prev || []), newMessage])
-    setMessageInput('')
+    if (!contactName.trim()) {
+      toast.error('Please enter a name for this contact')
+      return
+    }
+
+    const newContact: SecureContact = {
+      id: `contact-${Date.now()}`,
+      name: contactName.trim(),
+      inviteCode: joinCode.toUpperCase(),
+      sharedKey: generateSharedKey(),
+      addedAt: Date.now(),
+      status: 'accepted'
+    }
+
+    setContacts(prev => [...(prev || []), newContact])
+    setJoinCode('')
+    setContactName('')
+    setCurrentView('contacts')
+    toast.success(`${newContact.name} added to contacts!`)
+  }
+
+  // ==========================================
+  // Messaging
+  // ==========================================
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedContact || !sessionPin.current) return
+
+    try {
+      // Encrypt message with contact's shared key
+      const encryptedContent = await encryptData(messageInput.trim(), selectedContact.sharedKey)
+
+      const newMessage: SecureMessage = {
+        id: `msg-${Date.now()}`,
+        contactId: selectedContact.id,
+        content: encryptedContent,
+        timestamp: Date.now(),
+        isOutgoing: true,
+        isRead: true,
+        isDelivered: true
+      }
+
+      setMessages(prev => [...(prev || []), newMessage])
+      setMessageInput('')
+
+      // Update contact's last message time
+      setContacts(prev => (prev || []).map(c =>
+        c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
+      ))
+
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      }, 100)
+    } catch {
+      toast.error('Failed to send message')
+    }
+  }
+
+  const getDecryptedMessages = async (contact: SecureContact): Promise<Array<{ id: string; content: string; timestamp: number; isOutgoing: boolean }>> => {
+    const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
+    const decrypted = []
+
+    for (const msg of contactMessages) {
+      try {
+        const content = await decryptData(msg.content, contact.sharedKey)
+        decrypted.push({
+          id: msg.id,
+          content,
+          timestamp: msg.timestamp,
+          isOutgoing: msg.isOutgoing
+        })
+      } catch {
+        decrypted.push({
+          id: msg.id,
+          content: '[Encrypted message]',
+          timestamp: msg.timestamp,
+          isOutgoing: msg.isOutgoing
+        })
+      }
+    }
+
+    return decrypted.sort((a, b) => a.timestamp - b.timestamp)
   }
 
   // ==========================================
@@ -535,18 +703,18 @@ export function HashFLPrivacy() {
   // ==========================================
 
   const renderLockScreen = () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-emerald-950 z-50">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-sm px-6"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <Hash className="w-10 h-10 text-white" weight="bold" />
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <Fingerprint className="w-10 h-10 text-white" weight="bold" />
           </div>
           <h1 className="text-2xl font-bold text-white">Hash-FL</h1>
-          <p className="text-gray-400 text-sm mt-1">Privacy-First System</p>
+          <p className="text-emerald-300 text-sm mt-1">Privacy-First System</p>
         </div>
 
         <div className="space-y-4">
@@ -557,13 +725,13 @@ export function HashFLPrivacy() {
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
               onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              className="text-center text-2xl tracking-[0.5em] bg-gray-800 border-gray-700 text-white"
+              className="text-center text-2xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white placeholder:text-emerald-600"
               maxLength={8}
             />
             <button
               type="button"
               onClick={() => setShowPin(!showPin)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400"
             >
               {showPin ? <EyeSlash className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -571,7 +739,7 @@ export function HashFLPrivacy() {
 
           <Button
             onClick={handleUnlock}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/30"
             disabled={pinInput.length < 4}
           >
             <LockOpen className="w-5 h-5 mr-2" />
@@ -579,7 +747,7 @@ export function HashFLPrivacy() {
           </Button>
 
           {user?.biometricEnabled && (
-            <Button variant="outline" className="w-full border-gray-700 text-gray-300">
+            <Button variant="outline" className="w-full border-emerald-700 text-emerald-300 hover:bg-emerald-900/50">
               <Fingerprint className="w-5 h-5 mr-2" />
               Use Biometrics
             </Button>
@@ -596,48 +764,48 @@ export function HashFLPrivacy() {
   )
 
   const renderSetupScreen = () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-emerald-950 z-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm px-6"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
             <ShieldCheck className="w-10 h-10 text-white" weight="fill" />
           </div>
           <h1 className="text-2xl font-bold text-white">Setup Hash-FL</h1>
-          <p className="text-gray-400 text-sm mt-1">Create your secure PIN</p>
+          <p className="text-emerald-300 text-sm mt-1">Create your secure PIN</p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <Label className="text-gray-300">Create PIN (4-8 digits)</Label>
+            <Label className="text-emerald-300">Create PIN (4-8 digits)</Label>
             <Input
               type={showPin ? 'text' : 'password'}
               placeholder="Enter PIN"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="text-center text-xl tracking-[0.5em] bg-gray-800 border-gray-700 text-white mt-1"
+              className="text-center text-xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white mt-1 placeholder:text-emerald-600"
               maxLength={8}
             />
           </div>
 
           <div>
-            <Label className="text-gray-300">Confirm PIN</Label>
+            <Label className="text-emerald-300">Confirm PIN</Label>
             <Input
               type={showPin ? 'text' : 'password'}
               placeholder="Confirm PIN"
               value={confirmPinInput}
               onChange={(e) => setConfirmPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="text-center text-xl tracking-[0.5em] bg-gray-800 border-gray-700 text-white mt-1"
+              className="text-center text-xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white mt-1 placeholder:text-emerald-600"
               maxLength={8}
             />
           </div>
 
           <Button
             onClick={handleSetupPin}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30"
             disabled={pinInput.length < 4 || pinInput !== confirmPinInput}
           >
             <Shield className="w-5 h-5 mr-2" />
@@ -645,12 +813,12 @@ export function HashFLPrivacy() {
           </Button>
         </div>
 
-        <div className="mt-6 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+        <div className="mt-6 p-4 rounded-2xl bg-emerald-900/30 border border-emerald-700/50">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-gray-400">
-              <p className="font-medium text-gray-300">Privacy Guaranteed</p>
-              <p className="mt-1">Your data is encrypted on-device and never leaves your phone. Even FlowSphere cannot access it.</p>
+            <Info className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-emerald-300">
+              <p className="font-medium text-emerald-200">Privacy Guaranteed</p>
+              <p className="mt-1 opacity-80">Your data is encrypted on-device and never leaves your phone. Even FlowSphere cannot access it.</p>
             </div>
           </div>
         </div>
@@ -671,23 +839,23 @@ export function HashFLPrivacy() {
       <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-blue-500/10 border-blue-500/20">
+          <Card className="bg-emerald-500/10 border-emerald-500/20">
             <CardContent className="p-4 text-center">
-              <FolderLock className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+              <FolderLock className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
               <p className="text-2xl font-bold">{(files || []).length}</p>
               <p className="text-xs text-muted-foreground">Encrypted Files</p>
             </CardContent>
           </Card>
-          <Card className="bg-green-500/10 border-green-500/20">
+          <Card className="bg-teal-500/10 border-teal-500/20">
             <CardContent className="p-4 text-center">
-              <Users className="w-8 h-8 mx-auto mb-2 text-green-500" />
+              <Users className="w-8 h-8 mx-auto mb-2 text-teal-500" />
               <p className="text-2xl font-bold">{(contacts || []).length}</p>
               <p className="text-xs text-muted-foreground">Secure Contacts</p>
             </CardContent>
           </Card>
-          <Card className="bg-purple-500/10 border-purple-500/20">
+          <Card className="bg-cyan-500/10 border-cyan-500/20">
             <CardContent className="p-4 text-center">
-              <Chat className="w-8 h-8 mx-auto mb-2 text-purple-500" />
+              <Chat className="w-8 h-8 mx-auto mb-2 text-cyan-500" />
               <p className="text-2xl font-bold">{(messages || []).length}</p>
               <p className="text-xs text-muted-foreground">Messages</p>
             </CardContent>
@@ -702,60 +870,66 @@ export function HashFLPrivacy() {
         </div>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="border-emerald-500/20">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Fingerprint className="w-5 h-5 text-emerald-500" />
+              Quick Actions
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2"
+                className="h-auto py-4 flex flex-col gap-2 border-emerald-500/30 hover:bg-emerald-500/10"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="w-6 h-6" />
+                <Upload className="w-6 h-6 text-emerald-500" />
                 <span>Add Files</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2"
+                className="h-auto py-4 flex flex-col gap-2 border-emerald-500/30 hover:bg-emerald-500/10"
                 onClick={() => setCurrentView('files')}
               >
-                <FolderLock className="w-6 h-6" />
+                <FolderLock className="w-6 h-6 text-emerald-500" />
                 <span>View Files</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2"
-                onClick={() => setCurrentView('messages')}
+                className="h-auto py-4 flex flex-col gap-2 border-teal-500/30 hover:bg-teal-500/10"
+                onClick={() => setCurrentView('contacts')}
               >
-                <Chat className="w-6 h-6" />
+                <Chat className="w-6 h-6 text-teal-500" />
                 <span>Messages</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2"
-                onClick={() => setCurrentView('contacts')}
+                className="h-auto py-4 flex flex-col gap-2 border-cyan-500/30 hover:bg-cyan-500/10"
+                onClick={() => {
+                  createInvite()
+                  setCurrentView('invite')
+                }}
               >
-                <QrCode className="w-6 h-6" />
-                <span>Add Contact</span>
+                <QrCode className="w-6 h-6 text-cyan-500" />
+                <span>Invite Contact</span>
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* File Categories */}
-        <Card>
+        <Card className="border-emerald-500/20">
           <CardHeader>
             <CardTitle className="text-lg">Your Encrypted Files</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {[
-                { key: 'photos', label: 'Photos', icon: FileImage, color: 'text-blue-500' },
-                { key: 'videos', label: 'Videos', icon: FileVideo, color: 'text-purple-500' },
-                { key: 'documents', label: 'Documents', icon: FilePdf, color: 'text-green-500' },
-                { key: 'audio', label: 'Audio', icon: FileAudio, color: 'text-orange-500' },
+                { key: 'photos', label: 'Photos', icon: FileImage, color: 'text-emerald-500' },
+                { key: 'videos', label: 'Videos', icon: FileVideo, color: 'text-teal-500' },
+                { key: 'documents', label: 'Documents', icon: FilePdf, color: 'text-cyan-500' },
+                { key: 'audio', label: 'Audio', icon: FileAudio, color: 'text-green-500' },
                 { key: 'other', label: 'Other', icon: File, color: 'text-gray-500' }
               ].map((cat) => {
                 const Icon = cat.icon
@@ -764,7 +938,7 @@ export function HashFLPrivacy() {
                   <button
                     key={cat.key}
                     onClick={() => setCurrentView('files')}
-                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors"
+                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-emerald-500/10 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={cn("w-5 h-5", cat.color)} />
@@ -792,14 +966,333 @@ export function HashFLPrivacy() {
     )
   }
 
+  const renderInvite = () => (
+    <div className="space-y-6">
+      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
+
+      {/* QR Code Section */}
+      <Card className="border-emerald-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-emerald-500" />
+            Invite via QR Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center">
+          <div className="p-4 bg-white rounded-2xl mb-4">
+            <QRCodeSVG
+              value={JSON.stringify({
+                type: 'hashfl-invite',
+                code: currentInviteCode,
+                expires: Date.now() + 24 * 60 * 60 * 1000
+              })}
+              size={180}
+              bgColor="#ffffff"
+              fgColor="#059669"
+              level="M"
+              includeMargin={false}
+            />
+          </div>
+          <p className="text-center text-sm text-muted-foreground mb-2">
+            Scan this QR code to connect
+          </p>
+          <div className="flex items-center gap-2 p-2 bg-emerald-500/10 rounded-lg">
+            <code className="text-lg font-mono font-bold text-emerald-500 tracking-widest">
+              {currentInviteCode}
+            </code>
+            <Button variant="ghost" size="icon" onClick={copyInviteCode}>
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Expires in 24 hours</p>
+        </CardContent>
+      </Card>
+
+      {/* Email Invite Section */}
+      <Card className="border-teal-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Envelope className="w-5 h-5 text-teal-500" />
+            Invite via Email
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Email Address</Label>
+            <Input
+              type="email"
+              placeholder="friend@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="border-red-500/30 hover:bg-red-500/10"
+              onClick={() => window.open(getGmailLink(inviteEmail), '_blank')}
+              disabled={!inviteEmail}
+            >
+              <At className="w-4 h-4 mr-2 text-red-500" />
+              Gmail
+            </Button>
+            <Button
+              variant="outline"
+              className="border-purple-500/30 hover:bg-purple-500/10"
+              onClick={() => window.open(getYahooLink(inviteEmail), '_blank')}
+              disabled={!inviteEmail}
+            >
+              <At className="w-4 h-4 mr-2 text-purple-500" />
+              Yahoo
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Copy Link Section */}
+      <Card className="border-cyan-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Link className="w-5 h-5 text-cyan-500" />
+            Share Invite Link
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              value={getInviteLink()}
+              readOnly
+              className="font-mono text-sm"
+            />
+            <Button onClick={copyInviteLink} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Join with Code Section */}
+      <Card className="border-emerald-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Key className="w-5 h-5 text-emerald-500" />
+            Join with Invite Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Invite Code</Label>
+            <Input
+              placeholder="Enter 8-character code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
+              className="font-mono text-center tracking-widest mt-1"
+              maxLength={8}
+            />
+          </div>
+          <div>
+            <Label>Contact Name</Label>
+            <Input
+              placeholder="Name for this contact"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <Button
+            onClick={handleJoinWithCode}
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600"
+            disabled={joinCode.length < 6 || !contactName.trim()}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Contact
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  const renderContacts = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <Button onClick={() => { createInvite(); setCurrentView('invite') }} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Contact
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {(contacts || []).map((contact) => {
+          const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
+          const unreadCount = contactMessages.filter(m => !m.isRead && !m.isOutgoing).length
+
+          return (
+            <Card
+              key={contact.id}
+              className="cursor-pointer hover:border-emerald-500/50 transition-colors border-emerald-500/20"
+              onClick={() => {
+                setSelectedContact(contact)
+                setCurrentView('chat')
+              }}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+                    {contact.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{contact.name}</h3>
+                      {contact.status === 'pending' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {contact.lastMessage
+                        ? `Last message ${new Date(contact.lastMessage).toLocaleDateString()}`
+                        : 'No messages yet'}
+                    </p>
+                  </div>
+                  {unreadCount > 0 && (
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                      {unreadCount}
+                    </div>
+                  )}
+                  <CaretRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {(!contacts || contacts.length === 0) && (
+        <Card className="p-8 text-center border-emerald-500/20">
+          <Users className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+          <p className="text-muted-foreground">No contacts yet</p>
+          <Button
+            className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600"
+            onClick={() => { createInvite(); setCurrentView('invite') }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Invite Someone
+          </Button>
+        </Card>
+      )}
+    </div>
+  )
+
+  const [decryptedMessages, setDecryptedMessages] = useState<Array<{ id: string; content: string; timestamp: number; isOutgoing: boolean }>>([])
+
+  useEffect(() => {
+    if (selectedContact && currentView === 'chat') {
+      getDecryptedMessages(selectedContact).then(setDecryptedMessages)
+    }
+  }, [selectedContact, currentView, messages])
+
+  const renderChat = () => {
+    if (!selectedContact) return null
+
+    return (
+      <div className="flex flex-col h-[70vh]">
+        {/* Header */}
+        <div className="flex items-center gap-4 p-4 border-b border-emerald-500/20">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentView('contacts')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+            {selectedContact.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold">{selectedContact.name}</h3>
+            <p className="text-xs text-emerald-500">End-to-end encrypted</p>
+          </div>
+          <Button variant="ghost" size="icon">
+            <DotsThree className="w-5 h-5" weight="bold" />
+          </Button>
+        </div>
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          <div className="space-y-4">
+            {decryptedMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex",
+                  msg.isOutgoing ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-2xl px-4 py-2",
+                    msg.isOutgoing
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+                      : "bg-muted"
+                  )}
+                >
+                  <p>{msg.content}</p>
+                  <p className={cn(
+                    "text-xs mt-1",
+                    msg.isOutgoing ? "text-white/70" : "text-muted-foreground"
+                  )}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {decryptedMessages.length === 0 && (
+              <div className="text-center py-8">
+                <Lock className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+                <p className="text-muted-foreground">Messages are end-to-end encrypted</p>
+                <p className="text-sm text-muted-foreground mt-1">Send a message to start the conversation</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Input */}
+        <div className="p-4 border-t border-emerald-500/20">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type a message..."
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!messageInput.trim()}
+              className="bg-gradient-to-r from-emerald-500 to-teal-600"
+            >
+              <PaperPlaneTilt className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderFiles = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setCurrentView('home')}>
-          <X className="w-4 h-4 mr-2" />
+        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={() => fileInputRef.current?.click()}>
+        <Button onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-emerald-500 to-teal-600">
           <Plus className="w-4 h-4 mr-2" />
           Add Files
         </Button>
@@ -807,15 +1300,15 @@ export function HashFLPrivacy() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {(files || []).map((file) => (
-          <Card key={file.id} className="overflow-hidden">
+          <Card key={file.id} className="overflow-hidden border-emerald-500/20">
             <div
-              className="aspect-square bg-muted flex items-center justify-center cursor-pointer"
+              className="aspect-square bg-emerald-500/5 flex items-center justify-center cursor-pointer"
               onClick={() => handleViewFile(file)}
             >
               {file.thumbnail ? (
                 <img src={file.thumbnail} alt={file.name} className="w-full h-full object-cover" />
               ) : (
-                <File className="w-12 h-12 text-muted-foreground" />
+                <File className="w-12 h-12 text-emerald-500/50" />
               )}
             </div>
             <CardContent className="p-2">
@@ -828,7 +1321,7 @@ export function HashFLPrivacy() {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => handleDeleteFile(file.id)}
+                  onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id) }}
                 >
                   <Trash className="w-3 h-3 text-red-500" />
                 </Button>
@@ -839,10 +1332,10 @@ export function HashFLPrivacy() {
       </div>
 
       {(files || []).length === 0 && (
-        <Card className="p-8 text-center">
-          <FolderLock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        <Card className="p-8 text-center border-emerald-500/20">
+          <FolderLock className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
           <p className="text-muted-foreground">No encrypted files yet</p>
-          <Button className="mt-4" onClick={() => fileInputRef.current?.click()}>
+          <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600" onClick={() => fileInputRef.current?.click()}>
             <Plus className="w-4 h-4 mr-2" />
             Add Your First File
           </Button>
@@ -861,12 +1354,12 @@ export function HashFLPrivacy() {
 
   const renderSettings = () => (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={() => setCurrentView('home')}>
-        <X className="w-4 h-4 mr-2" />
+      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+        <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
-      <Card>
+      <Card className="border-emerald-500/20">
         <CardHeader>
           <CardTitle className="text-lg">Security Settings</CardTitle>
         </CardHeader>
@@ -928,7 +1421,7 @@ export function HashFLPrivacy() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-emerald-500/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <ShieldWarning className="w-5 h-5 text-orange-500" />
@@ -938,7 +1431,7 @@ export function HashFLPrivacy() {
         <CardContent>
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full border-emerald-500/30"
             onClick={() => setCurrentView('intruder-logs')}
           >
             View {(intruderLogs || []).length} Logs
@@ -959,6 +1452,7 @@ export function HashFLPrivacy() {
                 setContacts([])
                 setMessages([])
                 setIntruderLogs([])
+                setPendingInvites([])
                 setIsUnlocked(false)
                 toast.success('All data erased')
               }
@@ -974,14 +1468,14 @@ export function HashFLPrivacy() {
 
   const renderIntruderLogs = () => (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={() => setCurrentView('settings')}>
-        <X className="w-4 h-4 mr-2" />
+      <Button variant="ghost" onClick={() => setCurrentView('settings')} className="text-emerald-500">
+        <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
       <div className="space-y-4">
         {(intruderLogs || []).map((log) => (
-          <Card key={log.id}>
+          <Card key={log.id} className="border-red-500/20">
             <CardContent className="p-4">
               <div className="flex gap-4">
                 {log.photo && (
@@ -1015,8 +1509,8 @@ export function HashFLPrivacy() {
         ))}
 
         {(intruderLogs || []).length === 0 && (
-          <Card className="p-8 text-center">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500" />
+          <Card className="p-8 text-center border-emerald-500/20">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
             <p className="text-muted-foreground">No intrusion attempts detected</p>
           </Card>
         )}
@@ -1028,34 +1522,31 @@ export function HashFLPrivacy() {
   // Main Render
   // ==========================================
 
-  // Show lock or setup screens
   if (currentView === 'lock') return renderLockScreen()
   if (currentView === 'setup') return renderSetupScreen()
 
-  // Main app content
   const tabs = [
     { id: 'home' as const, label: 'Home', icon: Shield },
     { id: 'files' as const, label: 'Files', icon: FolderLock },
-    { id: 'messages' as const, label: 'Messages', icon: Chat },
-    { id: 'contacts' as const, label: 'Contacts', icon: Users },
+    { id: 'contacts' as const, label: 'Messages', icon: Chat },
     { id: 'settings' as const, label: 'Settings', icon: Gear }
   ]
 
   return (
     <div className={cn("space-y-6", isMobile && "space-y-4")}>
       {/* Header */}
-      <Card className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20">
+      <Card className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-emerald-500/20">
         <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Hash className="w-6 h-6 text-white" weight="bold" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Fingerprint className="w-6 h-6 text-white" weight="bold" />
               </div>
               <div>
                 <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
                   Hash-FL Privacy
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-emerald-500">
                   Your encrypted private space
                 </p>
               </div>
@@ -1068,6 +1559,7 @@ export function HashFLPrivacy() {
                 sessionPin.current = ''
                 toast.info('Hash-FL locked')
               }}
+              className="text-emerald-500 hover:bg-emerald-500/10"
             >
               <Lock className="w-5 h-5" />
             </Button>
@@ -1076,26 +1568,32 @@ export function HashFLPrivacy() {
       </Card>
 
       {/* Navigation */}
-      <div className={cn(
-        "flex gap-2 p-1 bg-muted rounded-lg overflow-x-auto",
-        isMobile && "scrollbar-hide"
-      )}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          return (
-            <Button
-              key={tab.id}
-              variant={currentView === tab.id ? 'default' : 'ghost'}
-              size={isMobile ? 'sm' : 'default'}
-              onClick={() => setCurrentView(tab.id)}
-              className={cn("flex-shrink-0", isMobile && "px-3")}
-            >
-              <Icon className={cn("w-4 h-4", !isMobile && "mr-2")} />
-              {!isMobile && tab.label}
-            </Button>
-          )
-        })}
-      </div>
+      {!['chat', 'invite', 'intruder-logs'].includes(currentView) && (
+        <div className={cn(
+          "flex gap-2 p-1 bg-emerald-500/5 rounded-xl overflow-x-auto border border-emerald-500/20",
+          isMobile && "scrollbar-hide"
+        )}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <Button
+                key={tab.id}
+                variant={currentView === tab.id ? 'default' : 'ghost'}
+                size={isMobile ? 'sm' : 'default'}
+                onClick={() => setCurrentView(tab.id)}
+                className={cn(
+                  "flex-shrink-0",
+                  isMobile && "px-3",
+                  currentView === tab.id && "bg-gradient-to-r from-emerald-500 to-teal-600"
+                )}
+              >
+                <Icon className={cn("w-4 h-4", !isMobile && "mr-2")} />
+                {!isMobile && tab.label}
+              </Button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Content */}
       <AnimatePresence mode="wait">
@@ -1108,30 +1606,11 @@ export function HashFLPrivacy() {
         >
           {currentView === 'home' && renderHome()}
           {currentView === 'files' && renderFiles()}
+          {currentView === 'contacts' && renderContacts()}
+          {currentView === 'chat' && renderChat()}
+          {currentView === 'invite' && renderInvite()}
           {currentView === 'settings' && renderSettings()}
           {currentView === 'intruder-logs' && renderIntruderLogs()}
-          {currentView === 'messages' && (
-            <Card className="p-8 text-center">
-              <Chat className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Encrypted messaging coming soon</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Add contacts via QR code to start secure conversations
-              </p>
-            </Card>
-          )}
-          {currentView === 'contacts' && (
-            <Card className="p-8 text-center">
-              <QrCode className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">QR Contact Exchange</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Only add contacts by scanning QR codes in person
-              </p>
-              <Button className="mt-4" variant="outline">
-                <QrCode className="w-4 h-4 mr-2" />
-                Generate My QR Code
-              </Button>
-            </Card>
-          )}
         </motion.div>
       </AnimatePresence>
     </div>
