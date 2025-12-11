@@ -291,7 +291,7 @@ function generateSalt(): string {
 // Main Component
 // ==========================================
 
-type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'messages' | 'chat' | 'settings' | 'intruder-logs' | 'invite'
+type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'settings' | 'intruder-logs' | 'invite'
 
 export function HashFLPrivacy() {
   const deviceType = useDeviceType()
@@ -301,7 +301,6 @@ export function HashFLPrivacy() {
   const [user, setUser] = useKV<HashFLUser | null>(STORAGE_KEYS.USER, null)
   const [files, setFiles] = useKV<EncryptedFile[]>(STORAGE_KEYS.FILES, [])
   const [contacts, setContacts] = useKV<SecureContact[]>(STORAGE_KEYS.CONTACTS, [])
-  const [messages, setMessages] = useKV<SecureMessage[]>(STORAGE_KEYS.MESSAGES, [])
   const [intruderLogs, setIntruderLogs] = useKV<IntruderLog[]>(STORAGE_KEYS.INTRUDER_LOGS, [])
   const [settings, setSettings] = useKV<HashFLSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   const [pendingInvites, setPendingInvites] = useKV<PendingInvite[]>(STORAGE_KEYS.INVITES, [])
@@ -311,8 +310,6 @@ export function HashFLPrivacy() {
   const [pinInput, setPinInput] = useState('')
   const [confirmPinInput, setConfirmPinInput] = useState('')
   const [showPin, setShowPin] = useState(false)
-  const [selectedContact, setSelectedContact] = useState<SecureContact | null>(null)
-  const [messageInput, setMessageInput] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [currentInviteCode, setCurrentInviteCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
@@ -649,70 +646,6 @@ export function HashFLPrivacy() {
   }
 
   // ==========================================
-  // Messaging
-  // ==========================================
-
-  const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedContact || !sessionPin.current) return
-
-    try {
-      // Encrypt message with contact's shared key
-      const encryptedContent = await encryptData(messageInput.trim(), selectedContact.sharedKey)
-
-      const newMessage: SecureMessage = {
-        id: `msg-${Date.now()}`,
-        contactId: selectedContact.id,
-        content: encryptedContent,
-        timestamp: Date.now(),
-        isOutgoing: true,
-        isRead: true,
-        isDelivered: true
-      }
-
-      setMessages(prev => [...(prev || []), newMessage])
-      setMessageInput('')
-
-      // Update contact's last message time
-      setContacts(prev => (prev || []).map(c =>
-        c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
-      ))
-
-      // Scroll to bottom
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-      }, 100)
-    } catch {
-      toast.error('Failed to send message')
-    }
-  }
-
-  const getDecryptedMessages = async (contact: SecureContact): Promise<Array<{ id: string; content: string; timestamp: number; isOutgoing: boolean }>> => {
-    const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
-    const decrypted = []
-
-    for (const msg of contactMessages) {
-      try {
-        const content = await decryptData(msg.content, contact.sharedKey)
-        decrypted.push({
-          id: msg.id,
-          content,
-          timestamp: msg.timestamp,
-          isOutgoing: msg.isOutgoing
-        })
-      } catch {
-        decrypted.push({
-          id: msg.id,
-          content: '[Encrypted message]',
-          timestamp: msg.timestamp,
-          isOutgoing: msg.isOutgoing
-        })
-      }
-    }
-
-    return decrypted.sort((a, b) => a.timestamp - b.timestamp)
-  }
-
-  // ==========================================
   // Render Functions
   // ==========================================
 
@@ -867,13 +800,6 @@ export function HashFLPrivacy() {
               <p className="text-xs text-muted-foreground">Secure Contacts</p>
             </CardContent>
           </Card>
-          <Card className="bg-cyan-500/10 border-cyan-500/20">
-            <CardContent className="p-4 text-center">
-              <Chat className="w-8 h-8 mx-auto mb-2 text-cyan-500" />
-              <p className="text-2xl font-bold">{(messages || []).length}</p>
-              <p className="text-xs text-muted-foreground">Messages</p>
-            </CardContent>
-          </Card>
           <Card className="bg-orange-500/10 border-orange-500/20">
             <CardContent className="p-4 text-center">
               <ShieldWarning className="w-8 h-8 mx-auto mb-2 text-orange-500" />
@@ -914,8 +840,8 @@ export function HashFLPrivacy() {
                 className="h-auto py-4 flex flex-col gap-2 border-teal-500/30 hover:bg-teal-500/10"
                 onClick={() => setCurrentView('contacts')}
               >
-                <Chat className="w-6 h-6 text-teal-500" />
-                <span>Messages</span>
+                <Users className="w-6 h-6 text-teal-500" />
+                <span>Contacts</span>
               </Button>
               <Button
                 variant="outline"
@@ -1144,50 +1070,48 @@ export function HashFLPrivacy() {
       </div>
 
       <div className="space-y-2">
-        {(contacts || []).map((contact) => {
-          const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
-          const unreadCount = contactMessages.filter(m => !m.isRead && !m.isOutgoing).length
-
-          return (
-            <Card
-              key={contact.id}
-              className="cursor-pointer hover:border-emerald-500/50 transition-colors border-emerald-500/20"
-              onClick={() => {
-                setSelectedContact(contact)
-                setCurrentView('chat')
-              }}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
-                    {contact.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{contact.name}</h3>
-                      {contact.status === 'pending' && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
-                          Pending
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {contact.lastMessage
-                        ? `Last message ${new Date(contact.lastMessage).toLocaleDateString()}`
-                        : 'No messages yet'}
-                    </p>
-                  </div>
-                  {unreadCount > 0 && (
-                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
-                      {unreadCount}
-                    </div>
-                  )}
-                  <CaretRight className="w-5 h-5 text-muted-foreground" />
+        {(contacts || []).map((contact) => (
+          <Card
+            key={contact.id}
+            className="border-emerald-500/20"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+                  {contact.name.charAt(0).toUpperCase()}
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">{contact.name}</h3>
+                    {contact.status === 'pending' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
+                        Pending
+                      </span>
+                    )}
+                    {contact.status === 'active' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500">
+                        Connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Added {new Date(contact.addedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setContacts(prev => (prev || []).filter(c => c.id !== contact.id))
+                    toast.success('Contact removed')
+                  }}
+                >
+                  <Trash className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {(!contacts || contacts.length === 0) && (
@@ -1205,99 +1129,6 @@ export function HashFLPrivacy() {
       )}
     </div>
   )
-
-  const [decryptedMessages, setDecryptedMessages] = useState<Array<{ id: string; content: string; timestamp: number; isOutgoing: boolean }>>([])
-
-  useEffect(() => {
-    if (selectedContact && currentView === 'chat') {
-      getDecryptedMessages(selectedContact).then(setDecryptedMessages)
-    }
-  }, [selectedContact, currentView, messages])
-
-  const renderChat = () => {
-    if (!selectedContact) return null
-
-    return (
-      <div className="flex flex-col h-[70vh]">
-        {/* Header */}
-        <div className="flex items-center gap-4 p-4 border-b border-emerald-500/20">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentView('contacts')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
-            {selectedContact.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold">{selectedContact.name}</h3>
-            <p className="text-xs text-emerald-500">End-to-end encrypted</p>
-          </div>
-          <Button variant="ghost" size="icon">
-            <DotsThree className="w-5 h-5" weight="bold" />
-          </Button>
-        </div>
-
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          <div className="space-y-4">
-            {decryptedMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex",
-                  msg.isOutgoing ? "justify-end" : "justify-start"
-                )}
-              >
-                <div
-                  className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2",
-                    msg.isOutgoing
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
-                      : "bg-muted"
-                  )}
-                >
-                  <p>{msg.content}</p>
-                  <p className={cn(
-                    "text-xs mt-1",
-                    msg.isOutgoing ? "text-white/70" : "text-muted-foreground"
-                  )}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {decryptedMessages.length === 0 && (
-              <div className="text-center py-8">
-                <Lock className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
-                <p className="text-muted-foreground">Messages are end-to-end encrypted</p>
-                <p className="text-sm text-muted-foreground mt-1">Send a message to start the conversation</p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-
-        {/* Input */}
-        <div className="p-4 border-t border-emerald-500/20">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Type a message..."
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!messageInput.trim()}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600"
-            >
-              <PaperPlaneTilt className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const renderFiles = () => (
     <div className="space-y-4">
