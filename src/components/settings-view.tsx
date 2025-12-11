@@ -19,7 +19,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CaretUpDown, Envelope } from '@phosphor-icons/react'
 import { useKV } from '@/hooks/use-kv'
 import { EmailAccountStore, EmailAccount } from '@/lib/email/email-service'
-import { authApi } from '@/lib/api'
+import { GmailProvider } from '@/lib/email/gmail-provider'
+import { YahooProvider } from '@/lib/email/yahoo-provider'
+import { OutlookProvider } from '@/lib/email/outlook-provider'
+
+// Initialize OAuth providers for direct OAuth (no backend needed)
+const gmailProvider = new GmailProvider()
+const yahooProvider = new YahooProvider()
+const outlookProvider = new OutlookProvider()
 
 interface PermissionsState {
   gmail: boolean
@@ -154,55 +161,109 @@ export function SettingsView({
   }
 
   const handleOAuthCallback = async () => {
+    const path = window.location.pathname
     const urlParams = new URLSearchParams(window.location.search)
-    // Backend returns a JWT token after successful OAuth (auth_token param)
-    const token = urlParams.get('auth_token')
+    const code = urlParams.get('code')
     const error = urlParams.get('error')
 
-    if (error) {
-      toast.error('Failed to connect account', {
-        description: urlParams.get('message') || 'Please try again'
-      })
-      window.history.replaceState({}, document.title, window.location.pathname)
+    // Check if this is an OAuth callback (/auth/{provider}/callback)
+    if (!path.includes('/auth/') || !path.includes('/callback')) {
       return
     }
 
-    if (token) {
-      try {
-        toast.info('Connecting your account...')
+    if (error) {
+      toast.error('Failed to connect account', {
+        description: urlParams.get('error_description') || 'Please try again'
+      })
+      window.history.replaceState({}, document.title, '/settings')
+      return
+    }
 
-        // Exchange token with backend to get account data
-        const result = await authApi.completeOAuth(token)
+    if (!code) {
+      return
+    }
 
-        if (!result.success || !result.data?.account) {
-          throw new Error(result.error || 'Failed to complete OAuth')
-        }
+    // Determine provider from path
+    let provider: 'gmail' | 'yahoo' | 'outlook' | null = null
+    if (path.includes('/gmail/')) provider = 'gmail'
+    else if (path.includes('/yahoo/')) provider = 'yahoo'
+    else if (path.includes('/outlook/')) provider = 'outlook'
 
-        const accountData = result.data.account
-        const account: EmailAccount = {
-          id: accountData.id,
-          provider: accountData.provider as 'gmail' | 'yahoo' | 'outlook',
-          email: accountData.email,
-          name: accountData.name,
-          picture: accountData.picture,
-          accessToken: accountData.accessToken,
-          refreshToken: accountData.refreshToken,
-          expiresAt: accountData.expiresAt,
-          isActive: accountData.isActive,
-          connectedAt: accountData.connectedAt
-        }
+    if (!provider) {
+      console.error('[OAuth] Unknown provider in path:', path)
+      return
+    }
 
-        EmailAccountStore.saveAccount(account)
-        loadEmailAccounts()
+    setIsConnectingEmail(true)
 
-        toast.success(`${accountData.provider.charAt(0).toUpperCase() + accountData.provider.slice(1)} connected successfully!`)
+    try {
+      toast.info('Connecting your account...')
 
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname)
-      } catch (error) {
-        console.error('OAuth callback error:', error)
-        toast.error('Failed to connect account. Please try again.')
+      let accessToken: string
+      let refreshToken: string
+      let expiresIn: number
+      let userInfo: { email: string; name: string }
+
+      // Exchange code for tokens using Edge Function
+      switch (provider) {
+        case 'gmail':
+          const gmailTokens = await gmailProvider.exchangeCodeForTokens(code)
+          accessToken = gmailTokens.accessToken
+          refreshToken = gmailTokens.refreshToken
+          expiresIn = gmailTokens.expiresIn
+          userInfo = await gmailProvider.getUserInfo(accessToken)
+          break
+
+        case 'yahoo':
+          const yahooTokens = await yahooProvider.exchangeCodeForTokens(code)
+          accessToken = yahooTokens.accessToken
+          refreshToken = yahooTokens.refreshToken
+          expiresIn = yahooTokens.expiresIn
+          userInfo = await yahooProvider.getUserInfo(accessToken)
+          break
+
+        case 'outlook':
+          const outlookTokens = await outlookProvider.exchangeCodeForTokens(code)
+          accessToken = outlookTokens.accessToken
+          refreshToken = outlookTokens.refreshToken
+          expiresIn = outlookTokens.expiresIn
+          userInfo = await outlookProvider.getUserInfo(accessToken)
+          break
+
+        default:
+          throw new Error('Unknown provider')
       }
+
+      // Create and save account
+      const account: EmailAccount = {
+        id: `${provider}_${userInfo.email}_${Date.now()}`,
+        provider,
+        email: userInfo.email,
+        name: userInfo.name || userInfo.email.split('@')[0],
+        accessToken,
+        refreshToken,
+        expiresAt: Date.now() + expiresIn * 1000,
+        isActive: true,
+        connectedAt: new Date().toISOString(),
+      }
+
+      EmailAccountStore.saveAccount(account)
+      loadEmailAccounts()
+
+      toast.success(`${userInfo.email} connected successfully!`, {
+        description: 'Email monitoring is now active'
+      })
+
+      // Clean URL
+      window.history.replaceState({}, document.title, '/settings')
+    } catch (error) {
+      console.error('OAuth callback error:', error)
+      toast.error('Failed to connect account', {
+        description: error instanceof Error ? error.message : 'Please try again'
+      })
+      window.history.replaceState({}, document.title, '/settings')
+    } finally {
+      setIsConnectingEmail(false)
     }
   }
 
@@ -210,8 +271,32 @@ export function SettingsView({
     setIsConnectingEmail(true)
 
     try {
-      // Use backend OAuth proxy - redirects to provider
-      authApi.initiateOAuth(provider, window.location.origin)
+      let authUrl: string
+
+      // Use Direct OAuth - redirects to provider's OAuth page
+      switch (provider) {
+        case 'gmail':
+          authUrl = gmailProvider.getAuthUrl()
+          break
+        case 'yahoo':
+          authUrl = yahooProvider.getAuthUrl()
+          break
+        case 'outlook':
+          authUrl = outlookProvider.getAuthUrl()
+          break
+        case 'icloud':
+          // iCloud requires app-specific password (handled separately)
+          toast.info('iCloud requires an app-specific password', {
+            description: 'Please use the Email Connections section in Settings'
+          })
+          setIsConnectingEmail(false)
+          return
+        default:
+          throw new Error('Unknown provider')
+      }
+
+      // Redirect to OAuth provider
+      window.location.href = authUrl
     } catch (error) {
       console.error('Connection error:', error)
       toast.error('Failed to initiate connection')
