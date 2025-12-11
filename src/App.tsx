@@ -65,27 +65,50 @@ function App() {
     floating?: boolean
   } | null>(null)
 
-  // Check URL for timer routes on mount
-  useEffect(() => {
-    const checkTimerRoute = () => {
-      const path = window.location.pathname
-      const timerMatch = path.match(/^\/timer\/([A-Z0-9]{6})(\/control)?$/i)
+  // Email OAuth callback state
+  const [emailOAuthCallback, setEmailOAuthCallback] = useState<{
+    provider: 'gmail' | 'yahoo' | 'outlook'
+    code: string
+  } | null>(null)
 
+  // Check URL for timer routes and email OAuth callbacks on mount
+  useEffect(() => {
+    const checkRoutes = () => {
+      const path = window.location.pathname
+      const searchParams = new URLSearchParams(window.location.search)
+
+      // Check for timer routes
+      const timerMatch = path.match(/^\/timer\/([A-Z0-9]{6})(\/control)?$/i)
       if (timerMatch) {
         const roomCode = timerMatch[1].toUpperCase()
         const isController = !!timerMatch[2]
-        // Check for floating mode query parameter
-        const searchParams = new URLSearchParams(window.location.search)
         const isFloating = searchParams.get('floating') === 'true'
         setTimerRoute({ roomCode, mode: isController ? 'controller' : 'presenter', floating: isFloating })
-      } else {
-        setTimerRoute(null)
+        return
       }
+
+      // Check for email OAuth callbacks (/auth/{provider}/callback?code=xxx)
+      const emailOAuthMatch = path.match(/^\/auth\/(gmail|yahoo|outlook)\/callback$/i)
+      if (emailOAuthMatch) {
+        const provider = emailOAuthMatch[1].toLowerCase() as 'gmail' | 'yahoo' | 'outlook'
+        const code = searchParams.get('code')
+        if (code) {
+          setEmailOAuthCallback({ provider, code })
+          // Redirect to settings page with callback info preserved in URL
+          // The EmailConnection component will handle the token exchange
+          setCurrentTab('settings')
+          setIsAuthenticated(true) // Ensure user is authenticated to see settings
+          return
+        }
+      }
+
+      setTimerRoute(null)
+      setEmailOAuthCallback(null)
     }
 
-    checkTimerRoute()
-    window.addEventListener('popstate', checkTimerRoute)
-    return () => window.removeEventListener('popstate', checkTimerRoute)
+    checkRoutes()
+    window.addEventListener('popstate', checkRoutes)
+    return () => window.removeEventListener('popstate', checkRoutes)
   }, [])
 
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
