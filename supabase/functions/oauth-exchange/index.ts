@@ -22,6 +22,7 @@ interface TokenExchangeRequest {
   redirectUri: string
   action: 'exchange' | 'refresh'
   refreshToken?: string
+  codeVerifier?: string // PKCE code verifier for Microsoft OAuth
 }
 
 serve(async (req) => {
@@ -31,10 +32,11 @@ serve(async (req) => {
   }
 
   try {
-    const { provider, code, redirectUri, action, refreshToken }: TokenExchangeRequest = await req.json()
+    const { provider, code, redirectUri, action, refreshToken, codeVerifier }: TokenExchangeRequest = await req.json()
 
     console.log(`[OAuth] Request received - provider: ${provider}, action: ${action}`)
     console.log(`[OAuth] Redirect URI: ${redirectUri}`)
+    console.log(`[OAuth] PKCE code verifier provided: ${!!codeVerifier}`)
 
     if (!provider || !['google', 'yahoo', 'outlook'].includes(provider)) {
       return new Response(
@@ -102,6 +104,12 @@ serve(async (req) => {
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       })
+
+      // Add PKCE code_verifier for Microsoft OAuth (required for SPAs)
+      if (provider === 'outlook' && codeVerifier) {
+        body.append('code_verifier', codeVerifier)
+        console.log('[OAuth] Added PKCE code_verifier for Outlook')
+      }
     } else {
       return new Response(
         JSON.stringify({ error: 'Invalid request: code or refreshToken required' }),

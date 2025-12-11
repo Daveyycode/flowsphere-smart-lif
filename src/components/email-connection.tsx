@@ -210,8 +210,8 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
           return
 
         case 'outlook':
-          // Use Direct OAuth with Edge Function
-          authUrl = outlookProvider.getAuthUrl()
+          // Use Direct OAuth with PKCE (required by Microsoft for SPAs)
+          authUrl = await outlookProvider.getAuthUrlAsync()
           window.location.href = authUrl
           return
 

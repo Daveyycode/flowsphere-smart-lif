@@ -14,6 +14,7 @@ const OAUTH_EDGE_FUNCTION = `${SUPABASE_URL}/functions/v1/oauth-exchange`
 export class OutlookProvider extends EmailProvider {
   private clientId: string
   private redirectUri: string
+  private codeVerifier: string | null = null
 
   constructor() {
     super()
@@ -23,10 +24,35 @@ export class OutlookProvider extends EmailProvider {
   }
 
   /**
-   * Get OAuth authorization URL
-   * Microsoft OAuth2 requires client_id and specific scopes
+   * Generate PKCE code verifier and challenge
+   * Required by Microsoft for SPA OAuth flows
    */
-  getAuthUrl(): string {
+  private async generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
+    // Generate random code verifier (43-128 characters)
+    const array = new Uint8Array(32)
+    crypto.getRandomValues(array)
+    const codeVerifier = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+
+    // Generate code challenge using SHA-256
+    const encoder = new TextEncoder()
+    const data = encoder.encode(codeVerifier)
+    const digest = await crypto.subtle.digest('SHA-256', data)
+
+    // Base64url encode the hash
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    const codeChallenge = base64
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+
+    return { codeVerifier, codeChallenge }
+  }
+
+  /**
+   * Get OAuth authorization URL with PKCE
+   * Microsoft OAuth2 requires PKCE for SPA applications
+   */
+  async getAuthUrlAsync(): Promise<string> {
     // Debug: Log client ID to verify it's being loaded
     console.log('[Outlook OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 8)}...` : 'MISSING')
     console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
@@ -35,6 +61,14 @@ export class OutlookProvider extends EmailProvider {
       console.error('[Outlook OAuth] ERROR: VITE_OUTLOOK_CLIENT_ID is not set!')
       throw new Error('Outlook OAuth not configured - missing client ID')
     }
+
+    // Generate PKCE challenge
+    const { codeVerifier, codeChallenge } = await this.generatePKCE()
+
+    // Store code verifier for token exchange (will be retrieved later)
+    this.codeVerifier = codeVerifier
+    sessionStorage.setItem('outlook_pkce_verifier', codeVerifier)
+    console.log('[Outlook OAuth] PKCE code verifier stored')
 
     const params = new URLSearchParams({
       client_id: this.clientId,
@@ -52,17 +86,30 @@ export class OutlookProvider extends EmailProvider {
         'offline_access'
       ].join(' '),
       // Add state for CSRF protection
-      state: Math.random().toString(36).substring(2)
+      state: Math.random().toString(36).substring(2),
+      // PKCE parameters - required by Microsoft for SPAs
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256'
     })
 
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
-    console.log('[Outlook OAuth] Full auth URL:', authUrl)
+    console.log('[Outlook OAuth] Auth URL generated with PKCE')
 
     return authUrl
   }
 
   /**
+   * Sync version for backwards compatibility - redirects to async version
+   */
+  getAuthUrl(): string {
+    // This is called synchronously, so we need to handle PKCE differently
+    // We'll generate PKCE and redirect in one go
+    throw new Error('Use getAuthUrlAsync() for Outlook OAuth - PKCE is required')
+  }
+
+  /**
    * Exchange authorization code for tokens via Edge Function (secure)
+   * Includes PKCE code_verifier for Microsoft OAuth
    */
   async exchangeCodeForTokens(code: string): Promise<{
     accessToken: string
@@ -72,6 +119,14 @@ export class OutlookProvider extends EmailProvider {
     console.log('[Outlook OAuth] Starting token exchange...')
     console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
     console.log('[Outlook OAuth] Edge Function URL:', OAUTH_EDGE_FUNCTION)
+
+    // Retrieve PKCE code verifier from session storage
+    const codeVerifier = sessionStorage.getItem('outlook_pkce_verifier')
+    console.log('[Outlook OAuth] PKCE code verifier retrieved:', codeVerifier ? 'yes' : 'no')
+
+    if (!codeVerifier) {
+      throw new Error('PKCE code verifier not found. Please try connecting again.')
+    }
 
     // Use Edge Function to keep client_secret server-side
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
@@ -87,6 +142,7 @@ export class OutlookProvider extends EmailProvider {
             action: 'exchange',
             code,
             redirectUri: this.redirectUri,
+            codeVerifier, // PKCE code verifier for Microsoft
           }),
         })
 
