@@ -24,6 +24,17 @@ export function EmailMonitorService() {
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    // DISABLED: Email monitoring is currently disabled until OAuth is properly configured
+    // The Gmail API cannot be called directly from the browser due to CORS restrictions
+    // Email monitoring requires a proper backend proxy or Edge Function implementation
+
+    const EMAIL_MONITORING_ENABLED = false // Set to true when backend is ready
+
+    if (!EMAIL_MONITORING_ENABLED) {
+      console.log('📭 Email monitoring is disabled - OAuth backend not configured')
+      return
+    }
+
     const activeAccounts = EmailAccountStore.getActiveAccounts()
 
     // SECURITY FIX: Only monitor accounts with valid OAuth tokens
