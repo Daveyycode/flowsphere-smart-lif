@@ -982,32 +982,43 @@ export function HashFLPrivacy() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <div className="p-4 bg-white rounded-2xl mb-4">
-            <QRCodeSVG
-              value={JSON.stringify({
-                type: 'hashfl-invite',
-                code: currentInviteCode,
-                expires: Date.now() + 24 * 60 * 60 * 1000
-              })}
-              size={180}
-              bgColor="#ffffff"
-              fgColor="#14b8a6"
-              level="M"
-              includeMargin={false}
-            />
-          </div>
-          <p className="text-center text-sm text-muted-foreground mb-2">
-            Scan this QR code to connect
-          </p>
-          <div className="flex items-center gap-2 p-2 bg-teal-500/10 rounded-lg">
-            <code className="text-lg font-mono font-bold text-teal-500 tracking-widest">
-              {currentInviteCode}
-            </code>
-            <Button variant="ghost" size="icon" onClick={copyInviteCode}>
-              <Copy className="w-4 h-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">Expires in 24 hours</p>
+          {currentInviteCode ? (
+            <>
+              <div className="p-4 bg-white rounded-2xl mb-4">
+                <QRCodeSVG
+                  value={JSON.stringify({
+                    type: 'hashfl-invite',
+                    code: currentInviteCode,
+                    expires: Date.now() + 24 * 60 * 60 * 1000
+                  })}
+                  size={180}
+                  bgColor="#ffffff"
+                  fgColor="#14b8a6"
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+              <p className="text-center text-sm text-muted-foreground mb-2">
+                Scan this QR code to connect
+              </p>
+              <div className="flex items-center gap-2 p-2 bg-teal-500/10 rounded-lg">
+                <code className="text-lg font-mono font-bold text-teal-500 tracking-widest">
+                  {currentInviteCode}
+                </code>
+                <Button variant="ghost" size="icon" onClick={copyInviteCode}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Expires in 24 hours</p>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No invite code generated</p>
+              <Button onClick={createInvite} className="bg-teal-500 hover:bg-teal-600">
+                Generate Invite Code
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
