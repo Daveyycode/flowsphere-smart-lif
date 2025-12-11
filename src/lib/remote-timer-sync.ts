@@ -138,6 +138,7 @@ export class RemoteTimerManager {
   private listeners: Array<(state: RoomState) => void> = []
   private messageListeners: Array<(message: Message) => void> = []
   private timerInterval: NodeJS.Timeout | null = null
+  private syncInterval: NodeJS.Timeout | null = null
 
   constructor() {
     this.participantId = getParticipantId()
@@ -223,7 +224,7 @@ export class RemoteTimerManager {
     this.participantName = participantName || 'Viewer'
     this.role = asController ? 'controller' : 'viewer'
 
-    // Try to find room in localStorage or via broadcast
+    // Try to find room in localStorage first
     const localRoom = this.findRoomByCode(code)
 
     if (localRoom) {
@@ -247,12 +248,24 @@ export class RemoteTimerManager {
       return this.state
     }
 
-    // If not found locally, create a channel to listen for broadcasts
-    // Other devices will share state when they see the join request
-    const tempChannel = supabase.channel(`timer-room-${code}`)
+    // If not found locally, try to get state via Supabase Realtime broadcast
+    const tempChannel = supabase.channel(`timer-room-${code}`, {
+      config: { broadcast: { self: true } }
+    })
 
     return new Promise((resolve) => {
       let resolved = false
+      let retryCount = 0
+      const maxRetries = 3
+
+      const requestState = async () => {
+        if (resolved) return
+        await tempChannel.send({
+          type: 'broadcast',
+          event: 'state_request',
+          payload: { requesterId: this.participantId, code: code.toUpperCase() }
+        })
+      }
 
       tempChannel
         .on('broadcast', { event: 'state_sync' }, (payload) => {
@@ -264,28 +277,117 @@ export class RemoteTimerManager {
           }
         })
         .on('broadcast', { event: 'state_request' }, () => {
-          // Another device is requesting state - we don't have it
+          // Another device is requesting state - we don't have it yet
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             // Request state from other participants
-            await tempChannel.send({
-              type: 'broadcast',
-              event: 'state_request',
-              payload: { requesterId: this.participantId }
-            })
+            await requestState()
 
-            // Timeout after 5 seconds
-            setTimeout(() => {
-              if (!resolved) {
-                resolved = true
-                tempChannel.unsubscribe()
-                resolve(null) // Room not found
+            // Retry a few times with increasing delays
+            const retryInterval = setInterval(async () => {
+              if (resolved) {
+                clearInterval(retryInterval)
+                return
               }
-            }, 5000)
+              retryCount++
+              if (retryCount >= maxRetries) {
+                clearInterval(retryInterval)
+                // If controller and no room found - create a new room with this code
+                if (!resolved && asController) {
+                  resolved = true
+                  tempChannel.unsubscribe()
+                  const result = await this.createRoomWithCode(code, participantName)
+                  resolve(result ? this.state : null)
+                } else if (!resolved) {
+                  resolved = true
+                  tempChannel.unsubscribe()
+                  resolve(null) // Room not found for viewer
+                }
+              } else {
+                await requestState()
+              }
+            }, 2000) // Retry every 2 seconds
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Channel failed - if controller, create room anyway
+            if (!resolved && asController) {
+              resolved = true
+              tempChannel.unsubscribe()
+              const result = await this.createRoomWithCode(code, participantName)
+              resolve(result ? this.state : null)
+            } else if (!resolved) {
+              resolved = true
+              tempChannel.unsubscribe()
+              resolve(null)
+            }
           }
         })
     })
+  }
+
+  /**
+   * Create a room with a specific code (used when joining as controller but room doesn't exist)
+   */
+  private async createRoomWithCode(code: string, creatorName: string): Promise<{ room: TimerRoom; shareUrl: string } | null> {
+    const roomId = `room-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+    const room: TimerRoom = {
+      id: roomId,
+      code: code.toUpperCase(),
+      name: 'Timer Room',
+      createdBy: this.participantId,
+      createdAt: Date.now(),
+      settings: {
+        showMilliseconds: false,
+        countDirection: 'down',
+        autoStartNext: false,
+        flashOnComplete: true,
+        soundEnabled: true,
+        theme: 'dark',
+        fontSize: 'large'
+      }
+    }
+
+    const initialState: RoomState = {
+      room,
+      timer: {
+        status: 'idle',
+        type: 'countdown',
+        duration: 5 * 60 * 1000,
+        elapsed: 0,
+        remaining: 5 * 60 * 1000,
+        startedAt: null,
+        pausedAt: null,
+        label: 'Timer'
+      },
+      presets: [
+        { id: '1', name: '1 Minute', duration: 60 * 1000, color: '#3b82f6' },
+        { id: '2', name: '5 Minutes', duration: 5 * 60 * 1000, color: '#10b981' },
+        { id: '3', name: '10 Minutes', duration: 10 * 60 * 1000, color: '#f59e0b' },
+        { id: '4', name: '15 Minutes', duration: 15 * 60 * 1000, color: '#ef4444' },
+        { id: '5', name: '30 Minutes', duration: 30 * 60 * 1000, color: '#8b5cf6' },
+        { id: '6', name: '1 Hour', duration: 60 * 60 * 1000, color: '#ec4899' }
+      ],
+      messages: [],
+      participants: [{
+        id: this.participantId,
+        name: creatorName || 'Controller',
+        role: 'controller',
+        joinedAt: Date.now(),
+        lastSeen: Date.now(),
+        deviceType: getDeviceType(),
+        isController: true,
+        isConnected: true
+      }],
+      lastUpdatedBy: this.participantId,
+      lastUpdatedAt: Date.now()
+    }
+
+    this.saveRoomLocally(roomId, initialState)
+    this.role = 'controller'
+    await this.joinChannel(roomId, initialState)
+
+    return { room, shareUrl: `${window.location.origin}/timer/${code}` }
   }
 
   /**
@@ -317,8 +419,9 @@ export class RemoteTimerManager {
         }
       })
       .on('broadcast', { event: 'state_request' }, async (payload) => {
-        // Someone is requesting state - send it if we have it
-        if (this.state && this.role === 'controller') {
+        // Someone is requesting state - send it if we have it (any participant with state can share)
+        if (this.state) {
+          logger.info('Received state request, broadcasting state', { requesterId: payload.payload?.requesterId }, 'RemoteTimer')
           await this.broadcastState()
         }
       })
@@ -341,10 +444,29 @@ export class RemoteTimerManager {
 
           // Start timer update loop
           this.startTimerLoop()
+
+          // Start periodic state sync (every 5 seconds for controllers)
+          this.startSyncLoop()
         }
       })
 
     this.notifyListeners()
+  }
+
+  /**
+   * Start periodic state broadcasting (keeps devices in sync)
+   */
+  private startSyncLoop(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval)
+    }
+
+    // Broadcast state every 5 seconds if we're a controller
+    this.syncInterval = setInterval(async () => {
+      if (this.state && this.role === 'controller') {
+        await this.broadcastState()
+      }
+    }, 5000)
   }
 
   /**
@@ -767,6 +889,11 @@ export class RemoteTimerManager {
     if (this.timerInterval) {
       clearInterval(this.timerInterval)
       this.timerInterval = null
+    }
+
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval)
+      this.syncInterval = null
     }
 
     this.state = null
