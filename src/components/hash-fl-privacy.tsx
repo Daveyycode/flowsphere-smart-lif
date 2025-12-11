@@ -703,18 +703,18 @@ export function HashFLPrivacy() {
   // ==========================================
 
   const renderLockScreen = () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-emerald-950 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-teal-950 via-teal-900 to-teal-950 z-50">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-sm px-6"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
             <Fingerprint className="w-10 h-10 text-white" weight="bold" />
           </div>
           <h1 className="text-2xl font-bold text-white">Hash-FL</h1>
-          <p className="text-emerald-300 text-sm mt-1">Privacy-First System</p>
+          <p className="text-teal-300 text-sm mt-1">Privacy-First System</p>
         </div>
 
         <div className="space-y-4">
@@ -725,13 +725,13 @@ export function HashFLPrivacy() {
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
               onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              className="text-center text-2xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white placeholder:text-emerald-600"
+              className="text-center text-2xl tracking-[0.5em] bg-teal-900/50 border-teal-700 text-white placeholder:text-teal-600"
               maxLength={8}
             />
             <button
               type="button"
               onClick={() => setShowPin(!showPin)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-400"
             >
               {showPin ? <EyeSlash className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -739,7 +739,7 @@ export function HashFLPrivacy() {
 
           <Button
             onClick={handleUnlock}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/30"
+            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/30"
             disabled={pinInput.length < 4}
           >
             <LockOpen className="w-5 h-5 mr-2" />
@@ -747,7 +747,7 @@ export function HashFLPrivacy() {
           </Button>
 
           {user?.biometricEnabled && (
-            <Button variant="outline" className="w-full border-emerald-700 text-emerald-300 hover:bg-emerald-900/50">
+            <Button variant="outline" className="w-full border-teal-700 text-teal-300 hover:bg-teal-900/50">
               <Fingerprint className="w-5 h-5 mr-2" />
               Use Biometrics
             </Button>
@@ -764,48 +764,48 @@ export function HashFLPrivacy() {
   )
 
   const renderSetupScreen = () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-teal-900 to-emerald-950 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-teal-950 via-teal-900 to-teal-950 z-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm px-6"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
             <ShieldCheck className="w-10 h-10 text-white" weight="fill" />
           </div>
           <h1 className="text-2xl font-bold text-white">Setup Hash-FL</h1>
-          <p className="text-emerald-300 text-sm mt-1">Create your secure PIN</p>
+          <p className="text-teal-300 text-sm mt-1">Create your secure PIN</p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <Label className="text-emerald-300">Create PIN (4-8 digits)</Label>
+            <Label className="text-teal-300">Create PIN (4-8 digits)</Label>
             <Input
               type={showPin ? 'text' : 'password'}
               placeholder="Enter PIN"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="text-center text-xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white mt-1 placeholder:text-emerald-600"
+              className="text-center text-xl tracking-[0.5em] bg-teal-900/50 border-teal-700 text-white mt-1 placeholder:text-teal-600"
               maxLength={8}
             />
           </div>
 
           <div>
-            <Label className="text-emerald-300">Confirm PIN</Label>
+            <Label className="text-teal-300">Confirm PIN</Label>
             <Input
               type={showPin ? 'text' : 'password'}
               placeholder="Confirm PIN"
               value={confirmPinInput}
               onChange={(e) => setConfirmPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="text-center text-xl tracking-[0.5em] bg-emerald-900/50 border-emerald-700 text-white mt-1 placeholder:text-emerald-600"
+              className="text-center text-xl tracking-[0.5em] bg-teal-900/50 border-teal-700 text-white mt-1 placeholder:text-teal-600"
               maxLength={8}
             />
           </div>
 
           <Button
             onClick={handleSetupPin}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30"
+            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 shadow-lg shadow-teal-500/30"
             disabled={pinInput.length < 4 || pinInput !== confirmPinInput}
           >
             <Shield className="w-5 h-5 mr-2" />
@@ -813,11 +813,11 @@ export function HashFLPrivacy() {
           </Button>
         </div>
 
-        <div className="mt-6 p-4 rounded-2xl bg-emerald-900/30 border border-emerald-700/50">
+        <div className="mt-6 p-4 rounded-2xl bg-teal-900/30 border border-teal-700/50">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-emerald-300">
-              <p className="font-medium text-emerald-200">Privacy Guaranteed</p>
+            <Info className="w-5 h-5 text-teal-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-teal-300">
+              <p className="font-medium text-teal-200">Privacy Guaranteed</p>
               <p className="mt-1 opacity-80">Your data is encrypted on-device and never leaves your phone. Even FlowSphere cannot access it.</p>
             </div>
           </div>
@@ -839,9 +839,9 @@ export function HashFLPrivacy() {
       <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-emerald-500/10 border-emerald-500/20">
+          <Card className="bg-teal-500/10 border-teal-500/20">
             <CardContent className="p-4 text-center">
-              <FolderLock className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+              <FolderLock className="w-8 h-8 mx-auto mb-2 text-teal-500" />
               <p className="text-2xl font-bold">{(files || []).length}</p>
               <p className="text-xs text-muted-foreground">Encrypted Files</p>
             </CardContent>
@@ -870,10 +870,10 @@ export function HashFLPrivacy() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="border-emerald-500/20">
+        <Card className="border-teal-500/20">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Fingerprint className="w-5 h-5 text-emerald-500" />
+              <Fingerprint className="w-5 h-5 text-teal-500" />
               Quick Actions
             </CardTitle>
           </CardHeader>
@@ -881,18 +881,18 @@ export function HashFLPrivacy() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2 border-emerald-500/30 hover:bg-emerald-500/10"
+                className="h-auto py-4 flex flex-col gap-2 border-teal-500/30 hover:bg-teal-500/10"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="w-6 h-6 text-emerald-500" />
+                <Upload className="w-6 h-6 text-teal-500" />
                 <span>Add Files</span>
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2 border-emerald-500/30 hover:bg-emerald-500/10"
+                className="h-auto py-4 flex flex-col gap-2 border-teal-500/30 hover:bg-teal-500/10"
                 onClick={() => setCurrentView('files')}
               >
-                <FolderLock className="w-6 h-6 text-emerald-500" />
+                <FolderLock className="w-6 h-6 text-teal-500" />
                 <span>View Files</span>
               </Button>
               <Button
@@ -919,14 +919,14 @@ export function HashFLPrivacy() {
         </Card>
 
         {/* File Categories */}
-        <Card className="border-emerald-500/20">
+        <Card className="border-teal-500/20">
           <CardHeader>
             <CardTitle className="text-lg">Your Encrypted Files</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {[
-                { key: 'photos', label: 'Photos', icon: FileImage, color: 'text-emerald-500' },
+                { key: 'photos', label: 'Photos', icon: FileImage, color: 'text-teal-500' },
                 { key: 'videos', label: 'Videos', icon: FileVideo, color: 'text-teal-500' },
                 { key: 'documents', label: 'Documents', icon: FilePdf, color: 'text-cyan-500' },
                 { key: 'audio', label: 'Audio', icon: FileAudio, color: 'text-green-500' },
@@ -938,7 +938,7 @@ export function HashFLPrivacy() {
                   <button
                     key={cat.key}
                     onClick={() => setCurrentView('files')}
-                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-emerald-500/10 transition-colors"
+                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-teal-500/10 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={cn("w-5 h-5", cat.color)} />
@@ -968,16 +968,16 @@ export function HashFLPrivacy() {
 
   const renderInvite = () => (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-teal-500">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
       {/* QR Code Section */}
-      <Card className="border-emerald-500/20">
+      <Card className="border-teal-500/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-emerald-500" />
+            <QrCode className="w-5 h-5 text-teal-500" />
             Invite via QR Code
           </CardTitle>
         </CardHeader>
@@ -991,7 +991,7 @@ export function HashFLPrivacy() {
               })}
               size={180}
               bgColor="#ffffff"
-              fgColor="#059669"
+              fgColor="#14b8a6"
               level="M"
               includeMargin={false}
             />
@@ -999,8 +999,8 @@ export function HashFLPrivacy() {
           <p className="text-center text-sm text-muted-foreground mb-2">
             Scan this QR code to connect
           </p>
-          <div className="flex items-center gap-2 p-2 bg-emerald-500/10 rounded-lg">
-            <code className="text-lg font-mono font-bold text-emerald-500 tracking-widest">
+          <div className="flex items-center gap-2 p-2 bg-teal-500/10 rounded-lg">
+            <code className="text-lg font-mono font-bold text-teal-500 tracking-widest">
               {currentInviteCode}
             </code>
             <Button variant="ghost" size="icon" onClick={copyInviteCode}>
@@ -1068,7 +1068,7 @@ export function HashFLPrivacy() {
               readOnly
               className="font-mono text-sm"
             />
-            <Button onClick={copyInviteLink} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+            <Button onClick={copyInviteLink} className="bg-gradient-to-r from-teal-500 to-teal-600">
               <Copy className="w-4 h-4" />
             </Button>
           </div>
@@ -1076,10 +1076,10 @@ export function HashFLPrivacy() {
       </Card>
 
       {/* Join with Code Section */}
-      <Card className="border-emerald-500/20">
+      <Card className="border-teal-500/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Key className="w-5 h-5 text-emerald-500" />
+            <Key className="w-5 h-5 text-teal-500" />
             Join with Invite Code
           </CardTitle>
         </CardHeader>
@@ -1105,7 +1105,7 @@ export function HashFLPrivacy() {
           </div>
           <Button
             onClick={handleJoinWithCode}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600"
+            className="w-full bg-gradient-to-r from-teal-500 to-teal-600"
             disabled={joinCode.length < 6 || !contactName.trim()}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -1119,11 +1119,11 @@ export function HashFLPrivacy() {
   const renderContacts = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-teal-500">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={() => { createInvite(); setCurrentView('invite') }} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+        <Button onClick={() => { createInvite(); setCurrentView('invite') }} className="bg-gradient-to-r from-teal-500 to-teal-600">
           <Plus className="w-4 h-4 mr-2" />
           Add Contact
         </Button>
@@ -1137,7 +1137,7 @@ export function HashFLPrivacy() {
           return (
             <Card
               key={contact.id}
-              className="cursor-pointer hover:border-emerald-500/50 transition-colors border-emerald-500/20"
+              className="cursor-pointer hover:border-teal-500/50 transition-colors border-teal-500/20"
               onClick={() => {
                 setSelectedContact(contact)
                 setCurrentView('chat')
@@ -1145,7 +1145,7 @@ export function HashFLPrivacy() {
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold">
                     {contact.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
@@ -1164,7 +1164,7 @@ export function HashFLPrivacy() {
                     </p>
                   </div>
                   {unreadCount > 0 && (
-                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                    <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center text-white text-xs font-bold">
                       {unreadCount}
                     </div>
                   )}
@@ -1177,11 +1177,11 @@ export function HashFLPrivacy() {
       </div>
 
       {(!contacts || contacts.length === 0) && (
-        <Card className="p-8 text-center border-emerald-500/20">
-          <Users className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+        <Card className="p-8 text-center border-teal-500/20">
+          <Users className="w-12 h-12 mx-auto mb-4 text-teal-500/50" />
           <p className="text-muted-foreground">No contacts yet</p>
           <Button
-            className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600"
+            className="mt-4 bg-gradient-to-r from-teal-500 to-teal-600"
             onClick={() => { createInvite(); setCurrentView('invite') }}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -1206,16 +1206,16 @@ export function HashFLPrivacy() {
     return (
       <div className="flex flex-col h-[70vh]">
         {/* Header */}
-        <div className="flex items-center gap-4 p-4 border-b border-emerald-500/20">
+        <div className="flex items-center gap-4 p-4 border-b border-teal-500/20">
           <Button variant="ghost" size="icon" onClick={() => setCurrentView('contacts')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold">
             {selectedContact.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
             <h3 className="font-semibold">{selectedContact.name}</h3>
-            <p className="text-xs text-emerald-500">End-to-end encrypted</p>
+            <p className="text-xs text-teal-500">End-to-end encrypted</p>
           </div>
           <Button variant="ghost" size="icon">
             <DotsThree className="w-5 h-5" weight="bold" />
@@ -1237,7 +1237,7 @@ export function HashFLPrivacy() {
                   className={cn(
                     "max-w-[80%] rounded-2xl px-4 py-2",
                     msg.isOutgoing
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+                      ? "bg-gradient-to-r from-teal-500 to-teal-600 text-white"
                       : "bg-muted"
                   )}
                 >
@@ -1254,7 +1254,7 @@ export function HashFLPrivacy() {
 
             {decryptedMessages.length === 0 && (
               <div className="text-center py-8">
-                <Lock className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+                <Lock className="w-12 h-12 mx-auto mb-4 text-teal-500/50" />
                 <p className="text-muted-foreground">Messages are end-to-end encrypted</p>
                 <p className="text-sm text-muted-foreground mt-1">Send a message to start the conversation</p>
               </div>
@@ -1263,7 +1263,7 @@ export function HashFLPrivacy() {
         </ScrollArea>
 
         {/* Input */}
-        <div className="p-4 border-t border-emerald-500/20">
+        <div className="p-4 border-t border-teal-500/20">
           <div className="flex gap-2">
             <Input
               placeholder="Type a message..."
@@ -1275,7 +1275,7 @@ export function HashFLPrivacy() {
             <Button
               onClick={handleSendMessage}
               disabled={!messageInput.trim()}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600"
+              className="bg-gradient-to-r from-teal-500 to-teal-600"
             >
               <PaperPlaneTilt className="w-5 h-5" />
             </Button>
@@ -1288,11 +1288,11 @@ export function HashFLPrivacy() {
   const renderFiles = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+        <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-teal-500">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+        <Button onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-teal-500 to-teal-600">
           <Plus className="w-4 h-4 mr-2" />
           Add Files
         </Button>
@@ -1300,15 +1300,15 @@ export function HashFLPrivacy() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {(files || []).map((file) => (
-          <Card key={file.id} className="overflow-hidden border-emerald-500/20">
+          <Card key={file.id} className="overflow-hidden border-teal-500/20">
             <div
-              className="aspect-square bg-emerald-500/5 flex items-center justify-center cursor-pointer"
+              className="aspect-square bg-teal-500/5 flex items-center justify-center cursor-pointer"
               onClick={() => handleViewFile(file)}
             >
               {file.thumbnail ? (
                 <img src={file.thumbnail} alt={file.name} className="w-full h-full object-cover" />
               ) : (
-                <File className="w-12 h-12 text-emerald-500/50" />
+                <File className="w-12 h-12 text-teal-500/50" />
               )}
             </div>
             <CardContent className="p-2">
@@ -1332,10 +1332,10 @@ export function HashFLPrivacy() {
       </div>
 
       {(files || []).length === 0 && (
-        <Card className="p-8 text-center border-emerald-500/20">
-          <FolderLock className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+        <Card className="p-8 text-center border-teal-500/20">
+          <FolderLock className="w-12 h-12 mx-auto mb-4 text-teal-500/50" />
           <p className="text-muted-foreground">No encrypted files yet</p>
-          <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600" onClick={() => fileInputRef.current?.click()}>
+          <Button className="mt-4 bg-gradient-to-r from-teal-500 to-teal-600" onClick={() => fileInputRef.current?.click()}>
             <Plus className="w-4 h-4 mr-2" />
             Add Your First File
           </Button>
@@ -1354,12 +1354,12 @@ export function HashFLPrivacy() {
 
   const renderSettings = () => (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+      <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-teal-500">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
-      <Card className="border-emerald-500/20">
+      <Card className="border-teal-500/20">
         <CardHeader>
           <CardTitle className="text-lg">Security Settings</CardTitle>
         </CardHeader>
@@ -1421,7 +1421,7 @@ export function HashFLPrivacy() {
         </CardContent>
       </Card>
 
-      <Card className="border-emerald-500/20">
+      <Card className="border-teal-500/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <ShieldWarning className="w-5 h-5 text-orange-500" />
@@ -1431,7 +1431,7 @@ export function HashFLPrivacy() {
         <CardContent>
           <Button
             variant="outline"
-            className="w-full border-emerald-500/30"
+            className="w-full border-teal-500/30"
             onClick={() => setCurrentView('intruder-logs')}
           >
             View {(intruderLogs || []).length} Logs
@@ -1468,7 +1468,7 @@ export function HashFLPrivacy() {
 
   const renderIntruderLogs = () => (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={() => setCurrentView('settings')} className="text-emerald-500">
+      <Button variant="ghost" onClick={() => setCurrentView('settings')} className="text-teal-500">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
@@ -1509,8 +1509,8 @@ export function HashFLPrivacy() {
         ))}
 
         {(intruderLogs || []).length === 0 && (
-          <Card className="p-8 text-center border-emerald-500/20">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
+          <Card className="p-8 text-center border-teal-500/20">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-teal-500" />
             <p className="text-muted-foreground">No intrusion attempts detected</p>
           </Card>
         )}
@@ -1535,18 +1535,18 @@ export function HashFLPrivacy() {
   return (
     <div className={cn("space-y-6", isMobile && "space-y-4")}>
       {/* Header */}
-      <Card className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-emerald-500/20">
+      <Card className="bg-gradient-to-br from-teal-500/10 via-teal-500/10 to-cyan-500/10 border-teal-500/20">
         <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
                 <Fingerprint className="w-6 h-6 text-white" weight="bold" />
               </div>
               <div>
                 <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
                   Hash-FL Privacy
                 </h1>
-                <p className="text-sm text-emerald-500">
+                <p className="text-sm text-teal-500">
                   Your encrypted private space
                 </p>
               </div>
@@ -1559,7 +1559,7 @@ export function HashFLPrivacy() {
                 sessionPin.current = ''
                 toast.info('Hash-FL locked')
               }}
-              className="text-emerald-500 hover:bg-emerald-500/10"
+              className="text-teal-500 hover:bg-teal-500/10"
             >
               <Lock className="w-5 h-5" />
             </Button>
@@ -1570,7 +1570,7 @@ export function HashFLPrivacy() {
       {/* Navigation */}
       {!['chat', 'invite', 'intruder-logs'].includes(currentView) && (
         <div className={cn(
-          "flex gap-2 p-1 bg-emerald-500/5 rounded-xl overflow-x-auto border border-emerald-500/20",
+          "flex gap-2 p-1 bg-teal-500/5 rounded-xl overflow-x-auto border border-teal-500/20",
           isMobile && "scrollbar-hide"
         )}>
           {tabs.map((tab) => {
@@ -1584,7 +1584,7 @@ export function HashFLPrivacy() {
                 className={cn(
                   "flex-shrink-0",
                   isMobile && "px-3",
-                  currentView === tab.id && "bg-gradient-to-r from-emerald-500 to-teal-600"
+                  currentView === tab.id && "bg-gradient-to-r from-teal-500 to-teal-600"
                 )}
               >
                 <Icon className={cn("w-4 h-4", !isMobile && "mr-2")} />

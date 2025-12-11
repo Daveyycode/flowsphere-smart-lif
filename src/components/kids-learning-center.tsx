@@ -878,13 +878,13 @@ Rules:
         {/* Focus Session Card */}
         <Card className={cn(
           "bg-gradient-to-br border-2 transition-all",
-          isActive ? "from-green-500/10 to-emerald-500/10 border-green-500/50" : "from-gray-500/10 to-slate-500/10 border-muted"
+          isActive ? "from-green-500/10 to-green-600/10 border-green-500/50" : "from-gray-500/10 to-slate-500/10 border-muted"
         )}>
           <CardContent className="p-6 text-center">
             <div className={cn(
               "w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center",
               "bg-gradient-to-br",
-              isActive ? "from-green-500 to-emerald-500" : "from-gray-500 to-slate-500"
+              isActive ? "from-green-500 to-green-600" : "from-gray-500 to-slate-500"
             )}>
               {isActive ? (
                 <Eye className="w-16 h-16 text-white animate-pulse" weight="fill" />
