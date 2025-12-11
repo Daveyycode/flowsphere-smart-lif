@@ -59,34 +59,14 @@ export function ComingSoonSection({ onNavigate }: ComingSoonSectionProps) {
       navigateTo: 'vault'
     },
     {
-      id: 'tutor-ai',
-      title: 'FlowSphere Tutor AI',
-      description: 'Your personal at-home learning companion — ready to teach, quiz, and inspire.',
+      id: 'kids-learning',
+      title: 'Kids Learning Center',
+      description: 'Unified hub: AI Tutor, Study Monitor & Focus Tracking — all in one place under Family tab.',
       icon: Brain,
       iconColor: 'text-green-400',
       bgColor: 'bg-green-500/20',
       isAvailable: true,
-      navigateTo: 'tutor-ai'
-    },
-    {
-      id: 'study-monitor',
-      title: 'AI Study Monitor',
-      description: 'Camera-powered focus tracking — alerts parents when kids get distracted.',
-      icon: Camera,
-      iconColor: 'text-green-400',
-      bgColor: 'bg-green-500/20',
-      isAvailable: true,
-      navigateTo: 'study-monitor'
-    },
-    {
-      id: 'focus-report',
-      title: 'Focus & Attention Report',
-      description: 'Track how well your child (or you) stay focused during learning sessions.',
-      icon: Eye,
-      iconColor: 'text-green-400',
-      bgColor: 'bg-green-500/20',
-      isAvailable: true,
-      navigateTo: 'focus-report'
+      navigateTo: 'family'
     },
     {
       id: 'smart-integration',

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrow, Spinner, Warning, MapTrifold } from '@phosphor-icons/react'
+import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrow, Spinner, Warning, MapTrifold, GraduationCap, Users } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
 import { useGPSTracking } from '@/hooks/use-gps-tracking'
 import { openInMaps } from '@/lib/gps-tracking'
+import { KidsLearningCenter } from '@/components/kids-learning-center'
 
 export interface SafeZone {
   id: string
@@ -54,7 +55,10 @@ interface FamilyViewProps {
   onUpdateMember?: (id: string, updates: Partial<FamilyMember>) => void
 }
 
+type FamilyTab = 'safety' | 'learning'
+
 export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
+  const [activeTab, setActiveTab] = useState<FamilyTab>('safety')
   const [gpsMonitoringEnabled, setGpsMonitoringEnabled] = useKV<boolean>('flowsphere-gps-monitoring', true)
   const [lastGpsCheck] = useKV<string>('flowsphere-last-gps-check', '')
   const [recordingSOS, setRecordingSOS] = useState<string | null>(null)
@@ -298,21 +302,79 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
     handleCloseEdit()
   }
 
+  const deviceType = useDeviceType()
+  const isMobile = deviceType === 'mobile'
+
+  // If Kids Learning tab is active, show the unified learning center
+  if (activeTab === 'learning') {
+    return (
+      <div className="space-y-6 pb-8">
+        {/* Tab Navigation */}
+        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          <Button
+            variant={activeTab === 'safety' ? 'default' : 'ghost'}
+            size={isMobile ? 'sm' : 'default'}
+            onClick={() => setActiveTab('safety')}
+            className="flex-1"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Family Safety
+          </Button>
+          <Button
+            variant={activeTab === 'learning' ? 'default' : 'ghost'}
+            size={isMobile ? 'sm' : 'default'}
+            onClick={() => setActiveTab('learning')}
+            className="flex-1"
+          >
+            <GraduationCap className="w-4 h-4 mr-2" />
+            Kids Learning
+          </Button>
+        </div>
+
+        {/* Kids Learning Center - Unified Tutor AI + Study Monitor + Focus Report */}
+        <KidsLearningCenter />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 pb-8">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 p-1 bg-muted rounded-lg">
+        <Button
+          variant={activeTab === 'safety' ? 'default' : 'ghost'}
+          size={isMobile ? 'sm' : 'default'}
+          onClick={() => setActiveTab('safety')}
+          className="flex-1"
+        >
+          <Users className="w-4 h-4 mr-2" />
+          Family Safety
+        </Button>
+        <Button
+          variant={activeTab === 'learning' ? 'default' : 'ghost'}
+          size={isMobile ? 'sm' : 'default'}
+          onClick={() => setActiveTab('learning')}
+          className="flex-1"
+        >
+          <GraduationCap className="w-4 h-4 mr-2" />
+          Kids Learning
+        </Button>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold mb-2">Family Safety</h1>
-          <p className="text-muted-foreground">
+          <h1 className={cn("font-bold mb-2", isMobile ? "text-2xl" : "text-4xl")}>Family Safety</h1>
+          <p className="text-muted-foreground text-sm">
             Keep track of your loved ones' locations and safety
           </p>
         </div>
         <Button
           variant="outline"
+          size={isMobile ? 'sm' : 'default'}
           onClick={() => setShowInviteDialog(true)}
         >
           <Plus className="w-5 h-5 mr-2" weight="bold" />
-          Invite Member
+          {!isMobile && 'Invite Member'}
         </Button>
       </div>
 
