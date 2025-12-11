@@ -174,7 +174,17 @@ const PROVIDER_PRIORITY: AIProvider[] = [
 // ==========================================
 
 const STORAGE_KEY = 'flowsphere-smart-ai-config'
-const DEFAULT_GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY || ''
+
+// Default API keys from environment (FlowSphere-provided for free tier)
+const DEFAULT_KEYS: Partial<Record<AIProvider, string>> = {
+  groq: import.meta.env.VITE_GROQ_API_KEY || '',
+  openai: import.meta.env.VITE_OPENAI_API_KEY || '',
+  anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+  deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY || '',
+  gemini: import.meta.env.VITE_GEMINI_API_KEY || '',
+  mistral: import.meta.env.VITE_MISTRAL_API_KEY || '',
+  together: import.meta.env.VITE_TOGETHER_API_KEY || ''
+}
 
 function getDefaultConfig(): UserAIConfig {
   return {
@@ -243,18 +253,14 @@ export function removeAPIKey(provider: AIProvider): void {
 
 export function hasAPIKey(provider: AIProvider): boolean {
   const config = getAIConfig()
-  if (provider === 'groq') {
-    return !!(config.apiKeys.groq || DEFAULT_GROQ_KEY)
-  }
-  return !!config.apiKeys[provider]
+  // Check user's key first, then fall back to default env key
+  return !!(config.apiKeys[provider] || DEFAULT_KEYS[provider])
 }
 
 export function getAPIKey(provider: AIProvider): string | undefined {
   const config = getAIConfig()
-  if (provider === 'groq') {
-    return config.apiKeys.groq || DEFAULT_GROQ_KEY
-  }
-  return config.apiKeys[provider]
+  // User's key takes priority, then fall back to default env key
+  return config.apiKeys[provider] || DEFAULT_KEYS[provider]
 }
 
 // ==========================================
