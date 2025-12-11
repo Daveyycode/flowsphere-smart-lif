@@ -62,6 +62,7 @@ function App() {
   const [timerRoute, setTimerRoute] = useState<{
     roomCode: string
     mode: 'presenter' | 'controller'
+    floating?: boolean
   } | null>(null)
 
   // Check URL for timer routes on mount
@@ -73,7 +74,10 @@ function App() {
       if (timerMatch) {
         const roomCode = timerMatch[1].toUpperCase()
         const isController = !!timerMatch[2]
-        setTimerRoute({ roomCode, mode: isController ? 'controller' : 'presenter' })
+        // Check for floating mode query parameter
+        const searchParams = new URLSearchParams(window.location.search)
+        const isFloating = searchParams.get('floating') === 'true'
+        setTimerRoute({ roomCode, mode: isController ? 'controller' : 'presenter', floating: isFloating })
       } else {
         setTimerRoute(null)
       }
@@ -395,6 +399,7 @@ function App() {
           <RemoteTimerPresenter
             roomCode={timerRoute.roomCode}
             onExit={handleTimerExit}
+            floatingMode={timerRoute.floating}
           />
           <Toaster position="top-center" />
         </>

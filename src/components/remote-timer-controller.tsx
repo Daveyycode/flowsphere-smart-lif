@@ -715,27 +715,37 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Theme */}
+                {/* FlowSphere Theme */}
                 <div>
                   <Label className="flex items-center gap-2 mb-2">
                     <Palette className="w-4 h-4" />
-                    Theme
+                    Color Theme
                   </Label>
-                  <div className="flex gap-2">
-                    {(['dark', 'light', 'green', 'red', 'blue'] as const).map((theme) => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { id: 'neon-noir' as const, label: 'Neon Noir', gradient: 'from-pink-500 to-purple-600' },
+                      { id: 'aurora-borealis' as const, label: 'Aurora', gradient: 'from-blue-500 to-teal-500' },
+                      { id: 'cosmic-latte' as const, label: 'Cosmic', gradient: 'from-amber-500 to-orange-500' },
+                      { id: 'candy-shop' as const, label: 'Candy', gradient: 'from-pink-400 to-purple-400' },
+                      { id: 'black-gray' as const, label: 'Neutral', gradient: 'from-gray-600 to-gray-800' },
+                      { id: 'custom' as const, label: 'Custom', gradient: 'from-blue-400 to-green-400' },
+                    ]).map((theme) => (
                       <button
-                        key={theme}
-                        onClick={() => handleUpdateSettings({ theme })}
+                        key={theme.id}
+                        onClick={() => handleUpdateSettings({ theme: theme.id })}
                         className={cn(
-                          "w-10 h-10 rounded-lg border-2 transition-all",
-                          state.room.settings.theme === theme && 'ring-2 ring-offset-2 ring-blue-500',
-                          theme === 'dark' && 'bg-gray-900 border-gray-700',
-                          theme === 'light' && 'bg-white border-gray-300',
-                          theme === 'green' && 'bg-green-950 border-green-700',
-                          theme === 'red' && 'bg-red-950 border-red-700',
-                          theme === 'blue' && 'bg-blue-950 border-blue-700'
+                          "p-2 rounded-lg border-2 transition-all text-xs font-medium",
+                          state.room.settings.theme === theme.id
+                            ? 'border-primary ring-2 ring-offset-2 ring-primary'
+                            : 'border-border hover:border-primary/50'
                         )}
-                      />
+                      >
+                        <div className={cn(
+                          "w-full h-6 rounded mb-1 bg-gradient-to-r",
+                          theme.gradient
+                        )} />
+                        {theme.label}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -763,8 +773,44 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                   </div>
                 </div>
 
-                {/* Toggles */}
-                <div className="space-y-3">
+                {/* Message Settings */}
+                <div className="pt-3 border-t">
+                  <Label className="flex items-center gap-2 mb-3">
+                    <PaperPlaneTilt className="w-4 h-4" />
+                    Message Settings
+                  </Label>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Auto-dismiss Messages</Label>
+                      <Switch
+                        checked={state.room.settings.messageAutoDismiss ?? true}
+                        onCheckedChange={(checked) => handleUpdateSettings({ messageAutoDismiss: checked })}
+                      />
+                    </div>
+
+                    {(state.room.settings.messageAutoDismiss ?? true) && (
+                      <div className="flex items-center gap-3">
+                        <Label className="text-sm flex-1">Default Duration</Label>
+                        <select
+                          value={state.room.settings.messageDefaultDuration ?? 10}
+                          onChange={(e) => handleUpdateSettings({ messageDefaultDuration: parseInt(e.target.value) })}
+                          className="px-3 py-1.5 rounded-lg bg-muted text-sm"
+                        >
+                          <option value={5}>5 seconds</option>
+                          <option value={10}>10 seconds</option>
+                          <option value={15}>15 seconds</option>
+                          <option value={20}>20 seconds</option>
+                          <option value={30}>30 seconds</option>
+                          <option value={60}>60 seconds</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Display Toggles */}
+                <div className="space-y-3 pt-3 border-t">
                   <div className="flex items-center justify-between">
                     <Label className="flex items-center gap-2">
                       Show Milliseconds
@@ -803,16 +849,32 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
 
       {/* Presenter View Button */}
       <Card className="bg-muted/50">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium">Open Presenter View</p>
+              <p className="font-medium">Full Presenter View</p>
               <p className="text-sm text-muted-foreground">
-                Open in a new window to display on stage
+                Full-screen display for projector/stage
               </p>
             </div>
             <Button
               onClick={() => window.open(`/timer/${roomCode}`, '_blank')}
+              className="gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Open
+            </Button>
+          </div>
+          <div className="flex items-center justify-between pt-3 border-t">
+            <div>
+              <p className="font-medium">Floating Timer</p>
+              <p className="text-sm text-muted-foreground">
+                Compact overlay for presenter's laptop
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => window.open(`/timer/${roomCode}?floating=true`, 'FlowSphere Timer', 'width=400,height=200,resizable=yes')}
               className="gap-2"
             >
               <Eye className="w-4 h-4" />

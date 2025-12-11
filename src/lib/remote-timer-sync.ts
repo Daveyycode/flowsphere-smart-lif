@@ -24,8 +24,19 @@ export interface RoomSettings {
   autoStartNext: boolean
   flashOnComplete: boolean
   soundEnabled: boolean
-  theme: 'dark' | 'light' | 'green' | 'red' | 'blue'
+  // FlowSphere themes - matches use-theme.ts ColorTheme
+  theme: 'neon-noir' | 'aurora-borealis' | 'cosmic-latte' | 'candy-shop' | 'black-gray' | 'custom'
   fontSize: 'small' | 'medium' | 'large' | 'xlarge'
+  // Custom theme colors (optional, used when theme is 'custom')
+  customTheme?: {
+    background: string
+    foreground: string
+    primary: string
+    accent: string
+  }
+  // Message auto-dismiss settings
+  messageAutoDismiss: boolean
+  messageDefaultDuration: number // in seconds
 }
 
 export interface TimerState {
@@ -163,8 +174,10 @@ export class RemoteTimerManager {
         autoStartNext: false,
         flashOnComplete: true,
         soundEnabled: true,
-        theme: 'dark',
-        fontSize: 'large'
+        theme: 'black-gray', // Default to neutral black-gray theme
+        fontSize: 'large',
+        messageAutoDismiss: true,
+        messageDefaultDuration: 10 // 10 seconds default
       }
     }
 
@@ -218,6 +231,8 @@ export class RemoteTimerManager {
 
   /**
    * Join an existing room by code
+   * For Controllers: Creates room if not found (they are the source of truth)
+   * For Presenters: Waits for controller to share state via broadcast
    */
   async joinRoom(code: string, participantName: string, asController: boolean = false): Promise<RoomState | null> {
     this.roomCode = code.toUpperCase()
@@ -248,28 +263,40 @@ export class RemoteTimerManager {
       return this.state
     }
 
-    // If not found locally, try to get state via Supabase Realtime broadcast
-    const tempChannel = supabase.channel(`timer-room-${code}`, {
+    // For Controllers: Create room immediately if not found locally
+    // Controllers are the source of truth - they don't need to wait for state
+    if (asController) {
+      logger.info('Controller creating room with code', { code }, 'RemoteTimer')
+      const result = await this.createRoomWithCode(code, participantName)
+      return result ? this.state : null
+    }
+
+    // For Presenters: Try to get state via Supabase Realtime broadcast
+    // Wait for controller to share state (they should already have the room)
+    const upperCode = code.toUpperCase()
+    const tempChannel = supabase.channel(`timer-room-${upperCode}`, {
       config: { broadcast: { self: true } }
     })
 
     return new Promise((resolve) => {
       let resolved = false
       let retryCount = 0
-      const maxRetries = 3
+      const maxRetries = 10 // More retries for presenters (20 seconds total)
 
       const requestState = async () => {
         if (resolved) return
+        logger.info('Presenter requesting state', { code: upperCode, retry: retryCount }, 'RemoteTimer')
         await tempChannel.send({
           type: 'broadcast',
           event: 'state_request',
-          payload: { requesterId: this.participantId, code: code.toUpperCase() }
+          payload: { requesterId: this.participantId, code: upperCode }
         })
       }
 
       tempChannel
         .on('broadcast', { event: 'state_sync' }, (payload) => {
           if (!resolved && payload.payload) {
+            logger.info('Presenter received state sync', { roomId: payload.payload.room?.id }, 'RemoteTimer')
             resolved = true
             tempChannel.unsubscribe()
             this.joinChannel(payload.payload.room.id, payload.payload)
@@ -277,14 +304,15 @@ export class RemoteTimerManager {
           }
         })
         .on('broadcast', { event: 'state_request' }, () => {
-          // Another device is requesting state - we don't have it yet
+          // Another device is requesting state - we don't have it (we're a presenter)
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            // Request state from other participants
+            logger.info('Presenter subscribed to channel', { code: upperCode }, 'RemoteTimer')
+            // Request state from controller
             await requestState()
 
-            // Retry a few times with increasing delays
+            // Retry every 2 seconds
             const retryInterval = setInterval(async () => {
               if (resolved) {
                 clearInterval(retryInterval)
@@ -293,29 +321,19 @@ export class RemoteTimerManager {
               retryCount++
               if (retryCount >= maxRetries) {
                 clearInterval(retryInterval)
-                // If controller and no room found - create a new room with this code
-                if (!resolved && asController) {
+                logger.warn('Presenter could not find room after retries', { code: upperCode, retries: maxRetries }, 'RemoteTimer')
+                if (!resolved) {
                   resolved = true
                   tempChannel.unsubscribe()
-                  const result = await this.createRoomWithCode(code, participantName)
-                  resolve(result ? this.state : null)
-                } else if (!resolved) {
-                  resolved = true
-                  tempChannel.unsubscribe()
-                  resolve(null) // Room not found for viewer
+                  resolve(null) // Room not found - controller hasn't created it yet
                 }
               } else {
                 await requestState()
               }
-            }, 2000) // Retry every 2 seconds
+            }, 2000)
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            // Channel failed - if controller, create room anyway
-            if (!resolved && asController) {
-              resolved = true
-              tempChannel.unsubscribe()
-              const result = await this.createRoomWithCode(code, participantName)
-              resolve(result ? this.state : null)
-            } else if (!resolved) {
+            logger.error('Channel error for presenter', { code: upperCode, status }, 'RemoteTimer')
+            if (!resolved) {
               resolved = true
               tempChannel.unsubscribe()
               resolve(null)
@@ -343,8 +361,10 @@ export class RemoteTimerManager {
         autoStartNext: false,
         flashOnComplete: true,
         soundEnabled: true,
-        theme: 'dark',
-        fontSize: 'large'
+        theme: 'black-gray',
+        fontSize: 'large',
+        messageAutoDismiss: true,
+        messageDefaultDuration: 10
       }
     }
 
