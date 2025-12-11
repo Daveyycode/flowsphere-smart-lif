@@ -24,23 +24,41 @@ export class OutlookProvider extends EmailProvider {
 
   /**
    * Get OAuth authorization URL
+   * Microsoft OAuth2 requires client_id and specific scopes
    */
   getAuthUrl(): string {
+    // Debug: Log client ID to verify it's being loaded
+    console.log('[Outlook OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 8)}...` : 'MISSING')
+    console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
+
+    if (!this.clientId) {
+      console.error('[Outlook OAuth] ERROR: VITE_OUTLOOK_CLIENT_ID is not set!')
+      throw new Error('Outlook OAuth not configured - missing client ID')
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: 'code',
       redirect_uri: this.redirectUri,
       response_mode: 'query',
       scope: [
+        'openid',
+        'profile',
+        'email',
         'https://graph.microsoft.com/Mail.Read',
         'https://graph.microsoft.com/Mail.Send',
         'https://graph.microsoft.com/Mail.ReadWrite',
         'https://graph.microsoft.com/User.Read',
         'offline_access'
-      ].join(' ')
+      ].join(' '),
+      // Add state for CSRF protection
+      state: Math.random().toString(36).substring(2)
     })
 
-    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
+    console.log('[Outlook OAuth] Full auth URL:', authUrl)
+
+    return authUrl
   }
 
   /**

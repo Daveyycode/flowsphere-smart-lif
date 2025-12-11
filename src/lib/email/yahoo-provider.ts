@@ -24,13 +24,27 @@ export class YahooProvider extends EmailProvider {
 
   /**
    * Get OAuth authorization URL
+   * Yahoo OAuth2 requires specific scopes and parameters
    */
   getAuthUrl(): string {
+    // Debug: Log client ID to verify it's being loaded
+    console.log('[Yahoo OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 10)}...` : 'MISSING')
+    console.log('[Yahoo OAuth] Redirect URI:', this.redirectUri)
+
+    if (!this.clientId) {
+      console.error('[Yahoo OAuth] ERROR: VITE_YAHOO_CLIENT_ID is not set!')
+      throw new Error('Yahoo OAuth not configured - missing client ID')
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      scope: 'mail-r mail-w'
+      // Yahoo uses 'openid' based scopes - mail-r/mail-w may not work
+      // Using profile + email + mail scopes
+      scope: 'openid profile email',
+      // Add nonce for security
+      nonce: Math.random().toString(36).substring(2)
     })
 
     return `https://api.login.yahoo.com/oauth2/request_auth?${params.toString()}`
