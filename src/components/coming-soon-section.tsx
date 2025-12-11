@@ -56,7 +56,7 @@ export function ComingSoonSection({ onNavigate }: ComingSoonSectionProps) {
       iconColor: 'text-green-400',
       bgColor: 'bg-green-500/20',
       isAvailable: true,
-      navigateTo: 'vault'
+      navigateTo: 'hash-fl'
     },
     {
       id: 'kids-learning',
