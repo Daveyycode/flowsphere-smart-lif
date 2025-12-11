@@ -569,6 +569,20 @@ export function HashFLPrivacy() {
   // Invite System
   // ==========================================
 
+  // Auto-generate invite code when viewing invite screen
+  useEffect(() => {
+    if (currentView === 'invite' && !currentInviteCode) {
+      const code = generateInviteCode()
+      const invite: PendingInvite = {
+        code,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      }
+      setPendingInvites(prev => [...(prev || []), invite])
+      setCurrentInviteCode(code)
+    }
+  }, [currentView, currentInviteCode])
+
   const createInvite = () => {
     const code = generateInviteCode()
     const invite: PendingInvite = {
