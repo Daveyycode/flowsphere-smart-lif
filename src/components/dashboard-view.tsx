@@ -85,7 +85,7 @@ interface DashboardViewProps {
     message: string
     time: string
   }>
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'weather') => void
+  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'settings' | 'subscription' | 'terms' | 'privacy' | 'resources' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'weather' | 'smart-timer' | 'vault' | 'tutor-ai' | 'focus-report' | 'study-monitor') => void
   deviceInfo: DeviceInfo
 }
 
@@ -563,7 +563,7 @@ export function DashboardView({ stats, recentActivity, onTabChange, deviceInfo }
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.8 }}
       >
-        <ComingSoonSection />
+        <ComingSoonSection onNavigate={onTabChange} />
       </motion.div>
 
       <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>

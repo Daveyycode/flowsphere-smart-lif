@@ -21,20 +21,18 @@ export const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0'
 
 /**
  * Check if running in demo/development mode
+ * PRODUCTION: Always returns false - no demo mode allowed
  */
 export function isDemoMode(): boolean {
-  return isDevelopment || localStorage.getItem('flowsphere_demo_mode') === 'true'
+  return false // PRODUCTION: Demo mode disabled
 }
 
 /**
- * Set demo mode (for testing in production)
+ * Set demo mode - DISABLED IN PRODUCTION
  */
-export function setDemoMode(enabled: boolean): void {
-  if (enabled) {
-    localStorage.setItem('flowsphere_demo_mode', 'true')
-  } else {
-    localStorage.removeItem('flowsphere_demo_mode')
-  }
+export function setDemoMode(_enabled: boolean): void {
+  // PRODUCTION: Demo mode disabled - no-op
+  console.warn('[SECURITY] Demo mode is disabled in production')
 }
 
 // ============================================

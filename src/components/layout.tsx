@@ -5,8 +5,9 @@ import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/use-theme'
 import { useDeviceType } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
+import { OfflineIndicator } from '@/components/offline-indicator'
 
-export type TabType = 'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather'
+export type TabType = 'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather' | 'smart-timer' | 'tutor-ai' | 'focus-report' | 'study-monitor' | 'scheduler' | 'smart-devices' | 'ai-settings' | 'remote-timer' | 'kids-learning' | 'hash-fl'
 
 interface LayoutProps {
   children: ReactNode
@@ -49,6 +50,8 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
           </div>
           
           <div className="flex items-center space-x-2">
+            <OfflineIndicator />
+
             <Button
               variant="ghost"
               size="icon"
@@ -62,7 +65,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                 <Moon className="w-5 h-5 text-foreground" weight="duotone" />
               )}
             </Button>
-            
+
             <nav className="hidden md:flex items-center space-x-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon

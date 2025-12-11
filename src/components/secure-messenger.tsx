@@ -445,8 +445,12 @@ async function encryptMessageAsync(
     combined.set(iv)
     combined.set(new Uint8Array(encryptedBuffer), iv.length)
 
-    // Use URL-safe base64
-    const base64 = btoa(String.fromCharCode(...combined))
+    // Use URL-safe base64 - convert bytes to string safely (no spread for large arrays)
+    let binaryString = ''
+    for (let i = 0; i < combined.length; i++) {
+      binaryString += String.fromCharCode(combined[i])
+    }
+    const base64 = btoa(binaryString)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '')
@@ -875,15 +879,36 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         // Load latest 50 messages initially (paginated)
         const result = await getMessengerMessages(selectedContact.conversationId, { limit: 50 })
         if (result.messages.length > 0) {
-          const newMessages: Message[] = result.messages.map((m: SupabaseMessageRecord) => ({
-            id: m.id,
-            contactId: selectedContact.id,
-            text: m.content,
-            timestamp: m.created_at,
-            status: 'delivered',
-            isOwn: m.sender_id === deviceId,
-            encrypted: m.encrypted ?? false
-          }))
+          // Decrypt messages asynchronously
+          const newMessages: Message[] = await Promise.all(
+            result.messages.map(async (m: SupabaseMessageRecord) => {
+              let decryptedText = m.content
+
+              // Decrypt if encrypted and we have the keys
+              if (m.encrypted && m.content.startsWith('ENC2_') && myKeys?.privateKey && selectedContact.publicKey) {
+                try {
+                  decryptedText = await decryptMessageAsync(
+                    m.content,
+                    myKeys.privateKey,
+                    selectedContact.publicKey
+                  )
+                } catch (error) {
+                  console.error('[E2E] Failed to decrypt message:', error)
+                  decryptedText = '[Decryption failed]'
+                }
+              }
+
+              return {
+                id: m.id,
+                contactId: selectedContact.id,
+                text: decryptedText,
+                timestamp: m.created_at,
+                status: 'delivered',
+                isOwn: m.sender_id === deviceId,
+                encrypted: m.encrypted ?? false
+              }
+            })
+          )
           // Replace messages for this contact
           setMessages(prev => {
             const otherMessages = (prev || []).filter(m => m.contactId !== selectedContact.id)
@@ -897,7 +922,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       }
     }
     loadMessages()
-  }, [selectedContact?.conversationId, deviceId])
+  }, [selectedContact?.conversationId, deviceId, myKeys?.privateKey, selectedContact?.publicKey])
 
   // Auto-scroll messages
   useEffect(() => {
@@ -1193,6 +1218,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       return
     }
 
+    // Use full video resolution for best QR detection
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
@@ -1200,12 +1226,10 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
     try {
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert'
-      })
+      const code = jsQR(imageData.data, imageData.width, imageData.height)
 
       if (code && code.data) {
-        // QR code found! Stop scanning and process
+        console.log('[QR SCANNER] Detected:', code.data.substring(0, 50) + '...')
         scanningRef.current = false
         stopCamera()
         handleQRScan(code.data)
@@ -2480,99 +2504,98 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             {selectedContact ? (
               <>
                 {/* Chat Header with Back Button */}
-                <div className="p-4 border-b flex items-center gap-3">
-                  {/* Back Button - Always Visible */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setView('contacts')}
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  <div className="relative">
-                    <Avatar>
-                      <AvatarFallback>
-                        {selectedContact.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {/* Online indicator dot - only show if CONTACT's privacy allows */}
-                    {(selectedContact.privacySettings?.showOnlineStatus ?? true) && (
-                      <span className={cn(
-                        "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white",
-                        selectedContact.status === 'online' ? 'bg-green-500' :
-                        selectedContact.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                      )} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className={cn("font-semibold", selectedContact.isDeleted && "text-gray-400 italic")}>
-                        {selectedContact.isDeleted ? "Deleted Account" : selectedContact.name}
-                      </h3>
-                      {!selectedContact.isDeleted && selectedContact.contactProfileId && (
-                        <Badge variant="outline" className="text-xs font-mono">
-                          {selectedContact.contactProfileId}
-                        </Badge>
+                <div className="p-3 border-b">
+                  <div className="flex items-center gap-2">
+                    {/* Back Button - Always Visible */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setView('contacts')}
+                      className="flex-shrink-0 p-1"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="relative flex-shrink-0">
+                      <Avatar className="w-9 h-9">
+                        <AvatarFallback className="text-sm">
+                          {selectedContact.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Online indicator dot - only show if CONTACT's privacy allows */}
+                      {(selectedContact.privacySettings?.showOnlineStatus ?? true) && (
+                        <span className={cn(
+                          "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
+                          selectedContact.status === 'online' ? 'bg-green-500' :
+                          selectedContact.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
+                        )} />
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      {selectedContact.isDeleted ? (
-                        <span className="text-red-400">This account has been deleted</span>
-                      ) : (selectedContact.privacySettings?.showOnlineStatus ?? true) && selectedContact.status === 'online' ? (
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <h3 className={cn("font-semibold text-sm truncate", selectedContact.isDeleted && "text-gray-400 italic")}>
+                        {selectedContact.isDeleted ? "Deleted Account" : selectedContact.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
+                        {selectedContact.isDeleted ? (
+                          <span className="text-red-400">Deleted</span>
+                        ) : (selectedContact.privacySettings?.showOnlineStatus ?? true) && selectedContact.status === 'online' ? (
+                          <>
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                            Online
+                          </>
+                        ) : (selectedContact.privacySettings?.showLastSeen ?? true) && selectedContact.lastSeenTimestamp ? (
+                          <>
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{formatLastSeen(selectedContact.lastSeenTimestamp)}</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </p>
+                    </div>
+                    {/* Action Buttons - Always visible */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {!selectedContact.isDeleted && (
                         <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          Online now
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startCall('audio')}
+                            title="Voice Call"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 p-2"
+                          >
+                            <Phone className="w-5 h-5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startCall('video')}
+                            title="Video Call"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                          >
+                            <VideoCamera className="w-5 h-5" />
+                          </Button>
                         </>
-                      ) : (selectedContact.privacySettings?.showLastSeen ?? true) && selectedContact.lastSeenTimestamp ? (
-                        <>
-                          <Clock className="w-3 h-3" />
-                          Last seen {formatLastSeen(selectedContact.lastSeenTimestamp)}
-                        </>
-                      ) : (
-                        <span className="text-gray-400">—</span>
                       )}
-                    </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDeleteConversationDialog(true)}
+                        title="Delete Conversation"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2"
+                      >
+                        <Trash className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSettings(true)}
+                        title="Privacy Settings"
+                        className="p-2"
+                      >
+                        <Gear className="w-5 h-5" />
+                      </Button>
+                    </div>
                   </div>
-                  {/* Call Buttons */}
-                  {!selectedContact.isDeleted && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startCall('audio')}
-                        title="Voice Call"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                      >
-                        <Phone className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startCall('video')}
-                        title="Video Call"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <VideoCamera className="w-5 h-5" />
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDeleteConversationDialog(true)}
-                    title="Delete Conversation"
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <Trash className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSettings(true)}
-                    title="Privacy Settings"
-                  >
-                    <Gear className="w-5 h-5" />
-                  </Button>
                 </div>
 
                 {/* Messages - Apply screenshot prevention if contact disabled it */}

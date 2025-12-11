@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { initializeSleepTracking, getTodaySleepData } from '@/lib/sleep-tracking'
 import { initializeSecurity } from '@/lib/security-utils'
 import { NotificationSyncStore } from '@/lib/shared-data-store'
-import { DemoModeIndicator } from '@/components/demo-mode-indicator'
+// Removed: DemoModeIndicator - Production only
 import { LandingPage } from '@/components/landing-page'
 import { AuthModal } from '@/components/auth-modal'
 import { Layout } from '@/components/layout'
@@ -27,6 +27,17 @@ import { TrafficUpdate } from '@/components/traffic-update'
 import { AIVoiceSettings } from '@/components/ai-voice-settings'
 import { Vault } from '@/components/vault'
 import { WeatherView } from '@/components/weather-view'
+import { SmartTimerView } from '@/components/smart-timer-view'
+import { FocusReportView } from '@/components/focus-report-view'
+import { TutorAIView } from '@/components/tutor-ai-view'
+import { StudyMonitorView } from '@/components/study-monitor-view'
+import { SchedulerAIView } from '@/components/scheduler-ai-view'
+import { SmartDevicesView } from '@/components/smart-devices-view'
+import { AIProviderSettings } from '@/components/ai-provider-settings'
+import { RemoteTimerRoom } from '@/components/remote-timer-room'
+import { RemoteTimerPresenter } from '@/components/remote-timer-presenter'
+import { KidsLearningCenter } from '@/components/kids-learning-center'
+import { HashFLPrivacy } from '@/components/hash-fl-privacy'
 import { Toaster } from '@/components/ui/sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
@@ -47,9 +58,35 @@ function App() {
   const { mode, colorTheme, toggleMode, setColorTheme } = useTheme()
   const deviceInfo = useDeviceInfo()
 
+  // URL-based timer routing state
+  const [timerRoute, setTimerRoute] = useState<{
+    roomCode: string
+    mode: 'presenter' | 'controller'
+  } | null>(null)
+
+  // Check URL for timer routes on mount
+  useEffect(() => {
+    const checkTimerRoute = () => {
+      const path = window.location.pathname
+      const timerMatch = path.match(/^\/timer\/([A-Z0-9]{6})(\/control)?$/i)
+
+      if (timerMatch) {
+        const roomCode = timerMatch[1].toUpperCase()
+        const isController = !!timerMatch[2]
+        setTimerRoute({ roomCode, mode: isController ? 'controller' : 'presenter' })
+      } else {
+        setTimerRoute(null)
+      }
+    }
+
+    checkTimerRoute()
+    window.addEventListener('popstate', checkTimerRoute)
+    return () => window.removeEventListener('popstate', checkTimerRoute)
+  }, [])
+
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather'>('dashboard')
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather' | 'smart-timer' | 'tutor-ai' | 'focus-report' | 'study-monitor' | 'scheduler' | 'smart-devices' | 'ai-settings' | 'remote-timer' | 'kids-learning' | 'hash-fl'>('dashboard')
   
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
   const [familyMembers, setFamilyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
@@ -79,11 +116,9 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
-    const isDemoMode = import.meta.env.DEV
-
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // In demo mode, accept any session. In production, require email verification.
-      if (session && (isDemoMode || session.user?.email_confirmed_at)) {
+      // PRODUCTION: Always require email verification
+      if (session && session.user?.email_confirmed_at) {
         setIsAuthenticated(true)
       }
     }).catch((error) => {
@@ -95,8 +130,8 @@ function App() {
     const {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // In demo mode, accept any session. In production, require email verification.
-      if (session && (isDemoMode || session.user?.email_confirmed_at)) {
+      // PRODUCTION: Always require email verification
+      if (session && session.user?.email_confirmed_at) {
         setIsAuthenticated(true)
       } else if (event === 'SIGNED_OUT') {
         // Only reset auth state on explicit sign out, not on session checks
@@ -346,6 +381,40 @@ function App() {
     setAuthMode(null)
   }
 
+  // Handle timer routes - these don't require authentication
+  if (timerRoute) {
+    const handleTimerExit = () => {
+      setTimerRoute(null)
+      window.history.pushState({}, '', '/')
+    }
+
+    // Presenter view - full screen timer display
+    if (timerRoute.mode === 'presenter') {
+      return (
+        <>
+          <RemoteTimerPresenter
+            roomCode={timerRoute.roomCode}
+            onExit={handleTimerExit}
+          />
+          <Toaster position="top-center" />
+        </>
+      )
+    }
+
+    // Controller view - redirect to app with remote timer tab
+    // For controllers, we'll show the main app with remote timer room
+    return (
+      <>
+        <RemoteTimerRoom
+          initialRoomCode={timerRoute.roomCode}
+          initialMode="controller"
+          onBack={handleTimerExit}
+        />
+        <Toaster position="top-center" />
+      </>
+    )
+  }
+
   if (!isAuthenticated) {
     return (
       <>
@@ -369,9 +438,6 @@ function App() {
     <>
       {/* Global Email Monitoring Service */}
       <EmailMonitorService />
-
-      {/* Demo/Development Mode Indicator */}
-      <DemoModeIndicator variant="floating" />
 
       <Layout currentTab={currentTab} onTabChange={handleTabChange}>
         {currentTab === 'dashboard' && showMorningBrief && (
@@ -436,6 +502,16 @@ function App() {
             {currentTab === 'traffic' && <TrafficUpdate deviceInfo={deviceInfo} />}
             {currentTab === 'weather' && <WeatherView deviceInfo={deviceInfo} />}
             {currentTab === 'ai-voice' && <AIVoiceSettings />}
+            {currentTab === 'smart-timer' && <SmartTimerView userId={userEmail || 'default-user'} onTabChange={handleTabChange} />}
+            {currentTab === 'remote-timer' && <RemoteTimerRoom onBack={() => handleTabChange('smart-timer')} />}
+            {currentTab === 'focus-report' && <FocusReportView />}
+            {currentTab === 'tutor-ai' && <TutorAIView />}
+            {currentTab === 'study-monitor' && <StudyMonitorView />}
+            {currentTab === 'kids-learning' && <KidsLearningCenter />}
+            {currentTab === 'hash-fl' && <HashFLPrivacy />}
+            {currentTab === 'scheduler' && <SchedulerAIView />}
+            {currentTab === 'smart-devices' && <SmartDevicesView />}
+            {currentTab === 'ai-settings' && <AIProviderSettings />}
             {currentTab === 'settings' && (
               <SettingsView
                 userName={userName || 'User'}

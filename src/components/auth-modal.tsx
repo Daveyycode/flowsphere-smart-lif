@@ -35,8 +35,8 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
 
       // CEO login detection FIRST - before any validation (silent - logs in as normal user)
       // CEO credentials use username, not email format
-      if (verifyCEOCredentials(email, password)) {
-        await storeCEOSession(email, password)
+      const isCEO = await verifyCEOCredentials(email, password)
+      if (isCEO) {
         toast.success('Welcome back!')
         onSuccess({ email: 'Executive User', name: 'FlowSphere CEO' })
         setIsLoading(false)
@@ -133,10 +133,8 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
         }
 
         if (data.user) {
-          const isDemoMode = import.meta.env.DEV
-
-          // Check if email is verified (skip in demo mode)
-          if (!isDemoMode && !data.user.email_confirmed_at) {
+          // PRODUCTION: Always require email verification
+          if (!data.user.email_confirmed_at) {
             toast.error('Please verify your email first. We\'ll send you a new verification code.')
 
             // Send OTP for verification
