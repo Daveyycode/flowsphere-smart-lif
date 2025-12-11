@@ -69,32 +69,61 @@ export class OutlookProvider extends EmailProvider {
     refreshToken: string
     expiresIn: number
   }> {
+    console.log('[Outlook OAuth] Starting token exchange...')
+    console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
+    console.log('[Outlook OAuth] Edge Function URL:', OAUTH_EDGE_FUNCTION)
+
     // Use Edge Function to keep client_secret server-side
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-      const response = await fetch(OAUTH_EDGE_FUNCTION, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider: 'outlook',
-          action: 'exchange',
-          code,
-          redirectUri: this.redirectUri,
-        }),
-      })
+      try {
+        const response = await fetch(OAUTH_EDGE_FUNCTION, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            provider: 'outlook',
+            action: 'exchange',
+            code,
+            redirectUri: this.redirectUri,
+          }),
+        })
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.error || 'Failed to exchange code for tokens')
-      }
+        console.log('[Outlook OAuth] Edge Function response status:', response.status)
 
-      const data = await response.json()
-      return {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        expiresIn: data.expiresIn
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('[Outlook OAuth] Edge Function error response:', errorText)
+
+          let errorData
+          try {
+            errorData = JSON.parse(errorText)
+          } catch {
+            errorData = { error: errorText }
+          }
+
+          // Provide more specific error messages
+          const errorMsg = errorData.error_description || errorData.error || errorData.details?.error_description || 'Token exchange failed'
+          throw new Error(errorMsg)
+        }
+
+        const data = await response.json()
+        console.log('[Outlook OAuth] Token exchange successful')
+
+        if (!data.accessToken) {
+          console.error('[Outlook OAuth] No access token in response:', data)
+          throw new Error('No access token received from server')
+        }
+
+        return {
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken || '',
+          expiresIn: data.expiresIn || 3600
+        }
+      } catch (fetchError) {
+        console.error('[Outlook OAuth] Fetch error:', fetchError)
+        throw fetchError
       }
     }
 

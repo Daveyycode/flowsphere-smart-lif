@@ -33,6 +33,9 @@ serve(async (req) => {
   try {
     const { provider, code, redirectUri, action, refreshToken }: TokenExchangeRequest = await req.json()
 
+    console.log(`[OAuth] Request received - provider: ${provider}, action: ${action}`)
+    console.log(`[OAuth] Redirect URI: ${redirectUri}`)
+
     if (!provider || !['google', 'yahoo', 'outlook'].includes(provider)) {
       return new Response(
         JSON.stringify({ error: 'Invalid provider. Use: google, yahoo, outlook' }),
@@ -68,10 +71,13 @@ serve(async (req) => {
         )
     }
 
+    console.log(`[OAuth] ${provider} - Client ID configured: ${!!clientId}`)
+    console.log(`[OAuth] ${provider} - Client Secret configured: ${!!clientSecret}`)
+
     if (!clientId || !clientSecret) {
-      console.error(`${provider} OAuth credentials not configured`)
+      console.error(`${provider} OAuth credentials not configured - clientId: ${!!clientId}, clientSecret: ${!!clientSecret}`)
       return new Response(
-        JSON.stringify({ error: `${provider} OAuth not configured` }),
+        JSON.stringify({ error: `${provider} OAuth not configured - missing credentials` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -104,6 +110,8 @@ serve(async (req) => {
     }
 
     // Make token request
+    console.log(`[OAuth] Making token request to: ${tokenUrl}`)
+
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -112,9 +120,20 @@ serve(async (req) => {
       body: body.toString(),
     })
 
+    console.log(`[OAuth] Token endpoint response status: ${response.status}`)
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      console.error(`${provider} token exchange failed:`, error)
+      const errorText = await response.text()
+      console.error(`[OAuth] ${provider} token exchange failed - Status: ${response.status}`)
+      console.error(`[OAuth] Error response: ${errorText}`)
+
+      let error
+      try {
+        error = JSON.parse(errorText)
+      } catch {
+        error = { error: errorText }
+      }
+
       return new Response(
         JSON.stringify({
           error: error.error_description || error.error || 'Token exchange failed',
@@ -125,6 +144,7 @@ serve(async (req) => {
     }
 
     const data = await response.json()
+    console.log(`[OAuth] ${provider} token exchange successful`)
 
     // Return tokens (never expose client_secret)
     return new Response(
