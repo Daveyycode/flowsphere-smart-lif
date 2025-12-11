@@ -11,14 +11,13 @@ import {
   getRemoteTimerManager,
   formatTimerDisplay,
   RoomState,
-  Message,
-  RoomSettings
+  Message
 } from '@/lib/remote-timer-sync'
+import { useTheme, ColorTheme } from '@/hooks/use-theme'
 import {
   X,
   ArrowsOut,
   ArrowsIn,
-  Gear,
   Warning,
   Info,
   CheckCircle,
@@ -34,8 +33,8 @@ interface RemoteTimerPresenterProps {
   floatingMode?: boolean // For floating overlay window
 }
 
-// FlowSphere theme colors - matches use-theme.ts
-const THEME_COLORS: Record<RoomSettings['theme'], { light: Record<string, string>; dark: Record<string, string> }> = {
+// FlowSphere theme colors - matches use-theme.ts ColorTheme
+const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Record<string, string> }> = {
   'neon-noir': {
     light: {
       background: 'oklch(0.98 0.005 270)',
@@ -130,17 +129,9 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
   const [isConnecting, setIsConnecting] = useState(true)
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [isMinimized, setIsMinimized] = useState(floatingMode)
-  const [prefersDark, setPrefersDark] = useState(
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  )
 
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
-    mediaQuery.addEventListener('change', handler)
-    return () => mediaQuery.removeEventListener('change', handler)
-  }, [])
+  // Use FlowSphere's global theme from Settings
+  const { mode, colorTheme, customColors } = useTheme()
 
   // Join room on mount
   useEffect(() => {
@@ -238,17 +229,22 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
     }
   }
 
-  // Get theme colors based on settings
+  // Get theme colors from FlowSphere's global Settings/Theme
   const getThemeColors = () => {
-    const theme = state?.room.settings.theme || 'black-gray'
-    const mode = prefersDark ? 'dark' : 'light'
+    const theme = colorTheme || 'black-gray'
+    const themeMode = mode || 'light'
 
-    // Use custom colors if theme is custom and customTheme is set
-    if (theme === 'custom' && state?.room.settings.customTheme) {
-      return state.room.settings.customTheme
+    // Use custom colors if theme is custom and customColors is set
+    if (theme === 'custom' && customColors) {
+      return {
+        background: customColors.background,
+        foreground: customColors.foreground,
+        primary: customColors.primary,
+        accent: customColors.accent
+      }
     }
 
-    return THEME_COLORS[theme][mode]
+    return THEME_COLORS[theme][themeMode]
   }
 
   // Get font size classes

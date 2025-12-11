@@ -715,39 +715,10 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* FlowSphere Theme */}
-                <div>
-                  <Label className="flex items-center gap-2 mb-2">
-                    <Palette className="w-4 h-4" />
-                    Color Theme
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([
-                      { id: 'neon-noir' as const, label: 'Neon Noir', gradient: 'from-pink-500 to-purple-600' },
-                      { id: 'aurora-borealis' as const, label: 'Aurora', gradient: 'from-blue-500 to-teal-500' },
-                      { id: 'cosmic-latte' as const, label: 'Cosmic', gradient: 'from-amber-500 to-orange-500' },
-                      { id: 'candy-shop' as const, label: 'Candy', gradient: 'from-pink-400 to-purple-400' },
-                      { id: 'black-gray' as const, label: 'Neutral', gradient: 'from-gray-600 to-gray-800' },
-                      { id: 'custom' as const, label: 'Custom', gradient: 'from-blue-400 to-green-400' },
-                    ]).map((theme) => (
-                      <button
-                        key={theme.id}
-                        onClick={() => handleUpdateSettings({ theme: theme.id })}
-                        className={cn(
-                          "p-2 rounded-lg border-2 transition-all text-xs font-medium",
-                          state.room.settings.theme === theme.id
-                            ? 'border-primary ring-2 ring-offset-2 ring-primary'
-                            : 'border-border hover:border-primary/50'
-                        )}
-                      >
-                        <div className={cn(
-                          "w-full h-6 rounded mb-1 bg-gradient-to-r",
-                          theme.gradient
-                        )} />
-                        {theme.label}
-                      </button>
-                    ))}
-                  </div>
+                {/* Theme Note */}
+                <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <Palette className="w-4 h-4 inline mr-2" />
+                  Timer colors follow your FlowSphere theme from Settings.
                 </div>
 
                 {/* Font size */}
