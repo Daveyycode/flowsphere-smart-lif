@@ -1335,12 +1335,23 @@ export function HashFLPrivacy() {
         )
 
         if (sentMessage) {
+          // Add message to local state immediately
+          const newLocalMsg: SecureMessage = {
+            id: sentMessage.id,
+            contactId: selectedContact.id,
+            content: messageInput.trim(),
+            timestamp: new Date(sentMessage.created_at).getTime(),
+            isOutgoing: true,
+            isRead: false,
+            isDelivered: true
+          }
+          setDecryptedMessages(prev => [...prev, newLocalMsg])
+
           // Update contact's last message time
           setContacts(prev => (prev || []).map(c =>
             c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
           ))
           setMessageInput('')
-          toast.success('Message sent')
 
           // Scroll to bottom
           setTimeout(() => {
@@ -1452,29 +1463,47 @@ export function HashFLPrivacy() {
           selectedContact.connectionId,
           async (newMsg) => {
             try {
-              const content = await HashFLMessaging.decryptMessage(newMsg.encrypted_content, selectedContact.sharedKey)
-              const decryptedMsg: SecureMessage = {
-                id: newMsg.id,
-                contactId: selectedContact.id,
-                content,
-                timestamp: new Date(newMsg.created_at).getTime(),
-                isOutgoing: newMsg.sender_id === hashflUserId,
-                isRead: !!newMsg.read_at,
-                isDelivered: !!newMsg.delivered_at
-              }
-              setDecryptedMessages(prev => [...prev, decryptedMsg])
+              // Skip if we already have this message (prevent duplicates)
+              setDecryptedMessages(prev => {
+                if (prev.some(m => m.id === newMsg.id)) {
+                  return prev // Already have it
+                }
 
-              // Scroll to bottom on new message
-              setTimeout(() => {
-                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-              }, 100)
+                // Decrypt and add
+                HashFLMessaging.decryptMessage(newMsg.encrypted_content, selectedContact.sharedKey)
+                  .then(content => {
+                    const decryptedMsg: SecureMessage = {
+                      id: newMsg.id,
+                      contactId: selectedContact.id,
+                      content,
+                      timestamp: new Date(newMsg.created_at).getTime(),
+                      isOutgoing: newMsg.sender_id === hashflUserId,
+                      isRead: !!newMsg.read_at,
+                      isDelivered: !!newMsg.delivered_at
+                    }
+                    setDecryptedMessages(p => {
+                      if (p.some(m => m.id === newMsg.id)) return p
+                      return [...p, decryptedMsg]
+                    })
 
-              // Show toast for incoming messages
-              if (newMsg.sender_id !== hashflUserId) {
-                toast.info('New message received')
-              }
+                    // Scroll to bottom on new message
+                    setTimeout(() => {
+                      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+                    }, 100)
+
+                    // Show toast for incoming messages
+                    if (newMsg.sender_id !== hashflUserId) {
+                      toast.info('New message received')
+                    }
+                  })
+                  .catch(err => {
+                    console.error('[HashFL] Failed to decrypt realtime message:', err)
+                  })
+
+                return prev
+              })
             } catch (err) {
-              console.error('[HashFL] Failed to decrypt realtime message:', err)
+              console.error('[HashFL] Realtime message error:', err)
             }
           }
         )
