@@ -448,22 +448,10 @@ export async function smartCompletion(
   }
 
   const providerInfo = AI_PROVIDERS[provider]
-  const apiKey = getAPIKey(provider)
-
-  if (!apiKey) {
-    throw new Error(`No API key for ${providerInfo.name}. Please add one in Settings.`)
-  }
 
   try {
-    let result: CompletionResult
-
-    if (provider === 'anthropic') {
-      result = await callAnthropic(messages, apiKey, providerInfo, options)
-    } else if (provider === 'gemini') {
-      result = await callGemini(messages, apiKey, providerInfo, options)
-    } else {
-      result = await callOpenAICompatible(messages, apiKey, providerInfo, options)
-    }
+    // Use serverless function to avoid CORS issues
+    const result = await callServerlessProxy(messages, provider, providerInfo, options)
 
     // Track usage
     trackUsage(provider, result.tokens)
@@ -474,14 +462,55 @@ export async function smartCompletion(
 
     // Try fallback to next available provider
     if (!options.provider) {
-      const fallbackProvider = selectBestProvider(complexity)
-      if (fallbackProvider && fallbackProvider !== provider) {
-        logger.info(`Falling back to ${fallbackProvider}`, {}, 'SmartAIRouter')
-        return smartCompletion(messages, { ...options, provider: fallbackProvider })
+      const availableProviders = PROVIDER_PRIORITY.filter(p => hasAPIKey(p) && p !== provider)
+      for (const fallbackProvider of availableProviders) {
+        try {
+          logger.info(`Falling back to ${fallbackProvider}`, {}, 'SmartAIRouter')
+          return await smartCompletion(messages, { ...options, provider: fallbackProvider })
+        } catch (fallbackError) {
+          logger.error(`Fallback ${fallbackProvider} also failed`, fallbackError, 'SmartAIRouter')
+          continue
+        }
       }
     }
 
     throw error
+  }
+}
+
+// Call serverless proxy to avoid CORS issues
+async function callServerlessProxy(
+  messages: ChatMessage[],
+  provider: AIProvider,
+  providerInfo: AIProviderInfo,
+  options: CompletionOptions
+): Promise<CompletionResult> {
+  const response = await fetch('/api/ai-completion', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      provider,
+      messages,
+      maxTokens: options.maxTokens || providerInfo.maxTokens,
+      temperature: options.temperature || 0.7
+    })
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error || `API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  return {
+    content: data.content || '',
+    provider: data.provider || provider,
+    tokens: data.tokens || 0,
+    cost: (data.tokens || 0) / 1000 * providerInfo.costPer1kTokens,
+    model: data.model || providerInfo.model
   }
 }
 
