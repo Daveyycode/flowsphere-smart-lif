@@ -752,32 +752,6 @@ export function HashFLPrivacy() {
       }
       setHashflUserId(storedUserId)
 
-      // Ensure identity is registered in Supabase (for users created before identity system)
-      if (user.identityKey && user.shortCode) {
-        try {
-          // Check if identity exists
-          const { data: existing } = await supabase
-            .from('hashfl_identities')
-            .select('id')
-            .eq('user_id', user.id)
-            .single()
-
-          if (!existing) {
-            // Register identity
-            await supabase.from('hashfl_identities').insert({
-              user_id: user.id,
-              identity_key: user.identityKey,
-              short_code: user.shortCode,
-              device_fingerprint: user.deviceFingerprint || generateDeviceFingerprint(),
-              created_at: new Date().toISOString()
-            })
-            console.log('[HashFL] Registered identity for existing user')
-          }
-        } catch (err) {
-          console.log('[HashFL] Identity check/register:', err)
-        }
-      }
-
       toast.success('Welcome back!')
     } else {
       const newAttempts = user.failedAttempts + 1
@@ -1175,17 +1149,7 @@ export function HashFLPrivacy() {
 
         if (error || !identity) {
           console.error('[HashFL] Identity lookup failed:', error)
-          // Check if table exists by trying to query it
-          const { error: tableError } = await supabase
-            .from('hashfl_identities')
-            .select('id')
-            .limit(1)
-
-          if (tableError?.message?.includes('does not exist')) {
-            toast.error('Database not set up. Please run migrations in Supabase.')
-          } else {
-            toast.error('User not found. They need to log into Hash-FL first to register their identity.')
-          }
+          toast.error('Could not find this user. They may need to set up Hash-FL first.')
           return
         }
 
