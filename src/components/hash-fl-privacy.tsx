@@ -1229,18 +1229,26 @@ export function HashFLPrivacy() {
 
       const inviteCode = joinCode.toUpperCase().replace(/-/g, '')
 
+      // Check if this is my own invite code (from my QR)
+      if (user?.shortCode === inviteCode) {
+        toast.error("You can't connect with yourself! Share this code with someone else.")
+        return
+      }
+
       // First check if there's an existing pending connection with this invite code
+      // IMPORTANT: Must NOT be created by me (user_a_id != myUserId)
       const { data: existingConnection } = await supabase
         .from('hashfl_connections')
         .select('*')
         .eq('invite_code', inviteCode)
         .eq('status', 'pending')
         .is('user_b_id', null)
+        .neq('user_a_id', myUserId) // Don't accept your own invite!
         .single()
 
       if (existingConnection) {
         // Accept the existing invite (User A created it, we're User B accepting)
-        console.log('[HashFL] Found existing invite, accepting...')
+        console.log('[HashFL] Found existing invite from another user, accepting...')
 
         const { data: updated, error: updateError } = await supabase
           .from('hashfl_connections')
