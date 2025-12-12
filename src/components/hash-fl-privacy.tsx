@@ -75,6 +75,7 @@ import { useKV } from '@/hooks/use-kv'
 import { logger } from '@/lib/security-utils'
 import * as HashFLMessaging from '@/lib/hashfl-messaging'
 import { QRScanner } from '@/components/qr-scanner'
+import { supabase } from '@/lib/supabase'
 
 // ==========================================
 // Types
@@ -123,6 +124,16 @@ interface PendingIncomingInvite {
   sharedKey: string
   fromName?: string
   scannedAt: number
+}
+
+// Incoming request from someone who scanned YOUR QR code
+interface IncomingConnectionRequest {
+  id: string
+  connectionId: string
+  inviteCode: string
+  sharedKey: string
+  requesterId: string // user_b_id who scanned the code
+  receivedAt: number
 }
 
 interface SecureMessage {
@@ -175,7 +186,8 @@ const STORAGE_KEYS = {
   INTRUDER_LOGS: 'hashfl-intruder-logs',
   SETTINGS: 'hashfl-settings',
   INVITES: 'hashfl-pending-invites',
-  INCOMING_INVITES: 'hashfl-incoming-invites' // Invites scanned but not yet accepted
+  INCOMING_INVITES: 'hashfl-incoming-invites', // Invites scanned but not yet accepted
+  INCOMING_REQUESTS: 'hashfl-incoming-requests' // Requests from people who scanned your QR
 }
 
 const DEFAULT_SETTINGS: HashFLSettings = {
@@ -321,6 +333,7 @@ export function HashFLPrivacy() {
   const [settings, setSettings] = useKV<HashFLSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   const [pendingInvites, setPendingInvites] = useKV<PendingInvite[]>(STORAGE_KEYS.INVITES, [])
   const [incomingInvites, setIncomingInvites] = useKV<PendingIncomingInvite[]>(STORAGE_KEYS.INCOMING_INVITES, [])
+  const [incomingRequests, setIncomingRequests] = useKV<IncomingConnectionRequest[]>(STORAGE_KEYS.INCOMING_REQUESTS, [])
 
   // Hash-FL Messages - SEPARATE storage from Secret Vault
   const [messages, setMessages] = useKV<SecureMessage[]>(STORAGE_KEYS.MESSAGES, [])
@@ -373,6 +386,53 @@ export function HashFLPrivacy() {
 
     return () => clearTimeout(lockTimer)
   }, [isUnlocked, settings])
+
+  // Listen for incoming connection requests (when someone scans your QR)
+  useEffect(() => {
+    if (!isUnlocked || !hashflUserId) return
+
+    // Check for pending connections where we are user_a (QR owner) and user_b is set (someone scanned)
+    const checkForRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('hashfl_connections')
+          .select('*')
+          .eq('user_a_id', hashflUserId)
+          .eq('status', 'pending')
+          .not('user_b_id', 'is', null)
+
+        if (error || !data) return
+
+        // Convert to incoming requests
+        for (const conn of data) {
+          // Check if we already have this request
+          const existingRequest = (incomingRequests || []).find(r => r.connectionId === conn.id)
+          const existingContact = (contacts || []).find(c => c.connectionId === conn.id)
+
+          if (!existingRequest && !existingContact) {
+            const newRequest: IncomingConnectionRequest = {
+              id: `request-${conn.id}`,
+              connectionId: conn.id,
+              inviteCode: conn.invite_code,
+              sharedKey: conn.shared_key,
+              requesterId: conn.user_b_id,
+              receivedAt: Date.now()
+            }
+            setIncomingRequests(prev => [...(prev || []), newRequest])
+            toast.info('New connection request received!')
+          }
+        }
+      } catch (err) {
+        console.error('[HashFL] Error checking requests:', err)
+      }
+    }
+
+    // Check immediately and then every 10 seconds
+    checkForRequests()
+    const interval = setInterval(checkForRequests, 10000)
+
+    return () => clearInterval(interval)
+  }, [isUnlocked, hashflUserId, contacts])
 
   // ==========================================
   // Handlers
@@ -740,54 +800,86 @@ export function HashFLPrivacy() {
     toast.success(`${newContact.name} added to contacts!`)
   }
 
-  // Accept an incoming invite (User B accepts)
-  const handleAcceptInvite = async (invite: PendingIncomingInvite, contactName: string) => {
+  // QR Owner accepts a connection request (someone scanned your QR)
+  const handleAcceptRequest = async (request: IncomingConnectionRequest, contactName: string) => {
     if (!contactName.trim()) {
       toast.error('Please enter a name for this contact')
       return
     }
 
     try {
-      // Accept in Supabase
+      // Accept in Supabase - change status to active
       if (hashflUserId) {
-        const connection = await HashFLMessaging.acceptInvite(hashflUserId, invite.code)
-        if (!connection) {
-          toast.error('Failed to accept invite - it may have expired')
+        const { error } = await supabase
+          .from('hashfl_connections')
+          .update({
+            status: 'active',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', request.connectionId)
+
+        if (error) {
+          console.error('[HashFL] Error accepting request:', error)
+          toast.error('Failed to accept request')
           return
         }
       }
 
-      // Create contact (User B's side - they received the invite)
+      // Create contact (QR owner's side - accepting the requester)
       const newContact: SecureContact = {
         id: `contact-${Date.now()}`,
         name: contactName.trim(),
-        inviteCode: invite.code,
-        sharedKey: invite.sharedKey,
-        connectionId: invite.connectionId,
+        inviteCode: request.inviteCode,
+        sharedKey: request.sharedKey,
+        connectionId: request.connectionId,
         addedAt: Date.now(),
         status: 'accepted',
-        isInviter: false // I scanned/received the invite
+        isInviter: true // I showed the QR, I'm the inviter
       }
 
       setContacts(prev => [...(prev || []), newContact])
 
-      // Remove from incoming invites
-      setIncomingInvites(prev => (prev || []).filter(i => i.id !== invite.id))
+      // Remove from incoming requests
+      setIncomingRequests(prev => (prev || []).filter(r => r.id !== request.id))
+
+      // Remove from pending invites
+      setPendingInvites(prev => (prev || []).filter(i => i.code !== request.inviteCode))
 
       toast.success(`${contactName} added! You can now message each other.`)
     } catch (err) {
-      console.error('[HashFL] Accept invite error:', err)
-      toast.error('Failed to accept invite')
+      console.error('[HashFL] Accept request error:', err)
+      toast.error('Failed to accept request')
     }
   }
 
-  // Decline an incoming invite
-  const handleDeclineInvite = (inviteId: string) => {
-    setIncomingInvites(prev => (prev || []).filter(i => i.id !== inviteId))
-    toast.info('Invite declined')
+  // Decline an incoming request
+  const handleDeclineRequest = (requestId: string) => {
+    setIncomingRequests(prev => (prev || []).filter(r => r.id !== requestId))
+    toast.info('Request declined')
   }
 
-  // Handle QR code scan result - auto-connects but requires acceptance
+  // Legacy - keep for backwards compatibility but redirect to new flow
+  const handleAcceptInvite = async (invite: PendingIncomingInvite, contactName: string) => {
+    // Convert old invite format to new request format
+    const request: IncomingConnectionRequest = {
+      id: invite.id,
+      connectionId: invite.connectionId,
+      inviteCode: invite.code,
+      sharedKey: invite.sharedKey,
+      requesterId: '',
+      receivedAt: invite.scannedAt
+    }
+    await handleAcceptRequest(request, contactName)
+    setIncomingInvites(prev => (prev || []).filter(i => i.id !== invite.id))
+  }
+
+  // Decline an incoming invite (legacy)
+  const handleDeclineInvite = (inviteId: string) => {
+    setIncomingInvites(prev => (prev || []).filter(i => i.id !== inviteId))
+    toast.info('Request declined')
+  }
+
+  // Handle QR code scan result - SCANNER sends the request, QR OWNER must accept
   const handleQRScan = async (data: string) => {
     console.log('[HashFL] QR Scanned:', data)
     setShowQRScanner(false)
@@ -818,43 +910,97 @@ export function HashFLPrivacy() {
         return
       }
 
-      const existingIncoming = (incomingInvites || []).find(i => i.code === inviteCode)
-      if (existingIncoming) {
-        toast.info('You already scanned this invite - check your pending invites')
-        setCurrentView('contacts')
-        return
-      }
-
       // Look up the connection in Supabase
       const connection = await HashFLMessaging.getConnectionByCode(inviteCode)
 
       if (!connection) {
         // No connection found - ask for manual entry
         setJoinCode(inviteCode)
-        toast.info('Invite scanned - enter contact name to continue')
+        toast.info('Code scanned - enter contact name to send request')
         return
       }
 
       if (connection.status !== 'pending') {
-        toast.error('This invite has already been used or expired')
+        toast.error('This code has already been used or expired')
         return
       }
 
-      // Store as incoming invite - user needs to accept
-      const incoming: PendingIncomingInvite = {
-        id: `incoming-${Date.now()}`,
-        code: inviteCode,
-        connectionId: connection.id,
-        sharedKey: connection.shared_key,
-        scannedAt: Date.now()
-      }
-
-      setIncomingInvites(prev => [...(prev || []), incoming])
-      toast.success('Invite received! Accept it in your contacts to start messaging.')
-      setCurrentView('contacts')
+      // Store the scanned code and prompt for contact name
+      setJoinCode(inviteCode)
+      setCurrentInviteConnectionId(connection.id)
+      setCurrentInviteSharedKey(connection.shared_key)
+      toast.success('QR code scanned! Enter a name to send connection request.')
     } catch (err) {
       console.error('[HashFL] QR scan error:', err)
       toast.error('Failed to process QR code')
+    }
+  }
+
+  // Scanner sends connection request (User B scanned User A's QR)
+  const handleSendConnectionRequest = async () => {
+    if (!joinCode || joinCode.length < 6) {
+      toast.error('Please enter a valid invite code')
+      return
+    }
+
+    if (!contactName.trim()) {
+      toast.error('Please enter a name for this contact')
+      return
+    }
+
+    try {
+      // Get or lookup the connection
+      let connectionId = currentInviteConnectionId
+      let sharedKey = currentInviteSharedKey || generateSharedKey()
+
+      if (!connectionId && hashflUserId) {
+        // Look up connection by code
+        const connection = await HashFLMessaging.getConnectionByCode(joinCode.toUpperCase())
+        if (connection) {
+          connectionId = connection.id
+          sharedKey = connection.shared_key
+        }
+      }
+
+      // Send the connection request by updating user_b_id (but status stays pending until owner accepts)
+      if (connectionId && hashflUserId) {
+        // Update connection to add ourselves as user_b (requester)
+        const { error } = await supabase
+          .from('hashfl_connections')
+          .update({
+            user_b_id: hashflUserId,
+            // Status stays 'pending' - owner must accept
+          })
+          .eq('id', connectionId)
+          .eq('status', 'pending')
+
+        if (error) {
+          console.error('[HashFL] Error sending request:', error)
+        }
+      }
+
+      // Create contact locally - status pending (waiting for QR owner to accept)
+      const newContact: SecureContact = {
+        id: `contact-${Date.now()}`,
+        name: contactName.trim(),
+        inviteCode: joinCode.toUpperCase(),
+        sharedKey: sharedKey,
+        connectionId: connectionId || undefined,
+        addedAt: Date.now(),
+        status: 'pending', // Waiting for QR owner to accept
+        isInviter: false // I scanned, so I'm the requester (not the inviter/QR owner)
+      }
+
+      setContacts(prev => [...(prev || []), newContact])
+      setJoinCode('')
+      setContactName('')
+      setCurrentInviteConnectionId('')
+      setCurrentInviteSharedKey('')
+      setCurrentView('contacts')
+      toast.success(`Request sent to ${newContact.name}! Waiting for them to accept.`)
+    } catch (err) {
+      console.error('[HashFL] Send request error:', err)
+      toast.error('Failed to send connection request')
     }
   }
 
@@ -1446,38 +1592,21 @@ export function HashFLPrivacy() {
         </CardContent>
       </Card>
 
-      {/* Save Contact (Inviter Side) */}
-      <Card className="border-emerald-500/20">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <UserCircle className="w-5 h-5 text-emerald-500" />
-            Save This Contact
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Enter the name of the person you're inviting. They'll appear in your contacts once they accept.
-          </p>
-          <div>
-            <Label>Contact Name</Label>
-            <Input
-              placeholder="Who are you inviting?"
-              value={inviterContactName}
-              onChange={(e) => setInviterContactName(e.target.value)}
-              className="mt-1"
-            />
+      {/* Info about how it works */}
+      <Card className="border-emerald-500/20 bg-emerald-500/5">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-emerald-400">How it works:</p>
+              <ol className="mt-2 space-y-1 text-muted-foreground list-decimal list-inside">
+                <li>Show your QR code to someone</li>
+                <li>They scan it and send you a request</li>
+                <li>You'll see their request in Contacts</li>
+                <li>Accept to start messaging!</li>
+              </ol>
+            </div>
           </div>
-          <Button
-            onClick={() => {
-              handleAddPendingContact(inviterContactName)
-              setInviterContactName('')
-            }}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600"
-            disabled={!inviterContactName.trim()}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Save & Wait for Acceptance
-          </Button>
         </CardContent>
       </Card>
 
@@ -1503,17 +1632,20 @@ export function HashFLPrivacy() {
         </CardContent>
       </Card>
 
-      {/* Join with Code Section */}
+      {/* Scan & Send Request Section */}
       <Card className="border-emerald-500/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Key className="w-5 h-5 text-emerald-500" />
-            Join with Invite Code
+            Send Connection Request
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Scanned someone's QR? Enter their code and your request will be sent.
+          </p>
           <div>
-            <Label>Invite Code</Label>
+            <Label>Their Invite Code</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 placeholder="Enter 8-character code"
@@ -1535,20 +1667,23 @@ export function HashFLPrivacy() {
           <div>
             <Label>Contact Name</Label>
             <Input
-              placeholder="Name for this contact"
+              placeholder="Name this contact"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
               className="mt-1"
             />
           </div>
           <Button
-            onClick={handleJoinWithCode}
+            onClick={handleSendConnectionRequest}
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-600"
             disabled={joinCode.length < 6 || !contactName.trim()}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Contact
+            <PaperPlaneTilt className="w-4 h-4 mr-2" />
+            Send Request
           </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            They must accept before you can message
+          </p>
         </CardContent>
       </Card>
 
@@ -1574,24 +1709,24 @@ export function HashFLPrivacy() {
         </Button>
       </div>
 
-      {/* Incoming Invites Section - Need to Accept */}
-      {(incomingInvites || []).length > 0 && (
+      {/* Incoming Connection Requests - Someone scanned YOUR QR */}
+      {(incomingRequests || []).length > 0 && (
         <Card className="border-yellow-500/30 bg-yellow-500/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Bell className="w-5 h-5 text-yellow-500" />
-              Pending Invites ({(incomingInvites || []).length})
+              Connection Requests ({(incomingRequests || []).length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(incomingInvites || []).map((invite) => (
-              <div key={invite.id} className="p-3 rounded-xl bg-background/50 border border-yellow-500/20">
-                {acceptingInvite?.id === invite.id ? (
+            {(incomingRequests || []).map((request) => (
+              <div key={request.id} className="p-3 rounded-xl bg-background/50 border border-yellow-500/20">
+                {acceptingInvite?.id === request.id ? (
                   // Accept form
                   <div className="space-y-3">
                     <p className="text-sm font-medium">Enter a name for this contact:</p>
                     <Input
-                      placeholder="Contact name"
+                      placeholder="Who sent this request?"
                       value={acceptContactName}
                       onChange={(e) => setAcceptContactName(e.target.value)}
                       className="bg-background"
@@ -1602,7 +1737,7 @@ export function HashFLPrivacy() {
                         size="sm"
                         className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600"
                         onClick={() => {
-                          handleAcceptInvite(invite, acceptContactName)
+                          handleAcceptRequest(request, acceptContactName)
                           setAcceptingInvite(null)
                           setAcceptContactName('')
                         }}
@@ -1624,22 +1759,22 @@ export function HashFLPrivacy() {
                     </div>
                   </div>
                 ) : (
-                  // Invite card
+                  // Request card
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white">
                       <QrCode className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-sm">New Connection Request</p>
+                      <p className="font-medium text-sm">Someone scanned your QR!</p>
                       <p className="text-xs text-muted-foreground">
-                        Code: {invite.code} • Scanned {new Date(invite.scannedAt).toLocaleDateString()}
+                        Code: {request.inviteCode} • {new Date(request.receivedAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex gap-1">
                       <Button
                         size="sm"
                         className="bg-gradient-to-r from-emerald-500 to-teal-600"
-                        onClick={() => setAcceptingInvite(invite)}
+                        onClick={() => setAcceptingInvite(request as any)}
                       >
                         Accept
                       </Button>
@@ -1647,13 +1782,48 @@ export function HashFLPrivacy() {
                         size="sm"
                         variant="ghost"
                         className="text-red-500 hover:bg-red-500/10"
-                        onClick={() => handleDeclineInvite(invite.id)}
+                        onClick={() => handleDeclineRequest(request.id)}
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Legacy Incoming Invites - for backwards compatibility */}
+      {(incomingInvites || []).length > 0 && (
+        <Card className="border-orange-500/30 bg-orange-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="w-5 h-5 text-orange-500" />
+              Pending ({(incomingInvites || []).length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(incomingInvites || []).map((invite) => (
+              <div key={invite.id} className="p-3 rounded-xl bg-background/50 border border-orange-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">Legacy Invite</p>
+                    <p className="text-xs text-muted-foreground">Code: {invite.code}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500"
+                    onClick={() => handleDeclineInvite(invite.id)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
