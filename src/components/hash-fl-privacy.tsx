@@ -496,21 +496,24 @@ export function HashFLPrivacy() {
   // Listen for incoming connection requests (when someone scans your QR)
   // Using Supabase Realtime for instant updates
   useEffect(() => {
-    if (!isUnlocked || !hashflUserId) {
-      console.log('[HashFL] Not listening - unlocked:', isUnlocked, 'userId:', hashflUserId)
+    // Use user.id as primary, fallback to hashflUserId
+    const myUserId = user?.id || hashflUserId
+
+    if (!isUnlocked || !myUserId) {
+      console.log('[HashFL] Not listening - unlocked:', isUnlocked, 'userId:', myUserId)
       return
     }
 
-    console.log('[HashFL] Setting up request listener for user:', hashflUserId)
+    console.log('[HashFL] Setting up request listener for user:', myUserId)
 
     // Check for pending connections where we are user_a (QR owner) and user_b is set (someone scanned)
     const checkForRequests = async () => {
       try {
-        console.log('[HashFL] Checking for incoming requests...')
+        console.log('[HashFL] Checking for incoming requests for:', myUserId)
         const { data, error } = await supabase
           .from('hashfl_connections')
           .select('*')
-          .eq('user_a_id', hashflUserId)
+          .eq('user_a_id', myUserId)
           .eq('status', 'pending')
           .not('user_b_id', 'is', null)
 
@@ -519,7 +522,7 @@ export function HashFLPrivacy() {
           return
         }
 
-        console.log('[HashFL] Found connections:', data?.length || 0)
+        console.log('[HashFL] Found pending connections:', data?.length || 0, data)
 
         if (!data || data.length === 0) return
 
@@ -527,11 +530,18 @@ export function HashFLPrivacy() {
         for (const conn of data) {
           console.log('[HashFL] Processing connection:', conn.id, conn.invite_code)
 
+          // Also check contacts to avoid duplicates
+          const existingContact = (contacts || []).find(c => c.connectionId === conn.id)
+          if (existingContact) {
+            console.log('[HashFL] Already have this contact:', conn.id)
+            continue
+          }
+
           // Use functional updates to avoid stale closures
           setIncomingRequests(prev => {
             const existing = (prev || []).find(r => r.connectionId === conn.id)
             if (existing) {
-              console.log('[HashFL] Request already exists:', conn.id)
+              console.log('[HashFL] Request already in list:', conn.id)
               return prev
             }
 
@@ -556,20 +566,32 @@ export function HashFLPrivacy() {
     // Check immediately
     checkForRequests()
 
-    // Subscribe to realtime updates for this user's connections
+    // Subscribe to realtime updates - listen for new INSERT events
     const channel = supabase
-      .channel(`hashfl-requests-${hashflUserId}`)
+      .channel(`hashfl-requests-${myUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'hashfl_connections',
+          filter: `user_a_id=eq.${myUserId}`
+        },
+        (payload) => {
+          console.log('[HashFL] New connection INSERT received:', payload)
+          checkForRequests()
+        }
+      )
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'hashfl_connections',
-          filter: `user_a_id=eq.${hashflUserId}`
+          filter: `user_a_id=eq.${myUserId}`
         },
         (payload) => {
-          console.log('[HashFL] Realtime update received:', payload)
-          // When a connection is updated (user_b joins), check for requests
+          console.log('[HashFL] Connection UPDATE received:', payload)
           checkForRequests()
         }
       )
@@ -577,15 +599,55 @@ export function HashFLPrivacy() {
         console.log('[HashFL] Realtime subscription status:', status)
       })
 
-    // Also poll every 5 seconds as backup
-    const interval = setInterval(checkForRequests, 5000)
+    // Also poll every 3 seconds as backup
+    const interval = setInterval(checkForRequests, 3000)
 
     return () => {
       console.log('[HashFL] Cleaning up request listener')
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [isUnlocked, hashflUserId])
+  }, [isUnlocked, user?.id, hashflUserId, contacts])
+
+  // Listen for when my pending requests get accepted
+  useEffect(() => {
+    const myUserId = user?.id || hashflUserId
+    if (!isUnlocked || !myUserId) return
+
+    // Get my pending contacts
+    const pendingContacts = (contacts || []).filter(c => c.status === 'pending' && c.connectionId)
+    if (pendingContacts.length === 0) return
+
+    console.log('[HashFL] Watching for acceptance of', pendingContacts.length, 'pending contacts')
+
+    const checkAcceptance = async () => {
+      for (const contact of pendingContacts) {
+        if (!contact.connectionId) continue
+
+        const { data, error } = await supabase
+          .from('hashfl_connections')
+          .select('status')
+          .eq('id', contact.connectionId)
+          .single()
+
+        if (error) continue
+
+        if (data?.status === 'active') {
+          console.log('[HashFL] Connection accepted!', contact.connectionId)
+          // Update contact status
+          setContacts(prev => (prev || []).map(c =>
+            c.id === contact.id ? { ...c, status: 'accepted' as const } : c
+          ))
+          toast.success(`${contact.name} accepted your request! You can now message.`)
+        }
+      }
+    }
+
+    checkAcceptance()
+    const interval = setInterval(checkAcceptance, 3000)
+
+    return () => clearInterval(interval)
+  }, [isUnlocked, user?.id, hashflUserId, contacts])
 
   // ==========================================
   // Handlers
@@ -1074,17 +1136,49 @@ export function HashFLPrivacy() {
     setShowQRScanner(false)
 
     try {
-      let inviteCode = ''
+      // Check if it's our encrypted identity format (starts with §∆)
+      if (data.startsWith('§∆') && data.endsWith('∆§')) {
+        console.log('[HashFL] Detected encrypted identity QR')
 
-      // Try to parse as JSON (our QR format)
+        // Look up identity by the encrypted key
+        const { data: identity, error } = await supabase
+          .from('hashfl_identities')
+          .select('*')
+          .eq('identity_key', data)
+          .single()
+
+        if (error || !identity) {
+          console.error('[HashFL] Identity lookup failed:', error)
+          toast.error('Could not find this user. They may need to set up Hash-FL first.')
+          return
+        }
+
+        // Check if already have this contact
+        const existingContact = (contacts || []).find(c =>
+          c.inviteCode === identity.short_code || c.connectionId?.includes(identity.user_id)
+        )
+        if (existingContact) {
+          toast.info('You already have this contact')
+          return
+        }
+
+        // Set the short code and prompt for name
+        setJoinCode(identity.short_code)
+        toast.success('User found! Enter a name to send connection request.')
+        setCurrentView('invite')
+        return
+      }
+
+      // Try to parse as JSON (legacy format)
+      let inviteCode = ''
       try {
         const parsed = JSON.parse(data)
         if (parsed.type === 'hashfl-invite' && parsed.code) {
           inviteCode = parsed.code
         }
       } catch {
-        // Not JSON, treat as raw invite code
-        inviteCode = data.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 8)
+        // Not JSON, treat as raw invite code (8-digit short code)
+        inviteCode = data.replace(/[^A-Z0-9-]/gi, '').replace(/-/g, '').toUpperCase().slice(0, 8)
       }
 
       if (inviteCode.length < 6) {
@@ -1092,33 +1186,17 @@ export function HashFLPrivacy() {
         return
       }
 
-      // Check if already have this invite
+      // Check if already have this contact
       const existingContact = (contacts || []).find(c => c.inviteCode === inviteCode)
       if (existingContact) {
         toast.info('You already have this contact')
         return
       }
 
-      // Look up the connection in Supabase
-      const connection = await HashFLMessaging.getConnectionByCode(inviteCode)
-
-      if (!connection) {
-        // No connection found - ask for manual entry
-        setJoinCode(inviteCode)
-        toast.info('Code scanned - enter contact name to send request')
-        return
-      }
-
-      if (connection.status !== 'pending') {
-        toast.error('This code has already been used or expired')
-        return
-      }
-
-      // Store the scanned code and prompt for contact name
+      // Set code and prompt for name
       setJoinCode(inviteCode)
-      setCurrentInviteConnectionId(connection.id)
-      setCurrentInviteSharedKey(connection.shared_key)
-      toast.success('QR code scanned! Enter a name to send connection request.')
+      toast.success('Code scanned! Enter a name to send connection request.')
+      setCurrentView('invite')
     } catch (err) {
       console.error('[HashFL] QR scan error:', err)
       toast.error('Failed to process QR code')
@@ -1139,75 +1217,71 @@ export function HashFLPrivacy() {
 
     console.log('[HashFL] Sending connection request...')
     console.log('[HashFL] joinCode:', joinCode)
-    console.log('[HashFL] hashflUserId:', hashflUserId)
-    console.log('[HashFL] currentInviteConnectionId:', currentInviteConnectionId)
+    console.log('[HashFL] my userId:', user?.id)
 
     try {
-      // Get or lookup the connection
-      let connectionId = currentInviteConnectionId
-      let sharedKey = currentInviteSharedKey || generateSharedKey()
-
-      // Always look up the connection to get the latest info
-      const connection = await HashFLMessaging.getConnectionByCode(joinCode.toUpperCase())
-      console.log('[HashFL] Found connection:', connection)
-
-      if (connection) {
-        connectionId = connection.id
-        sharedKey = connection.shared_key
-      }
-
-      if (!connectionId) {
-        toast.error('Connection not found. The QR code may have expired.')
-        return
-      }
-
       // Make sure we have a user ID
-      let userId = hashflUserId
-      if (!userId) {
-        // Generate one if not exists
-        userId = await HashFLMessaging.generateUserId(sessionPin.current || 'default')
-        HashFLMessaging.setStoredUserId(userId)
-        setHashflUserId(userId)
-        console.log('[HashFL] Generated new userId:', userId)
-      }
-
-      // Send the connection request by updating user_b_id (but status stays pending until owner accepts)
-      console.log('[HashFL] Updating connection with user_b_id:', userId)
-      const { data: updateData, error } = await supabase
-        .from('hashfl_connections')
-        .update({
-          user_b_id: userId
-          // Status stays 'pending' - owner must accept
-        })
-        .eq('id', connectionId)
-        .eq('status', 'pending')
-        .select()
-
-      if (error) {
-        console.error('[HashFL] Error sending request:', error)
-        toast.error('Failed to send request: ' + error.message)
+      const myUserId = user?.id || hashflUserId
+      if (!myUserId) {
+        toast.error('Please set up Hash-FL first')
         return
       }
 
-      console.log('[HashFL] Update result:', updateData)
+      // Look up the target user by short code
+      const { data: targetIdentity, error: lookupError } = await supabase
+        .from('hashfl_identities')
+        .select('*')
+        .eq('short_code', joinCode.toUpperCase().replace(/-/g, ''))
+        .single()
+
+      if (lookupError || !targetIdentity) {
+        console.error('[HashFL] Target not found:', lookupError)
+        toast.error('User not found. Check the code and try again.')
+        return
+      }
+
+      console.log('[HashFL] Found target identity:', targetIdentity.user_id)
+
+      // Generate shared key for this connection
+      const sharedKey = generateSharedKey()
+
+      // Create connection request in Supabase
+      const { data: newConnection, error: createError } = await supabase
+        .from('hashfl_connections')
+        .insert({
+          invite_code: joinCode.toUpperCase().replace(/-/g, ''),
+          user_a_id: targetIdentity.user_id, // QR owner (will accept)
+          user_b_id: myUserId, // Me (requester)
+          shared_key: sharedKey,
+          status: 'pending',
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('[HashFL] Error creating connection:', createError)
+        toast.error('Failed to send request')
+        return
+      }
+
+      console.log('[HashFL] Connection created:', newConnection)
 
       // Create contact locally - status pending (waiting for QR owner to accept)
       const newContact: SecureContact = {
         id: `contact-${Date.now()}`,
         name: contactName.trim(),
-        inviteCode: joinCode.toUpperCase(),
+        inviteCode: joinCode.toUpperCase().replace(/-/g, ''),
         sharedKey: sharedKey,
-        connectionId: connectionId,
+        connectionId: newConnection.id,
         addedAt: Date.now(),
         status: 'pending', // Waiting for QR owner to accept
-        isInviter: false // I scanned, so I'm the requester (not the inviter/QR owner)
+        isInviter: false // I scanned, so I'm the requester
       }
 
       setContacts(prev => [...(prev || []), newContact])
       setJoinCode('')
       setContactName('')
-      setCurrentInviteConnectionId('')
-      setCurrentInviteSharedKey('')
       setCurrentView('contacts')
       toast.success(`Request sent to ${newContact.name}! Waiting for them to accept.`)
     } catch (err) {
