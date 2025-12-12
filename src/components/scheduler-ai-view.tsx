@@ -27,7 +27,7 @@ import {
   Coffee,
   CaretRight
 } from '@phosphor-icons/react'
-import { chatCompletion } from '@/lib/ai-provider-config'
+import { smartCompletion } from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
 
@@ -371,7 +371,7 @@ Respond with a JSON array of suggestions:
 
 Keep suggestions practical and concise. Only respond with valid JSON.`
 
-      const result = await chatCompletion([
+      const result = await smartCompletion([
         { role: 'system', content: 'You are a scheduling AI. Only respond with valid JSON arrays.' },
         { role: 'user', content: prompt }
       ], { maxTokens: 500 })
