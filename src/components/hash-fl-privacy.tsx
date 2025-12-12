@@ -74,6 +74,7 @@ import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
 import { logger } from '@/lib/security-utils'
 import * as HashFLMessaging from '@/lib/hashfl-messaging'
+import { QRScanner } from '@/components/qr-scanner'
 
 // ==========================================
 // Types
@@ -325,6 +326,7 @@ export function HashFLPrivacy() {
   const [messageInput, setMessageInput] = useState('')
   const [hashflUserId, setHashflUserId] = useState<string>('')
   const [realtimeMessages, setRealtimeMessages] = useState<HashFLMessaging.HashFLMessage[]>([])
+  const [showQRScanner, setShowQRScanner] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -692,6 +694,35 @@ export function HashFLPrivacy() {
     setContactName('')
     setCurrentView('contacts')
     toast.success(`${newContact.name} added to contacts!`)
+  }
+
+  // Handle QR code scan result
+  const handleQRScan = (data: string) => {
+    console.log('[HashFL] QR Scanned:', data)
+    setShowQRScanner(false)
+
+    try {
+      // Try to parse as JSON (our QR format)
+      const parsed = JSON.parse(data)
+
+      if (parsed.type === 'hashfl-invite' && parsed.code) {
+        setJoinCode(parsed.code)
+        toast.success(`Invite code detected: ${parsed.code}`)
+      } else {
+        // Maybe it's just a raw code
+        setJoinCode(data.toUpperCase().slice(0, 8))
+        toast.info('Code scanned - enter contact name to continue')
+      }
+    } catch {
+      // Not JSON, treat as raw invite code
+      const cleanCode = data.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 8)
+      if (cleanCode.length >= 6) {
+        setJoinCode(cleanCode)
+        toast.success(`Code detected: ${cleanCode}`)
+      } else {
+        toast.error('Invalid QR code format')
+      }
+    }
   }
 
   // ==========================================
@@ -1255,6 +1286,28 @@ export function HashFLPrivacy() {
         </CardContent>
       </Card>
 
+      {/* Scan QR Code Section */}
+      <Card className="border-purple-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Camera className="w-5 h-5 text-purple-500" />
+            Scan QR Code
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => setShowQRScanner(true)}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-600"
+          >
+            <Camera className="w-4 h-4 mr-2" />
+            Open Camera to Scan
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Scan a friend's QR code to connect instantly
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Join with Code Section */}
       <Card className="border-emerald-500/20">
         <CardHeader>
@@ -1266,13 +1319,23 @@ export function HashFLPrivacy() {
         <CardContent className="space-y-4">
           <div>
             <Label>Invite Code</Label>
-            <Input
-              placeholder="Enter 8-character code"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
-              className="font-mono text-center tracking-widest mt-1"
-              maxLength={8}
-            />
+            <div className="flex gap-2 mt-1">
+              <Input
+                placeholder="Enter 8-character code"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
+                className="font-mono text-center tracking-widest"
+                maxLength={8}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowQRScanner(true)}
+                className="border-emerald-500/30 hover:bg-emerald-500/10"
+              >
+                <QrCode className="w-4 h-4 text-emerald-500" />
+              </Button>
+            </div>
           </div>
           <div>
             <Label>Contact Name</Label>
@@ -1293,6 +1356,13 @@ export function HashFLPrivacy() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* QR Scanner Modal */}
+      <QRScanner
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onScan={handleQRScan}
+      />
     </div>
   )
 
