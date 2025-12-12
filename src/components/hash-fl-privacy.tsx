@@ -73,6 +73,7 @@ import {
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
 import { logger } from '@/lib/security-utils'
+import * as HashFLMessaging from '@/lib/hashfl-messaging'
 
 // ==========================================
 // Types
@@ -106,6 +107,7 @@ interface SecureContact {
   email?: string
   inviteCode: string
   sharedKey: string // For encrypting messages
+  connectionId?: string // Supabase connection ID for realtime sync
   addedAt: number
   lastMessage?: number
   avatar?: string
@@ -321,6 +323,8 @@ export function HashFLPrivacy() {
   const [contactName, setContactName] = useState('')
   const [selectedContact, setSelectedContact] = useState<SecureContact | null>(null)
   const [messageInput, setMessageInput] = useState('')
+  const [hashflUserId, setHashflUserId] = useState<string>('')
+  const [realtimeMessages, setRealtimeMessages] = useState<HashFLMessaging.HashFLMessage[]>([])
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -412,6 +416,15 @@ export function HashFLPrivacy() {
       setIsUnlocked(true)
       setPinInput('')
       setCurrentView('home')
+
+      // Initialize Hash-FL user ID for Supabase
+      let storedUserId = HashFLMessaging.getStoredUserId()
+      if (!storedUserId) {
+        storedUserId = await HashFLMessaging.generateUserId(pinInput)
+        HashFLMessaging.setStoredUserId(storedUserId)
+      }
+      setHashflUserId(storedUserId)
+
       toast.success('Welcome back!')
     } else {
       const newAttempts = user.failedAttempts + 1
@@ -587,8 +600,11 @@ export function HashFLPrivacy() {
     }
   }, [currentView, currentInviteCode])
 
-  const createInvite = () => {
+  const createInvite = async () => {
     const code = generateInviteCode()
+    const sharedKey = generateSharedKey()
+
+    // Create local invite
     const invite: PendingInvite = {
       code,
       createdAt: Date.now(),
@@ -596,6 +612,15 @@ export function HashFLPrivacy() {
     }
     setPendingInvites(prev => [...(prev || []), invite])
     setCurrentInviteCode(code)
+
+    // Create connection in Supabase for realtime sync
+    if (hashflUserId) {
+      const connection = await HashFLMessaging.createConnection(hashflUserId, code, sharedKey)
+      if (connection) {
+        console.log('[HashFL] Connection created in Supabase:', connection.id)
+      }
+    }
+
     return code
   }
 
@@ -625,7 +650,7 @@ export function HashFLPrivacy() {
     toast.success('Invite code copied!')
   }
 
-  const handleJoinWithCode = () => {
+  const handleJoinWithCode = async () => {
     if (!joinCode || joinCode.length < 6) {
       toast.error('Please enter a valid invite code')
       return
@@ -636,11 +661,28 @@ export function HashFLPrivacy() {
       return
     }
 
+    // Try to accept invite in Supabase
+    let connectionId: string | undefined
+    let sharedKey = generateSharedKey()
+
+    if (hashflUserId) {
+      const connection = await HashFLMessaging.acceptInvite(hashflUserId, joinCode.toUpperCase())
+      if (connection) {
+        connectionId = connection.id
+        sharedKey = connection.shared_key
+        console.log('[HashFL] Joined connection:', connectionId)
+      } else {
+        // Connection not found in Supabase, create local only
+        console.log('[HashFL] No Supabase connection found, creating local contact')
+      }
+    }
+
     const newContact: SecureContact = {
       id: `contact-${Date.now()}`,
       name: contactName.trim(),
       inviteCode: joinCode.toUpperCase(),
-      sharedKey: generateSharedKey(),
+      sharedKey: sharedKey,
+      connectionId: connectionId,
       addedAt: Date.now(),
       status: 'accepted'
     }
@@ -673,48 +715,160 @@ export function HashFLPrivacy() {
   }
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedContact || !sessionPin.current) return
+    if (!messageInput.trim() || !selectedContact) return
 
     try {
-      const encryptedContent = await encryptData(messageInput.trim(), sessionPin.current)
+      // If contact has a Supabase connection, send via realtime
+      if (selectedContact.connectionId && hashflUserId) {
+        const encryptedContent = await HashFLMessaging.encryptMessage(
+          messageInput.trim(),
+          selectedContact.sharedKey
+        )
 
-      const newMessage: SecureMessage = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        contactId: selectedContact.id,
-        content: encryptedContent,
-        timestamp: Date.now(),
-        isOutgoing: true,
-        isRead: true,
-        isDelivered: true
+        const sentMessage = await HashFLMessaging.sendMessage(
+          selectedContact.connectionId,
+          hashflUserId,
+          encryptedContent,
+          'text'
+        )
+
+        if (sentMessage) {
+          // Update contact's last message time
+          setContacts(prev => (prev || []).map(c =>
+            c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
+          ))
+          setMessageInput('')
+          toast.success('Message sent')
+
+          // Scroll to bottom
+          setTimeout(() => {
+            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+          }, 100)
+        } else {
+          toast.error('Failed to send message')
+        }
+      } else {
+        // Fallback to local-only storage
+        if (!sessionPin.current) return
+
+        const encryptedContent = await encryptData(messageInput.trim(), sessionPin.current)
+
+        const newMessage: SecureMessage = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          contactId: selectedContact.id,
+          content: encryptedContent,
+          timestamp: Date.now(),
+          isOutgoing: true,
+          isRead: true,
+          isDelivered: true
+        }
+
+        setMessages(prev => [...(prev || []), newMessage])
+
+        // Update contact's last message time
+        setContacts(prev => (prev || []).map(c =>
+          c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
+        ))
+
+        setMessageInput('')
+        toast.success('Message saved locally')
+
+        setTimeout(() => {
+          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+        }, 100)
       }
-
-      setMessages(prev => [...(prev || []), newMessage])
-
-      // Update contact's last message time
-      setContacts(prev => (prev || []).map(c =>
-        c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
-      ))
-
-      setMessageInput('')
-      toast.success('Message sent securely')
-
-      // Scroll to bottom
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-      }, 100)
-    } catch {
-      toast.error('Failed to encrypt message')
+    } catch (err) {
+      console.error('[HashFL] Send message error:', err)
+      toast.error('Failed to send message')
     }
   }
 
   const [decryptedMessages, setDecryptedMessages] = useState<SecureMessage[]>([])
 
-  // Load decrypted messages when chat opens
+  // Load messages and subscribe to realtime when chat opens
   useEffect(() => {
-    if (currentView === 'chat' && selectedContact) {
-      getDecryptedMessages(selectedContact.id).then(setDecryptedMessages)
+    if (currentView !== 'chat' || !selectedContact) return
+
+    let unsubscribe: (() => void) | null = null
+
+    const loadMessages = async () => {
+      // If connected via Supabase, load from there
+      if (selectedContact.connectionId) {
+        const supabaseMessages = await HashFLMessaging.getMessages(selectedContact.connectionId)
+
+        // Decrypt messages
+        const decrypted: SecureMessage[] = []
+        for (const msg of supabaseMessages) {
+          try {
+            const content = await HashFLMessaging.decryptMessage(msg.encrypted_content, selectedContact.sharedKey)
+            decrypted.push({
+              id: msg.id,
+              contactId: selectedContact.id,
+              content,
+              timestamp: new Date(msg.created_at).getTime(),
+              isOutgoing: msg.sender_id === hashflUserId,
+              isRead: !!msg.read_at,
+              isDelivered: !!msg.delivered_at
+            })
+          } catch {
+            decrypted.push({
+              id: msg.id,
+              contactId: selectedContact.id,
+              content: '[Unable to decrypt]',
+              timestamp: new Date(msg.created_at).getTime(),
+              isOutgoing: msg.sender_id === hashflUserId,
+              isRead: false,
+              isDelivered: false
+            })
+          }
+        }
+        setDecryptedMessages(decrypted.sort((a, b) => a.timestamp - b.timestamp))
+
+        // Subscribe to new messages
+        unsubscribe = HashFLMessaging.subscribeToMessages(
+          selectedContact.connectionId,
+          async (newMsg) => {
+            try {
+              const content = await HashFLMessaging.decryptMessage(newMsg.encrypted_content, selectedContact.sharedKey)
+              const decryptedMsg: SecureMessage = {
+                id: newMsg.id,
+                contactId: selectedContact.id,
+                content,
+                timestamp: new Date(newMsg.created_at).getTime(),
+                isOutgoing: newMsg.sender_id === hashflUserId,
+                isRead: !!newMsg.read_at,
+                isDelivered: !!newMsg.delivered_at
+              }
+              setDecryptedMessages(prev => [...prev, decryptedMsg])
+
+              // Scroll to bottom on new message
+              setTimeout(() => {
+                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+              }, 100)
+
+              // Show toast for incoming messages
+              if (newMsg.sender_id !== hashflUserId) {
+                toast.info('New message received')
+              }
+            } catch (err) {
+              console.error('[HashFL] Failed to decrypt realtime message:', err)
+            }
+          }
+        )
+      } else {
+        // Fallback to local messages
+        getDecryptedMessages(selectedContact.id).then(setDecryptedMessages)
+      }
     }
-  }, [currentView, selectedContact, messages])
+
+    loadMessages()
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
+  }, [currentView, selectedContact, hashflUserId])
 
   // ==========================================
   // Render Functions
