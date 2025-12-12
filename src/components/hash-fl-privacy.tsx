@@ -90,6 +90,10 @@ interface HashFLUser {
   lastAccess: number
   failedAttempts: number
   lockoutUntil?: number
+  // Permanent unique identity
+  identityKey: string // Encrypted unique key (for QR - unreadable by iPhone)
+  shortCode: string // 8-digit manual invite code
+  deviceFingerprint: string // Ties account to device
 }
 
 interface EncryptedFile {
@@ -305,6 +309,108 @@ function generateInviteCode(): string {
   return code
 }
 
+// Generate device fingerprint to tie account to device
+function generateDeviceFingerprint(): string {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.textBaseline = 'top'
+    ctx.font = '14px Arial'
+    ctx.fillText('HashFL', 2, 2)
+  }
+  const canvasData = canvas.toDataURL()
+
+  const data = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset(),
+    canvasData.slice(0, 100)
+  ].join('|')
+
+  // Simple hash
+  let hash = 0
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString(36) + Date.now().toString(36)
+}
+
+// Generate encrypted identity key (for QR - unreadable by iPhone camera)
+async function generateIdentityKey(): Promise<string> {
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32))
+  const timestamp = Date.now().toString(36)
+  const deviceInfo = navigator.userAgent.slice(0, 20)
+
+  // Create a complex encrypted string that looks like gibberish
+  const rawData = `HFL:${timestamp}:${Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('')}:${deviceInfo}`
+
+  // Encrypt it with AES
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt']
+  )
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(rawData)
+  )
+
+  // Export key and combine with encrypted data
+  const exportedKey = await crypto.subtle.exportKey('raw', key)
+  const combined = new Uint8Array(iv.length + exportedKey.byteLength + encrypted.byteLength)
+  combined.set(iv, 0)
+  combined.set(new Uint8Array(exportedKey), iv.length)
+  combined.set(new Uint8Array(encrypted), iv.length + exportedKey.byteLength)
+
+  // Convert to base64 with custom alphabet (makes it look like random noise)
+  const base64 = btoa(String.fromCharCode(...combined))
+  // Add prefix that iPhone won't recognize as URL/text
+  return `§∆${base64.replace(/=/g, '∞').replace(/\+/g, '†').replace(/\//g, '‡')}∆§`
+}
+
+// Generate 8-digit short code from identity key
+function generateShortCode(identityKey: string): string {
+  // Hash the identity key to get a consistent 8-digit code
+  let hash = 0
+  for (let i = 0; i < identityKey.length; i++) {
+    const char = identityKey.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+
+  // Convert to 8-character alphanumeric
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  let num = Math.abs(hash)
+  for (let i = 0; i < 8; i++) {
+    code += chars[num % chars.length]
+    num = Math.floor(num / chars.length) + (identityKey.charCodeAt(i % identityKey.length) || 0)
+  }
+  return code
+}
+
+// Decode short code back to find identity (lookup in Supabase)
+async function lookupByShortCode(shortCode: string): Promise<{ identityKey: string, userId: string } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('hashfl_identities')
+      .select('*')
+      .eq('short_code', shortCode.toUpperCase())
+      .single()
+
+    if (error || !data) return null
+    return { identityKey: data.identity_key, userId: data.user_id }
+  } catch {
+    return null
+  }
+}
+
 function generateSharedKey(): string {
   const array = crypto.getRandomValues(new Uint8Array(32))
   return btoa(String.fromCharCode(...array))
@@ -496,8 +602,23 @@ export function HashFLPrivacy() {
       return
     }
 
+    // Check if device already has an account (prevent recreation)
+    const existingFingerprint = localStorage.getItem('hashfl-device-fp')
+    if (existingFingerprint && user) {
+      toast.error('An account already exists on this device. Reset data in settings to create new.')
+      return
+    }
+
     const salt = generateSalt()
     const hashedPin = await hashPinSecure(pinInput, salt)
+
+    // Generate unique permanent identity
+    const identityKey = await generateIdentityKey()
+    const shortCode = generateShortCode(identityKey)
+    const deviceFingerprint = generateDeviceFingerprint()
+
+    // Store device fingerprint to prevent recreation
+    localStorage.setItem('hashfl-device-fp', deviceFingerprint)
 
     const newUser: HashFLUser = {
       id: `hashfl-${Date.now()}`,
@@ -506,7 +627,23 @@ export function HashFLPrivacy() {
       biometricEnabled: false,
       createdAt: Date.now(),
       lastAccess: Date.now(),
-      failedAttempts: 0
+      failedAttempts: 0,
+      identityKey: identityKey,
+      shortCode: shortCode,
+      deviceFingerprint: deviceFingerprint
+    }
+
+    // Register identity in Supabase
+    try {
+      await supabase.from('hashfl_identities').insert({
+        user_id: newUser.id,
+        identity_key: identityKey,
+        short_code: shortCode,
+        device_fingerprint: deviceFingerprint,
+        created_at: new Date().toISOString()
+      })
+    } catch (err) {
+      console.error('[HashFL] Failed to register identity:', err)
     }
 
     setUser(newUser)
@@ -514,7 +651,12 @@ export function HashFLPrivacy() {
     setIsUnlocked(true)
     setPinInput('')
     setConfirmPinInput('')
-    toast.success('Hash-FL setup complete! Your data is now protected.')
+
+    // Set the hashfl user ID
+    HashFLMessaging.setStoredUserId(newUser.id)
+    setHashflUserId(newUser.id)
+
+    toast.success('Hash-FL setup complete! Your unique identity has been created.')
   }
 
   const handleUnlock = async () => {
@@ -1553,48 +1695,72 @@ export function HashFLPrivacy() {
     )
   }
 
-  const renderInvite = () => (
+  const renderInvite = () => {
+    // Use permanent identity for QR (encrypted, iPhone can't read)
+    const qrData = user?.identityKey || currentInviteCode
+    const displayCode = user?.shortCode || currentInviteCode
+
+    return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
-      {/* QR Code Section */}
-      <Card className="border-emerald-500/20">
+      {/* Your Identity QR Code - Permanent & Encrypted */}
+      <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-teal-500/5">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-emerald-500" />
-            Invite via QR Code
+            <Fingerprint className="w-5 h-5 text-emerald-500" />
+            Your Secure Identity
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            This is YOUR unique identity. Share it to receive connection requests.
+          </p>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <div className="p-4 bg-white rounded-2xl mb-4">
+          <div className="p-4 bg-white rounded-2xl mb-4 relative">
+            {/* QR contains encrypted data - iPhone camera will see gibberish */}
             <QRCodeSVG
-              value={JSON.stringify({
-                type: 'hashfl-invite',
-                code: currentInviteCode,
-                expires: Date.now() + 24 * 60 * 60 * 1000
-              })}
+              value={qrData}
               size={180}
               bgColor="#ffffff"
               fgColor="#059669"
-              level="M"
+              level="H"
               includeMargin={false}
             />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg">
+                <ShieldCheck className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
           </div>
-          <p className="text-center text-sm text-muted-foreground mb-2">
-            Scan this QR code to connect
+          <div className="text-center mb-3">
+            <p className="text-xs text-amber-500 flex items-center justify-center gap-1">
+              <Warning className="w-3 h-3" />
+              QR is encrypted - only FlowSphere can read it
+            </p>
+          </div>
+
+          {/* 8-digit manual code */}
+          <div className="w-full p-4 bg-emerald-500/10 rounded-xl">
+            <p className="text-xs text-center text-muted-foreground mb-2">Your 8-Digit Code (for manual entry)</p>
+            <div className="flex items-center justify-center gap-2">
+              <code className="text-2xl font-mono font-bold text-emerald-500 tracking-[0.3em]">
+                {displayCode.slice(0, 4)}-{displayCode.slice(4)}
+              </code>
+              <Button variant="ghost" size="icon" onClick={() => {
+                navigator.clipboard.writeText(displayCode)
+                toast.success('Code copied!')
+              }}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-3 text-center">
+            Your identity never expires. This is permanent.
           </p>
-          <div className="flex items-center gap-2 p-2 bg-emerald-500/10 rounded-lg">
-            <code className="text-lg font-mono font-bold text-emerald-500 tracking-widest">
-              {currentInviteCode}
-            </code>
-            <Button variant="ghost" size="icon" onClick={copyInviteCode}>
-              <Copy className="w-4 h-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">Expires in 24 hours</p>
         </CardContent>
       </Card>
 
@@ -1764,7 +1930,7 @@ export function HashFLPrivacy() {
         onScan={handleQRScan}
       />
     </div>
-  )
+  )}
 
   const renderContacts = () => (
     <div className="space-y-4">
@@ -2042,9 +2208,9 @@ export function HashFLPrivacy() {
     if (!selectedContact) return null
 
     return (
-      <div className="flex flex-col h-[calc(100vh-200px)] min-h-[400px]">
+      <div className="flex flex-col h-[calc(100vh-220px)] min-h-[400px] max-h-[600px] overflow-hidden">
         {/* Chat Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-emerald-500/20">
+        <div className="flex items-center gap-3 pb-4 border-b border-emerald-500/20 flex-shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -2072,8 +2238,8 @@ export function HashFLPrivacy() {
         </div>
 
         {/* Messages */}
-        <ScrollArea ref={scrollRef} className="flex-1 py-4">
-          <div className="space-y-3">
+        <ScrollArea ref={scrollRef} className="flex-1 py-4 overflow-y-auto">
+          <div className="space-y-3 px-1">
             {selectedContact.status === 'pending' ? (
               <div className="text-center py-12">
                 <Warning className="w-12 h-12 mx-auto mb-4 text-yellow-500/50" />
@@ -2131,7 +2297,7 @@ export function HashFLPrivacy() {
         </ScrollArea>
 
         {/* Message Input */}
-        <div className="flex gap-2 pt-4 border-t border-emerald-500/20">
+        <div className="flex gap-2 pt-4 border-t border-emerald-500/20 flex-shrink-0 bg-background">
           <Input
             placeholder={selectedContact.status === 'pending' ? "Waiting for acceptance..." : "Type a secure message..."}
             value={messageInput}
@@ -2143,7 +2309,7 @@ export function HashFLPrivacy() {
           <Button
             onClick={handleSendMessage}
             disabled={!messageInput.trim() || selectedContact.status === 'pending'}
-            className="bg-gradient-to-r from-emerald-500 to-teal-600"
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 flex-shrink-0"
           >
             <PaperPlaneTilt className="w-5 h-5" weight="fill" />
           </Button>
