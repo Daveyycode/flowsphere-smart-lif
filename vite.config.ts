@@ -63,6 +63,9 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for large bundles
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
