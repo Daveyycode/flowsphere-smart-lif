@@ -1227,63 +1227,146 @@ export function HashFLPrivacy() {
         return
       }
 
-      // Look up the target user by short code
-      const { data: targetIdentity, error: lookupError } = await supabase
-        .from('hashfl_identities')
+      const inviteCode = joinCode.toUpperCase().replace(/-/g, '')
+
+      // First check if there's an existing pending connection with this invite code
+      const { data: existingConnection } = await supabase
+        .from('hashfl_connections')
         .select('*')
-        .eq('short_code', joinCode.toUpperCase().replace(/-/g, ''))
+        .eq('invite_code', inviteCode)
+        .eq('status', 'pending')
+        .is('user_b_id', null)
         .single()
 
-      if (lookupError || !targetIdentity) {
-        console.error('[HashFL] Target not found:', lookupError)
-        toast.error('User not found. Check the code and try again.')
+      if (existingConnection) {
+        // Accept the existing invite (User A created it, we're User B accepting)
+        console.log('[HashFL] Found existing invite, accepting...')
+
+        const { data: updated, error: updateError } = await supabase
+          .from('hashfl_connections')
+          .update({
+            user_b_id: myUserId,
+            status: 'active',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', existingConnection.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('[HashFL] Error accepting invite:', updateError)
+          toast.error('Failed to connect')
+          return
+        }
+
+        // Create contact locally - already active!
+        const newContact: SecureContact = {
+          id: `contact-${Date.now()}`,
+          name: contactName.trim(),
+          inviteCode: inviteCode,
+          sharedKey: existingConnection.shared_key,
+          connectionId: updated.id,
+          addedAt: Date.now(),
+          status: 'accepted',
+          isInviter: false
+        }
+
+        setContacts(prev => [...(prev || []), newContact])
+        setJoinCode('')
+        setContactName('')
+        setCurrentView('contacts')
+        toast.success(`Connected with ${newContact.name}! You can now message.`)
         return
       }
 
-      console.log('[HashFL] Found target identity:', targetIdentity.user_id)
+      // No existing invite - try hashfl_identities lookup (new system)
+      const { data: targetIdentity } = await supabase
+        .from('hashfl_identities')
+        .select('*')
+        .eq('short_code', inviteCode)
+        .single()
 
-      // Generate shared key for this connection
+      if (targetIdentity) {
+        // Found in identity system - create pending connection
+        const sharedKey = generateSharedKey()
+
+        const { data: newConnection, error: createError } = await supabase
+          .from('hashfl_connections')
+          .insert({
+            invite_code: inviteCode,
+            user_a_id: targetIdentity.user_id,
+            user_b_id: myUserId,
+            shared_key: sharedKey,
+            status: 'pending',
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('[HashFL] Error creating connection:', createError)
+          toast.error('Failed to send request')
+          return
+        }
+
+        const newContact: SecureContact = {
+          id: `contact-${Date.now()}`,
+          name: contactName.trim(),
+          inviteCode: inviteCode,
+          sharedKey: sharedKey,
+          connectionId: newConnection.id,
+          addedAt: Date.now(),
+          status: 'pending',
+          isInviter: false
+        }
+
+        setContacts(prev => [...(prev || []), newContact])
+        setJoinCode('')
+        setContactName('')
+        setCurrentView('contacts')
+        toast.success(`Request sent to ${newContact.name}! Waiting for them to accept.`)
+        return
+      }
+
+      // Fallback: Create a new pending connection that the other user can accept
+      console.log('[HashFL] Creating new pending connection...')
       const sharedKey = generateSharedKey()
 
-      // Create connection request in Supabase
       const { data: newConnection, error: createError } = await supabase
         .from('hashfl_connections')
         .insert({
-          invite_code: joinCode.toUpperCase().replace(/-/g, ''),
-          user_a_id: targetIdentity.user_id, // QR owner (will accept)
-          user_b_id: myUserId, // Me (requester)
+          invite_code: inviteCode,
+          user_a_id: myUserId, // We created it
+          user_b_id: null, // Waiting for someone to accept
           shared_key: sharedKey,
           status: 'pending',
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         })
         .select()
         .single()
 
       if (createError) {
         console.error('[HashFL] Error creating connection:', createError)
-        toast.error('Failed to send request')
+        toast.error('Failed to create connection')
         return
       }
 
-      console.log('[HashFL] Connection created:', newConnection)
-
-      // Create contact locally - status pending (waiting for QR owner to accept)
       const newContact: SecureContact = {
         id: `contact-${Date.now()}`,
         name: contactName.trim(),
-        inviteCode: joinCode.toUpperCase().replace(/-/g, ''),
+        inviteCode: inviteCode,
         sharedKey: sharedKey,
         connectionId: newConnection.id,
         addedAt: Date.now(),
-        status: 'pending', // Waiting for QR owner to accept
-        isInviter: false // I scanned, so I'm the requester
+        status: 'pending',
+        isInviter: true
       }
 
       setContacts(prev => [...(prev || []), newContact])
       setJoinCode('')
       setContactName('')
       setCurrentView('contacts')
-      toast.success(`Request sent to ${newContact.name}! Waiting for them to accept.`)
+      toast.success(`Connection created! Share the code ${inviteCode} with ${newContact.name}.`)
     } catch (err) {
       console.error('[HashFL] Send request error:', err)
       toast.error('Failed to send connection request')
