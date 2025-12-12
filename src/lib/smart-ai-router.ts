@@ -70,52 +70,52 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     name: 'Groq (Free)',
     model: 'llama-3.3-70b-versatile',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    costPer1kTokens: 0, // Free tier
+    costPer1kTokens: 0, // Free tier - 14,400 requests/day
     maxTokens: 8192,
     supportsVision: false,
     requiresKey: false, // FlowSphere provides default
     signupUrl: 'https://console.groq.com/keys',
-    description: 'Free & fast. Best for tutoring and chat.',
-    complexity: ['simple', 'medium']
-  },
-  deepseek: {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    model: 'deepseek-chat',
-    endpoint: 'https://api.deepseek.com/v1/chat/completions',
-    costPer1kTokens: 0.0001, // $0.10 per 1M tokens
-    maxTokens: 8192,
-    supportsVision: false,
-    requiresKey: true,
-    signupUrl: 'https://platform.deepseek.com/api_keys',
-    description: 'Very cheap ($0.10/1M tokens). Great quality.',
+    description: 'FREE - 14,400 req/day. Best for tutoring.',
     complexity: ['simple', 'medium', 'complex']
   },
   gemini: {
     id: 'gemini',
-    name: 'Google Gemini',
+    name: 'Google Gemini (Free)',
     model: 'gemini-1.5-flash',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-    costPer1kTokens: 0.000075, // Very cheap
+    costPer1kTokens: 0, // Free tier - 15 req/min, 1500/day
     maxTokens: 8192,
     supportsVision: true,
     requiresKey: true,
     signupUrl: 'https://aistudio.google.com/app/apikey',
-    description: 'Google AI. Cheap with vision support.',
-    complexity: ['simple', 'medium', 'vision']
+    description: 'FREE - 1500 req/day. Vision support!',
+    complexity: ['simple', 'medium', 'complex', 'vision']
   },
   mistral: {
     id: 'mistral',
-    name: 'Mistral AI',
+    name: 'Mistral AI (Free)',
     model: 'mistral-small-latest',
     endpoint: 'https://api.mistral.ai/v1/chat/completions',
-    costPer1kTokens: 0.0002,
+    costPer1kTokens: 0, // Free tier available
     maxTokens: 8192,
     supportsVision: false,
     requiresKey: true,
     signupUrl: 'https://console.mistral.ai/api-keys',
-    description: 'European AI. Fast and affordable.',
+    description: 'FREE tier available. European AI.',
     complexity: ['simple', 'medium']
+  },
+  deepseek: {
+    id: 'deepseek',
+    name: 'DeepSeek (Cheapest)',
+    model: 'deepseek-chat',
+    endpoint: 'https://api.deepseek.com/v1/chat/completions',
+    costPer1kTokens: 0.00014, // $0.14 per 1M input tokens
+    maxTokens: 8192,
+    supportsVision: false,
+    requiresKey: true,
+    signupUrl: 'https://platform.deepseek.com/api_keys',
+    description: '$0.14/1M tokens - Cheapest paid option!',
+    complexity: ['simple', 'medium', 'complex']
   },
   together: {
     id: 'together',
@@ -127,45 +127,45 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     supportsVision: false,
     requiresKey: true,
     signupUrl: 'https://api.together.xyz/settings/api-keys',
-    description: 'Open source models. Pay as you go.',
+    description: '$25 free credit. Open source models.',
     complexity: ['simple', 'medium', 'complex']
+  },
+  openai: {
+    id: 'openai',
+    name: 'OpenAI GPT-4o-mini',
+    model: 'gpt-4o-mini',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    costPer1kTokens: 0.00015,
+    maxTokens: 16384,
+    supportsVision: true,
+    requiresKey: true,
+    signupUrl: 'https://platform.openai.com/api-keys',
+    description: '$0.15/1M tokens. Vision + great quality.',
+    complexity: ['simple', 'medium', 'complex', 'vision']
   },
   anthropic: {
     id: 'anthropic',
-    name: 'Claude (Anthropic)',
+    name: 'Claude 3 Haiku',
     model: 'claude-3-haiku-20240307',
     endpoint: 'https://api.anthropic.com/v1/messages',
-    costPer1kTokens: 0.00025, // Haiku is cheap
+    costPer1kTokens: 0.00025,
     maxTokens: 4096,
     supportsVision: true,
     requiresKey: true,
     signupUrl: 'https://console.anthropic.com/settings/keys',
-    description: 'Best for learning. Claude Haiku is affordable.',
-    complexity: ['simple', 'medium', 'complex', 'vision']
-  },
-  openai: {
-    id: 'openai',
-    name: 'OpenAI (GPT-4)',
-    model: 'gpt-4o-mini',
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    costPer1kTokens: 0.00015, // GPT-4o-mini is cheap
-    maxTokens: 4096,
-    supportsVision: true,
-    requiresKey: true,
-    signupUrl: 'https://platform.openai.com/api-keys',
-    description: 'Premium quality. GPT-4o-mini is affordable.',
+    description: '$0.25/1M tokens. Best for learning.',
     complexity: ['simple', 'medium', 'complex', 'vision']
   }
 }
 
-// Provider priority for smart routing (cheapest first)
+// Provider priority for smart routing (free first, then cheapest)
 const PROVIDER_PRIORITY: AIProvider[] = [
-  'groq',      // Free
-  'deepseek',  // $0.10/1M tokens
-  'gemini',    // $0.075/1M tokens
-  'mistral',   // $0.20/1M tokens
-  'anthropic', // $0.25/1M tokens (Haiku)
-  'openai',    // $0.15/1M tokens (GPT-4o-mini)
+  'groq',      // FREE - 14,400 req/day
+  'gemini',    // FREE - 1500 req/day
+  'mistral',   // FREE tier available
+  'deepseek',  // $0.14/1M tokens (cheapest paid)
+  'openai',    // $0.15/1M tokens
+  'anthropic', // $0.25/1M tokens
   'together'   // $0.88/1M tokens
 ]
 

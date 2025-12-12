@@ -1,686 +1,540 @@
-import { useState, useEffect, useRef } from 'react'
+/**
+ * FlowSphere TutorBot AI
+ * Clean, unified learning interface with multi-AI support
+ * Prioritizes free providers (Groq, Gemini, Mistral)
+ */
+
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
 import {
   Brain,
   GraduationCap,
   BookOpen,
+  Calculator,
   Globe,
-  Lightbulb,
+  Atom,
   PaperPlaneTilt,
   Star,
-  Trophy,
-  Target,
-  Calendar,
-  CheckCircle,
   Fire,
   Sparkle,
   User,
   Robot,
   ArrowLeft,
-  Play
+  Gear,
+  Lightning,
+  X,
+  Plus,
+  Trash,
+  Clock,
+  Target,
+  CheckCircle,
+  Info,
+  CaretDown,
+  Image as ImageIcon,
+  Microphone,
+  Stop
 } from '@phosphor-icons/react'
-import { chatCompletion, getActiveProvider } from '@/lib/ai-provider-config'
+import {
+  smartCompletion,
+  getAIConfig,
+  checkUsageLimits,
+  getTodayUsage,
+  AI_PROVIDERS,
+  getAvailableProviders,
+  type AIProvider
+} from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
+
+// ==========================================
+// Types
+// ==========================================
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
+  provider?: AIProvider
+  tokens?: number
+}
 
 interface Subject {
   id: string
   name: string
   icon: any
   color: string
-  description: string
-  grades: string[]
+  emoji: string
+  systemPrompt: string
 }
 
 interface LearnerProfile {
   name: string
-  age: number
   grade: string
-  selectedSubjects: string[]
   xp: number
-  level: number
   streak: number
-  completedLessons: number
-  completedTests: number
+  lastActive: string
+  totalSessions: number
 }
 
-interface Message {
+interface ChatSession {
   id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: number
+  subjectId: string
+  messages: Message[]
+  createdAt: number
+  updatedAt: number
 }
 
-interface Assignment {
-  id: string
-  subject: string
-  title: string
-  questions: AssignmentQuestion[]
-  dueDate: number
-  completed: boolean
-  score?: number
-}
-
-interface AssignmentQuestion {
-  question: string
-  type: 'multiple_choice' | 'short_answer' | 'true_false'
-  options?: string[]
-  correctAnswer?: string
-  userAnswer?: string
-  isCorrect?: boolean
-}
+// ==========================================
+// Constants
+// ==========================================
 
 const SUBJECTS: Subject[] = [
   {
     id: 'math',
-    name: 'Mathematics',
-    icon: Lightbulb,
-    color: 'bg-blue-500',
-    description: 'Numbers, algebra, geometry, and problem-solving',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
+    name: 'Math',
+    icon: Calculator,
+    color: 'from-blue-500 to-indigo-600',
+    emoji: '🧮',
+    systemPrompt: 'You are a patient math tutor. Explain concepts step-by-step with examples. Use simple language. If the student struggles, try a different approach. Celebrate correct answers!'
   },
   {
     id: 'science',
     name: 'Science',
-    icon: Sparkle,
-    color: 'bg-green-500',
-    description: 'Biology, physics, chemistry, and earth science',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
+    icon: Atom,
+    color: 'from-green-500 to-emerald-600',
+    emoji: '🔬',
+    systemPrompt: 'You are an enthusiastic science tutor. Make complex topics simple and fun. Use real-world examples. Encourage curiosity and questions!'
   },
   {
-    id: 'reading',
-    name: 'Reading & Writing',
+    id: 'english',
+    name: 'English',
     icon: BookOpen,
-    color: 'bg-purple-500',
-    description: 'Comprehension, grammar, vocabulary, and writing skills',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
+    color: 'from-purple-500 to-violet-600',
+    emoji: '📚',
+    systemPrompt: 'You are a helpful English tutor. Focus on reading comprehension, grammar, and writing skills. Be encouraging and provide constructive feedback.'
   },
   {
-    id: 'language',
-    name: 'Language Learning',
+    id: 'languages',
+    name: 'Languages',
     icon: Globe,
-    color: 'bg-orange-500',
-    description: 'Spanish, French, Mandarin, Japanese, and more',
-    grades: ['Beginner', 'Elementary', 'Intermediate', 'Advanced']
+    color: 'from-orange-500 to-amber-600',
+    emoji: '🌍',
+    systemPrompt: 'You are a multilingual language tutor. Help with vocabulary, grammar, and conversation practice. Be patient with pronunciation. Make learning fun!'
   },
   {
     id: 'general',
-    name: 'General Knowledge',
+    name: 'General',
     icon: GraduationCap,
-    color: 'bg-pink-500',
-    description: 'History, geography, current events, and trivia',
-    grades: ['All Ages']
+    color: 'from-pink-500 to-rose-600',
+    emoji: '💡',
+    systemPrompt: 'You are a knowledgeable tutor ready to help with any subject. Adapt your teaching style to the topic. Be helpful, clear, and encouraging.'
   }
 ]
 
-const STORAGE_KEY = 'flowsphere-tutor-profile'
-const MESSAGES_KEY = 'flowsphere-tutor-messages'
-const ASSIGNMENTS_KEY = 'flowsphere-tutor-assignments'
+const STORAGE_KEYS = {
+  PROFILE: 'flowsphere-tutor-profile-v2',
+  SESSIONS: 'flowsphere-tutor-sessions-v2',
+  CURRENT_SESSION: 'flowsphere-tutor-current-session'
+}
+
+// ==========================================
+// Component
+// ==========================================
 
 export function TutorAIView() {
   const deviceType = useDeviceType()
   const isMobile = deviceType === 'mobile'
 
-  const [profile, setProfile] = useKV<LearnerProfile | null>(STORAGE_KEY, null)
-  const [messages, setMessages] = useKV<Message[]>(MESSAGES_KEY, [])
-  const [assignments, setAssignments] = useKV<Assignment[]>(ASSIGNMENTS_KEY, [])
+  // State
+  const [profile, setProfile] = useKV<LearnerProfile | null>(STORAGE_KEYS.PROFILE, null)
+  const [sessions, setSessions] = useKV<ChatSession[]>(STORAGE_KEYS.SESSIONS, [])
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null)
 
-  const [currentView, setCurrentView] = useState<'setup' | 'subjects' | 'chat' | 'assignments' | 'stats'>('setup')
+  const [view, setView] = useState<'home' | 'chat' | 'settings'>('home')
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showSubjectPicker, setShowSubjectPicker] = useState(false)
 
+  // Setup state
   const [setupName, setSetupName] = useState('')
-  const [setupAge, setSetupAge] = useState('')
   const [setupGrade, setSetupGrade] = useState('')
-  const [setupSubjects, setSetupSubjects] = useState<string[]>([])
+
+  // Usage state
+  const [usageInfo, setUsageInfo] = useState({ messages: 0, tokens: 0, percentUsed: 0 })
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
+  // Update usage info
   useEffect(() => {
-    if (profile) {
-      setCurrentView('subjects')
-    }
-  }, [profile])
+    const today = getTodayUsage()
+    const limits = checkUsageLimits()
+    setUsageInfo({
+      messages: today.messages,
+      tokens: today.tokens,
+      percentUsed: Math.round(limits.percentUsed)
+    })
+  }, [currentSession])
 
+  // Auto-scroll to bottom
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [currentSession?.messages])
 
-  const calculateLevel = (xp: number): number => {
-    return Math.floor(xp / 100) + 1
-  }
+  // Update streak on new day
+  useEffect(() => {
+    if (profile) {
+      const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
 
-  const xpToNextLevel = (xp: number): number => {
-    const currentLevel = calculateLevel(xp)
-    return currentLevel * 100 - xp
-  }
+      if (profile.lastActive !== today) {
+        const newStreak = profile.lastActive === yesterday ? profile.streak + 1 : 1
+        setProfile({ ...profile, lastActive: today, streak: newStreak })
+      }
+    }
+  }, [profile])
 
-  const handleSetupComplete = () => {
-    if (!setupName || !setupAge || setupSubjects.length === 0) {
-      toast.error('Please fill in all required fields')
+  // ==========================================
+  // Handlers
+  // ==========================================
+
+  const handleSetup = () => {
+    if (!setupName.trim()) {
+      toast.error('Please enter your name')
       return
     }
 
     const newProfile: LearnerProfile = {
-      name: setupName,
-      age: parseInt(setupAge),
-      grade: setupGrade,
-      selectedSubjects: setupSubjects,
+      name: setupName.trim(),
+      grade: setupGrade.trim() || 'Not specified',
       xp: 0,
-      level: 1,
-      streak: 0,
-      completedLessons: 0,
-      completedTests: 0
+      streak: 1,
+      lastActive: new Date().toISOString().split('T')[0],
+      totalSessions: 0
     }
 
     setProfile(newProfile)
-    setCurrentView('subjects')
     toast.success(`Welcome, ${setupName}! Let's start learning!`)
   }
 
-  const startLesson = (subject: Subject) => {
-    setSelectedSubject(subject)
-    setMessages([])
-    setCurrentView('chat')
+  const startNewChat = (subject: Subject) => {
+    const newSession: ChatSession = {
+      id: `session-${Date.now()}`,
+      subjectId: subject.id,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
 
-    // Send initial greeting
-    sendInitialGreeting(subject)
+    setCurrentSession(newSession)
+    setSelectedSubject(subject)
+    setView('chat')
+    setShowSubjectPicker(false)
+
+    // Send greeting
+    setTimeout(() => sendGreeting(subject, newSession), 100)
   }
 
-  const sendInitialGreeting = async (subject: Subject) => {
+  const sendGreeting = async (subject: Subject, session: ChatSession) => {
     if (!profile) return
-
     setIsLoading(true)
 
-    const systemPrompt = `You are FlowSphere Tutor, a friendly and encouraging AI tutor for children.
-You are teaching ${subject.name} to ${profile.name}, who is ${profile.age} years old in ${profile.grade} grade.
+    const systemMessage = `${subject.systemPrompt}
+
+Student Info:
+- Name: ${profile.name}
+- Grade: ${profile.grade}
 
 Guidelines:
-- Be warm, patient, and encouraging
-- Use age-appropriate language and examples
-- Break complex topics into simple steps
-- Use emojis sparingly to keep it engaging
-- Ask follow-up questions to check understanding
-- Celebrate correct answers with encouragement
-- Gently guide when answers are wrong
 - Keep responses concise (2-3 paragraphs max)
-- Include interactive elements like "Can you try..." or "What do you think..."
-
-Start by greeting ${profile.name} warmly and asking what they'd like to learn about ${subject.name} today, or suggest an interesting topic appropriate for their grade level.`
+- Use age-appropriate language
+- Include follow-up questions
+- Award XP for correct answers (+10 XP)
+- Use ${subject.emoji} emoji occasionally`
 
     try {
-      const result = await chatCompletion([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Start a ${subject.name} lesson for me!` }
-      ])
+      const result = await smartCompletion([
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: `Hi! I want to learn ${subject.name}. Start a lesson for me!` }
+      ], { temperature: 0.8 })
 
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
+      const assistantMsg: Message = {
+        id: `msg-${Date.now()}`,
         role: 'assistant',
         content: result.content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        provider: result.provider,
+        tokens: result.tokens
       }
 
-      setMessages([assistantMessage])
-    } catch (error) {
-      // Provide a fallback greeting when AI is unavailable
-      const fallbackMessage: Message = {
-        id: Date.now().toString(),
+      const updatedSession = {
+        ...session,
+        messages: [assistantMsg],
+        updatedAt: Date.now()
+      }
+
+      setCurrentSession(updatedSession)
+      setSessions(prev => [...(prev || []), updatedSession])
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to connect to AI')
+      // Fallback greeting
+      const fallbackMsg: Message = {
+        id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hi ${profile.name}! 👋 Welcome to your ${subject.name} lesson!\n\nI'm your FlowSphere Tutor. I'm having a small connection issue right now, but let's get started!\n\nWhat would you like to learn about ${subject.name} today? You can ask me any question, or I can suggest some fun topics for your grade level!`,
+        content: `${subject.emoji} Hi ${profile.name}! Welcome to your ${subject.name} lesson!\n\nI'm having a small connection issue, but let's get started. What would you like to learn today?`,
         timestamp: Date.now()
       }
-      setMessages([fallbackMessage])
-      toast.error('AI connection issue. You can still try asking questions.')
-      console.error(error)
+      setCurrentSession({ ...session, messages: [fallbackMsg] })
     } finally {
       setIsLoading(false)
     }
   }
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !profile || !selectedSubject || isLoading) return
+    if (!inputMessage.trim() || !currentSession || !selectedSubject || !profile || isLoading) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    // Check usage limits
+    const limits = checkUsageLimits()
+    if (!limits.canProceed) {
+      toast.error(limits.warning || 'Daily limit reached')
+      return
+    }
+
+    const userMsg: Message = {
+      id: `msg-${Date.now()}`,
       role: 'user',
       content: inputMessage.trim(),
       timestamp: Date.now()
     }
 
-    const currentMessages = [...(messages || []), userMessage]
-    setMessages(currentMessages)
+    const updatedMessages = [...currentSession.messages, userMsg]
+    setCurrentSession({ ...currentSession, messages: updatedMessages })
     setInputMessage('')
     setIsLoading(true)
 
-    const systemPrompt = `You are FlowSphere Tutor, a friendly and encouraging AI tutor for children.
-You are teaching ${selectedSubject.name} to ${profile.name}, who is ${profile.age} years old in ${profile.grade} grade.
+    const systemMessage = `${selectedSubject.systemPrompt}
 
-Guidelines:
-- Be warm, patient, and encouraging
-- Use age-appropriate language
-- Keep responses concise (2-3 paragraphs max)
-- If student seems to understand, offer to move to harder topics
-- If struggling, simplify and try a different approach
-- Award virtual XP for correct answers (say "Great job! +10 XP!")
-- Include follow-up questions to keep engagement`
+Student: ${profile.name} (${profile.grade})
+Keep responses concise. Use ${selectedSubject.emoji} occasionally.`
 
     try {
-      const conversationHistory = currentMessages.slice(-10).map(m => ({
+      // Build conversation history (last 10 messages)
+      const history = updatedMessages.slice(-10).map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content
       }))
 
-      const result = await chatCompletion([
-        { role: 'system', content: systemPrompt },
-        ...conversationHistory
-      ])
+      const result = await smartCompletion([
+        { role: 'system', content: systemMessage },
+        ...history
+      ], { temperature: 0.7 })
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      const assistantMsg: Message = {
+        id: `msg-${Date.now() + 1}`,
         role: 'assistant',
         content: result.content,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        provider: result.provider,
+        tokens: result.tokens
       }
 
-      setMessages([...currentMessages, assistantMessage])
+      const finalMessages = [...updatedMessages, assistantMsg]
+      const finalSession = { ...currentSession, messages: finalMessages, updatedAt: Date.now() }
 
-      // Check for XP awards in response
-      if (result.content.includes('+10 XP') || result.content.includes('Great job') || result.content.includes('Excellent')) {
-        const updatedProfile = {
-          ...profile,
-          xp: (profile.xp || 0) + 10,
-          level: calculateLevel((profile.xp || 0) + 10)
-        }
-        setProfile(updatedProfile)
+      setCurrentSession(finalSession)
+      setSessions(prev => (prev || []).map(s => s.id === finalSession.id ? finalSession : s))
+
+      // Award XP for engagement
+      if (result.content.toLowerCase().includes('correct') ||
+          result.content.toLowerCase().includes('great') ||
+          result.content.includes('+10 XP')) {
+        setProfile(prev => prev ? { ...prev, xp: prev.xp + 10 } : prev)
       }
-    } catch (error) {
-      // Provide a helpful fallback response
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to get response')
+      const errorMsg: Message = {
+        id: `msg-${Date.now() + 1}`,
         role: 'assistant',
-        content: `I'm sorry, I'm having trouble connecting right now. 🙁\n\nPlease check your internet connection and try again. In the meantime, you can:\n• Review what we've discussed so far\n• Write down your question to ask later\n• Try the "Generate Assignment" feature\n\nI'll be back to help you soon!`,
+        content: `I'm having trouble connecting right now. Please try again in a moment. 🔄`,
         timestamp: Date.now()
       }
-      setMessages([...currentMessages, errorMessage])
-      toast.error('Connection issue. Please try again in a moment.')
-      console.error(error)
+      setCurrentSession({ ...currentSession, messages: [...updatedMessages, errorMsg] })
     } finally {
       setIsLoading(false)
+      inputRef.current?.focus()
     }
   }
 
-  const generateDailyAssignment = async () => {
-    if (!profile || profile.selectedSubjects.length === 0) return
-
-    setIsLoading(true)
-
-    const randomSubject = profile.selectedSubjects[Math.floor(Math.random() * profile.selectedSubjects.length)]
-    const subject = SUBJECTS.find(s => s.id === randomSubject)
-
-    if (!subject) {
-      setIsLoading(false)
-      return
-    }
-
-    const systemPrompt = `Generate a daily assignment for a ${profile.age} year old in ${profile.grade} grade studying ${subject.name}.
-
-Return a JSON object with this exact format:
-{
-  "title": "Assignment title",
-  "questions": [
-    {
-      "question": "Question text",
-      "type": "multiple_choice",
-      "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
-      "correctAnswer": "A"
-    },
-    {
-      "question": "True or False: Statement",
-      "type": "true_false",
-      "correctAnswer": "true"
-    },
-    {
-      "question": "Short answer question",
-      "type": "short_answer",
-      "correctAnswer": "expected answer keyword"
-    }
-  ]
-}
-
-Generate exactly 5 questions: 2 multiple choice, 2 true/false, 1 short answer.
-Make them age-appropriate and educational.
-Only respond with valid JSON, no other text.`
-
-    try {
-      const result = await chatCompletion([
-        { role: 'system', content: 'You are an educational content generator. Only respond with valid JSON.' },
-        { role: 'user', content: systemPrompt }
-      ])
-
-      // Parse the JSON response
-      const assignmentData = JSON.parse(result.content)
-
-      const newAssignment: Assignment = {
-        id: Date.now().toString(),
-        subject: subject.id,
-        title: assignmentData.title || `Daily ${subject.name} Assignment`,
-        questions: assignmentData.questions || [],
-        dueDate: Date.now() + 24 * 60 * 60 * 1000, // Due in 24 hours
-        completed: false
-      }
-
-      setAssignments([...(assignments || []), newAssignment])
-      toast.success('New assignment generated!')
-      setCurrentView('assignments')
-    } catch (error) {
-      toast.error('Failed to generate assignment')
-      console.error(error)
-    } finally {
-      setIsLoading(false)
+  const clearChat = () => {
+    if (!currentSession) return
+    setCurrentSession({ ...currentSession, messages: [] })
+    if (selectedSubject) {
+      sendGreeting(selectedSubject, { ...currentSession, messages: [] })
     }
   }
 
-  // Setup View
-  if (!profile || currentView === 'setup') {
+  // ==========================================
+  // Render: Setup Screen
+  // ==========================================
+
+  if (!profile) {
     return (
-      <div className={cn("space-y-6", isMobile && "space-y-4")}>
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-yellow-500" weight="fill" />
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-6 text-white text-center">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                <Brain className="w-8 h-8" weight="fill" />
               </div>
+              <h1 className="text-2xl font-bold">FlowSphere TutorBot</h1>
+              <p className="text-white/80 text-sm mt-1">Your AI learning companion</p>
+            </div>
+
+            <CardContent className="p-6 space-y-4">
               <div>
-                <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
-                  FlowSphere Tutor AI
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Your personal at-home learning companion
-                </p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-xl font-bold mb-6">Let's Set Up Your Learning Profile</h2>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Student Name *</Label>
+                <label className="text-sm font-medium mb-1 block">What's your name?</label>
                 <Input
-                  id="name"
                   placeholder="Enter your name"
                   value={setupName}
                   onChange={(e) => setSetupName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSetup()}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age *</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    min={4}
-                    max={18}
-                    placeholder="Age"
-                    value={setupAge}
-                    onChange={(e) => setSetupAge(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="grade">Grade</Label>
-                  <Input
-                    id="grade"
-                    placeholder="e.g., 5th Grade"
-                    value={setupGrade}
-                    onChange={(e) => setSetupGrade(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Select Subjects to Learn *</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {SUBJECTS.map((subject) => {
-                    const Icon = subject.icon
-                    const isSelected = setupSubjects.includes(subject.id)
-                    return (
-                      <button
-                        key={subject.id}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSetupSubjects(setupSubjects.filter(s => s !== subject.id))
-                          } else {
-                            setSetupSubjects([...setupSubjects, subject.id])
-                          }
-                        }}
-                        className={cn(
-                          "p-3 rounded-lg border text-left transition-all",
-                          isSelected
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", subject.color)}>
-                            <Icon className="w-4 h-4 text-white" weight="fill" />
-                          </div>
-                          <span className="font-medium">{subject.name}</span>
-                          {isSelected && <CheckCircle className="w-4 h-4 text-primary ml-auto" weight="fill" />}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Grade level (optional)</label>
+                <Input
+                  placeholder="e.g., 5th Grade, High School"
+                  value={setupGrade}
+                  onChange={(e) => setSetupGrade(e.target.value)}
+                />
               </div>
 
               <Button
-                onClick={handleSetupComplete}
-                className="w-full mt-4"
-                disabled={!setupName || !setupAge || setupSubjects.length === 0}
+                onClick={handleSetup}
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600"
+                disabled={!setupName.trim()}
               >
-                <Play weight="fill" className="w-4 h-4 mr-2" />
-                Start Learning!
+                <Sparkle className="w-4 h-4 mr-2" weight="fill" />
+                Start Learning
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+
+              <div className="text-center text-xs text-muted-foreground pt-2">
+                <p>Powered by multiple AI providers</p>
+                <p className="text-green-500 font-medium">FREE to use!</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     )
   }
 
-  // Main View with Subject Selection
-  if (currentView === 'subjects') {
+  // ==========================================
+  // Render: Chat View
+  // ==========================================
+
+  if (view === 'chat' && currentSession && selectedSubject) {
+    const SubjectIcon = selectedSubject.icon
+
     return (
-      <div className={cn("space-y-6", isMobile && "space-y-4")}>
-        {/* Header with Profile */}
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                  <User className="w-6 h-6 text-yellow-500" weight="fill" />
-                </div>
-                <div>
-                  <h2 className="font-bold">{profile.name}</h2>
-                  <p className="text-sm text-muted-foreground">Level {profile.level} Learner</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <div className="flex items-center gap-1 text-orange-500">
-                    <Fire className="w-5 h-5" weight="fill" />
-                    <span className="font-bold">{profile.streak}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Streak</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center gap-1 text-yellow-500">
-                    <Star className="w-5 h-5" weight="fill" />
-                    <span className="font-bold">{profile.xp}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">XP</p>
-                </div>
+      <div className="flex flex-col h-[calc(100vh-8rem)] max-h-[800px]">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b mb-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setView('home')}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center", selectedSubject.color)}>
+              <SubjectIcon className="w-5 h-5 text-white" weight="fill" />
+            </div>
+            <div>
+              <h2 className="font-semibold">{selectedSubject.name} Tutor</h2>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Lightning className="w-3 h-3 text-green-500" />
+                  {getAvailableProviders().length} AI{getAvailableProviders().length !== 1 ? 's' : ''} ready
+                </span>
               </div>
             </div>
-            {/* XP Progress */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs mb-1">
-                <span>Level {profile.level}</span>
-                <span>{xpToNextLevel(profile.xp)} XP to Level {profile.level + 1}</span>
-              </div>
-              <Progress value={(profile.xp % 100)} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            className="h-auto py-4"
-            onClick={generateDailyAssignment}
-            disabled={isLoading}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Calendar className="w-6 h-6 text-primary" />
-              <span className="text-sm">Daily Assignment</span>
-            </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-4"
-            onClick={() => setCurrentView('assignments')}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <Target className="w-6 h-6 text-green-500" />
-              <span className="text-sm">My Assignments</span>
-            </div>
-          </Button>
-        </div>
-
-        {/* Subject Cards */}
-        <div>
-          <h3 className="font-bold mb-3">Choose a Subject to Learn</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {SUBJECTS.filter(s => profile.selectedSubjects.includes(s.id)).map((subject) => {
-              const Icon = subject.icon
-              return (
-                <motion.button
-                  key={subject.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => startLesson(subject)}
-                  className="p-4 rounded-xl border bg-card hover:border-primary/50 text-left transition-all"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", subject.color)}>
-                      <Icon className="w-6 h-6 text-white" weight="fill" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold">{subject.name}</h4>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {subject.description}
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-              )
-            })}
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              <Fire className="w-3 h-3 mr-1 text-orange-500" />
+              {profile.streak} day streak
+            </Badge>
+            <Button variant="ghost" size="icon" onClick={clearChat}>
+              <Trash className="w-4 h-4" />
+            </Button>
           </div>
         </div>
-      </div>
-    )
-  }
-
-  // Chat View
-  if (currentView === 'chat' && selectedSubject) {
-    const SubjectIcon = selectedSubject.icon
-    return (
-      <div className="flex flex-col h-[calc(100vh-12rem)]">
-        {/* Chat Header */}
-        <Card className="mb-4">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentView('subjects')}
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", selectedSubject.color)}>
-                <SubjectIcon className="w-5 h-5 text-white" weight="fill" />
-              </div>
-              <div>
-                <h3 className="font-bold">{selectedSubject.name}</h3>
-                <p className="text-xs text-muted-foreground">with FlowSphere Tutor</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
-          <div className="space-y-4">
-            {(messages || []).map((message) => (
+        <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
+          <div className="space-y-4 pb-4">
+            {currentSession.messages.map((msg) => (
               <motion.div
-                key={message.id}
+                key={msg.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "flex gap-3",
-                  message.role === 'user' ? "justify-end" : "justify-start"
-                )}
+                className={cn("flex gap-3", msg.role === 'user' ? 'justify-end' : 'justify-start')}
               >
-                {message.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Robot className="w-4 h-4 text-primary" />
+                {msg.role === 'assistant' && (
+                  <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0", selectedSubject.color)}>
+                    <Robot className="w-4 h-4 text-white" />
                   </div>
                 )}
-                <div
-                  className={cn(
-                    "max-w-[80%] p-3 rounded-2xl",
-                    message.role === 'user'
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted rounded-bl-sm"
+
+                <div className={cn(
+                  "max-w-[80%] rounded-2xl px-4 py-2.5",
+                  msg.role === 'user'
+                    ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-md"
+                    : "bg-muted rounded-bl-md"
+                )}>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.provider && (
+                    <p className={cn("text-[10px] mt-1 opacity-60", msg.role === 'user' ? 'text-white/60' : 'text-muted-foreground')}>
+                      via {AI_PROVIDERS[msg.provider]?.name || msg.provider}
+                    </p>
                   )}
-                >
-                  <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                 </div>
-                {message.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+
+                {msg.role === 'user' && (
+                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
                     <User className="w-4 h-4" />
                   </div>
                 )}
               </motion.div>
             ))}
+
             {isLoading && (
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Robot className="w-4 h-4 text-primary" />
+                <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", selectedSubject.color)}>
+                  <Robot className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-muted p-3 rounded-2xl rounded-bl-sm">
+                <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                   </div>
                 </div>
               </div>
@@ -689,107 +543,193 @@ Only respond with valid JSON, no other text.`
         </ScrollArea>
 
         {/* Input */}
-        <div className="mt-4 flex gap-2">
-          <Input
-            placeholder="Type your answer or ask a question..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={isLoading}
-          />
-          <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
-            <PaperPlaneTilt className="w-5 h-5" weight="fill" />
-          </Button>
+        <div className="pt-3 border-t mt-auto">
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              placeholder="Ask a question..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || !inputMessage.trim()}
+              className="bg-gradient-to-r from-violet-500 to-purple-600"
+            >
+              <PaperPlaneTilt className="w-5 h-5" weight="fill" />
+            </Button>
+          </div>
+
+          {/* Usage indicator */}
+          <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+            <span>{usageInfo.messages} messages today</span>
+            <span className={cn(usageInfo.percentUsed > 80 ? 'text-orange-500' : '')}>
+              {usageInfo.percentUsed}% of daily limit
+            </span>
+          </div>
         </div>
       </div>
     )
   }
 
-  // Assignments View
-  if (currentView === 'assignments') {
-    const pendingAssignments = (assignments || []).filter(a => !a.completed)
-    const completedAssignments = (assignments || []).filter(a => a.completed)
+  // ==========================================
+  // Render: Home View
+  // ==========================================
 
-    return (
-      <div className={cn("space-y-6", isMobile && "space-y-4")}>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setCurrentView('subjects')}>
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                <Target className="w-5 h-5" />
-                My Assignments
-              </CardTitle>
-              <Button onClick={generateDailyAssignment} disabled={isLoading} size="sm">
-                Generate New
-              </Button>
+  return (
+    <div className={cn("space-y-4", isMobile && "space-y-3")}>
+      {/* Header Card */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                <Brain className="w-6 h-6" weight="fill" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg">Hi, {profile.name}!</h1>
+                <p className="text-white/80 text-sm">Ready to learn?</p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {pendingAssignments.length === 0 && completedAssignments.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Target className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>No assignments yet</p>
-                <p className="text-sm">Click "Generate New" to create a daily assignment</p>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <div className="flex items-center gap-1">
+                  <Fire className="w-4 h-4" weight="fill" />
+                  <span className="font-bold">{profile.streak}</span>
+                </div>
+                <p className="text-[10px] text-white/60">streak</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingAssignments.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">Pending</h4>
-                    {pendingAssignments.map((assignment) => {
-                      const subject = SUBJECTS.find(s => s.id === assignment.subject)
-                      const Icon = subject?.icon || BookOpen
-                      return (
-                        <Card key={assignment.id} className="mb-2">
-                          <CardContent className="p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", subject?.color || 'bg-gray-500')}>
-                                <Icon className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{assignment.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {assignment.questions.length} questions
-                                </p>
-                              </div>
-                            </div>
-                            <Button size="sm">Start</Button>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                  </div>
-                )}
-                {completedAssignments.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">Completed</h4>
-                    {completedAssignments.map((assignment) => (
-                      <Card key={assignment.id} className="mb-2 bg-green-500/10">
-                        <CardContent className="p-3 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <CheckCircle className="w-6 h-6 text-green-500" weight="fill" />
-                            <div>
-                              <p className="font-medium">{assignment.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Score: {assignment.score}%
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+              <div className="text-center">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4" weight="fill" />
+                  <span className="font-bold">{profile.xp}</span>
+                </div>
+                <p className="text-[10px] text-white/60">XP</p>
               </div>
-            )}
-          </CardContent>
+            </div>
+          </div>
+
+          {/* XP Progress */}
+          <div className="mt-3">
+            <div className="flex justify-between text-xs mb-1 text-white/80">
+              <span>Level {Math.floor(profile.xp / 100) + 1}</span>
+              <span>{100 - (profile.xp % 100)} XP to next level</span>
+            </div>
+            <Progress value={profile.xp % 100} className="h-1.5 bg-white/20" />
+          </div>
+        </div>
+      </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="p-3 text-center">
+          <Target className="w-5 h-5 mx-auto mb-1 text-green-500" />
+          <p className="text-lg font-bold">{usageInfo.messages}</p>
+          <p className="text-[10px] text-muted-foreground">Today</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <Lightning className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
+          <p className="text-lg font-bold">{getAvailableProviders().length}</p>
+          <p className="text-[10px] text-muted-foreground">AI Ready</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <CheckCircle className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+          <p className="text-lg font-bold">{(sessions || []).length}</p>
+          <p className="text-[10px] text-muted-foreground">Sessions</p>
         </Card>
       </div>
-    )
-  }
 
-  return null
+      {/* Subject Selection */}
+      <div>
+        <h2 className="font-semibold mb-3">Choose a Subject</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {SUBJECTS.map((subject) => {
+            const Icon = subject.icon
+            return (
+              <motion.button
+                key={subject.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => startNewChat(subject)}
+                className="p-4 rounded-xl border bg-card hover:border-primary/50 text-left transition-all"
+              >
+                <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", subject.color)}>
+                  <Icon className="w-5 h-5 text-white" weight="fill" />
+                </div>
+                <h3 className="font-medium text-sm">{subject.name}</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{subject.emoji} Start learning</p>
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* AI Providers Info */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Info className="w-4 h-4 text-blue-500" />
+          <h3 className="font-medium text-sm">Powered by Multiple AI</h3>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.values(AI_PROVIDERS).slice(0, 4).map((provider) => (
+            <Badge
+              key={provider.id}
+              variant="secondary"
+              className={cn("text-[10px]", provider.costPer1kTokens === 0 && "bg-green-500/10 text-green-600")}
+            >
+              {provider.name.split(' ')[0]}
+              {provider.costPer1kTokens === 0 && ' (FREE)'}
+            </Badge>
+          ))}
+          <Badge variant="outline" className="text-[10px]">+{Object.keys(AI_PROVIDERS).length - 4} more</Badge>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Auto-routes to cheapest available AI. Add your own keys in Settings for more options.
+        </p>
+      </Card>
+
+      {/* Recent Sessions */}
+      {(sessions || []).length > 0 && (
+        <div>
+          <h2 className="font-semibold mb-3">Recent Sessions</h2>
+          <div className="space-y-2">
+            {(sessions || []).slice(-3).reverse().map((session) => {
+              const subject = SUBJECTS.find(s => s.id === session.subjectId)
+              if (!subject) return null
+              const Icon = subject.icon
+              return (
+                <Card
+                  key={session.id}
+                  className="p-3 cursor-pointer hover:border-primary/50 transition-all"
+                  onClick={() => {
+                    setCurrentSession(session)
+                    setSelectedSubject(subject)
+                    setView('chat')
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", subject.color)}>
+                      <Icon className="w-4 h-4 text-white" weight="fill" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{subject.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {session.messages[session.messages.length - 1]?.content.slice(0, 50)}...
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(session.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
