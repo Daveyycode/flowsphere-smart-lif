@@ -152,11 +152,13 @@ interface PendingInvite {
 // Constants
 // ==========================================
 
+// IMPORTANT: These keys are COMPLETELY SEPARATE from the Secret Vault (7-tap)
+// Hash-FL uses 'hashfl-' prefix, Secret Vault uses 'vault-' prefix
 const STORAGE_KEYS = {
   USER: 'hashfl-user',
   FILES: 'hashfl-files',
   CONTACTS: 'hashfl-contacts',
-  MESSAGES: 'hashfl-messages',
+  MESSAGES: 'hashfl-messages',  // Hash-FL messages ONLY - separate from vault
   INTRUDER_LOGS: 'hashfl-intruder-logs',
   SETTINGS: 'hashfl-settings',
   INVITES: 'hashfl-pending-invites'
@@ -291,7 +293,7 @@ function generateSalt(): string {
 // Main Component
 // ==========================================
 
-type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'settings' | 'intruder-logs' | 'invite'
+type ViewType = 'lock' | 'setup' | 'home' | 'files' | 'contacts' | 'messages' | 'chat' | 'settings' | 'intruder-logs' | 'invite'
 
 export function HashFLPrivacy() {
   const deviceType = useDeviceType()
@@ -305,6 +307,9 @@ export function HashFLPrivacy() {
   const [settings, setSettings] = useKV<HashFLSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   const [pendingInvites, setPendingInvites] = useKV<PendingInvite[]>(STORAGE_KEYS.INVITES, [])
 
+  // Hash-FL Messages - SEPARATE storage from Secret Vault
+  const [messages, setMessages] = useKV<SecureMessage[]>(STORAGE_KEYS.MESSAGES, [])
+
   const [currentView, setCurrentView] = useState<ViewType>('lock')
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [pinInput, setPinInput] = useState('')
@@ -314,6 +319,8 @@ export function HashFLPrivacy() {
   const [currentInviteCode, setCurrentInviteCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [contactName, setContactName] = useState('')
+  const [selectedContact, setSelectedContact] = useState<SecureContact | null>(null)
+  const [messageInput, setMessageInput] = useState('')
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -646,6 +653,70 @@ export function HashFLPrivacy() {
   }
 
   // ==========================================
+  // Messaging System (Hash-FL ONLY - Separate from Vault)
+  // ==========================================
+
+  const getDecryptedMessages = async (contactId: string): Promise<SecureMessage[]> => {
+    const contactMessages = (messages || []).filter(m => m.contactId === contactId)
+    const decrypted: SecureMessage[] = []
+
+    for (const msg of contactMessages) {
+      try {
+        const decryptedContent = await decryptData(msg.content, sessionPin.current)
+        decrypted.push({ ...msg, content: decryptedContent })
+      } catch {
+        decrypted.push({ ...msg, content: '[Unable to decrypt]' })
+      }
+    }
+
+    return decrypted.sort((a, b) => a.timestamp - b.timestamp)
+  }
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedContact || !sessionPin.current) return
+
+    try {
+      const encryptedContent = await encryptData(messageInput.trim(), sessionPin.current)
+
+      const newMessage: SecureMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        contactId: selectedContact.id,
+        content: encryptedContent,
+        timestamp: Date.now(),
+        isOutgoing: true,
+        isRead: true,
+        isDelivered: true
+      }
+
+      setMessages(prev => [...(prev || []), newMessage])
+
+      // Update contact's last message time
+      setContacts(prev => (prev || []).map(c =>
+        c.id === selectedContact.id ? { ...c, lastMessage: Date.now() } : c
+      ))
+
+      setMessageInput('')
+      toast.success('Message sent securely')
+
+      // Scroll to bottom
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      }, 100)
+    } catch {
+      toast.error('Failed to encrypt message')
+    }
+  }
+
+  const [decryptedMessages, setDecryptedMessages] = useState<SecureMessage[]>([])
+
+  // Load decrypted messages when chat opens
+  useEffect(() => {
+    if (currentView === 'chat' && selectedContact) {
+      getDecryptedMessages(selectedContact.id).then(setDecryptedMessages)
+    }
+  }, [currentView, selectedContact, messages])
+
+  // ==========================================
   // Render Functions
   // ==========================================
 
@@ -800,6 +871,13 @@ export function HashFLPrivacy() {
               <p className="text-xs text-muted-foreground">Secure Contacts</p>
             </CardContent>
           </Card>
+          <Card className="bg-cyan-500/10 border-cyan-500/20">
+            <CardContent className="p-4 text-center">
+              <Chat className="w-8 h-8 mx-auto mb-2 text-cyan-500" />
+              <p className="text-2xl font-bold">{(messages || []).length}</p>
+              <p className="text-xs text-muted-foreground">Messages</p>
+            </CardContent>
+          </Card>
           <Card className="bg-orange-500/10 border-orange-500/20">
             <CardContent className="p-4 text-center">
               <ShieldWarning className="w-8 h-8 mx-auto mb-2 text-orange-500" />
@@ -818,7 +896,7 @@ export function HashFLPrivacy() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col gap-2 border-emerald-500/30 hover:bg-emerald-500/10"
@@ -837,6 +915,14 @@ export function HashFLPrivacy() {
               </Button>
               <Button
                 variant="outline"
+                className="h-auto py-4 flex flex-col gap-2 border-cyan-500/30 hover:bg-cyan-500/10"
+                onClick={() => setCurrentView('messages')}
+              >
+                <Chat className="w-6 h-6 text-cyan-500" />
+                <span>Messages</span>
+              </Button>
+              <Button
+                variant="outline"
                 className="h-auto py-4 flex flex-col gap-2 border-teal-500/30 hover:bg-teal-500/10"
                 onClick={() => setCurrentView('contacts')}
               >
@@ -845,14 +931,14 @@ export function HashFLPrivacy() {
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex flex-col gap-2 border-cyan-500/30 hover:bg-cyan-500/10"
+                className="h-auto py-4 flex flex-col gap-2 border-purple-500/30 hover:bg-purple-500/10"
                 onClick={() => {
                   createInvite()
                   setCurrentView('invite')
                 }}
               >
-                <QrCode className="w-6 h-6 text-cyan-500" />
-                <span>Invite Contact</span>
+                <QrCode className="w-6 h-6 text-purple-500" />
+                <span>Invite</span>
               </Button>
             </div>
           </CardContent>
@@ -1130,6 +1216,179 @@ export function HashFLPrivacy() {
     </div>
   )
 
+  const renderMessages = () => {
+    // Get contacts with messages, sorted by last message
+    const contactsWithMessages = (contacts || [])
+      .map(contact => {
+        const contactMsgs = (messages || []).filter(m => m.contactId === contact.id)
+        const lastMsg = contactMsgs.sort((a, b) => b.timestamp - a.timestamp)[0]
+        return { ...contact, lastMessageData: lastMsg, messageCount: contactMsgs.length }
+      })
+      .sort((a, b) => (b.lastMessage || 0) - (a.lastMessage || 0))
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => setCurrentView('home')} className="text-emerald-500">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button onClick={() => setCurrentView('contacts')} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+            <Plus className="w-4 h-4 mr-2" />
+            New Chat
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {contactsWithMessages.map((contact) => (
+            <Card
+              key={contact.id}
+              className="border-emerald-500/20 cursor-pointer hover:bg-emerald-500/5 transition-colors"
+              onClick={() => {
+                setSelectedContact(contact)
+                setCurrentView('chat')
+              }}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+                    {contact.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">{contact.name}</h3>
+                      {contact.lastMessage && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(contact.lastMessage).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {contact.messageCount > 0 ? `${contact.messageCount} messages` : 'No messages yet'}
+                    </p>
+                  </div>
+                  <CaretRight className="w-5 h-5 text-emerald-500" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {(!contacts || contacts.length === 0) && (
+          <Card className="p-8 text-center border-emerald-500/20">
+            <Chat className="w-12 h-12 mx-auto mb-4 text-emerald-500/50" />
+            <p className="text-muted-foreground">No conversations yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Add contacts to start messaging</p>
+            <Button
+              className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600"
+              onClick={() => { createInvite(); setCurrentView('invite') }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Invite Someone
+            </Button>
+          </Card>
+        )}
+      </div>
+    )
+  }
+
+  const renderChat = () => {
+    if (!selectedContact) return null
+
+    return (
+      <div className="flex flex-col h-[calc(100vh-200px)] min-h-[400px]">
+        {/* Chat Header */}
+        <div className="flex items-center gap-3 pb-4 border-b border-emerald-500/20">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedContact(null)
+              setCurrentView('messages')
+            }}
+            className="text-emerald-500"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">
+            {selectedContact.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold">{selectedContact.name}</h3>
+            <p className="text-xs text-emerald-500 flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              End-to-end encrypted
+            </p>
+          </div>
+          <Button variant="ghost" size="icon">
+            <DotsThree className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Messages */}
+        <ScrollArea ref={scrollRef} className="flex-1 py-4">
+          <div className="space-y-3">
+            {decryptedMessages.length === 0 ? (
+              <div className="text-center py-12">
+                <Lock className="w-12 h-12 mx-auto mb-4 text-emerald-500/30" />
+                <p className="text-muted-foreground">No messages yet</p>
+                <p className="text-sm text-muted-foreground">Send a message to start the conversation</p>
+              </div>
+            ) : (
+              decryptedMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    "flex",
+                    msg.isOutgoing ? "justify-end" : "justify-start"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "max-w-[75%] px-4 py-2 rounded-2xl",
+                      msg.isOutgoing
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-md"
+                        : "bg-muted rounded-bl-md"
+                    )}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                    <p className={cn(
+                      "text-xs mt-1",
+                      msg.isOutgoing ? "text-emerald-100" : "text-muted-foreground"
+                    )}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {msg.isOutgoing && msg.isDelivered && (
+                        <CheckCircle className="w-3 h-3 inline ml-1" weight="fill" />
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Message Input */}
+        <div className="flex gap-2 pt-4 border-t border-emerald-500/20">
+          <Input
+            placeholder="Type a secure message..."
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+            className="flex-1 bg-emerald-500/5 border-emerald-500/20"
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={!messageInput.trim()}
+            className="bg-gradient-to-r from-emerald-500 to-teal-600"
+          >
+            <PaperPlaneTilt className="w-5 h-5" weight="fill" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const renderFiles = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -1372,6 +1631,7 @@ export function HashFLPrivacy() {
   const tabs = [
     { id: 'home' as const, label: 'Home', icon: Shield },
     { id: 'files' as const, label: 'Files', icon: FolderLock },
+    { id: 'messages' as const, label: 'Messages', icon: Chat },
     { id: 'contacts' as const, label: 'Contacts', icon: Users },
     { id: 'settings' as const, label: 'Settings', icon: Gear }
   ]
@@ -1450,6 +1710,8 @@ export function HashFLPrivacy() {
         >
           {currentView === 'home' && renderHome()}
           {currentView === 'files' && renderFiles()}
+          {currentView === 'messages' && renderMessages()}
+          {currentView === 'chat' && renderChat()}
           {currentView === 'contacts' && renderContacts()}
           {currentView === 'invite' && renderInvite()}
           {currentView === 'settings' && renderSettings()}
