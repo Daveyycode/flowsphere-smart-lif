@@ -89,8 +89,7 @@ export class BiometricAuth {
         return { available: true, types }
       }
 
-      return { available: false, types: []
-}
+      return { available: false, types: [] }
     } catch (error) {
       logger.error('Error checking biometric availability:', error)
       return { available: false, types: [] }
@@ -107,30 +106,30 @@ export class BiometricAuth {
       crypto.getRandomValues(challenge)
 
       // Create credentials
-      const credential = await navigator.credentials.create({
+      const credential = (await navigator.credentials.create({
         publicKey: {
           challenge,
           rp: {
             name: 'FlowSphere',
-            id: window.location.hostname
+            id: window.location.hostname,
           },
           user: {
             id: new TextEncoder().encode(userId),
             name: userName,
-            displayName: userName
+            displayName: userName,
           },
           pubKeyCredParams: [
-            { alg: -7, type: 'public-key' },  // ES256
-            { alg: -257, type: 'public-key' }  // RS256
+            { alg: -7, type: 'public-key' }, // ES256
+            { alg: -257, type: 'public-key' }, // RS256
           ],
           authenticatorSelection: {
             authenticatorAttachment: 'platform',
-            userVerification: 'required'
+            userVerification: 'required',
           },
           timeout: 60000,
-          attestation: 'none'
-        }
-      }) as PublicKeyCredential
+          attestation: 'none',
+        },
+      })) as PublicKeyCredential
 
       if (credential) {
         // Store credential ID for future authentication
@@ -156,7 +155,7 @@ export class BiometricAuth {
           success: false,
           method: null,
           timestamp: new Date().toISOString(),
-          error: 'No biometric credentials registered'
+          error: 'No biometric credentials registered',
         }
       }
 
@@ -168,13 +167,15 @@ export class BiometricAuth {
       const credential = await navigator.credentials.get({
         publicKey: {
           challenge,
-          allowCredentials: [{
-            id: Uint8Array.from(atob(credentialId), c => c.charCodeAt(0)),
-            type: 'public-key'
-          }],
+          allowCredentials: [
+            {
+              id: Uint8Array.from(atob(credentialId), c => c.charCodeAt(0)),
+              type: 'public-key',
+            },
+          ],
           timeout: 60000,
-          userVerification: 'required'
-        }
+          userVerification: 'required',
+        },
       })
 
       if (credential) {
@@ -190,7 +191,7 @@ export class BiometricAuth {
         return {
           success: true,
           method,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }
       }
 
@@ -198,7 +199,7 @@ export class BiometricAuth {
         success: false,
         method: null,
         timestamp: new Date().toISOString(),
-        error: 'Authentication failed'
+        error: 'Authentication failed',
       }
     } catch (error) {
       logger.error('Error during biometric authentication:', error)
@@ -206,7 +207,7 @@ export class BiometricAuth {
         success: false,
         method: null,
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Authentication failed'
+        error: error instanceof Error ? error.message : 'Authentication failed',
       }
     }
   }
@@ -244,13 +245,13 @@ export class PatternAccessManager {
       element,
       clicks: [],
       threshold: requiredClicks,
-      active: true
+      active: true,
     }
 
     this.detectors.set(elementId, detector)
 
     // Add click listener
-    element.addEventListener('click', (event) => {
+    element.addEventListener('click', event => {
       if (!detector.active) return
 
       const now = Date.now()
@@ -308,11 +309,7 @@ export class PatternAccessManager {
   /**
    * Setup sequence pattern (specific order of elements)
    */
-  setupSequencePattern(
-    elementIds: string[],
-    timeWindow: number,
-    onSuccess: () => void
-  ): void {
+  setupSequencePattern(elementIds: string[], timeWindow: number, onSuccess: () => void): void {
     let currentIndex = 0
     let lastClickTime = 0
 
@@ -420,12 +417,12 @@ export class VaultSecurityManager {
       patternConfig: {
         targetElement: 'family-button',
         clickCount: 5,
-        timeWindow: 2000 // 2 seconds
+        timeWindow: 2000, // 2 seconds
       },
       hiddenAccess: {
         enabled: false,
         location: 'footer',
-        visible: false
+        visible: false,
       },
       fallbackPIN: null, // Legacy (deprecated)
       fallbackPINHash: null,
@@ -434,7 +431,7 @@ export class VaultSecurityManager {
       lastAccess: new Date().toISOString(),
       failedAttempts: 0,
       maxFailedAttempts: 5,
-      lockoutDuration: 30
+      lockoutDuration: 30,
     }
   }
 
@@ -500,11 +497,7 @@ export class VaultSecurityManager {
         onSuccess
       )
     } else if (patternType === 'sequence' && config.sequence) {
-      this.patternManager.setupSequencePattern(
-        config.sequence,
-        config.timeWindow,
-        onSuccess
-      )
+      this.patternManager.setupSequencePattern(config.sequence, config.timeWindow, onSuccess)
     }
   }
 
@@ -553,7 +546,7 @@ export class VaultSecurityManager {
         success: false,
         method: null,
         timestamp: new Date().toISOString(),
-        error: 'Too many failed attempts. Try again later.'
+        error: 'Too many failed attempts. Try again later.',
       }
     }
 
@@ -573,7 +566,7 @@ export class VaultSecurityManager {
       success: false,
       method: null,
       timestamp: new Date().toISOString(),
-      error: 'Authentication required'
+      error: 'Authentication required',
     }
   }
 
@@ -588,19 +581,23 @@ export class VaultSecurityManager {
         success: false,
         method: null,
         timestamp: new Date().toISOString(),
-        error: 'Too many failed attempts. Try again later.'
+        error: 'Too many failed attempts. Try again later.',
       }
     }
 
     // Check new hashed PIN first
     if (settings.fallbackPINHash && settings.fallbackPINSalt) {
-      const isValid = await this.verifyPINSecure(pin, settings.fallbackPINHash, settings.fallbackPINSalt)
+      const isValid = await this.verifyPINSecure(
+        pin,
+        settings.fallbackPINHash,
+        settings.fallbackPINSalt
+      )
       if (isValid) {
         this.onSuccessfulAuth()
         return {
           success: true,
           method: 'pin',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }
       }
     }
@@ -613,7 +610,7 @@ export class VaultSecurityManager {
       return {
         success: true,
         method: 'pin',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     }
 
@@ -622,7 +619,7 @@ export class VaultSecurityManager {
       success: false,
       method: 'pin',
       timestamp: new Date().toISOString(),
-      error: 'Incorrect PIN'
+      error: 'Incorrect PIN',
     }
   }
 
@@ -645,7 +642,7 @@ export class VaultSecurityManager {
           name: 'PBKDF2',
           salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)),
           iterations: 310000, // OWASP 2023 recommendation
-          hash: 'SHA-256'
+          hash: 'SHA-256',
         },
         keyMaterial,
         256
@@ -678,20 +675,16 @@ export class VaultSecurityManager {
 
     // Hash the PIN
     const encoder = new TextEncoder()
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(pin),
-      'PBKDF2',
-      false,
-      ['deriveBits']
-    )
+    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(pin), 'PBKDF2', false, [
+      'deriveBits',
+    ])
 
     const hashBuffer = await crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
         salt: salt,
         iterations: 310000,
-        hash: 'SHA-256'
+        hash: 'SHA-256',
       },
       keyMaterial,
       256
@@ -763,9 +756,12 @@ export class VaultSecurityManager {
     // Lock if max attempts exceeded
     if (settings.failedAttempts >= settings.maxFailedAttempts) {
       const lockUntil = new Date(Date.now() + settings.lockoutDuration * 60 * 1000)
-      localStorage.setItem(this.lockKey, JSON.stringify({
-        until: lockUntil.toISOString()
-      }))
+      localStorage.setItem(
+        this.lockKey,
+        JSON.stringify({
+          until: lockUntil.toISOString(),
+        })
+      )
     }
   }
 

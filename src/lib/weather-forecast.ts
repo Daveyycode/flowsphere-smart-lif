@@ -243,7 +243,9 @@ export class WeatherForecastManager {
     }
 
     if (weatherData.alerts && weatherData.alerts.length > 0) {
-      const severeAlert = weatherData.alerts.find(a => a.severity === 'severe' || a.severity === 'extreme')
+      const severeAlert = weatherData.alerts.find(
+        a => a.severity === 'severe' || a.severity === 'extreme'
+      )
       if (severeAlert) {
         impact = 'severe'
         message = severeAlert.title
@@ -274,15 +276,15 @@ export class WeatherForecastManager {
       }
 
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const location = {
             lat: position.coords.latitude,
-            lon: position.coords.longitude
+            lon: position.coords.longitude,
           }
           this.saveLocation(location)
           resolve(location)
         },
-        (error) => {
+        error => {
           console.error('Geolocation error:', error)
           // Fallback to default location (San Francisco)
           resolve({ lat: 37.7749, lon: -122.4194 })
@@ -312,15 +314,18 @@ export class WeatherForecastManager {
   /**
    * Geocode location string to coordinates
    */
-  private async geocodeLocation(city: string, country?: string): Promise<{ lat: number; lon: number } | null> {
+  private async geocodeLocation(
+    city: string,
+    country?: string
+  ): Promise<{ lat: number; lon: number } | null> {
     // In production, use geocoding API
     // For now, return mock coordinates
     const locations: Record<string, { lat: number; lon: number }> = {
       'san francisco': { lat: 37.7749, lon: -122.4194 },
-      'new york': { lat: 40.7128, lon: -74.0060 },
-      'london': { lat: 51.5074, lon: -0.1278 },
-      'tokyo': { lat: 35.6762, lon: 139.6503 },
-      'paris': { lat: 48.8566, lon: 2.3522 }
+      'new york': { lat: 40.7128, lon: -74.006 },
+      london: { lat: 51.5074, lon: -0.1278 },
+      tokyo: { lat: 35.6762, lon: 139.6503 },
+      paris: { lat: 48.8566, lon: 2.3522 },
     }
 
     return locations[city.toLowerCase()] || null
@@ -341,11 +346,11 @@ export class WeatherForecastManager {
       const forecastHour = (hour + i) % 24
       return {
         time: `${forecastHour.toString().padStart(2, '0')}:00`,
-        temperature: 15 + Math.sin((forecastHour - 6) / 12 * Math.PI) * 8,
+        temperature: 15 + Math.sin(((forecastHour - 6) / 12) * Math.PI) * 8,
         condition: conditions[forecastHour % conditions.length],
         icon: this.getWeatherIcon(conditions[forecastHour % conditions.length]),
         precipitation: forecastHour > 12 && forecastHour < 18 ? 60 : 20,
-        windSpeed: 10 + Math.random() * 15
+        windSpeed: 10 + Math.random() * 15,
       }
     })
 
@@ -362,7 +367,7 @@ export class WeatherForecastManager {
         icon: this.getWeatherIcon(conditions[i % conditions.length]),
         precipitation: i % 3 === 0 ? 70 : 30,
         sunrise: '06:30',
-        sunset: '18:45'
+        sunset: '18:45',
       }
     })
 
@@ -370,28 +375,33 @@ export class WeatherForecastManager {
       location: {
         city: 'San Francisco',
         country: 'US',
-        coordinates: { lat, lon }
+        coordinates: { lat, lon },
       },
       current: {
         temperature: 18,
         feelsLike: 17,
         condition,
-        description: condition === 'Clear' ? 'Clear sky' : condition === 'Clouds' ? 'Scattered clouds' : 'Light rain',
+        description:
+          condition === 'Clear'
+            ? 'Clear sky'
+            : condition === 'Clouds'
+              ? 'Scattered clouds'
+              : 'Light rain',
         icon: this.getWeatherIcon(condition),
         humidity: 65,
         windSpeed: 15,
         pressure: 1013,
         visibility: 10,
         uvIndex: hour > 10 && hour < 16 ? 7 : 2,
-        cloudCoverage: condition === 'Clouds' ? 75 : 25
+        cloudCoverage: condition === 'Clouds' ? 75 : 25,
       },
       forecast: {
         hourly: hourlyForecast,
-        daily: dailyForecast
+        daily: dailyForecast,
       },
       timestamp: now.toISOString(),
       sunrise: '06:30',
-      sunset: '18:45'
+      sunset: '18:45',
     }
   }
 
@@ -400,15 +410,15 @@ export class WeatherForecastManager {
    */
   private getWeatherIcon(condition: string): string {
     const icons: Record<string, string> = {
-      'Clear': '☀️',
-      'Clouds': '☁️',
+      Clear: '☀️',
+      Clouds: '☁️',
       'Partly Cloudy': '⛅',
-      'Rain': '🌧️',
-      'Drizzle': '🌦️',
-      'Thunderstorm': '⛈️',
-      'Snow': '❄️',
-      'Mist': '🌫️',
-      'Fog': '🌫️'
+      Rain: '🌧️',
+      Drizzle: '🌦️',
+      Thunderstorm: '⛈️',
+      Snow: '❄️',
+      Mist: '🌫️',
+      Fog: '🌫️',
     }
 
     return icons[condition] || '🌤️'
@@ -420,7 +430,7 @@ export class WeatherForecastManager {
   private cacheWeather(data: WeatherData): void {
     const cache = {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
     localStorage.setItem(this.cacheKey, JSON.stringify(cache))
   }

@@ -104,7 +104,7 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     messageSpacing: 'normal',
     showTimestamps: true,
     showReadReceipts: true,
-    gradientEnabled: false
+    gradientEnabled: false,
   },
   ocean: {
     primaryColor: '#0077BE',
@@ -119,7 +119,7 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     showTimestamps: true,
     showReadReceipts: true,
     gradientEnabled: true,
-    gradientColors: ['#0077BE', '#00B4D8']
+    gradientColors: ['#0077BE', '#00B4D8'],
   },
   sunset: {
     primaryColor: '#FF6B6B',
@@ -134,7 +134,7 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     showTimestamps: true,
     showReadReceipts: true,
     gradientEnabled: true,
-    gradientColors: ['#FF6B6B', '#FFD93D']
+    gradientColors: ['#FF6B6B', '#FFD93D'],
   },
   forest: {
     primaryColor: '#2D6A4F',
@@ -148,7 +148,7 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     messageSpacing: 'normal',
     showTimestamps: true,
     showReadReceipts: true,
-    gradientEnabled: false
+    gradientEnabled: false,
   },
   midnight: {
     primaryColor: '#6C5CE7',
@@ -163,7 +163,7 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     showTimestamps: true,
     showReadReceipts: true,
     gradientEnabled: true,
-    gradientColors: ['#6C5CE7', '#A29BFE']
+    gradientColors: ['#6C5CE7', '#A29BFE'],
   },
   minimal: {
     primaryColor: '#000000',
@@ -177,8 +177,8 @@ export const THEME_TEMPLATES: Record<string, ContactTheme> = {
     messageSpacing: 'compact',
     showTimestamps: false,
     showReadReceipts: false,
-    gradientEnabled: false
-  }
+    gradientEnabled: false,
+  },
 }
 
 /**
@@ -221,19 +221,19 @@ export class MessengerSettingsManager {
         photos: true,
         videos: false,
         files: false,
-        onWifiOnly: true
+        onWifiOnly: true,
       },
       privacy: {
         onlineStatus: true,
         lastSeen: true,
         profilePhoto: true,
-        readReceipts: true
+        readReceipts: true,
       },
       dataUsage: {
         autoPlayVideos: false,
         autoPlayGIFs: true,
-        lowDataMode: false
-      }
+        lowDataMode: false,
+      },
     }
   }
 
@@ -316,21 +316,21 @@ export class MessengerSettingsManager {
         notificationSettings: {
           muted: false,
           vibration: true,
-          showPreview: true
+          showPreview: true,
         },
         chatBehavior: {
           quickReplies: [],
-          scheduledMessages: []
+          scheduledMessages: [],
         },
         privacy: {
           hideTypingIndicator: false,
           hideReadReceipts: false,
-          hideLastSeen: false
+          hideLastSeen: false,
         },
         customization: {
           messageEffects: true,
-          stickers: []
-        }
+          stickers: [],
+        },
       }
     }
 
@@ -355,7 +355,10 @@ export class MessengerSettingsManager {
   /**
    * Apply theme template
    */
-  applyThemeTemplate(contactId: string, templateName: keyof typeof THEME_TEMPLATES): ConversationSettings {
+  applyThemeTemplate(
+    contactId: string,
+    templateName: keyof typeof THEME_TEMPLATES
+  ): ConversationSettings {
     const theme = THEME_TEMPLATES[templateName]
     if (!theme) {
       throw new Error(`Theme template "${templateName}" not found`)
@@ -383,8 +386,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       customization: {
         ...(this.getConversationSettings(contactId)?.customization || {}),
-        chatWallpaper: backgroundUrl
-      } as any
+        chatWallpaper: backgroundUrl,
+      } as any,
     })
   }
 
@@ -399,8 +402,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       notificationSettings: {
         ...(settings?.notificationSettings || {}),
-        muted: newMuted
-      } as any
+        muted: newMuted,
+      } as any,
     })
   }
 
@@ -418,8 +421,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       chatBehavior: {
         ...(settings?.chatBehavior || {}),
-        quickReplies
-      } as any
+        quickReplies,
+      } as any,
     })
   }
 
@@ -433,8 +436,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       chatBehavior: {
         ...(settings?.chatBehavior || {}),
-        quickReplies
-      } as any
+        quickReplies,
+      } as any,
     })
   }
 
@@ -455,7 +458,7 @@ export class MessengerSettingsManager {
       message,
       scheduledTime,
       recurring,
-      enabled: true
+      enabled: true,
     }
 
     scheduledMessages.push(newMessage)
@@ -463,8 +466,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       chatBehavior: {
         ...(settings?.chatBehavior || {}),
-        scheduledMessages
-      } as any
+        scheduledMessages,
+      } as any,
     })
   }
 
@@ -480,8 +483,8 @@ export class MessengerSettingsManager {
     return this.updateConversationSettings(contactId, {
       chatBehavior: {
         ...(settings?.chatBehavior || {}),
-        scheduledMessages
-      } as any
+        scheduledMessages,
+      } as any,
     })
   }
 
@@ -489,10 +492,14 @@ export class MessengerSettingsManager {
    * Export settings
    */
   exportSettings(): string {
-    return JSON.stringify({
-      global: this.getGlobalSettings(),
-      conversations: this.getAllConversationSettings()
-    }, null, 2)
+    return JSON.stringify(
+      {
+        global: this.getGlobalSettings(),
+        conversations: this.getAllConversationSettings(),
+      },
+      null,
+      2
+    )
   }
 
   /**
@@ -516,7 +523,7 @@ export class MessengerSettingsManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Import failed'
+        error: error instanceof Error ? error.message : 'Import failed',
       }
     }
   }
@@ -527,9 +534,7 @@ export class MessengerSettingsManager {
   resetToDefaults(contactId?: string): void {
     if (contactId) {
       // Reset specific conversation
-      const allSettings = this.getAllConversationSettings().filter(
-        s => s.contactId !== contactId
-      )
+      const allSettings = this.getAllConversationSettings().filter(s => s.contactId !== contactId)
       localStorage.setItem(this.conversationSettingsKey, JSON.stringify(allSettings))
     } else {
       // Reset all
@@ -550,13 +555,20 @@ export class MessengerSettingsManager {
       '--chat-accent-color': theme.accentColor,
       '--chat-bg-color': theme.backgroundColor,
       '--chat-text-color': theme.textColor,
-      '--chat-font-size': theme.fontSize === 'small' ? '14px' : theme.fontSize === 'large' ? '18px' : '16px',
+      '--chat-font-size':
+        theme.fontSize === 'small' ? '14px' : theme.fontSize === 'large' ? '18px' : '16px',
       '--chat-font-family': theme.fontFamily,
-      '--chat-message-spacing': theme.messageSpacing === 'compact' ? '4px' : theme.messageSpacing === 'relaxed' ? '12px' : '8px'
+      '--chat-message-spacing':
+        theme.messageSpacing === 'compact'
+          ? '4px'
+          : theme.messageSpacing === 'relaxed'
+            ? '12px'
+            : '8px',
     }
 
     if (theme.gradientEnabled && theme.gradientColors) {
-      css['--chat-gradient'] = `linear-gradient(135deg, ${theme.gradientColors[0]}, ${theme.gradientColors[1]})`
+      css['--chat-gradient'] =
+        `linear-gradient(135deg, ${theme.gradientColors[0]}, ${theme.gradientColors[1]})`
     }
 
     if (settings?.customization?.chatWallpaper) {

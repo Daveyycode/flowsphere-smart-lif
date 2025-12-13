@@ -56,23 +56,21 @@ export async function getRoute(
     const geometry = route.geometry
 
     // Convert GeoJSON coordinates to our format (OSRM returns [lng, lat])
-    const polyline: RouteCoordinate[] = geometry.coordinates.map(
-      (coord: [number, number]) => ({
-        lat: coord[1],
-        lng: coord[0],
-      })
-    )
+    const polyline: RouteCoordinate[] = geometry.coordinates.map((coord: [number, number]) => ({
+      lat: coord[1],
+      lng: coord[0],
+    }))
 
     // Format distance and duration
     const distanceKm = route.distance / 1000
-    const distanceText = distanceKm >= 1
-      ? `${distanceKm.toFixed(1)} km`
-      : `${Math.round(route.distance)} m`
+    const distanceText =
+      distanceKm >= 1 ? `${distanceKm.toFixed(1)} km` : `${Math.round(route.distance)} m`
 
     const durationMinutes = Math.round(route.duration / 60)
-    const durationText = durationMinutes >= 60
-      ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
-      : `${durationMinutes} min`
+    const durationText =
+      durationMinutes >= 60
+        ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
+        : `${durationMinutes} min`
 
     // Parse steps if available
     const steps: RouteStep[] = []
@@ -132,14 +130,14 @@ export async function getAlternativeRoutes(
       )
 
       const distanceKm = route.distance / 1000
-      const distanceText = distanceKm >= 1
-        ? `${distanceKm.toFixed(1)} km`
-        : `${Math.round(route.distance)} m`
+      const distanceText =
+        distanceKm >= 1 ? `${distanceKm.toFixed(1)} km` : `${Math.round(route.distance)} m`
 
       const durationMinutes = Math.round(route.duration / 60)
-      const durationText = durationMinutes >= 60
-        ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
-        : `${durationMinutes} min`
+      const durationText =
+        durationMinutes >= 60
+          ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
+          : `${durationMinutes} min`
 
       return {
         distance: route.distance,

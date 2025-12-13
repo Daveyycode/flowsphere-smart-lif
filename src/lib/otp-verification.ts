@@ -72,7 +72,7 @@ export class OTPVerificationManager {
     expiryMinutes: 10,
     maxAttempts: 5,
     resendCooldown: 60,
-    emailProvider: 'mock'
+    emailProvider: 'mock',
   }
 
   /**
@@ -100,7 +100,7 @@ export class OTPVerificationManager {
           success: false,
           message: 'Invalid email address',
           email: data.email,
-          error: 'INVALID_EMAIL'
+          error: 'INVALID_EMAIL',
         }
       }
 
@@ -110,7 +110,7 @@ export class OTPVerificationManager {
           success: false,
           message: 'Email already registered',
           email: data.email,
-          error: 'EMAIL_EXISTS'
+          error: 'EMAIL_EXISTS',
         }
       }
 
@@ -121,7 +121,7 @@ export class OTPVerificationManager {
           success: false,
           message: `Please wait ${canSend.waitSeconds}s before requesting another code`,
           email: data.email,
-          error: 'RATE_LIMITED'
+          error: 'RATE_LIMITED',
         }
       }
 
@@ -135,7 +135,7 @@ export class OTPVerificationManager {
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + this.config.expiryMinutes * 60 * 1000).toISOString(),
         attempts: 0,
-        verified: false
+        verified: false,
       }
 
       // Save OTP record
@@ -144,7 +144,7 @@ export class OTPVerificationManager {
       // Save registration data (without password in plain text - hash it first)
       this.savePendingRegistration(data.email, {
         ...data,
-        password: await this.hashPassword(data.password)
+        password: await this.hashPassword(data.password),
       })
 
       // Send email
@@ -155,14 +155,14 @@ export class OTPVerificationManager {
           success: false,
           message: 'Failed to send verification email',
           email: data.email,
-          error: 'EMAIL_SEND_FAILED'
+          error: 'EMAIL_SEND_FAILED',
         }
       }
 
       return {
         success: true,
         message: `Verification code sent to ${data.email}`,
-        email: data.email
+        email: data.email,
       }
     } catch (error) {
       logger.error('Registration error', error, 'OTPVerification')
@@ -170,7 +170,7 @@ export class OTPVerificationManager {
         success: false,
         message: 'Registration failed',
         email: data.email,
-        error: 'UNKNOWN_ERROR'
+        error: 'UNKNOWN_ERROR',
       }
     }
   }
@@ -187,7 +187,7 @@ export class OTPVerificationManager {
         return {
           success: false,
           message: 'No verification code found. Please request a new one.',
-          error: 'NO_OTP_FOUND'
+          error: 'NO_OTP_FOUND',
         }
       }
 
@@ -196,7 +196,7 @@ export class OTPVerificationManager {
         return {
           success: false,
           message: 'Email already verified',
-          error: 'ALREADY_VERIFIED'
+          error: 'ALREADY_VERIFIED',
         }
       }
 
@@ -206,7 +206,7 @@ export class OTPVerificationManager {
           success: false,
           message: 'Verification code expired. Please request a new one.',
           error: 'OTP_EXPIRED',
-          canResend: true
+          canResend: true,
         }
       }
 
@@ -216,7 +216,7 @@ export class OTPVerificationManager {
           success: false,
           message: 'Too many failed attempts. Please request a new code.',
           error: 'MAX_ATTEMPTS_EXCEEDED',
-          canResend: true
+          canResend: true,
         }
       }
 
@@ -231,7 +231,7 @@ export class OTPVerificationManager {
           success: false,
           message: `Incorrect code. ${remaining} attempts remaining.`,
           error: 'INCORRECT_CODE',
-          attemptsRemaining: remaining
+          attemptsRemaining: remaining,
         }
       }
 
@@ -247,14 +247,14 @@ export class OTPVerificationManager {
 
       return {
         success: true,
-        message: 'Email verified successfully!'
+        message: 'Email verified successfully!',
       }
     } catch (error) {
       logger.error('Verification error', error, 'OTPVerification')
       return {
         success: false,
         message: 'Verification failed',
-        error: 'VERIFICATION_ERROR'
+        error: 'VERIFICATION_ERROR',
       }
     }
   }
@@ -272,7 +272,7 @@ export class OTPVerificationManager {
           message: `Please wait ${canSend.waitSeconds}s before requesting another code`,
           error: 'RATE_LIMITED',
           canResend: false,
-          nextResendIn: canSend.waitSeconds
+          nextResendIn: canSend.waitSeconds,
         }
       }
 
@@ -282,7 +282,7 @@ export class OTPVerificationManager {
         return {
           success: false,
           message: 'No pending verification found',
-          error: 'NO_PENDING_VERIFICATION'
+          error: 'NO_PENDING_VERIFICATION',
         }
       }
 
@@ -292,7 +292,7 @@ export class OTPVerificationManager {
         return {
           success: false,
           message: 'Registration data not found',
-          error: 'NO_REGISTRATION_DATA'
+          error: 'NO_REGISTRATION_DATA',
         }
       }
 
@@ -302,7 +302,9 @@ export class OTPVerificationManager {
       // Update record
       existingRecord.code = newCode
       existingRecord.createdAt = new Date().toISOString()
-      existingRecord.expiresAt = new Date(Date.now() + this.config.expiryMinutes * 60 * 1000).toISOString()
+      existingRecord.expiresAt = new Date(
+        Date.now() + this.config.expiryMinutes * 60 * 1000
+      ).toISOString()
       existingRecord.attempts = 0
       existingRecord.lastResent = new Date().toISOString()
 
@@ -315,7 +317,7 @@ export class OTPVerificationManager {
         return {
           success: false,
           message: 'Failed to send verification email',
-          error: 'EMAIL_SEND_FAILED'
+          error: 'EMAIL_SEND_FAILED',
         }
       }
 
@@ -323,14 +325,14 @@ export class OTPVerificationManager {
         success: true,
         message: 'New verification code sent',
         canResend: false,
-        nextResendIn: this.config.resendCooldown
+        nextResendIn: this.config.resendCooldown,
       }
     } catch (error) {
       logger.error('Resend error', error, 'OTPVerification')
       return {
         success: false,
         message: 'Failed to resend code',
-        error: 'RESEND_ERROR'
+        error: 'RESEND_ERROR',
       }
     }
   }
@@ -354,13 +356,15 @@ export class OTPVerificationManager {
         verified: false,
         expired: false,
         attemptsRemaining: 0,
-        canResend: false
+        canResend: false,
       }
     }
 
     const expired = this.isOTPExpired(otpRecord)
     const canSend = this.canSendOTP(email)
-    const expiresIn = expired ? 0 : Math.floor((new Date(otpRecord.expiresAt).getTime() - Date.now()) / 1000)
+    const expiresIn = expired
+      ? 0
+      : Math.floor((new Date(otpRecord.expiresAt).getTime() - Date.now()) / 1000)
 
     return {
       pending: !otpRecord.verified && !expired,
@@ -368,7 +372,7 @@ export class OTPVerificationManager {
       expired,
       attemptsRemaining: Math.max(0, this.config.maxAttempts - otpRecord.attempts),
       canResend: canSend.allowed,
-      expiresIn: expiresIn > 0 ? expiresIn : undefined
+      expiresIn: expiresIn > 0 ? expiresIn : undefined,
     }
   }
 
@@ -577,10 +581,14 @@ Never share your verification code with anyone.
   private sendViaMock(email: string, template: EmailTemplate, code: string): boolean {
     // SECURITY: Never log OTP codes to console, even in development
     // The code is stored in localStorage for UI access during testing
-    logger.info('[Mock Email] Verification email sent', {
-      email,
-      expiresInMinutes: this.config.expiryMinutes
-    }, 'OTPVerification')
+    logger.info(
+      '[Mock Email] Verification email sent',
+      {
+        email,
+        expiresInMinutes: this.config.expiryMinutes,
+      },
+      'OTPVerification'
+    )
 
     // Store in localStorage for easy access in development UI (not logged to console)
     const mockEmails = JSON.parse(localStorage.getItem('flowsphere-mock-emails') || '[]')
@@ -589,7 +597,7 @@ Never share your verification code with anyone.
       subject: template.subject,
       code,
       timestamp: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + this.config.expiryMinutes * 60 * 1000).toISOString()
+      expiresAt: new Date(Date.now() + this.config.expiryMinutes * 60 * 1000).toISOString(),
     })
     if (mockEmails.length > 10) mockEmails.pop()
     localStorage.setItem('flowsphere-mock-emails', JSON.stringify(mockEmails))
@@ -643,13 +651,15 @@ Never share your verification code with anyone.
       return { allowed: true, waitSeconds: 0 }
     }
 
-    const lastSentTime = record.lastResent ? new Date(record.lastResent).getTime() : new Date(record.createdAt).getTime()
+    const lastSentTime = record.lastResent
+      ? new Date(record.lastResent).getTime()
+      : new Date(record.createdAt).getTime()
     const elapsed = (Date.now() - lastSentTime) / 1000
 
     if (elapsed < this.config.resendCooldown) {
       return {
         allowed: false,
-        waitSeconds: Math.ceil(this.config.resendCooldown - elapsed)
+        waitSeconds: Math.ceil(this.config.resendCooldown - elapsed),
       }
     }
 
@@ -671,7 +681,7 @@ Never share your verification code with anyone.
       phone: data.phone,
       emailVerified: true,
       createdAt: new Date().toISOString(),
-      ...data.metadata
+      ...data.metadata,
     }
 
     users.push(newUser)
@@ -713,7 +723,9 @@ Never share your verification code with anyone.
   }
 
   private deleteOTPRecord(email: string): void {
-    const records = this.getAllOTPRecords().filter(r => r.email.toLowerCase() !== email.toLowerCase())
+    const records = this.getAllOTPRecords().filter(
+      r => r.email.toLowerCase() !== email.toLowerCase()
+    )
     localStorage.setItem(this.otpKey, JSON.stringify(records))
   }
 
@@ -777,12 +789,19 @@ export class OTPCleanupService {
     if (this.intervalId) return
 
     // Clean up expired OTPs every hour
-    this.intervalId = setInterval(() => {
-      const cleaned = this.manager.cleanupExpiredOTPs()
-      if (cleaned > 0) {
-        logger.info('[OTP Cleanup] Removed expired OTP records', { count: cleaned }, 'OTPVerification')
-      }
-    }, 60 * 60 * 1000) // 1 hour
+    this.intervalId = setInterval(
+      () => {
+        const cleaned = this.manager.cleanupExpiredOTPs()
+        if (cleaned > 0) {
+          logger.info(
+            '[OTP Cleanup] Removed expired OTP records',
+            { count: cleaned },
+            'OTPVerification'
+          )
+        }
+      },
+      60 * 60 * 1000
+    ) // 1 hour
 
     // Initial cleanup
     this.manager.cleanupExpiredOTPs()

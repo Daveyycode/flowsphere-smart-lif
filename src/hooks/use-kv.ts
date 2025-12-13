@@ -4,10 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
  * Custom useKV hook that persists state to localStorage
  * This replaces @github/spark/hooks useKV for deployment outside GitHub Spark
  */
-export function useKV<T>(
-  key: string,
-  defaultValue: T
-): [T, (value: T | ((prev: T) => T)) => void] {
+export function useKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   // Initialize state from localStorage or default value
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {

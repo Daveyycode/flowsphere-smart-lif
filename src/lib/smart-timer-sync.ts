@@ -62,7 +62,7 @@ export class SmartTimerSyncManager {
       elapsedTime: 0,
       totalDuration: duration,
       label,
-      lastSync: Date.now()
+      lastSync: Date.now(),
     }
 
     this.saveState(state)
@@ -84,7 +84,7 @@ export class SmartTimerSyncManager {
       startTime: Date.now(),
       elapsedTime: 0,
       label,
-      lastSync: Date.now()
+      lastSync: Date.now(),
     }
 
     this.saveState(state)
@@ -113,7 +113,7 @@ export class SmartTimerSyncManager {
       label,
       sessions,
       currentSession: 1,
-      lastSync: Date.now()
+      lastSync: Date.now(),
     }
 
     this.saveState(state)
@@ -202,7 +202,7 @@ export class SmartTimerSyncManager {
       type: 'stopwatch',
       status: 'idle',
       elapsedTime: 0,
-      lastSync: Date.now()
+      lastSync: Date.now(),
     }
 
     this.notifyListeners(emptyState)
@@ -312,12 +312,12 @@ export class SmartTimerSyncManager {
       const devices: TimerDevice[] = JSON.parse(stored)
 
       // Filter to show only recently active devices (last 5 minutes)
-      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000)
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
       const active = devices.filter(d => d.lastSeen > fiveMinutesAgo)
 
       // Update active status
       active.forEach(d => {
-        d.active = d.lastSeen > Date.now() - (30 * 1000) // Active if seen in last 30 seconds
+        d.active = d.lastSeen > Date.now() - 30 * 1000 // Active if seen in last 30 seconds
       })
 
       return active
@@ -349,11 +349,13 @@ export class SmartTimerSyncManager {
       this.updateDeviceActivity()
 
       // Trigger storage event for cross-tab sync
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: this.storageKey,
-        newValue: JSON.stringify(state),
-        storageArea: localStorage
-      }))
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: this.storageKey,
+          newValue: JSON.stringify(state),
+          storageArea: localStorage,
+        })
+      )
     } catch (error) {
       logger.error('Failed to save timer state:', error, 'TimerSync')
     }
@@ -514,7 +516,7 @@ export class SmartTimerSyncManager {
       new Notification('FlowSphere Timer', {
         body: message,
         icon: '/icon.png',
-        badge: '/badge.png'
+        badge: '/badge.png',
       })
     }
   }
@@ -566,7 +568,7 @@ export class SmartTimerSyncManager {
         name: this.getDeviceName(),
         type: this.getDeviceType(),
         lastSeen: Date.now(),
-        active: true
+        active: true,
       }
       devices.push(device)
     } else {
@@ -654,6 +656,6 @@ export function useSmartTimer(userId: string) {
     isComplete: () => manager.isComplete(),
     subscribe: (callback: (state: TimerState) => void) => manager.subscribe(callback),
     getConnectedDevices: () => manager.getConnectedDevices(),
-    destroy: () => manager.destroy()
+    destroy: () => manager.destroy(),
   }
 }

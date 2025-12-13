@@ -20,7 +20,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     multiUser: false,
     maxUsers: 1,
     integrations: false,
-    subscriptionMonitoring: false
+    subscriptionMonitoring: false,
   },
   basic: {
     aiUsage: 'limited',
@@ -30,7 +30,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     multiUser: false,
     maxUsers: 1,
     integrations: false,
-    subscriptionMonitoring: false
+    subscriptionMonitoring: false,
   },
   pro: {
     aiUsage: 'unlimited',
@@ -40,7 +40,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     multiUser: false,
     maxUsers: 1,
     integrations: true,
-    subscriptionMonitoring: true
+    subscriptionMonitoring: true,
   },
   gold: {
     aiUsage: 'unlimited',
@@ -50,7 +50,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     multiUser: false,
     maxUsers: 1,
     integrations: true,
-    subscriptionMonitoring: true
+    subscriptionMonitoring: true,
   },
   family: {
     aiUsage: 'unlimited',
@@ -60,8 +60,8 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeature
     multiUser: true,
     maxUsers: 5,
     integrations: true,
-    subscriptionMonitoring: true
-  }
+    subscriptionMonitoring: true,
+  },
 }
 
 export function hasFeatureAccess(
@@ -80,24 +80,33 @@ export function getFeatureValue<K extends keyof SubscriptionFeatures>(
 
 export function getRequiredTierForFeature(feature: keyof SubscriptionFeatures): SubscriptionTier {
   const tiers: SubscriptionTier[] = ['basic', 'pro', 'gold', 'family']
-  
+
   for (const tier of tiers) {
     const featureValue = SUBSCRIPTION_FEATURES[tier][feature]
-    if (featureValue === true || (featureValue !== 'limited' && featureValue !== 'basic' && featureValue !== false && featureValue !== 0 && featureValue !== 1)) {
+    if (
+      featureValue === true ||
+      (featureValue !== 'limited' &&
+        featureValue !== 'basic' &&
+        featureValue !== false &&
+        featureValue !== 0 &&
+        featureValue !== 1)
+    ) {
       return tier
     }
   }
-  
+
   return 'basic'
 }
 
 export function isTrialActive(trialStartDate: string | null, trialDays: number = 3): boolean {
   if (!trialStartDate) return false
-  
+
   const startDate = new Date(trialStartDate)
   const currentDate = new Date()
-  const daysSinceStart = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  
+  const daysSinceStart = Math.floor(
+    (currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
   return daysSinceStart < trialDays
 }
 
@@ -111,13 +120,18 @@ export function getEffectiveTier(
   return subscriptionTier
 }
 
-export function getRemainingTrialDays(trialStartDate: string | null, trialDays: number = 3): number {
+export function getRemainingTrialDays(
+  trialStartDate: string | null,
+  trialDays: number = 3
+): number {
   if (!trialStartDate) return 0
-  
+
   const startDate = new Date(trialStartDate)
   const currentDate = new Date()
-  const daysSinceStart = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  const daysSinceStart = Math.floor(
+    (currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  )
   const remaining = trialDays - daysSinceStart
-  
+
   return Math.max(0, remaining)
 }

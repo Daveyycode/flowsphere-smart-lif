@@ -18,13 +18,9 @@ import {
   Bell,
   CheckCircle,
   Broadcast,
-  ArrowRight
+  ArrowRight,
 } from '@phosphor-icons/react'
-import {
-  SmartTimerSyncManager,
-  TimerState,
-  TimerDevice
-} from '@/lib/smart-timer-sync'
+import { SmartTimerSyncManager, TimerState, TimerDevice } from '@/lib/smart-timer-sync'
 import { toast } from 'sonner'
 
 interface SmartTimerViewProps {
@@ -47,7 +43,7 @@ const TIMER_PRESETS: TimerPreset[] = [
   { id: 'focus-45', name: 'Deep Focus', duration: 45 * 60 * 1000, icon: '🎯' },
   { id: 'family-60', name: 'Family Time', duration: 60 * 60 * 1000, icon: '👨‍👩‍👧‍👦' },
   { id: 'exercise-30', name: 'Exercise', duration: 30 * 60 * 1000, icon: '💪' },
-  { id: 'custom', name: 'Custom', duration: 0, icon: '⏱️' }
+  { id: 'custom', name: 'Custom', duration: 0, icon: '⏱️' },
 ]
 
 export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTimerViewProps) {
@@ -70,7 +66,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    const unsubscribe = timerManager.subscribe((state) => {
+    const unsubscribe = timerManager.subscribe(state => {
       setTimerState(state)
     })
 
@@ -134,16 +130,18 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
       toast.success('Stopwatch started!')
     } else if (selectedMode === 'pomodoro') {
       const preset = TIMER_PRESETS.find(p => p.id === selectedPreset)
-      const duration = selectedPreset === 'custom'
-        ? (customMinutes * 60 + customSeconds) * 1000
-        : (preset?.duration || 25 * 60 * 1000)
+      const duration =
+        selectedPreset === 'custom'
+          ? (customMinutes * 60 + customSeconds) * 1000
+          : preset?.duration || 25 * 60 * 1000
       timerManager.startPomodoro(duration, pomodoroSessions, label)
       toast.success(`Pomodoro started: ${pomodoroSessions} sessions`)
     } else {
       const preset = TIMER_PRESETS.find(p => p.id === selectedPreset)
-      const duration = selectedPreset === 'custom'
-        ? (customMinutes * 60 + customSeconds) * 1000
-        : (preset?.duration || 25 * 60 * 1000)
+      const duration =
+        selectedPreset === 'custom'
+          ? (customMinutes * 60 + customSeconds) * 1000
+          : preset?.duration || 25 * 60 * 1000
       timerManager.startCountdown(duration, label)
       toast.success('Countdown started!')
     }
@@ -175,45 +173,46 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
   const isPaused = timerState?.status === 'paused'
   const isIdle = !timerState || timerState.status === 'idle' || timerState.status === 'completed'
 
-  const displayTime = timerState?.type === 'countdown' || timerState?.type === 'pomodoro'
-    ? formatTime(remainingTime)
-    : formatTime(currentTime)
+  const displayTime =
+    timerState?.type === 'countdown' || timerState?.type === 'pomodoro'
+      ? formatTime(remainingTime)
+      : formatTime(currentTime)
 
   const progress = timerState?.totalDuration
     ? ((timerState.totalDuration - remainingTime) / timerState.totalDuration) * 100
     : 0
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn('space-y-6', isMobile && 'space-y-4')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
               <Timer className="w-6 h-6 text-primary" weight="fill" />
             </div>
             <div>
-              <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
+              <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>
                 Smart Remote Timer
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Synced across all your devices
-              </p>
+              <p className="text-sm text-muted-foreground">Synced across all your devices</p>
             </div>
           </CardTitle>
         </CardHeader>
       </Card>
 
-      <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+      <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
         {/* Timer Display */}
-        <Card className={cn("col-span-1", !isMobile && "col-span-2")}>
-          <CardContent className={cn("p-6", isMobile && "p-4")}>
+        <Card className={cn('col-span-1', !isMobile && 'col-span-2')}>
+          <CardContent className={cn('p-6', isMobile && 'p-4')}>
             {/* Timer Circle */}
             <div className="relative flex items-center justify-center mb-6">
-              <div className={cn(
-                "relative rounded-full flex items-center justify-center",
-                isMobile ? "w-48 h-48" : "w-64 h-64"
-              )}>
+              <div
+                className={cn(
+                  'relative rounded-full flex items-center justify-center',
+                  isMobile ? 'w-48 h-48' : 'w-64 h-64'
+                )}
+              >
                 {/* Background circle */}
                 <svg className="absolute inset-0 w-full h-full transform -rotate-90">
                   <circle
@@ -244,11 +243,13 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
 
                 {/* Time display */}
                 <div className="text-center z-10">
-                  <span className={cn(
-                    "font-mono font-bold",
-                    isMobile ? "text-4xl" : "text-6xl",
-                    isRunning && "text-primary"
-                  )}>
+                  <span
+                    className={cn(
+                      'font-mono font-bold',
+                      isMobile ? 'text-4xl' : 'text-6xl',
+                      isRunning && 'text-primary'
+                    )}
+                  >
                     {displayTime}
                   </span>
                   {timerState?.label && (
@@ -266,11 +267,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
             {/* Controls */}
             <div className="flex items-center justify-center gap-4">
               {isIdle && (
-                <Button
-                  size="lg"
-                  onClick={handleStart}
-                  className="gap-2 px-8"
-                >
+                <Button size="lg" onClick={handleStart} className="gap-2 px-8">
                   <Play weight="fill" className="w-5 h-5" />
                   Start
                 </Button>
@@ -278,21 +275,11 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
 
               {isRunning && (
                 <>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handlePause}
-                    className="gap-2"
-                  >
+                  <Button size="lg" variant="outline" onClick={handlePause} className="gap-2">
                     <Pause weight="fill" className="w-5 h-5" />
                     Pause
                   </Button>
-                  <Button
-                    size="lg"
-                    variant="destructive"
-                    onClick={handleStop}
-                    className="gap-2"
-                  >
+                  <Button size="lg" variant="destructive" onClick={handleStop} className="gap-2">
                     <Stop weight="fill" className="w-5 h-5" />
                     Stop
                   </Button>
@@ -301,20 +288,11 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
 
               {isPaused && (
                 <>
-                  <Button
-                    size="lg"
-                    onClick={handleResume}
-                    className="gap-2"
-                  >
+                  <Button size="lg" onClick={handleResume} className="gap-2">
                     <Play weight="fill" className="w-5 h-5" />
                     Resume
                   </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handleReset}
-                    className="gap-2"
-                  >
+                  <Button size="lg" variant="outline" onClick={handleReset} className="gap-2">
                     <ArrowClockwise className="w-5 h-5" />
                     Reset
                   </Button>
@@ -330,20 +308,22 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
                   <span>Synced Devices ({connectedDevices.length})</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {connectedDevices.map((device) => (
+                  {connectedDevices.map(device => (
                     <div
                       key={device.id}
                       className={cn(
-                        "px-3 py-1.5 rounded-full text-xs flex items-center gap-2",
+                        'px-3 py-1.5 rounded-full text-xs flex items-center gap-2',
                         device.active
-                          ? "bg-green-500/20 text-green-500"
-                          : "bg-muted text-muted-foreground"
+                          ? 'bg-green-500/20 text-green-500'
+                          : 'bg-muted text-muted-foreground'
                       )}
                     >
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        device.active ? "bg-green-500 animate-pulse" : "bg-muted-foreground"
-                      )} />
+                      <div
+                        className={cn(
+                          'w-2 h-2 rounded-full',
+                          device.active ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'
+                        )}
+                      />
                       {device.name}
                     </div>
                   ))}
@@ -366,7 +346,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
             <div className="space-y-2">
               <Label>Timer Mode</Label>
               <div className="grid grid-cols-3 gap-2">
-                {(['countdown', 'stopwatch', 'pomodoro'] as TimerMode[]).map((mode) => (
+                {(['countdown', 'stopwatch', 'pomodoro'] as TimerMode[]).map(mode => (
                   <Button
                     key={mode}
                     variant={selectedMode === mode ? 'default' : 'outline'}
@@ -386,7 +366,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
               <div className="space-y-2">
                 <Label>Quick Presets</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {TIMER_PRESETS.map((preset) => (
+                  {TIMER_PRESETS.map(preset => (
                     <Button
                       key={preset.id}
                       variant={selectedPreset === preset.id ? 'default' : 'outline'}
@@ -413,7 +393,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
                     min={0}
                     max={999}
                     value={customMinutes}
-                    onChange={(e) => setCustomMinutes(parseInt(e.target.value) || 0)}
+                    onChange={e => setCustomMinutes(parseInt(e.target.value) || 0)}
                     disabled={!isIdle}
                     className="w-20 text-center"
                   />
@@ -423,7 +403,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
                     min={0}
                     max={59}
                     value={customSeconds}
-                    onChange={(e) => setCustomSeconds(parseInt(e.target.value) || 0)}
+                    onChange={e => setCustomSeconds(parseInt(e.target.value) || 0)}
                     disabled={!isIdle}
                     className="w-20 text-center"
                   />
@@ -464,7 +444,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
               <Input
                 placeholder="e.g., Study Math"
                 value={timerLabel}
-                onChange={(e) => setTimerLabel(e.target.value)}
+                onChange={e => setTimerLabel(e.target.value)}
                 disabled={!isIdle}
               />
             </div>
@@ -483,8 +463,8 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
               <div>
                 <h3 className="font-bold text-lg">Remote Timer for Presentations</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Control timers remotely for stage presentations, events, and conferences.
-                  Share a link with presenters and control their timer from your device.
+                  Control timers remotely for stage presentations, events, and conferences. Share a
+                  link with presenters and control their timer from your device.
                 </p>
               </div>
             </div>
@@ -503,10 +483,7 @@ export function SmartTimerView({ userId = 'default-user', onTabChange }: SmartTi
       <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">Smart Timer Features</h3>
-          <div className={cn(
-            "grid gap-4",
-            isMobile ? "grid-cols-1" : "grid-cols-3"
-          )}>
+          <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                 <Devices className="w-5 h-5 text-blue-500" />

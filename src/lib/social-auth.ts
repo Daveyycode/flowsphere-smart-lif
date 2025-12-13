@@ -46,43 +46,43 @@ export const AUTH_PROVIDERS: Record<string, AuthProvider> = {
     name: 'Google',
     icon: '🔍',
     color: '#4285F4',
-    enabled: true
+    enabled: true,
   },
   facebook: {
     id: 'facebook',
     name: 'Facebook',
     icon: '📘',
     color: '#1877F2',
-    enabled: true
+    enabled: true,
   },
   twitter: {
     id: 'twitter',
     name: 'X (Twitter)',
     icon: '𝕏',
     color: '#000000',
-    enabled: true
+    enabled: true,
   },
   instagram: {
     id: 'instagram',
     name: 'Instagram',
     icon: '📷',
     color: '#E4405F',
-    enabled: true
+    enabled: true,
   },
   yahoo: {
     id: 'yahoo',
     name: 'Yahoo',
     icon: '📬',
     color: '#7B0099',
-    enabled: true
+    enabled: true,
   },
   microsoft: {
     id: 'microsoft',
     name: 'Outlook',
     icon: '📧',
     color: '#0078D4',
-    enabled: true
-  }
+    enabled: true,
+  },
 }
 
 /**
@@ -99,17 +99,14 @@ export class SocialAuthManager {
     try {
       // In production, use Google Sign-In SDK
       // For now, simulate OAuth flow
-      const popup = this.openOAuthPopup(
-        'https://accounts.google.com/o/oauth2/v2/auth',
-        {
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
-          redirect_uri: `${window.location.origin}/auth/google/callback`,
-          response_type: 'code',
-          scope: 'openid email profile',
-          access_type: 'offline',
-          prompt: 'consent'
-        }
-      )
+      const popup = this.openOAuthPopup('https://accounts.google.com/o/oauth2/v2/auth', {
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
+        redirect_uri: `${window.location.origin}/auth/google/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        prompt: 'consent',
+      })
 
       // Wait for callback
       const code = await this.waitForOAuthCallback(popup)
@@ -133,7 +130,7 @@ export class SocialAuthManager {
         expiresAt: new Date(Date.now() + tokens.expiresIn * 1000).toISOString(),
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       // Check if user exists
@@ -142,7 +139,7 @@ export class SocialAuthManager {
         return {
           success: false,
           requiresLink: true,
-          error: `Account exists with ${existing.provider}. Link accounts?`
+          error: `Account exists with ${existing.provider}. Link accounts?`,
         }
       }
 
@@ -154,7 +151,7 @@ export class SocialAuthManager {
       console.error('Google sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -168,15 +165,12 @@ export class SocialAuthManager {
       // await this.initFacebookSDK()
 
       // Login with Facebook
-      const popup = this.openOAuthPopup(
-        'https://www.facebook.com/v18.0/dialog/oauth',
-        {
-          client_id: import.meta.env.VITE_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
-          redirect_uri: `${window.location.origin}/auth/facebook/callback`,
-          scope: 'email,public_profile',
-          response_type: 'code'
-        }
-      )
+      const popup = this.openOAuthPopup('https://www.facebook.com/v18.0/dialog/oauth', {
+        client_id: import.meta.env.VITE_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
+        redirect_uri: `${window.location.origin}/auth/facebook/callback`,
+        scope: 'email,public_profile',
+        response_type: 'code',
+      })
 
       const code = await this.waitForOAuthCallback(popup)
       const tokens = await this.exchangeCodeForTokens('facebook', code)
@@ -192,7 +186,7 @@ export class SocialAuthManager {
         accessToken: tokens.accessToken,
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       this.saveUser(user)
@@ -202,7 +196,7 @@ export class SocialAuthManager {
       console.error('Facebook sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -213,18 +207,15 @@ export class SocialAuthManager {
   async signInWithTwitter(): Promise<AuthResult> {
     try {
       // Twitter OAuth 2.0 with PKCE
-      const popup = this.openOAuthPopup(
-        'https://twitter.com/i/oauth2/authorize',
-        {
-          client_id: import.meta.env.VITE_TWITTER_CLIENT_ID || 'YOUR_TWITTER_CLIENT_ID',
-          redirect_uri: `${window.location.origin}/auth/twitter/callback`,
-          response_type: 'code',
-          scope: 'tweet.read users.read offline.access',
-          state: this.generateState(),
-          code_challenge: this.generateCodeChallenge(),
-          code_challenge_method: 'S256'
-        }
-      )
+      const popup = this.openOAuthPopup('https://twitter.com/i/oauth2/authorize', {
+        client_id: import.meta.env.VITE_TWITTER_CLIENT_ID || 'YOUR_TWITTER_CLIENT_ID',
+        redirect_uri: `${window.location.origin}/auth/twitter/callback`,
+        response_type: 'code',
+        scope: 'tweet.read users.read offline.access',
+        state: this.generateState(),
+        code_challenge: this.generateCodeChallenge(),
+        code_challenge_method: 'S256',
+      })
 
       const code = await this.waitForOAuthCallback(popup)
       const tokens = await this.exchangeCodeForTokens('twitter', code)
@@ -241,7 +232,7 @@ export class SocialAuthManager {
         refreshToken: tokens.refreshToken,
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       this.saveUser(user)
@@ -251,7 +242,7 @@ export class SocialAuthManager {
       console.error('Twitter sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -262,15 +253,12 @@ export class SocialAuthManager {
   async signInWithInstagram(): Promise<AuthResult> {
     try {
       // Instagram Basic Display API
-      const popup = this.openOAuthPopup(
-        'https://api.instagram.com/oauth/authorize',
-        {
-          client_id: import.meta.env.VITE_INSTAGRAM_CLIENT_ID || 'YOUR_INSTAGRAM_CLIENT_ID',
-          redirect_uri: `${window.location.origin}/auth/instagram/callback`,
-          scope: 'user_profile,user_media',
-          response_type: 'code'
-        }
-      )
+      const popup = this.openOAuthPopup('https://api.instagram.com/oauth/authorize', {
+        client_id: import.meta.env.VITE_INSTAGRAM_CLIENT_ID || 'YOUR_INSTAGRAM_CLIENT_ID',
+        redirect_uri: `${window.location.origin}/auth/instagram/callback`,
+        scope: 'user_profile,user_media',
+        response_type: 'code',
+      })
 
       const code = await this.waitForOAuthCallback(popup)
       const tokens = await this.exchangeCodeForTokens('instagram', code)
@@ -286,7 +274,7 @@ export class SocialAuthManager {
         accessToken: tokens.accessToken,
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       this.saveUser(user)
@@ -296,7 +284,7 @@ export class SocialAuthManager {
       console.error('Instagram sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -306,15 +294,12 @@ export class SocialAuthManager {
    */
   async signInWithYahoo(): Promise<AuthResult> {
     try {
-      const popup = this.openOAuthPopup(
-        'https://api.login.yahoo.com/oauth2/request_auth',
-        {
-          client_id: import.meta.env.VITE_YAHOO_CLIENT_ID || 'YOUR_YAHOO_CLIENT_ID',
-          redirect_uri: `${window.location.origin}/auth/yahoo/callback`,
-          response_type: 'code',
-          scope: 'openid email profile'
-        }
-      )
+      const popup = this.openOAuthPopup('https://api.login.yahoo.com/oauth2/request_auth', {
+        client_id: import.meta.env.VITE_YAHOO_CLIENT_ID || 'YOUR_YAHOO_CLIENT_ID',
+        redirect_uri: `${window.location.origin}/auth/yahoo/callback`,
+        response_type: 'code',
+        scope: 'openid email profile',
+      })
 
       const code = await this.waitForOAuthCallback(popup)
       const tokens = await this.exchangeCodeForTokens('yahoo', code)
@@ -331,7 +316,7 @@ export class SocialAuthManager {
         refreshToken: tokens.refreshToken,
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       this.saveUser(user)
@@ -341,7 +326,7 @@ export class SocialAuthManager {
       console.error('Yahoo sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -358,7 +343,7 @@ export class SocialAuthManager {
           redirect_uri: `${window.location.origin}/auth/microsoft/callback`,
           response_type: 'code',
           scope: 'openid email profile offline_access',
-          response_mode: 'query'
+          response_mode: 'query',
         }
       )
 
@@ -377,7 +362,7 @@ export class SocialAuthManager {
         refreshToken: tokens.refreshToken,
         linkedAccounts: [],
         createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
       }
 
       this.saveUser(user)
@@ -387,7 +372,7 @@ export class SocialAuthManager {
       console.error('Microsoft sign-in error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Sign-in failed'
+        error: error instanceof Error ? error.message : 'Sign-in failed',
       }
     }
   }
@@ -537,27 +522,27 @@ export class SocialAuthManager {
       }, 500)
 
       // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(checkPopup)
-        popup.close()
-        reject(new Error('OAuth timeout'))
-      }, 5 * 60 * 1000)
+      setTimeout(
+        () => {
+          clearInterval(checkPopup)
+          popup.close()
+          reject(new Error('OAuth timeout'))
+        },
+        5 * 60 * 1000
+      )
     })
   }
 
   /**
    * Exchange authorization code for tokens
    */
-  private async exchangeCodeForTokens(
-    provider: string,
-    code: string
-  ): Promise<any> {
+  private async exchangeCodeForTokens(provider: string, code: string): Promise<any> {
     // In production, call your backend API to exchange code
     // Backend should handle client_secret securely
     return {
       accessToken: `${provider}_access_${code}`,
       refreshToken: `${provider}_refresh_${code}`,
-      expiresIn: 3600
+      expiresIn: 3600,
     }
   }
 
@@ -570,7 +555,7 @@ export class SocialAuthManager {
       sub: 'google-user-id',
       email: 'user@gmail.com',
       name: 'User Name',
-      picture: 'https://lh3.googleusercontent.com/...'
+      picture: 'https://lh3.googleusercontent.com/...',
     }
   }
 
@@ -579,7 +564,7 @@ export class SocialAuthManager {
       id: 'facebook-user-id',
       email: 'user@facebook.com',
       name: 'User Name',
-      picture: { data: { url: 'https://graph.facebook.com/...' } }
+      picture: { data: { url: 'https://graph.facebook.com/...' } },
     }
   }
 
@@ -590,8 +575,8 @@ export class SocialAuthManager {
         username: 'username',
         name: 'User Name',
         email: 'user@twitter.com',
-        profile_image_url: 'https://pbs.twimg.com/...'
-      }
+        profile_image_url: 'https://pbs.twimg.com/...',
+      },
     }
   }
 
@@ -599,7 +584,7 @@ export class SocialAuthManager {
     return {
       id: 'instagram-user-id',
       username: 'username',
-      profile_picture: 'https://scontent.cdninstagram.com/...'
+      profile_picture: 'https://scontent.cdninstagram.com/...',
     }
   }
 
@@ -608,7 +593,7 @@ export class SocialAuthManager {
       sub: 'yahoo-user-id',
       email: 'user@yahoo.com',
       name: 'User Name',
-      picture: 'https://s.yimg.com/...'
+      picture: 'https://s.yimg.com/...',
     }
   }
 
@@ -618,7 +603,7 @@ export class SocialAuthManager {
       displayName: 'User Name',
       mail: 'user@outlook.com',
       userPrincipalName: 'user@outlook.com',
-      photo: 'https://graph.microsoft.com/v1.0/me/photo/$value'
+      photo: 'https://graph.microsoft.com/v1.0/me/photo/$value',
     }
   }
 

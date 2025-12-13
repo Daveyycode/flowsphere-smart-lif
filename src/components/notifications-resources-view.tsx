@@ -2,7 +2,34 @@ import { useState, useEffect } from 'react'
 import { sanitizeHTML } from '@/lib/security-utils'
 import { useKV } from '@/hooks/use-kv'
 import { motion } from 'framer-motion'
-import { Bell, Moon, Phone, Envelope, Package, User as UserIcon, CheckCircle, Trash, SpeakerHigh, Stop, GameController, Newspaper, Clock, TrendUp, Warning, CreditCard, Camera, MagnifyingGlass, Funnel, ShieldCheck, DotsThreeVertical, Plus, X as XIcon, Gear, Robot, Sparkle } from '@phosphor-icons/react'
+import {
+  Bell,
+  Moon,
+  Phone,
+  Envelope,
+  Package,
+  User as UserIcon,
+  CheckCircle,
+  Trash,
+  SpeakerHigh,
+  Stop,
+  GameController,
+  Newspaper,
+  Clock,
+  TrendUp,
+  Warning,
+  CreditCard,
+  Camera,
+  MagnifyingGlass,
+  Funnel,
+  ShieldCheck,
+  DotsThreeVertical,
+  Plus,
+  X as XIcon,
+  Gear,
+  Robot,
+  Sparkle,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -13,8 +40,21 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { speakText, stopSpeaking } from '@/lib/audio-summary'
 import { speakWithGroq } from '@/lib/groq-voice'
@@ -22,7 +62,11 @@ import { SubscriptionMonitoring } from '@/components/subscription-monitoring'
 import { CCTVGuardAI } from '@/components/cctv-guard-ai'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { fetchDailyNews, NewsItem } from '@/lib/news-api'
-import { semanticEmailSearch, getEmailStats, reclassifyAllEmails } from '@/lib/email/semantic-search'
+import {
+  semanticEmailSearch,
+  getEmailStats,
+  reclassifyAllEmails,
+} from '@/lib/email/semantic-search'
 import { globalEmailMonitor } from '@/lib/email/email-monitor'
 import { Email, EmailAccountStore } from '@/lib/email/email-service'
 import { emailDatabase } from '@/lib/email/email-database'
@@ -68,13 +112,15 @@ export function NotificationsResourcesView({
   dndEnabled,
   onDndToggle,
   emergencyOverride,
-  onEmergencyOverrideChange
+  onEmergencyOverrideChange,
 }: NotificationsResourcesViewProps) {
   const isMobile = useIsMobile()
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [activeTab, setActiveTab] = useState<'notifications' | 'monitoring' | 'subscriptions' | 'cctv'>('notifications')
+  const [activeTab, setActiveTab] = useState<
+    'notifications' | 'monitoring' | 'subscriptions' | 'cctv'
+  >('notifications')
   const [news, setNews] = useKV<NewsItem[]>('flowsphere-daily-news', [])
   const [isLoadingNews, setIsLoadingNews] = useState(false)
 
@@ -85,11 +131,21 @@ export function NotificationsResourcesView({
   const [searchAccount, setSearchAccount] = useState<string>('all')
   const [searchSender, setSearchSender] = useState<string>('')
   const [showConsentDialog, setShowConsentDialog] = useState(false)
-  const [hasSearchConsent, setHasSearchConsent] = useKV<boolean>('flowsphere-email-search-consent', false)
+  const [hasSearchConsent, setHasSearchConsent] = useKV<boolean>(
+    'flowsphere-email-search-consent',
+    false
+  )
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<Email[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const [emailStats, setEmailStats] = useState({ total: 0, urgent: 0, work: 0, personal: 0, subscription: 0, misc: 0 })
+  const [emailStats, setEmailStats] = useState({
+    total: 0,
+    urgent: 0,
+    work: 0,
+    personal: 0,
+    subscription: 0,
+    misc: 0,
+  })
 
   // Connected Accounts Management
   const [showAccountsDialog, setShowAccountsDialog] = useState(false)
@@ -100,8 +156,14 @@ export function NotificationsResourcesView({
 
   // DND Settings
   const [showDndSettings, setShowDndSettings] = useState(false)
-  const [dndBehavior, setDndBehavior] = useKV<'silence-all' | 'allow-favorites' | 'allow-repeated'>('flowsphere-dnd-behavior', 'allow-repeated')
-  const [emergencyContacts, setEmergencyContacts] = useKV<string[]>('flowsphere-emergency-contacts', [])
+  const [dndBehavior, setDndBehavior] = useKV<'silence-all' | 'allow-favorites' | 'allow-repeated'>(
+    'flowsphere-dnd-behavior',
+    'allow-repeated'
+  )
+  const [emergencyContacts, setEmergencyContacts] = useKV<string[]>(
+    'flowsphere-emergency-contacts',
+    []
+  )
   const [newContact, setNewContact] = useState('')
 
   // Work Categorization Settings
@@ -113,7 +175,7 @@ export function NotificationsResourcesView({
   }>({
     workKeywords: [],
     workDomains: [],
-    personalDomains: []
+    personalDomains: [],
   })
   const [newWorkKeyword, setNewWorkKeyword] = useState('')
   const [newWorkDomain, setNewWorkDomain] = useState('')
@@ -125,7 +187,9 @@ export function NotificationsResourcesView({
 
   // Unified Email Search Popup with integrated AI Assistant
   const [showUnifiedSearch, setShowUnifiedSearch] = useState(false)
-  const [unifiedSearchCategory, setUnifiedSearchCategory] = useState<'all' | 'urgent' | 'work' | 'personal' | 'subs' | 'bills'>('all')
+  const [unifiedSearchCategory, setUnifiedSearchCategory] = useState<
+    'all' | 'urgent' | 'work' | 'personal' | 'subs' | 'bills'
+  >('all')
   const [unifiedSearchMode, setUnifiedSearchMode] = useState<'search' | 'ai'>('ai')
 
   // Actual emails from database for display
@@ -142,7 +206,7 @@ export function NotificationsResourcesView({
   const handleHandoffToGeneralAI = (query: string) => {
     // Dispatch event to open the general AI assistant with the query
     const event = new CustomEvent('flowsphere-open-ai-assistant', {
-      detail: { query }
+      detail: { query },
     })
     window.dispatchEvent(event)
     toast.success('Switching to General AI Assistant...')
@@ -152,12 +216,12 @@ export function NotificationsResourcesView({
   const handleCategoryClick = (category: string) => {
     // Map category names
     const categoryMap: Record<string, 'all' | 'urgent' | 'work' | 'personal' | 'subs' | 'bills'> = {
-      'all': 'all',
-      'urgent': 'urgent',
-      'work': 'work',
-      'personal': 'personal',
-      'subscription': 'subs',
-      'bills': 'bills'
+      all: 'all',
+      urgent: 'urgent',
+      work: 'work',
+      personal: 'personal',
+      subscription: 'subs',
+      bills: 'bills',
     }
     setUnifiedSearchCategory(categoryMap[category] || 'all')
     setShowUnifiedSearch(true)
@@ -172,9 +236,18 @@ export function NotificationsResourcesView({
       } else {
         // Set default settings
         const defaults = {
-          workKeywords: ['project', 'meeting', 'deadline', 'team', 'office', 'task', 'report', 'client'],
+          workKeywords: [
+            'project',
+            'meeting',
+            'deadline',
+            'team',
+            'office',
+            'task',
+            'report',
+            'client',
+          ],
           workDomains: [],
-          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com']
+          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'],
         }
         setWorkSettings(defaults)
         localStorage.setItem('flowsphere-work-categorization', JSON.stringify(defaults))
@@ -299,21 +372,31 @@ export function NotificationsResourcesView({
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'urgent': return Bell
-      case 'work': return Envelope
-      case 'personal': return UserIcon
-      case 'subscription': return Package
-      default: return Bell
+      case 'urgent':
+        return Bell
+      case 'work':
+        return Envelope
+      case 'personal':
+        return UserIcon
+      case 'subscription':
+        return Package
+      default:
+        return Bell
     }
   }
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'urgent': return 'destructive'
-      case 'work': return 'accent'
-      case 'personal': return 'coral'
-      case 'subscription': return 'mint'
-      default: return 'muted'
+      case 'urgent':
+        return 'destructive'
+      case 'work':
+        return 'accent'
+      case 'personal':
+        return 'coral'
+      case 'subscription':
+        return 'mint'
+      default:
+        return 'muted'
     }
   }
 
@@ -335,14 +418,15 @@ export function NotificationsResourcesView({
   }
 
   // Filter emails by selected category
-  const filteredEmails = selectedCategory === 'all'
-    ? databaseEmails
-    : databaseEmails.filter(email => {
-        const uiCategory = mapCategoryToUI(email.category)
-        // Map 'subscription' tab to 'subscription' category
-        if (selectedCategory === 'subscription') return uiCategory === 'subscription'
-        return uiCategory === selectedCategory
-      })
+  const filteredEmails =
+    selectedCategory === 'all'
+      ? databaseEmails
+      : databaseEmails.filter(email => {
+          const uiCategory = mapCategoryToUI(email.category)
+          // Map 'subscription' tab to 'subscription' category
+          if (selectedCategory === 'subscription') return uiCategory === 'subscription'
+          return uiCategory === selectedCategory
+        })
 
   const categoryCounts = {
     all: databaseEmails.length,
@@ -350,13 +434,14 @@ export function NotificationsResourcesView({
     work: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'work').length,
     personal: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'personal').length,
     subscription: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'subscription').length,
-    misc: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'bills').length
+    misc: databaseEmails.filter(e => mapCategoryToUI(e.category) === 'bills').length,
   }
 
   // Also keep filtered notifications for backward compatibility
-  const filteredNotifications = selectedCategory === 'all'
-    ? notifications
-    : notifications.filter(n => n.category === selectedCategory)
+  const filteredNotifications =
+    selectedCategory === 'all'
+      ? notifications
+      : notifications.filter(n => n.category === selectedCategory)
 
   // Get unique senders from database emails
   const uniqueSenders = Array.from(new Set(databaseEmails.map(e => e.from.email)))
@@ -407,7 +492,7 @@ export function NotificationsResourcesView({
       // If no query but has sender, use empty query to get all emails then filter
       const result = await semanticEmailSearch({
         query: searchQuery.trim() || '',
-        limit: 1000 // Increase limit when filtering by sender only
+        limit: 1000, // Increase limit when filtering by sender only
       })
 
       const searchLabel = searchQuery.trim() ? `"${searchQuery}"` : 'sender filter'
@@ -427,9 +512,10 @@ export function NotificationsResourcesView({
       // Filter by sender
       if (searchSender.trim()) {
         const senderLower = searchSender.toLowerCase().trim()
-        filtered = filtered.filter(email =>
-          email.from.name.toLowerCase().includes(senderLower) ||
-          email.from.email.toLowerCase().includes(senderLower)
+        filtered = filtered.filter(
+          email =>
+            email.from.name.toLowerCase().includes(senderLower) ||
+            email.from.email.toLowerCase().includes(senderLower)
         )
       }
 
@@ -464,9 +550,9 @@ export function NotificationsResourcesView({
   const getTodaysSessions = (childName: string) => {
     const today = new Date().toDateString()
     return (gameSessions || [])
-      .filter(session => 
-        session.childName === childName && 
-        new Date(session.date).toDateString() === today
+      .filter(
+        session =>
+          session.childName === childName && new Date(session.date).toDateString() === today
       )
       .reduce((total, session) => total + session.duration, 0)
   }
@@ -544,7 +630,10 @@ export function NotificationsResourcesView({
   const handleAddPersonalDomain = () => {
     const domain = newPersonalDomain.trim().toLowerCase()
     if (domain && !workSettings.personalDomains.includes(domain)) {
-      const updated = { ...workSettings, personalDomains: [...workSettings.personalDomains, domain] }
+      const updated = {
+        ...workSettings,
+        personalDomains: [...workSettings.personalDomains, domain],
+      }
       saveWorkSettings(updated)
       setNewPersonalDomain('')
     } else if (workSettings.personalDomains.includes(domain)) {
@@ -607,7 +696,7 @@ export function NotificationsResourcesView({
         category: n.category,
         title: n.title,
         message: n.message,
-        time: n.time
+        time: n.time,
       }))
 
       // Generate simple summary without LLM to avoid auth errors
@@ -684,23 +773,29 @@ export function NotificationsResourcesView({
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notifications' | 'monitoring' | 'subscriptions' | 'cctv')} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={v =>
+          setActiveTab(v as 'notifications' | 'monitoring' | 'subscriptions' | 'cctv')
+        }
+        className="space-y-6"
+      >
         <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="w-4 h-4" />
-            {!isMobile && "Notifications"}
+            {!isMobile && 'Notifications'}
           </TabsTrigger>
           <TabsTrigger value="subscriptions" className="gap-2">
             <CreditCard className="w-4 h-4" />
-            {!isMobile && "Subscriptions"}
+            {!isMobile && 'Subscriptions'}
           </TabsTrigger>
           <TabsTrigger value="cctv" className="gap-2">
             <Camera className="w-4 h-4" />
-            {!isMobile && "CCTV Guard"}
+            {!isMobile && 'CCTV Guard'}
           </TabsTrigger>
           <TabsTrigger value="monitoring" className="gap-2">
             <GameController className="w-4 h-4" />
-            {!isMobile && "Activity"}
+            {!isMobile && 'Activity'}
           </TabsTrigger>
         </TabsList>
 
@@ -754,11 +849,7 @@ export function NotificationsResourcesView({
                       <MagnifyingGlass className="w-4 h-4" />
                       Search
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setShowWorkSettings(true)}
-                    >
+                    <Button size="icon" variant="outline" onClick={() => setShowWorkSettings(true)}>
                       <Gear className="w-4 h-4" />
                     </Button>
                     <Button
@@ -786,7 +877,9 @@ export function NotificationsResourcesView({
                     <p className="text-xs text-muted-foreground">Work</p>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-green-500/10">
-                    <p className="text-2xl font-bold text-green-500">{databaseEmails.filter(e => !e.read).length}</p>
+                    <p className="text-2xl font-bold text-green-500">
+                      {databaseEmails.filter(e => !e.read).length}
+                    </p>
                     <p className="text-xs text-muted-foreground">Unread</p>
                   </div>
                 </div>
@@ -816,12 +909,14 @@ export function NotificationsResourcesView({
                       {searchResults.length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">No results found</p>
                       ) : (
-                        searchResults.map((email) => (
+                        searchResults.map(email => (
                           <Card key={email.id} className="p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Badge variant={getCategoryColor(email.category || 'bills') as any}>
+                                  <Badge
+                                    variant={getCategoryColor(email.category || 'bills') as any}
+                                  >
                                     {email.category || 'bills'}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground">
@@ -837,7 +932,10 @@ export function NotificationsResourcesView({
                                 </p>
                               </div>
                               <div className="flex gap-2">
-                                <Badge variant={email.read ? 'secondary' : 'default'} className="text-xs">
+                                <Badge
+                                  variant={email.read ? 'secondary' : 'default'}
+                                  className="text-xs"
+                                >
                                   {email.read ? 'Read' : 'Unread'}
                                 </Badge>
                               </div>
@@ -857,11 +955,18 @@ export function NotificationsResourcesView({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className={`${dndEnabled ? 'bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30' : ''}`}>
+            <Card
+              className={`${dndEnabled ? 'bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30' : ''}`}
+            >
               <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full ${dndEnabled ? 'bg-primary/20' : 'bg-muted'} flex items-center justify-center flex-shrink-0`}>
-                    <Moon className={`w-6 h-6 ${dndEnabled ? 'text-primary' : 'text-muted-foreground'}`} weight="fill" />
+                  <div
+                    className={`w-12 h-12 rounded-full ${dndEnabled ? 'bg-primary/20' : 'bg-muted'} flex items-center justify-center flex-shrink-0`}
+                  >
+                    <Moon
+                      className={`w-6 h-6 ${dndEnabled ? 'text-primary' : 'text-muted-foreground'}`}
+                      weight="fill"
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
@@ -869,7 +974,9 @@ export function NotificationsResourcesView({
                         <div>
                           <h3 className="text-lg font-semibold">Smart Sleep Guardian</h3>
                           <p className="text-sm text-muted-foreground">
-                            {dndEnabled ? 'Your notifications are silenced' : 'Enable to silence notifications while you sleep'}
+                            {dndEnabled
+                              ? 'Your notifications are silenced'
+                              : 'Enable to silence notifications while you sleep'}
                           </p>
                         </div>
                         <Button
@@ -881,12 +988,9 @@ export function NotificationsResourcesView({
                           <DotsThreeVertical className="w-5 h-5" weight="bold" />
                         </Button>
                       </div>
-                      <Switch
-                        checked={dndEnabled}
-                        onCheckedChange={handleDndToggle}
-                      />
+                      <Switch checked={dndEnabled} onCheckedChange={handleDndToggle} />
                     </div>
-                    
+
                     {dndEnabled && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
@@ -905,7 +1009,7 @@ export function NotificationsResourcesView({
                           <div className="flex items-center space-x-3">
                             <Slider
                               value={[emergencyOverride]}
-                              onValueChange={(value) => onEmergencyOverrideChange(value[0])}
+                              onValueChange={value => onEmergencyOverrideChange(value[0])}
                               min={1}
                               max={5}
                               step={1}
@@ -931,7 +1035,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-primary/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('all'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('all')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -942,7 +1049,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-red-500/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('urgent'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('urgent')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -953,7 +1063,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-blue-500/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('work'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('work')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -964,7 +1077,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-green-500/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('personal'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('personal')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -975,7 +1091,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-purple-500/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('subscription'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('subscription')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -986,7 +1105,10 @@ export function NotificationsResourcesView({
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5 ml-1 hover:bg-gray-500/20"
-                    onClick={(e) => { e.stopPropagation(); handleCategoryClick('bills'); }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleCategoryClick('bills')
+                    }}
                   >
                     <MagnifyingGlass className="w-3 h-3" />
                   </Button>
@@ -1050,24 +1172,32 @@ export function NotificationsResourcesView({
                           >
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
-                                <div className={`w-10 h-10 rounded-full bg-${color}/10 flex items-center justify-center flex-shrink-0`}>
+                                <div
+                                  className={`w-10 h-10 rounded-full bg-${color}/10 flex items-center justify-center flex-shrink-0`}
+                                >
                                   <Icon className={`w-5 h-5 text-${color}`} weight="duotone" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between mb-1">
                                     <div className="flex-1">
                                       <div className="flex items-center space-x-2 mb-1">
-                                        <h4 className={`text-sm font-semibold truncate ${email.read ? 'text-muted-foreground' : ''}`}>
+                                        <h4
+                                          className={`text-sm font-semibold truncate ${email.read ? 'text-muted-foreground' : ''}`}
+                                        >
                                           {email.from.name || email.from.email}
                                         </h4>
                                         <Badge
                                           variant="secondary"
                                           className={`text-xs ${
-                                            uiCategory === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                            uiCategory === 'work' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                            uiCategory === 'personal' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                            uiCategory === 'subscription' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                            ''
+                                            uiCategory === 'urgent'
+                                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                              : uiCategory === 'work'
+                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                : uiCategory === 'personal'
+                                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                  : uiCategory === 'subscription'
+                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                    : ''
                                           }`}
                                         >
                                           {uiCategory}
@@ -1076,13 +1206,17 @@ export function NotificationsResourcesView({
                                           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                                         )}
                                       </div>
-                                      <p className={`text-sm font-medium truncate ${email.read ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                      <p
+                                        className={`text-sm font-medium truncate ${email.read ? 'text-muted-foreground' : 'text-foreground'}`}
+                                      >
                                         {email.subject}
                                       </p>
                                       <p className="text-xs text-muted-foreground truncate mt-1">
                                         {email.snippet || email.body?.substring(0, 100)}
                                       </p>
-                                      <p className="text-xs text-muted-foreground mt-1">{timeDisplay}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {timeDisplay}
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -1091,7 +1225,7 @@ export function NotificationsResourcesView({
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={(e) => {
+                                    onClick={e => {
                                       e.stopPropagation()
                                       toast.info(`Email: ${email.subject}`)
                                     }}
@@ -1135,7 +1269,7 @@ export function NotificationsResourcesView({
 
               <div className="space-y-6">
                 {children.length > 0 ? (
-                  children.map((child) => {
+                  children.map(child => {
                     const todayMinutes = getTodaysSessions(child)
                     const percentage = (todayMinutes / dailyLimit) * 100
                     const isOverLimit = todayMinutes > dailyLimit
@@ -1161,16 +1295,19 @@ export function NotificationsResourcesView({
                             </Badge>
                           )}
                         </div>
-                        
-                        <Progress 
-                          value={Math.min(percentage, 100)} 
+
+                        <Progress
+                          value={Math.min(percentage, 100)}
                           className={`h-2 ${isOverLimit ? '[&>*]:bg-destructive' : ''}`}
                         />
 
                         <div className="flex flex-wrap gap-2">
                           {(gameSessions || [])
-                            .filter(s => s.childName === child && 
-                              new Date(s.date).toDateString() === new Date().toDateString())
+                            .filter(
+                              s =>
+                                s.childName === child &&
+                                new Date(s.date).toDateString() === new Date().toDateString()
+                            )
                             .map(session => (
                               <Badge key={session.id} variant="secondary" className="text-xs">
                                 <Clock className="w-3 h-3 mr-1" />
@@ -1217,8 +1354,13 @@ export function NotificationsResourcesView({
                   </Card>
                 ) : (news || []).length === 0 ? (
                   <Card className="p-8 text-center">
-                    <Newspaper className="w-12 h-12 text-muted-foreground mx-auto mb-3" weight="duotone" />
-                    <p className="text-muted-foreground">No news available. Get a free API key from gnews.io to enable real-time news.</p>
+                    <Newspaper
+                      className="w-12 h-12 text-muted-foreground mx-auto mb-3"
+                      weight="duotone"
+                    />
+                    <p className="text-muted-foreground">
+                      No news available. Get a free API key from gnews.io to enable real-time news.
+                    </p>
                   </Card>
                 ) : (
                   (news || []).map((newsItem, index) => (
@@ -1242,16 +1384,12 @@ export function NotificationsResourcesView({
                               <Badge variant="secondary" className="text-xs">
                                 {newsItem.category}
                               </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {newsItem.time}
-                              </span>
+                              <span className="text-xs text-muted-foreground">{newsItem.time}</span>
                             </div>
                             <h3 className="font-semibold text-sm sm:text-base mb-1">
                               {newsItem.title}
                             </h3>
-                            <p className="text-xs text-muted-foreground">
-                              {newsItem.source}
-                            </p>
+                            <p className="text-xs text-muted-foreground">{newsItem.source}</p>
                           </div>
                           <TrendUp className="w-5 h-5 text-primary flex-shrink-0" />
                         </div>
@@ -1315,7 +1453,9 @@ export function NotificationsResourcesView({
               <h4 className="font-semibold text-sm">What we'll do:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
                 <li>Search through your email notifications for the keywords you enter</li>
-                <li>Use AI to find related terms and synonyms (e.g., "DOLE" → "Department of Labor")</li>
+                <li>
+                  Use AI to find related terms and synonyms (e.g., "DOLE" → "Department of Labor")
+                </li>
                 <li>Apply filters like time range and sender</li>
               </ul>
             </div>
@@ -1332,12 +1472,13 @@ export function NotificationsResourcesView({
             <Button variant="outline" onClick={() => setShowConsentDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              setHasSearchConsent(true)
-              performSearch()
-            }}>
-              <ShieldCheck className="w-4 h-4 mr-2" />
-              I Agree, Start Search
+            <Button
+              onClick={() => {
+                setHasSearchConsent(true)
+                performSearch()
+              }}
+            >
+              <ShieldCheck className="w-4 h-4 mr-2" />I Agree, Start Search
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1369,8 +1510,10 @@ export function NotificationsResourcesView({
               </Select>
               <p className="text-xs text-muted-foreground">
                 {dndBehavior === 'silence-all' && 'All calls will be silenced, no exceptions'}
-                {dndBehavior === 'allow-favorites' && 'Only calls from emergency contacts will ring'}
-                {dndBehavior === 'allow-repeated' && 'Repeated calls from the same number will ring'}
+                {dndBehavior === 'allow-favorites' &&
+                  'Only calls from emergency contacts will ring'}
+                {dndBehavior === 'allow-repeated' &&
+                  'Repeated calls from the same number will ring'}
               </p>
             </div>
 
@@ -1381,14 +1524,15 @@ export function NotificationsResourcesView({
               </Label>
               <Slider
                 value={[emergencyOverride]}
-                onValueChange={(value) => onEmergencyOverrideChange(value[0])}
+                onValueChange={value => onEmergencyOverrideChange(value[0])}
                 min={1}
                 max={10}
                 step={1}
                 className="flex-1"
               />
               <p className="text-xs text-muted-foreground">
-                If someone calls {emergencyOverride} times within 10 minutes, the call will ring through
+                If someone calls {emergencyOverride} times within 10 minutes, the call will ring
+                through
               </p>
             </div>
 
@@ -1402,7 +1546,10 @@ export function NotificationsResourcesView({
               {/* Contact List */}
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {(emergencyContacts || []).map((contact, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 rounded-md bg-muted"
+                  >
                     <span className="text-sm">{contact}</span>
                     <Button
                       variant="ghost"
@@ -1426,8 +1573,8 @@ export function NotificationsResourcesView({
                 <Input
                   placeholder="Name or phone number"
                   value={newContact}
-                  onChange={(e) => setNewContact(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddContact()}
+                  onChange={e => setNewContact(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleAddContact()}
                 />
                 <Button onClick={handleAddContact} size="icon">
                   <Plus className="w-4 h-4" />
@@ -1448,7 +1595,8 @@ export function NotificationsResourcesView({
           <DialogHeader>
             <DialogTitle>Manage Connected Accounts</DialogTitle>
             <DialogDescription>
-              Add email and social media accounts for email search, morning dashboard alerts, and notifications
+              Add email and social media accounts for email search, morning dashboard alerts, and
+              notifications
             </DialogDescription>
           </DialogHeader>
 
@@ -1459,7 +1607,10 @@ export function NotificationsResourcesView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Account Type</Label>
-                  <Select value={newAccountType} onValueChange={(v: 'email' | 'social') => setNewAccountType(v)}>
+                  <Select
+                    value={newAccountType}
+                    onValueChange={(v: 'email' | 'social') => setNewAccountType(v)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -1501,10 +1652,12 @@ export function NotificationsResourcesView({
                 <Label>Email/Username</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder={newAccountType === 'email' ? 'your.email@example.com' : '@username'}
+                    placeholder={
+                      newAccountType === 'email' ? 'your.email@example.com' : '@username'
+                    }
                     value={newAccountEmail}
-                    onChange={(e) => setNewAccountEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddAccount()}
+                    onChange={e => setNewAccountEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddAccount()}
                   />
                   <Button onClick={handleAddAccount}>
                     <Plus className="w-4 h-4 mr-2" />
@@ -1516,7 +1669,9 @@ export function NotificationsResourcesView({
 
             {/* Connected Accounts List */}
             <div className="space-y-3">
-              <h3 className="font-semibold">Connected Accounts ({(connectedAccounts || []).length})</h3>
+              <h3 className="font-semibold">
+                Connected Accounts ({(connectedAccounts || []).length})
+              </h3>
               {(connectedAccounts || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   No accounts connected yet. Add your first account above.
@@ -1524,14 +1679,16 @@ export function NotificationsResourcesView({
               ) : (
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-2">
-                    {(connectedAccounts || []).map((account) => (
+                    {(connectedAccounts || []).map(account => (
                       <div
                         key={account.id}
                         className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1">
                           <div className="p-2 rounded-lg bg-blue-500/10">
-                            <Envelope className={`w-5 h-5 ${account.isActive ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                            <Envelope
+                              className={`w-5 h-5 ${account.isActive ? 'text-blue-500' : 'text-muted-foreground'}`}
+                            />
                           </div>
                           <div className="flex-1">
                             <p className="font-medium capitalize">{account.provider}</p>
@@ -1622,8 +1779,8 @@ export function NotificationsResourcesView({
                 <Input
                   placeholder="e.g., project, meeting, deadline..."
                   value={newWorkKeyword}
-                  onChange={(e) => setNewWorkKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddWorkKeyword()}
+                  onChange={e => setNewWorkKeyword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddWorkKeyword()}
                 />
                 <Button onClick={handleAddWorkKeyword} size="icon">
                   <Plus className="w-4 h-4" />
@@ -1664,8 +1821,8 @@ export function NotificationsResourcesView({
                 <Input
                   placeholder="e.g., company.com, work.com..."
                   value={newWorkDomain}
-                  onChange={(e) => setNewWorkDomain(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddWorkDomain()}
+                  onChange={e => setNewWorkDomain(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddWorkDomain()}
                 />
                 <Button onClick={handleAddWorkDomain} size="icon">
                   <Plus className="w-4 h-4" />
@@ -1702,8 +1859,8 @@ export function NotificationsResourcesView({
                 <Input
                   placeholder="e.g., gmail.com, yahoo.com..."
                   value={newPersonalDomain}
-                  onChange={(e) => setNewPersonalDomain(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddPersonalDomain()}
+                  onChange={e => setNewPersonalDomain(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddPersonalDomain()}
                 />
                 <Button onClick={handleAddPersonalDomain} size="icon">
                   <Plus className="w-4 h-4" />
@@ -1714,10 +1871,18 @@ export function NotificationsResourcesView({
             <div className="text-xs text-muted-foreground p-3 bg-accent/10 rounded-lg">
               <p className="font-semibold mb-1">How categorization works:</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li><strong>Urgent:</strong> Emails with emergency keywords (urgent, alert, critical)</li>
-                <li><strong>Work:</strong> Emails matching your work keywords or from work domains</li>
-                <li><strong>Personal:</strong> Emails from individuals using personal domains</li>
-                <li><strong>Subscription:</strong> Billing, renewals, and service notifications</li>
+                <li>
+                  <strong>Urgent:</strong> Emails with emergency keywords (urgent, alert, critical)
+                </li>
+                <li>
+                  <strong>Work:</strong> Emails matching your work keywords or from work domains
+                </li>
+                <li>
+                  <strong>Personal:</strong> Emails from individuals using personal domains
+                </li>
+                <li>
+                  <strong>Subscription:</strong> Billing, renewals, and service notifications
+                </li>
               </ul>
             </div>
           </div>
@@ -1745,20 +1910,33 @@ export function NotificationsResourcesView({
             <>
               <DialogHeader className="border-b pb-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'bg-red-100 dark:bg-red-900/30' :
-                    mapCategoryToUI(selectedEmail.category) === 'work' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                    mapCategoryToUI(selectedEmail.category) === 'personal' ? 'bg-green-100 dark:bg-green-900/30' :
-                    mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                    'bg-gray-100 dark:bg-gray-800'
-                  }`}>
-                    <Envelope className={`w-6 h-6 ${
-                      mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'text-red-600' :
-                      mapCategoryToUI(selectedEmail.category) === 'work' ? 'text-blue-600' :
-                      mapCategoryToUI(selectedEmail.category) === 'personal' ? 'text-green-600' :
-                      mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'text-purple-600' :
-                      'text-gray-600'
-                    }`} weight="duotone" />
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      mapCategoryToUI(selectedEmail.category) === 'urgent'
+                        ? 'bg-red-100 dark:bg-red-900/30'
+                        : mapCategoryToUI(selectedEmail.category) === 'work'
+                          ? 'bg-blue-100 dark:bg-blue-900/30'
+                          : mapCategoryToUI(selectedEmail.category) === 'personal'
+                            ? 'bg-green-100 dark:bg-green-900/30'
+                            : mapCategoryToUI(selectedEmail.category) === 'subscription'
+                              ? 'bg-purple-100 dark:bg-purple-900/30'
+                              : 'bg-gray-100 dark:bg-gray-800'
+                    }`}
+                  >
+                    <Envelope
+                      className={`w-6 h-6 ${
+                        mapCategoryToUI(selectedEmail.category) === 'urgent'
+                          ? 'text-red-600'
+                          : mapCategoryToUI(selectedEmail.category) === 'work'
+                            ? 'text-blue-600'
+                            : mapCategoryToUI(selectedEmail.category) === 'personal'
+                              ? 'text-green-600'
+                              : mapCategoryToUI(selectedEmail.category) === 'subscription'
+                                ? 'text-purple-600'
+                                : 'text-gray-600'
+                      }`}
+                      weight="duotone"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <DialogTitle className="text-lg font-semibold mb-1">
@@ -1778,11 +1956,15 @@ export function NotificationsResourcesView({
                       <Badge
                         variant="secondary"
                         className={`text-xs ${
-                          mapCategoryToUI(selectedEmail.category) === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          mapCategoryToUI(selectedEmail.category) === 'work' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                          mapCategoryToUI(selectedEmail.category) === 'personal' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          mapCategoryToUI(selectedEmail.category) === 'subscription' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                          ''
+                          mapCategoryToUI(selectedEmail.category) === 'urgent'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : mapCategoryToUI(selectedEmail.category) === 'work'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              : mapCategoryToUI(selectedEmail.category) === 'personal'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : mapCategoryToUI(selectedEmail.category) === 'subscription'
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                  : ''
                         }`}
                       >
                         {mapCategoryToUI(selectedEmail.category)}
@@ -1821,7 +2003,10 @@ export function NotificationsResourcesView({
                       onClick={() => {
                         // Open in Gmail/email client
                         if (selectedEmail.provider === 'gmail') {
-                          window.open(`https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`, '_blank')
+                          window.open(
+                            `https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`,
+                            '_blank'
+                          )
                         }
                         setShowEmailPreview(false)
                       }}

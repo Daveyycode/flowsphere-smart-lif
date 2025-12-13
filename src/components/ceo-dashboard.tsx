@@ -25,7 +25,7 @@ import {
   Link as LinkIcon,
   Copy,
   ArrowsClockwise,
-  Plus
+  Plus,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -76,7 +76,9 @@ interface SubscriptionTier {
 }
 
 export function CEODashboard({ onClose }: CEODashboardProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>(
+    'month'
+  )
 
   // CEO Executive AI state
   const [aiPrompt, setAiPrompt] = useState('')
@@ -103,7 +105,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     gotyme: localStorage.getItem('flowsphere-ceo-gotyme-key') || '',
     gcash: localStorage.getItem('flowsphere-ceo-gcash-key') || '',
     maya: localStorage.getItem('flowsphere-ceo-maya-key') || '',
-    otherBanks: localStorage.getItem('flowsphere-ceo-otherbanks-key') || ''
+    otherBanks: localStorage.getItem('flowsphere-ceo-otherbanks-key') || '',
   })
   const [showKeys, setShowKeys] = useState({
     openai: false,
@@ -123,7 +125,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     gotyme: false,
     gcash: false,
     maya: false,
-    otherBanks: false
+    otherBanks: false,
   })
   const [isSavingKeys, setIsSavingKeys] = useState(false)
 
@@ -141,7 +143,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     activeUsers: 0,
     revenue: 0,
     growth: 0,
-    churnRate: 0
+    churnRate: 0,
   }
 
   const bankAccounts: BankAccount[] = []
@@ -159,7 +161,9 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
     // Check if Claude AI is configured
     if (!ceoAI.isConfigured()) {
       toast.error('Please add your Anthropic API key in the API Keys section below')
-      setAiResponse(`# Claude AI Not Configured\n\nTo use the CEO Executive AI, please add your **Anthropic API key** in the "API Keys & Integrations" section below.\n\n## How to get an API key:\n1. Visit [console.anthropic.com](https://console.anthropic.com)\n2. Create an account or sign in\n3. Go to API Keys section\n4. Generate a new key (starts with "sk-ant-...")\n5. Paste it in the Anthropic API Key field below\n\nOnce configured, you'll have access to:\n- **Workflow Generation** - Create detailed action plans\n- **Issue Analysis** - Debug and troubleshoot problems\n- **Report Generation** - Generate executive reports\n- **Security Guard** - Analyze risks and vulnerabilities`)
+      setAiResponse(
+        `# Claude AI Not Configured\n\nTo use the CEO Executive AI, please add your **Anthropic API key** in the "API Keys & Integrations" section below.\n\n## How to get an API key:\n1. Visit [console.anthropic.com](https://console.anthropic.com)\n2. Create an account or sign in\n3. Go to API Keys section\n4. Generate a new key (starts with "sk-ant-...")\n5. Paste it in the Anthropic API Key field below\n\nOnce configured, you'll have access to:\n- **Workflow Generation** - Create detailed action plans\n- **Issue Analysis** - Debug and troubleshoot problems\n- **Report Generation** - Generate executive reports\n- **Security Guard** - Analyze risks and vulnerabilities`
+      )
       return
     }
 
@@ -173,13 +177,13 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
         response = await ceoAI.generateWorkflow(aiPrompt, {
           totalUsers: metrics.totalUsers,
           revenue: metrics.revenue,
-          growthRate: metrics.growth
+          growthRate: metrics.growth,
         })
       } else if (aiMode === 'issues') {
         response = await ceoAI.analyzeIssues(aiPrompt, {
           activeUsers: metrics.activeUsers,
           churnRate: metrics.churnRate,
-          growthRate: metrics.growth
+          growthRate: metrics.growth,
         })
       } else if (aiMode === 'report') {
         response = await ceoAI.generateReport(aiPrompt, {
@@ -188,7 +192,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
           revenue: metrics.revenue,
           growthRate: metrics.growth,
           churnRate: metrics.churnRate,
-          suggestions: suggestions.map(s => ({ title: s.title, description: s.description }))
+          suggestions: suggestions.map(s => ({ title: s.title, description: s.description })),
         })
       }
 
@@ -201,16 +205,22 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
 
       if (errorMessage === 'NO_API_KEY') {
         toast.error('Please add your Anthropic API key')
-        setAiResponse(`# API Key Required\n\nPlease add your Anthropic API key in the "API Keys & Integrations" section below to use Claude AI.`)
+        setAiResponse(
+          `# API Key Required\n\nPlease add your Anthropic API key in the "API Keys & Integrations" section below to use Claude AI.`
+        )
       } else if (errorMessage === 'INVALID_API_KEY') {
         toast.error('Invalid API key')
-        setAiResponse(`# Invalid API Key\n\nThe Anthropic API key appears to be invalid. Please check your key and try again.\n\nMake sure your key starts with "sk-ant-..."`)
+        setAiResponse(
+          `# Invalid API Key\n\nThe Anthropic API key appears to be invalid. Please check your key and try again.\n\nMake sure your key starts with "sk-ant-..."`
+        )
       } else if (errorMessage === 'RATE_LIMITED') {
         toast.error('Rate limited - please try again later')
         setAiResponse(`# Rate Limited\n\nToo many requests. Please wait a moment and try again.`)
       } else {
         toast.error('AI analysis failed')
-        setAiResponse(`# Analysis Error\n\n**Mode:** ${aiMode.toUpperCase()}\n\n**Request:** ${aiPrompt}\n\n## Error\n\n${errorMessage}\n\nPlease check your API key configuration and try again.`)
+        setAiResponse(
+          `# Analysis Error\n\n**Mode:** ${aiMode.toUpperCase()}\n\n**Request:** ${aiPrompt}\n\n## Error\n\n${errorMessage}\n\nPlease check your API key configuration and try again.`
+        )
       }
     } finally {
       setIsAiProcessing(false)
@@ -278,7 +288,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
       const link = await paymongo.createPaymentLink({
         amount: paymongo.parseAmount(amount),
         description: newPaymentDescription,
-        remarks: 'FlowSphere Payment'
+        remarks: 'FlowSphere Payment',
       })
 
       setPaymentLinks(prev => [link, ...prev])
@@ -307,7 +317,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
   const refreshPaymentStatus = async (linkId: string) => {
     try {
       const updatedLink = await paymongo.getPaymentLink(linkId)
-      setPaymentLinks(prev => prev.map(l => l.id === linkId ? updatedLink : l))
+      setPaymentLinks(prev => prev.map(l => (l.id === linkId ? updatedLink : l)))
       toast.success('Payment status refreshed')
     } catch (error) {
       toast.error('Failed to refresh status')
@@ -333,9 +343,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                 <ShieldCheck className="w-8 h-8 text-primary" weight="fill" />
                 <h1 className="text-3xl sm:text-4xl font-bold">CEO Dashboard</h1>
               </div>
-              <p className="text-muted-foreground">
-                Executive overview and business intelligence
-              </p>
+              <p className="text-muted-foreground">Executive overview and business intelligence</p>
             </div>
             <Button variant="outline" onClick={onClose}>
               Exit CEO Mode
@@ -344,7 +352,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
 
           {/* Period Selector */}
           <div className="flex gap-2 mb-6">
-            {(['week', 'month', 'quarter', 'year'] as const).map((period) => (
+            {(['week', 'month', 'quarter', 'year'] as const).map(period => (
               <Button
                 key={period}
                 variant={selectedPeriod === period ? 'default' : 'outline'}
@@ -414,9 +422,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                   </div>
                   <p className="text-3xl font-bold">{metrics.churnRate}%</p>
                   <p className="text-sm text-muted-foreground">Churn Rate</p>
-                  <p className="text-xs text-coral mt-1">
-                    +0.3% vs last {selectedPeriod}
-                  </p>
+                  <p className="text-xs text-coral mt-1">+0.3% vs last {selectedPeriod}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -486,13 +492,16 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               <p className="font-medium text-sm">{account.name}</p>
                               <p className="text-xs text-muted-foreground">•••• {account.last4}</p>
                             </div>
-                            <p className={cn(
-                              "font-semibold",
-                              account.balance >= 0 ? "text-mint" : "text-destructive"
-                            )}>
-                              {account.balance >= 0 ? '+' : ''}{account.balance.toLocaleString('en-US', {
+                            <p
+                              className={cn(
+                                'font-semibold',
+                                account.balance >= 0 ? 'text-mint' : 'text-destructive'
+                              )}
+                            >
+                              {account.balance >= 0 ? '+' : ''}
+                              {account.balance.toLocaleString('en-US', {
                                 style: 'currency',
-                                currency: 'USD'
+                                currency: 'USD',
                               })}
                             </p>
                           </div>
@@ -540,13 +549,15 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                       {recentActivity.map((activity, index) => (
                         <div key={index}>
                           <div className="flex items-start gap-3">
-                            <div className={cn(
-                              "w-2 h-2 rounded-full mt-2 flex-shrink-0",
-                              activity.type === 'success' && "bg-mint",
-                              activity.type === 'warning' && "bg-coral",
-                              activity.type === 'error' && "bg-destructive",
-                              activity.type === 'info' && "bg-blue-mid"
-                            )} />
+                            <div
+                              className={cn(
+                                'w-2 h-2 rounded-full mt-2 flex-shrink-0',
+                                activity.type === 'success' && 'bg-mint',
+                                activity.type === 'warning' && 'bg-coral',
+                                activity.type === 'error' && 'bg-destructive',
+                                activity.type === 'info' && 'bg-blue-mid'
+                              )}
+                            />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm">{activity.event}</p>
                               <p className="text-xs text-muted-foreground">{activity.details}</p>
@@ -595,14 +606,15 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                     </div>
                   </div>
                 ) : (
-                  suggestions.map((suggestion) => (
+                  suggestions.map(suggestion => (
                     <div
                       key={suggestion.id}
                       className={cn(
-                        "p-4 rounded-lg border-2",
-                        suggestion.priority === 'urgent' && "border-destructive/30 bg-destructive/5",
-                        suggestion.priority === 'high' && "border-coral/30 bg-coral/5",
-                        suggestion.priority === 'medium' && "border-primary/30 bg-primary/5"
+                        'p-4 rounded-lg border-2',
+                        suggestion.priority === 'urgent' &&
+                          'border-destructive/30 bg-destructive/5',
+                        suggestion.priority === 'high' && 'border-coral/30 bg-coral/5',
+                        suggestion.priority === 'medium' && 'border-primary/30 bg-primary/5'
                       )}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -621,19 +633,18 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           <Badge
                             variant="secondary"
                             className={cn(
-                              "text-xs",
-                              suggestion.priority === 'urgent' && "bg-destructive/20 text-destructive",
-                              suggestion.priority === 'high' && "bg-coral/20 text-coral",
-                              suggestion.priority === 'medium' && "bg-primary/20 text-primary"
+                              'text-xs',
+                              suggestion.priority === 'urgent' &&
+                                'bg-destructive/20 text-destructive',
+                              suggestion.priority === 'high' && 'bg-coral/20 text-coral',
+                              suggestion.priority === 'medium' && 'bg-primary/20 text-primary'
                             )}
                           >
                             {suggestion.priority}
                           </Badge>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {suggestion.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
                       <Button variant="outline" size="sm">
                         Review Details
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -658,7 +669,9 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-primary" weight="duotone" />
                     Payment Links
-                    <Badge variant="secondary" className="ml-2">PayMongo</Badge>
+                    <Badge variant="secondary" className="ml-2">
+                      PayMongo
+                    </Badge>
                   </CardTitle>
                   <div className="flex gap-2">
                     <Button
@@ -667,13 +680,12 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                       onClick={loadPaymentLinks}
                       disabled={isLoadingPayments}
                     >
-                      <ArrowsClockwise className={cn("w-4 h-4 mr-1", isLoadingPayments && "animate-spin")} />
+                      <ArrowsClockwise
+                        className={cn('w-4 h-4 mr-1', isLoadingPayments && 'animate-spin')}
+                      />
                       Refresh
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreatePayment(!showCreatePayment)}
-                    >
+                    <Button size="sm" onClick={() => setShowCreatePayment(!showCreatePayment)}>
                       <Plus className="w-4 h-4 mr-1" />
                       Create Link
                     </Button>
@@ -692,7 +704,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type="number"
                           placeholder="100.00"
                           value={newPaymentAmount}
-                          onChange={(e) => setNewPaymentAmount(e.target.value)}
+                          onChange={e => setNewPaymentAmount(e.target.value)}
                           min="1"
                           step="0.01"
                         />
@@ -702,7 +714,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                         <Input
                           placeholder="Payment for..."
                           value={newPaymentDescription}
-                          onChange={(e) => setNewPaymentDescription(e.target.value)}
+                          onChange={e => setNewPaymentDescription(e.target.value)}
                         />
                       </div>
                     </div>
@@ -714,10 +726,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                       >
                         {isCreatingPayment ? 'Creating...' : 'Create & Copy Link'}
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowCreatePayment(false)}
-                      >
+                      <Button variant="outline" onClick={() => setShowCreatePayment(false)}>
                         Cancel
                       </Button>
                     </div>
@@ -751,7 +760,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {paymentLinks.map((link) => (
+                    {paymentLinks.map(link => (
                       <div
                         key={link.id}
                         className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border"
@@ -871,11 +880,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                       aiMode === 'workflow'
                         ? 'Example: Create a workflow for onboarding new enterprise customers...'
                         : aiMode === 'issues'
-                        ? 'Example: We are experiencing high churn in the EU market...'
-                        : 'Example: Generate a quarterly business review report...'
+                          ? 'Example: We are experiencing high churn in the EU market...'
+                          : 'Example: Generate a quarterly business review report...'
                     }
                     value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
+                    onChange={e => setAiPrompt(e.target.value)}
                     rows={4}
                     disabled={isAiProcessing}
                   />
@@ -910,12 +919,15 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                     <ScrollArea className="max-h-[400px]">
                       <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
                         {aiResponse.split('\n').map((line, i) => (
-                          <p key={i} className={cn(
-                            line.startsWith('#') && "font-bold text-lg mt-4 mb-2",
-                            line.startsWith('##') && "font-semibold text-base mt-3 mb-1",
-                            line.startsWith('**') && "font-medium",
-                            !line.trim() && "h-2"
-                          )}>
+                          <p
+                            key={i}
+                            className={cn(
+                              line.startsWith('#') && 'font-bold text-lg mt-4 mb-2',
+                              line.startsWith('##') && 'font-semibold text-base mt-3 mb-1',
+                              line.startsWith('**') && 'font-medium',
+                              !line.trim() && 'h-2'
+                            )}
+                          >
                             {line}
                           </p>
                         ))}
@@ -961,7 +973,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.openai ? 'text' : 'password'}
                           placeholder="sk-..."
                           value={apiKeys.openai}
-                          onChange={(e) => updateApiKey('openai', e.target.value)}
+                          onChange={e => updateApiKey('openai', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -969,7 +981,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('openai')}
                         >
-                          {showKeys.openai ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.openai ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -980,7 +996,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.anthropic ? 'text' : 'password'}
                           placeholder="sk-ant-..."
                           value={apiKeys.anthropic}
-                          onChange={(e) => updateApiKey('anthropic', e.target.value)}
+                          onChange={e => updateApiKey('anthropic', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -988,7 +1004,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('anthropic')}
                         >
-                          {showKeys.anthropic ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.anthropic ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1011,7 +1031,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.stripe ? 'text' : 'password'}
                           placeholder="sk_live_..."
                           value={apiKeys.stripe}
-                          onChange={(e) => updateApiKey('stripe', e.target.value)}
+                          onChange={e => updateApiKey('stripe', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -1019,7 +1039,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('stripe')}
                         >
-                          {showKeys.stripe ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.stripe ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1036,7 +1060,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                             type={showKeys.paymongoSecret ? 'text' : 'password'}
                             placeholder="sk_live_..."
                             value={apiKeys.paymongoSecret}
-                            onChange={(e) => updateApiKey('paymongoSecret', e.target.value)}
+                            onChange={e => updateApiKey('paymongoSecret', e.target.value)}
                             className="font-mono text-sm"
                           />
                           <Button
@@ -1044,7 +1068,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                             size="icon"
                             onClick={() => toggleKeyVisibility('paymongoSecret')}
                           >
-                            {showKeys.paymongoSecret ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showKeys.paymongoSecret ? (
+                              <EyeSlash className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -1055,7 +1083,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                             type={showKeys.paymongoPublic ? 'text' : 'password'}
                             placeholder="pk_live_..."
                             value={apiKeys.paymongoPublic}
-                            onChange={(e) => updateApiKey('paymongoPublic', e.target.value)}
+                            onChange={e => updateApiKey('paymongoPublic', e.target.value)}
                             className="font-mono text-sm"
                           />
                           <Button
@@ -1063,7 +1091,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                             size="icon"
                             onClick={() => toggleKeyVisibility('paymongoPublic')}
                           >
-                            {showKeys.paymongoPublic ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showKeys.paymongoPublic ? (
+                              <EyeSlash className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -1087,7 +1119,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.plaid ? 'text' : 'password'}
                           placeholder="access-..."
                           value={apiKeys.plaid}
-                          onChange={(e) => updateApiKey('plaid', e.target.value)}
+                          onChange={e => updateApiKey('plaid', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -1095,18 +1127,24 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('plaid')}
                         >
-                          {showKeys.plaid ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.plaid ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">Bank of America API Key</label>
+                      <label className="text-xs text-muted-foreground">
+                        Bank of America API Key
+                      </label>
                       <div className="flex gap-2">
                         <Input
                           type={showKeys.bankOfAmerica ? 'text' : 'password'}
                           placeholder="boa-..."
                           value={apiKeys.bankOfAmerica}
-                          onChange={(e) => updateApiKey('bankOfAmerica', e.target.value)}
+                          onChange={e => updateApiKey('bankOfAmerica', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -1114,7 +1152,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('bankOfAmerica')}
                         >
-                          {showKeys.bankOfAmerica ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.bankOfAmerica ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1125,7 +1167,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.chase ? 'text' : 'password'}
                           placeholder="chase-..."
                           value={apiKeys.chase}
-                          onChange={(e) => updateApiKey('chase', e.target.value)}
+                          onChange={e => updateApiKey('chase', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -1133,7 +1175,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('chase')}
                         >
-                          {showKeys.chase ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.chase ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1144,7 +1190,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           type={showKeys.wellsFargo ? 'text' : 'password'}
                           placeholder="wf-..."
                           value={apiKeys.wellsFargo}
-                          onChange={(e) => updateApiKey('wellsFargo', e.target.value)}
+                          onChange={e => updateApiKey('wellsFargo', e.target.value)}
                           className="font-mono text-sm"
                         />
                         <Button
@@ -1152,7 +1198,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                           size="icon"
                           onClick={() => toggleKeyVisibility('wellsFargo')}
                         >
-                          {showKeys.wellsFargo ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showKeys.wellsFargo ? (
+                            <EyeSlash className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1167,13 +1217,15 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-xs text-muted-foreground">BDO Unibank Account</label>
+                          <label className="text-xs text-muted-foreground">
+                            BDO Unibank Account
+                          </label>
                           <div className="flex gap-2">
                             <Input
                               type={showKeys.bdo ? 'text' : 'password'}
                               placeholder="Account number..."
                               value={apiKeys.bdo}
-                              onChange={(e) => updateApiKey('bdo', e.target.value)}
+                              onChange={e => updateApiKey('bdo', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1181,7 +1233,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('bdo')}
                             >
-                              {showKeys.bdo ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.bdo ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1192,7 +1248,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               type={showKeys.bpi ? 'text' : 'password'}
                               placeholder="Account number..."
                               value={apiKeys.bpi}
-                              onChange={(e) => updateApiKey('bpi', e.target.value)}
+                              onChange={e => updateApiKey('bpi', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1200,7 +1256,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('bpi')}
                             >
-                              {showKeys.bpi ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.bpi ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1211,7 +1271,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               type={showKeys.metrobank ? 'text' : 'password'}
                               placeholder="Account number..."
                               value={apiKeys.metrobank}
-                              onChange={(e) => updateApiKey('metrobank', e.target.value)}
+                              onChange={e => updateApiKey('metrobank', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1219,7 +1279,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('metrobank')}
                             >
-                              {showKeys.metrobank ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.metrobank ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1230,7 +1294,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               type={showKeys.unionbank ? 'text' : 'password'}
                               placeholder="Account number..."
                               value={apiKeys.unionbank}
-                              onChange={(e) => updateApiKey('unionbank', e.target.value)}
+                              onChange={e => updateApiKey('unionbank', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1238,7 +1302,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('unionbank')}
                             >
-                              {showKeys.unionbank ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.unionbank ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1249,7 +1317,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               type={showKeys.gcash ? 'text' : 'password'}
                               placeholder="+63..."
                               value={apiKeys.gcash}
-                              onChange={(e) => updateApiKey('gcash', e.target.value)}
+                              onChange={e => updateApiKey('gcash', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1257,7 +1325,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('gcash')}
                             >
-                              {showKeys.gcash ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.gcash ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1268,7 +1340,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               type={showKeys.maya ? 'text' : 'password'}
                               placeholder="+63..."
                               value={apiKeys.maya}
-                              onChange={(e) => updateApiKey('maya', e.target.value)}
+                              onChange={e => updateApiKey('maya', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1276,18 +1348,24 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('maya')}
                             >
-                              {showKeys.maya ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.maya ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs text-muted-foreground">GoTyme Bank Account</label>
+                          <label className="text-xs text-muted-foreground">
+                            GoTyme Bank Account
+                          </label>
                           <div className="flex gap-2">
                             <Input
                               type={showKeys.gotyme ? 'text' : 'password'}
                               placeholder="Account number..."
                               value={apiKeys.gotyme}
-                              onChange={(e) => updateApiKey('gotyme', e.target.value)}
+                              onChange={e => updateApiKey('gotyme', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1295,18 +1373,24 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('gotyme')}
                             >
-                              {showKeys.gotyme ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.gotyme ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
                         <div className="space-y-2 col-span-2">
-                          <label className="text-xs text-muted-foreground">Other Banks (Name: Account)</label>
+                          <label className="text-xs text-muted-foreground">
+                            Other Banks (Name: Account)
+                          </label>
                           <div className="flex gap-2">
                             <Input
                               type={showKeys.otherBanks ? 'text' : 'password'}
                               placeholder="Bank Name: Account Number..."
                               value={apiKeys.otherBanks}
-                              onChange={(e) => updateApiKey('otherBanks', e.target.value)}
+                              onChange={e => updateApiKey('otherBanks', e.target.value)}
                               className="font-mono text-sm"
                             />
                             <Button
@@ -1314,7 +1398,11 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                               size="icon"
                               onClick={() => toggleKeyVisibility('otherBanks')}
                             >
-                              {showKeys.otherBanks ? <EyeSlash className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showKeys.otherBanks ? (
+                                <EyeSlash className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1324,11 +1412,7 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                 </div>
 
                 {/* Save Button */}
-                <Button
-                  onClick={handleSaveApiKeys}
-                  disabled={isSavingKeys}
-                  className="w-full"
-                >
+                <Button onClick={handleSaveApiKeys} disabled={isSavingKeys} className="w-full">
                   {isSavingKeys ? (
                     <>
                       <Check className="w-4 h-4 mr-2 animate-pulse" />
@@ -1343,8 +1427,8 @@ export function CEODashboard({ onClose }: CEODashboardProps) {
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  API keys are encrypted and stored securely in your browser's local storage.
-                  They are never transmitted to our servers.
+                  API keys are encrypted and stored securely in your browser's local storage. They
+                  are never transmitted to our servers.
                 </p>
               </CardContent>
             </Card>

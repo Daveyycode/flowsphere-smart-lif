@@ -9,7 +9,7 @@ import {
   MagnifyingGlass,
   Sparkle,
   Plus,
-  ArrowsClockwise
+  ArrowsClockwise,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ import {
   autoCategorizEmails,
   applyCategorizationsToFolders,
   moveEmailToFolder,
-  getFolderStats
+  getFolderStats,
 } from '@/lib/email-folder-manager'
 import { EmailMessage } from '@/lib/email-scanner'
 
@@ -91,7 +91,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
         return {
           ...cat,
           verified: approved,
-          suggestedFolder: newFolder || cat.suggestedFolder
+          suggestedFolder: newFolder || cat.suggestedFolder,
         }
       }
       return cat
@@ -111,7 +111,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
   const handleVerifyAll = () => {
     const updatedCategorizations = (categorizations || []).map(cat => ({
       ...cat,
-      verified: true
+      verified: true,
     }))
 
     setCategorizations(updatedCategorizations)
@@ -152,17 +152,11 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Email Folders</h2>
-          <p className="text-sm text-muted-foreground">
-            AI-powered organization of your emails
-          </p>
+          <p className="text-sm text-muted-foreground">AI-powered organization of your emails</p>
         </div>
         <div className="flex gap-2">
           {pendingVerifications.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowVerification(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowVerification(true)}>
               <Sparkle className="w-4 h-4 mr-2" />
               Review {pendingVerifications.length}
             </Button>
@@ -221,7 +215,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
         <Input
           placeholder="Search folders..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-10"
         />
       </div>
@@ -297,11 +291,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
                   <CardTitle>
                     {(folders || []).find(f => f.path === selectedFolder)?.name} Emails
                   </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedFolder(null)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedFolder(null)}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
@@ -360,7 +350,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               className="w-full max-w-2xl"
             >
               <Card>
@@ -377,11 +367,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
                         <Check className="w-4 h-4 mr-2" />
                         Approve All
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowVerification(false)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setShowVerification(false)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -405,9 +391,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
                           >
                             <div>
                               <p className="font-medium">{email.subject}</p>
-                              <p className="text-sm text-muted-foreground">
-                                From: {email.from}
-                              </p>
+                              <p className="text-sm text-muted-foreground">From: {email.from}</p>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -416,7 +400,7 @@ export function EmailFolderManager({ emails, onRefresh }: EmailFolderManagerProp
                               <Badge
                                 style={{
                                   backgroundColor: `${suggestedFolder?.color}20`,
-                                  color: suggestedFolder?.color
+                                  color: suggestedFolder?.color,
                                 }}
                               >
                                 Suggested: {suggestedFolder?.name}

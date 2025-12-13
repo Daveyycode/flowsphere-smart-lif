@@ -65,7 +65,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -142,7 +142,10 @@ export function storeOTP(email: string, code: string, expiresAt: number): void {
 /**
  * Verify OTP
  */
-export function verifyOTP(email: string, inputCode: string): {
+export function verifyOTP(
+  email: string,
+  inputCode: string
+): {
   valid: boolean
   error?: string
 } {
@@ -202,7 +205,7 @@ export async function sendOTPServerSide(
     const response = await fetch(`${SUPABASE_URL}/functions/v1/otp-send`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, purpose }),
@@ -240,7 +243,7 @@ export async function verifyOTPServerSide(
     const response = await fetch(`${SUPABASE_URL}/functions/v1/otp-verify`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, code }),
@@ -445,11 +448,15 @@ export async function sendSecurityAlertEmail(
               <p style="margin: 0 0 24px 0; color: #52525b; font-size: 15px; line-height: 1.6;">
                 ${alert.message}
               </p>
-              ${alert.action && alert.actionUrl ? `
+              ${
+                alert.action && alert.actionUrl
+                  ? `
               <a href="${alert.actionUrl}" style="display: inline-block; background-color: #ef4444; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
                 ${alert.action}
               </a>
-              ` : ''}
+              `
+                  : ''
+              }
             </td>
           </tr>
 
@@ -479,10 +486,7 @@ export async function sendSecurityAlertEmail(
 /**
  * Send welcome email
  */
-export async function sendWelcomeEmail(
-  email: string,
-  name: string
-): Promise<EmailResult> {
+export async function sendWelcomeEmail(email: string, name: string): Promise<EmailResult> {
   const html = `
 <!DOCTYPE html>
 <html>

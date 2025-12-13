@@ -13,7 +13,7 @@ import {
   onIncomingCall,
   onConnectionChange,
   requestNotificationPermission,
-  showNotification
+  showNotification,
 } from '@/lib/realtime-manager'
 
 /**
@@ -58,7 +58,7 @@ export function useConversationMessages(
   useEffect(() => {
     if (!conversationId) return
 
-    const unsubscribe = subscribeToConversation(conversationId, (message) => {
+    const unsubscribe = subscribeToConversation(conversationId, message => {
       callbackRef.current(message)
     })
 
@@ -69,17 +69,14 @@ export function useConversationMessages(
 /**
  * Listen for new contacts
  */
-export function useNewContacts(
-  userId: string | null,
-  onContact: (contact: any) => void
-) {
+export function useNewContacts(userId: string | null, onContact: (contact: any) => void) {
   const callbackRef = useRef(onContact)
   callbackRef.current = onContact
 
   useEffect(() => {
     if (!userId) return
 
-    const unsubscribe = onNewContact(userId, (contact) => {
+    const unsubscribe = onNewContact(userId, contact => {
       callbackRef.current(contact)
     })
 
@@ -90,17 +87,14 @@ export function useNewContacts(
 /**
  * Listen for incoming calls
  */
-export function useIncomingCalls(
-  userId: string | null,
-  onCall: (invite: any) => void
-) {
+export function useIncomingCalls(userId: string | null, onCall: (invite: any) => void) {
   const callbackRef = useRef(onCall)
   callbackRef.current = onCall
 
   useEffect(() => {
     if (!userId) return
 
-    const unsubscribe = onIncomingCall(userId, (invite) => {
+    const unsubscribe = onIncomingCall(userId, invite => {
       callbackRef.current(invite)
     })
 

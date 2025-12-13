@@ -71,7 +71,7 @@ export function generateMyQRCode(userData: {
     avatar: userData.avatar,
     publicKey: userData.publicKey,
     timestamp: new Date().toISOString(),
-    signature: generateSignature(userData)
+    signature: generateSignature(userData),
   }
 
   return qrData
@@ -97,7 +97,7 @@ function verifySignature(qrData: QRCodeData): boolean {
     phone: qrData.phone,
     email: qrData.email,
     avatar: qrData.avatar,
-    publicKey: qrData.publicKey
+    publicKey: qrData.publicKey,
   })
 
   return qrData.signature === expectedSignature
@@ -149,7 +149,10 @@ export class ContactManager {
     if (existing) {
       if (existing.status === 'deactivated') {
         // Reactivate deactivated contact
-        return this.updateContact(existing.id, { status: 'active', lastSeen: new Date().toISOString() })
+        return this.updateContact(existing.id, {
+          status: 'active',
+          lastSeen: new Date().toISOString(),
+        })
       }
       throw new Error('Contact already exists')
     }
@@ -167,7 +170,7 @@ export class ContactManager {
       lastSeen: new Date().toISOString(),
       status: 'active',
       favorite: false,
-      groups: []
+      groups: [],
     }
 
     // Save contact
@@ -334,11 +337,12 @@ export class ContactManager {
    */
   searchContacts(query: string): Contact[] {
     const lowerQuery = query.toLowerCase()
-    return this.getActiveContacts().filter(c =>
-      c.name.toLowerCase().includes(lowerQuery) ||
-      c.nickname?.toLowerCase().includes(lowerQuery) ||
-      c.phone?.includes(query) ||
-      c.email?.toLowerCase().includes(lowerQuery)
+    return this.getActiveContacts().filter(
+      c =>
+        c.name.toLowerCase().includes(lowerQuery) ||
+        c.nickname?.toLowerCase().includes(lowerQuery) ||
+        c.phone?.includes(query) ||
+        c.email?.toLowerCase().includes(lowerQuery)
     )
   }
 
@@ -416,7 +420,7 @@ export class ContactManager {
       deactivated: contacts.filter(c => c.status === 'deactivated').length,
       blocked: contacts.filter(c => c.status === 'blocked').length,
       favorites: contacts.filter(c => c.favorite).length,
-      groups: Array.from(groups)
+      groups: Array.from(groups),
     }
   }
 
@@ -431,7 +435,7 @@ export class ContactManager {
       from: toContact,
       timestamp: new Date().toISOString(),
       status: 'pending',
-      message
+      message,
     }
 
     const requests = this.getContactRequests()
@@ -529,8 +533,8 @@ export class QRCodeScanner {
         video: {
           facingMode: 'environment', // Use back camera on mobile
           width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+          height: { ideal: 720 },
+        },
       })
 
       this.video.srcObject = this.stream
@@ -610,7 +614,8 @@ export class QRCodeScanner {
   async switchCamera(): Promise<void> {
     if (!this.video) return
 
-    const currentFacingMode = this.stream?.getVideoTracks()[0].getSettings().facingMode || 'environment'
+    const currentFacingMode =
+      this.stream?.getVideoTracks()[0].getSettings().facingMode || 'environment'
     const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'
 
     this.stopScanning()

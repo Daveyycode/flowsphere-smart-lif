@@ -81,11 +81,11 @@ export async function searchVenues(
         thursday: '11:00 AM - 10:00 PM',
         friday: '11:00 AM - 11:00 PM',
         saturday: '10:00 AM - 11:00 PM',
-        sunday: '10:00 AM - 9:00 PM'
+        sunday: '10:00 AM - 9:00 PM',
       },
       images: [],
       verified: true,
-      availableForEvents: true
+      availableForEvents: true,
     },
     {
       id: 'venue-2',
@@ -108,11 +108,11 @@ export async function searchVenues(
         thursday: '8:00 AM - 10:00 PM',
         friday: '8:00 AM - 11:00 PM',
         saturday: '9:00 AM - 11:00 PM',
-        sunday: '9:00 AM - 8:00 PM'
+        sunday: '9:00 AM - 8:00 PM',
       },
       images: [],
       verified: true,
-      availableForEvents: true
+      availableForEvents: true,
     },
     {
       id: 'venue-3',
@@ -135,11 +135,11 @@ export async function searchVenues(
         thursday: '11:00 AM - 9:00 PM',
         friday: '11:00 AM - 10:00 PM',
         saturday: '10:00 AM - 10:00 PM',
-        sunday: '10:00 AM - 9:00 PM'
+        sunday: '10:00 AM - 9:00 PM',
       },
       images: [],
       verified: false,
-      availableForEvents: false
+      availableForEvents: false,
     },
     {
       id: 'venue-4',
@@ -163,12 +163,12 @@ export async function searchVenues(
         thursday: '5:00 PM - 10:00 PM',
         friday: '5:00 PM - 11:00 PM',
         saturday: '5:00 PM - 11:00 PM',
-        sunday: '5:00 PM - 9:00 PM'
+        sunday: '5:00 PM - 9:00 PM',
       },
       images: [],
       verified: true,
-      availableForEvents: true
-    }
+      availableForEvents: true,
+    },
   ]
 
   let sorted = [...mockVenues]
@@ -193,7 +193,7 @@ export async function searchVenues(
     case 'budget-friendly':
       sorted = sorted.filter(v => v.priceRange === '$' || v.priceRange === '$$')
       sorted.sort((a, b) => {
-        const order = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 }
+        const order = { $: 1, $$: 2, $$$: 3, $$$$: 4 }
         return order[a.priceRange] - order[b.priceRange]
       })
       break
@@ -226,7 +226,7 @@ export async function makeVenueAIBooking(
       success: false,
       confirmed: false,
       message: 'Booking cancelled',
-      cost: 0
+      cost: 0,
     }
   }
 
@@ -236,24 +236,24 @@ export async function makeVenueAIBooking(
   switch (contactMethod) {
     case 'email':
       message = generateVenueEmailBooking(venue, booking)
-      cost = 0.50
+      cost = 0.5
       console.log('AI Email:', message)
       return {
         success: true,
         confirmed: false,
         message: `Reservation request sent to ${venue.name}. You'll receive confirmation via email.`,
-        cost
+        cost,
       }
 
     case 'phone':
-      cost = 2.00
+      cost = 2.0
       console.log(`AI calling ${venue.phone} for reservation`)
       return {
         success: true,
         confirmed: true,
         confirmationNumber: `RES-${Date.now()}`,
         message: `Reservation confirmed at ${venue.name} for ${booking.partySize} guests on ${booking.date} at ${booking.time}`,
-        cost
+        cost,
       }
 
     case 'sms':
@@ -264,7 +264,7 @@ export async function makeVenueAIBooking(
         success: true,
         confirmed: false,
         message: `Reservation request sent via SMS. ${venue.name} will confirm shortly.`,
-        cost
+        cost,
       }
   }
 }
@@ -307,11 +307,11 @@ function generateVenueSMSBooking(venue: Venue, booking: VenueBookingRequest): st
  */
 export function getOccasionRecommendations(venueType: Venue['type']): string[] {
   const recommendations: Record<Venue['type'], string[]> = {
-    'restaurant': ['Dinner', 'Lunch', 'Birthday', 'Anniversary', 'Date Night', 'Business Meal'],
-    'cafe': ['Coffee Meeting', 'Brunch', 'Work Session', 'Casual Meetup'],
-    'bar': ['Happy Hour', 'After Work Drinks', 'Celebration', 'Social Gathering'],
+    restaurant: ['Dinner', 'Lunch', 'Birthday', 'Anniversary', 'Date Night', 'Business Meal'],
+    cafe: ['Coffee Meeting', 'Brunch', 'Work Session', 'Casual Meetup'],
+    bar: ['Happy Hour', 'After Work Drinks', 'Celebration', 'Social Gathering'],
     'event-venue': ['Wedding', 'Corporate Event', 'Conference', 'Party', 'Fundraiser', 'Workshop'],
-    'meeting-room': ['Business Meeting', 'Interview', 'Presentation', 'Training Session']
+    'meeting-room': ['Business Meeting', 'Interview', 'Presentation', 'Training Session'],
   }
 
   return recommendations[venueType] || ['General Reservation']

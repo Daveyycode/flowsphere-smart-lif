@@ -67,10 +67,10 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
           password,
           options: {
             data: {
-              name: name
+              name: name,
             },
-            emailRedirectTo: undefined // Disable email link, we'll use OTP
-          }
+            emailRedirectTo: undefined, // Disable email link, we'll use OTP
+          },
         })
 
         if (signUpError) {
@@ -91,8 +91,8 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
           const { error: otpError } = await supabase.auth.signInWithOtp({
             email,
             options: {
-              shouldCreateUser: false // User already created above
-            }
+              shouldCreateUser: false, // User already created above
+            },
           })
 
           if (otpError) {
@@ -123,7 +123,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
         // Sign in with Supabase
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
-          password
+          password,
         })
 
         if (error) {
@@ -135,14 +135,14 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
         if (data.user) {
           // PRODUCTION: Always require email verification
           if (!data.user.email_confirmed_at) {
-            toast.error('Please verify your email first. We\'ll send you a new verification code.')
+            toast.error("Please verify your email first. We'll send you a new verification code.")
 
             // Send OTP for verification
             const { error: otpError } = await supabase.auth.signInWithOtp({
               email,
               options: {
-                shouldCreateUser: false
-              }
+                shouldCreateUser: false,
+              },
             })
 
             if (otpError) {
@@ -164,7 +164,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
           toast.success('Welcome back!')
           onSuccess({
             email,
-            name: userName
+            name: userName,
           })
         }
       }
@@ -175,7 +175,10 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
       if (error instanceof TypeError && error.message.includes('fetch')) {
         toast.error('Network error - please check your internet connection and try again')
       } else {
-        toast.error('An unexpected error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'))
+        toast.error(
+          'An unexpected error occurred: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        )
       }
       setIsLoading(false)
     }
@@ -193,7 +196,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
       const { data, error } = await supabase.auth.verifyOtp({
         email: otpEmail,
         token: otp,
-        type: 'email'
+        type: 'email',
       })
 
       if (error) {
@@ -207,7 +210,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
         toast.success('Email verified! Welcome to FlowSphere!')
         onSuccess({
           email: otpEmail,
-          name: userName
+          name: userName,
         })
       }
       setIsLoading(false)
@@ -225,8 +228,8 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
       const { error } = await supabase.auth.signInWithOtp({
         email: otpEmail,
         options: {
-          shouldCreateUser: false
-        }
+          shouldCreateUser: false,
+        },
       })
 
       if (error) {
@@ -280,85 +283,87 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-base">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-11 h-12 text-base"
-                    required
-                  />
+                {mode === 'signup' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-base">
+                      Full Name
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="pl-11 h-12 text-base"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-base">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <EnvelopeSimple className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="text"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="pl-11 h-12 text-base"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-base">Email</Label>
-              <div className="relative">
-                <EnvelopeSimple className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-11 h-12 text-base"
-                  required
-                />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-base">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="pl-11 pr-11 h-12 text-base"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 hover:bg-muted"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeSlash className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <Eye className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-base">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-11 pr-11 h-12 text-base"
-                  required
-                />
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 hover:bg-muted"
-                  onClick={() => setShowPassword(!showPassword)}
+                  type="submit"
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                  disabled={isLoading}
                 >
-                  {showPassword ? (
-                    <EyeSlash className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-muted-foreground" />
-                  )}
+                  {isLoading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Sign In'}
                 </Button>
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90" 
-              disabled={isLoading}
-            >
-              {isLoading 
-                ? 'Please wait...' 
-                : mode === 'signup' ? 'Create Account' : 'Sign In'}
-            </Button>
               </form>
 
               <div className="mt-6 text-center text-base">
                 <span className="text-muted-foreground">
-                  {mode === 'signup'
-                    ? 'Already have an account? '
-                    : "Don't have an account? "}
+                  {mode === 'signup' ? 'Already have an account? ' : "Don't have an account? "}
                 </span>
                 <button
                   type="button"
@@ -382,13 +387,15 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="otp" className="text-base">Verification Code</Label>
+                  <Label htmlFor="otp" className="text-base">
+                    Verification Code
+                  </Label>
                   <Input
                     id="otp"
                     type="text"
                     placeholder="000000"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     className="h-12 text-center text-2xl tracking-widest font-bold"
                     maxLength={6}
                     autoFocus
@@ -404,9 +411,7 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
                 </Button>
 
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Didn't receive the code?
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">Didn't receive the code?</p>
                   <Button
                     variant="ghost"
                     onClick={handleResendOtp}

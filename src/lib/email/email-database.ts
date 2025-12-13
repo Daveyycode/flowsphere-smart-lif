@@ -40,7 +40,7 @@ export class EmailDatabase {
         resolve()
       }
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result
 
         // Create main email store if it doesn't exist
@@ -115,7 +115,9 @@ export class EmailDatabase {
       // Delete old emails from main store
       if (toDelete.length > 0) {
         await this.deleteEmailsByIds(toDelete)
-        logger.info(`🗑️ Retention cleanup: Deleted ${toDelete.length} old emails, archived ${toArchive.length} work emails`)
+        logger.info(
+          `🗑️ Retention cleanup: Deleted ${toDelete.length} old emails, archived ${toArchive.length} work emails`
+        )
       }
     } catch (error) {
       logger.error('Retention cleanup failed:', error)
@@ -135,7 +137,7 @@ export class EmailDatabase {
       emails.forEach(email => {
         store.put({
           ...email,
-          archivedAt: new Date().toISOString()
+          archivedAt: new Date().toISOString(),
         })
       })
 
@@ -219,10 +221,13 @@ export class EmailDatabase {
    * Search archived work emails (5-year history)
    * Called by AI when user asks for old work emails
    */
-  async searchArchive(query: string, options?: {
-    maxResults?: number
-    yearsBack?: number
-  }): Promise<Email[]> {
+  async searchArchive(
+    query: string,
+    options?: {
+      maxResults?: number
+      yearsBack?: number
+    }
+  ): Promise<Email[]> {
     if (!this.db) await this.init()
 
     const maxResults = options?.maxResults || 50
@@ -301,22 +306,22 @@ export class EmailDatabase {
       const classification = EmailClassificationRulesStore.classifyByRules({
         subject: email.subject,
         body: email.body || email.snippet || '',
-        from: email.from
+        from: email.from,
       })
 
       // Map classification category to email category
       const categoryMap: Record<string, Email['category']> = {
-        'urgent': 'emergency',
-        'work': 'work',
-        'personal': 'personal',
-        'subs': 'subscription',
-        'bills': 'regular',
-        'all': 'regular'
+        urgent: 'emergency',
+        work: 'work',
+        personal: 'personal',
+        subs: 'subscription',
+        bills: 'regular',
+        all: 'regular',
       }
 
       return {
         ...email,
-        category: categoryMap[classification.category] || 'regular'
+        category: categoryMap[classification.category] || 'regular',
       }
     })
 
@@ -325,7 +330,7 @@ export class EmailDatabase {
       const store = transaction.objectStore(STORE_NAME)
 
       let stored = 0
-      classifiedEmails.forEach((email) => {
+      classifiedEmails.forEach(email => {
         const request = store.put(email)
         request.onsuccess = () => stored++
       })
@@ -382,10 +387,7 @@ export class EmailDatabase {
       const store = transaction.objectStore(STORE_NAME)
       const index = store.index('timestamp')
 
-      const range = IDBKeyRange.bound(
-        startDate.toISOString(),
-        endDate.toISOString()
-      )
+      const range = IDBKeyRange.bound(startDate.toISOString(), endDate.toISOString())
 
       const request = index.getAll(range)
 
@@ -401,7 +403,7 @@ export class EmailDatabase {
     const allEmails = await this.getAllEmails()
     const lowerQuery = query.toLowerCase()
 
-    return allEmails.filter((email) => {
+    return allEmails.filter(email => {
       const searchText = `
         ${email.subject}
         ${email.body}
@@ -440,19 +442,19 @@ export class EmailDatabase {
     if (emails.length === 0) return 0
 
     const categoryMap: Record<string, Email['category']> = {
-      'urgent': 'emergency',
-      'work': 'work',
-      'personal': 'personal',
-      'subs': 'subscription',
-      'bills': 'regular',
-      'all': 'regular'
+      urgent: 'emergency',
+      work: 'work',
+      personal: 'personal',
+      subs: 'subscription',
+      bills: 'regular',
+      all: 'regular',
     }
 
     const reclassified = emails.map(email => {
       const classification = EmailClassificationRulesStore.classifyByRules({
         subject: email.subject,
         body: email.body || email.snippet || '',
-        from: email.from
+        from: email.from,
       })
 
       const newCategory = categoryMap[classification.category] || 'regular'
@@ -461,7 +463,7 @@ export class EmailDatabase {
       return {
         ...email,
         category: newCategory,
-        _wasChanged: wasChanged
+        _wasChanged: wasChanged,
       }
     })
 
@@ -484,7 +486,7 @@ export class EmailDatabase {
       const store = transaction.objectStore(STORE_NAME)
 
       let updated = 0
-      cleanEmails.forEach((email) => {
+      cleanEmails.forEach(email => {
         const request = store.put(email)
         request.onsuccess = () => updated++
       })
@@ -492,9 +494,11 @@ export class EmailDatabase {
       transaction.oncomplete = () => {
         logger.info(`🔄 Reclassified ${updated} emails`)
         // Dispatch event to notify UI components
-        window.dispatchEvent(new CustomEvent('flowsphere-emails-reclassified', {
-          detail: { count: updated, changed: changedEmails.length }
-        }))
+        window.dispatchEvent(
+          new CustomEvent('flowsphere-emails-reclassified', {
+            detail: { count: updated, changed: changedEmails.length },
+          })
+        )
         resolve(updated)
       }
       transaction.onerror = () => reject(transaction.error)
@@ -515,7 +519,7 @@ export class EmailDatabase {
       const classification = EmailClassificationRulesStore.classifyByRules({
         subject: email.subject,
         body: email.body || email.snippet || '',
-        from: email.from
+        from: email.from,
       })
 
       // If rules suggest a non-regular category, this email needs reclassification
@@ -554,9 +558,7 @@ export class EmailDatabase {
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
 
     const allEmails = await this.getAllEmails()
-    const oldEmails = allEmails.filter(
-      (email) => new Date(email.timestamp) < cutoffDate
-    )
+    const oldEmails = allEmails.filter(email => new Date(email.timestamp) < cutoffDate)
 
     if (oldEmails.length === 0) return 0
 
@@ -567,7 +569,7 @@ export class EmailDatabase {
       const store = transaction.objectStore(STORE_NAME)
 
       let deleted = 0
-      oldEmails.forEach((email) => {
+      oldEmails.forEach(email => {
         const request = store.delete(email.id)
         request.onsuccess = () => deleted++
       })
@@ -595,10 +597,10 @@ export class EmailDatabase {
       total: emails.length,
       byCategory: {} as Record<string, number>,
       byProvider: {} as Record<string, number>,
-      unread: emails.filter((e) => !e.read).length
+      unread: emails.filter(e => !e.read).length,
     }
 
-    emails.forEach((email) => {
+    emails.forEach(email => {
       // Count by category
       const category = email.category || 'regular'
       stats.byCategory[category] = (stats.byCategory[category] || 0) + 1

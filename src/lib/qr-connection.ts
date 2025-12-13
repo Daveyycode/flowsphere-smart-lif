@@ -53,7 +53,11 @@ export function generateConnectionCode(): string {
  * Validate and format manually entered connection code
  * Handles various input formats: with/without dashes, lowercase, spaces
  */
-export function validateAndFormatCode(input: string): { valid: boolean; formatted: string; error?: string } {
+export function validateAndFormatCode(input: string): {
+  valid: boolean
+  formatted: string
+  error?: string
+} {
   // Remove spaces, dashes, and convert to uppercase
   const cleaned = input.replace(/[\s-]/g, '').toUpperCase()
 
@@ -62,7 +66,7 @@ export function validateAndFormatCode(input: string): { valid: boolean; formatte
     return {
       valid: false,
       formatted: '',
-      error: 'Code must be 12 characters (e.g., XXXX-XXXX-XXXX)'
+      error: 'Code must be 12 characters (e.g., XXXX-XXXX-XXXX)',
     }
   }
 
@@ -72,7 +76,7 @@ export function validateAndFormatCode(input: string): { valid: boolean; formatte
     return {
       valid: false,
       formatted: '',
-      error: 'Code contains invalid characters'
+      error: 'Code contains invalid characters',
     }
   }
 
@@ -105,7 +109,7 @@ export async function createConnectionCode(
         created_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
         is_active: true,
-        is_expired: false
+        is_expired: false,
       })
       .select()
       .single()
@@ -123,7 +127,7 @@ export async function createConnectionCode(
       scannedBy: data.scanned_by,
       scannedAt: data.scanned_at,
       isExpired: data.is_expired,
-      isActive: data.is_active
+      isActive: data.is_active,
     }
   } catch (error) {
     console.error('Failed to create connection code:', error)
@@ -139,7 +143,13 @@ export async function scanConnectionCode(
   scannerId: string,
   scannerName: string,
   scannerEmail: string
-): Promise<{ success: boolean; ownerId?: string; ownerName?: string; ownerEmail?: string; error?: string }> {
+): Promise<{
+  success: boolean
+  ownerId?: string
+  ownerName?: string
+  ownerEmail?: string
+  error?: string
+}> {
   try {
     // Remove dashes from code for comparison
     const cleanCode = code.replace(/-/g, '')
@@ -185,7 +195,7 @@ export async function scanConnectionCode(
       .update({
         scanned_by: scannerId,
         scanned_at: now.toISOString(),
-        is_active: false
+        is_active: false,
       })
       .eq('id', codeData.id)
 
@@ -203,7 +213,7 @@ export async function scanConnectionCode(
       success: true,
       ownerId: codeData.user_id,
       ownerName: codeData.user_name,
-      ownerEmail: codeData.user_email
+      ownerEmail: codeData.user_email,
     }
   } catch (error) {
     console.error('Failed to scan connection code:', error)
@@ -235,7 +245,7 @@ async function createConnectionRequest(
       to_user_email: toUserEmail,
       status: 'pending',
       created_at: now.toISOString(),
-      expires_at: expiresAt.toISOString()
+      expires_at: expiresAt.toISOString(),
     })
   } catch (error) {
     console.error('Failed to create connection request:', error)
@@ -264,7 +274,7 @@ export async function getPendingConnectionRequests(userId: string): Promise<Conn
       fromUserEmail: req.from_user_email,
       status: req.status,
       createdAt: req.created_at,
-      expiresAt: req.expires_at
+      expiresAt: req.expires_at,
     }))
   } catch (error) {
     console.error('Failed to get connection requests:', error)
@@ -301,35 +311,33 @@ export async function acceptConnectionRequest(requestId: string): Promise<boolea
     const now = new Date().toISOString()
 
     // Connection from requester to accepter
-    const { error: conn1Error } = await supabase
-      .from('user_connections')
-      .insert({
-        user_id: requestData.from_user_id,
-        connected_user_id: requestData.to_user_id,
-        connected_user_name: requestData.to_user_name || 'User',
-        connected_user_email: requestData.to_user_email || '',
-        connection_type: 'family',
-        status: 'active',
-        created_at: now
-      })
+    const { error: conn1Error } = await supabase.from('user_connections').insert({
+      user_id: requestData.from_user_id,
+      connected_user_id: requestData.to_user_id,
+      connected_user_name: requestData.to_user_name || 'User',
+      connected_user_email: requestData.to_user_email || '',
+      connection_type: 'family',
+      status: 'active',
+      created_at: now,
+    })
 
     // Connection from accepter to requester (bidirectional)
-    const { error: conn2Error } = await supabase
-      .from('user_connections')
-      .insert({
-        user_id: requestData.to_user_id,
-        connected_user_id: requestData.from_user_id,
-        connected_user_name: requestData.from_user_name || 'User',
-        connected_user_email: requestData.from_user_email || '',
-        connection_type: 'family',
-        status: 'active',
-        created_at: now
-      })
+    const { error: conn2Error } = await supabase.from('user_connections').insert({
+      user_id: requestData.to_user_id,
+      connected_user_id: requestData.from_user_id,
+      connected_user_name: requestData.from_user_name || 'User',
+      connected_user_email: requestData.from_user_email || '',
+      connection_type: 'family',
+      status: 'active',
+      created_at: now,
+    })
 
     if (conn1Error) console.error('Failed to create connection 1:', conn1Error)
     if (conn2Error) console.error('Failed to create connection 2:', conn2Error)
 
-    console.log(`[CONNECTION] Created bidirectional connection between ${requestData.from_user_id} and ${requestData.to_user_id}`)
+    console.log(
+      `[CONNECTION] Created bidirectional connection between ${requestData.from_user_id} and ${requestData.to_user_id}`
+    )
 
     return true
   } catch (error) {

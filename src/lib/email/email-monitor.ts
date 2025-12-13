@@ -107,13 +107,15 @@ export class EmailMonitor {
             logger.error('❌ No refresh token available - need to reconnect')
             toast.error('Gmail session expired - please reconnect your account', {
               description: 'Go to Settings → Email to reconnect',
-              duration: 8000
+              duration: 8000,
             })
             return
           }
 
           const refreshedAccount = await this.gmailProvider.refreshAccessToken(account)
-          logger.info(`✅ Token refreshed successfully! New expiry: ${new Date(refreshedAccount.expiresAt).toLocaleString()}`)
+          logger.info(
+            `✅ Token refreshed successfully! New expiry: ${new Date(refreshedAccount.expiresAt).toLocaleString()}`
+          )
 
           // Update account in storage
           EmailAccountStore.saveAccount(refreshedAccount)
@@ -126,24 +128,25 @@ export class EmailMonitor {
           logger.error(`❌ Failed to refresh token:`, refreshError)
 
           // Provide more specific error message
-          const errorMessage = refreshError instanceof Error ? refreshError.message : 'Unknown error'
+          const errorMessage =
+            refreshError instanceof Error ? refreshError.message : 'Unknown error'
 
           if (errorMessage.includes('invalid_grant')) {
             // Refresh token has been revoked or expired
             toast.error('Gmail refresh token expired', {
               description: 'Please reconnect your Gmail account in Settings → Email',
-              duration: 10000
+              duration: 10000,
             })
           } else if (errorMessage.includes('invalid_client')) {
             // Client credentials issue
             toast.error('Gmail API configuration error', {
               description: 'Please check your Google API credentials',
-              duration: 10000
+              duration: 10000,
             })
           } else {
             toast.error('Gmail access expired', {
               description: 'Please reconnect your account in Settings → Email',
-              duration: 8000
+              duration: 8000,
             })
           }
           return
@@ -170,7 +173,9 @@ export class EmailMonitor {
 
       // Filter emails newer than last check
       const sinceTime = new Date(since).getTime()
-      const recentEmails = newEmails.filter(email => new Date(email.timestamp).getTime() > sinceTime)
+      const recentEmails = newEmails.filter(
+        email => new Date(email.timestamp).getTime() > sinceTime
+      )
 
       if (recentEmails.length > 0) {
         logger.info(`📧 Found ${recentEmails.length} NEW emails to process`)
@@ -188,8 +193,8 @@ export class EmailMonitor {
                 category: classification.category,
                 priority: classification.priority,
                 summary: classification.summary,
-                tags: classification.tags
-              }
+                tags: classification.tags,
+              },
             })
           } catch (error) {
             logger.error(`Failed to classify email: ${email.subject}`, error)
@@ -200,7 +205,9 @@ export class EmailMonitor {
         // Store all classified emails in database
         try {
           await emailDatabase.storeEmails(classifiedEmails)
-          logger.info(`💾 Stored ${classifiedEmails.length} emails in database (with AI classification)`)
+          logger.info(
+            `💾 Stored ${classifiedEmails.length} emails in database (with AI classification)`
+          )
         } catch (error) {
           logger.error('Failed to store emails in database:', error)
         }
@@ -256,14 +263,14 @@ export class EmailMonitor {
         category: email.category || 'regular',
         priority: 'medium' as const,
         summary: email.subject,
-        tags: []
+        tags: [],
       }
 
       // Create alert
       const alert: EmailAlert = {
         email,
         classification,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
 
       // Store in localStorage
@@ -278,12 +285,12 @@ export class EmailMonitor {
       if (email.category === 'emergency' || classification.priority === 'high') {
         toast.error('🚨 Emergency Email', {
           description: `From: ${email.from.name}\n${classification.summary}`,
-          duration: 10000
+          duration: 10000,
         })
       } else if (email.category === 'important' || email.category === 'work') {
         toast.warning('📧 Important Email', {
           description: `From: ${email.from.name}\n${classification.summary}`,
-          duration: 5000
+          duration: 5000,
         })
       }
     } catch (error) {
@@ -357,7 +364,7 @@ export class EmailMonitor {
           for (let i = 0; i < emails.length; i += batchSize) {
             const batch = emails.slice(i, i + batchSize)
             const classifiedBatch = await Promise.all(
-              batch.map(async (email) => {
+              batch.map(async email => {
                 try {
                   const classification = await this.aiClassifier.classifyEmail(email)
                   return {
@@ -367,8 +374,8 @@ export class EmailMonitor {
                       category: classification.category,
                       priority: classification.priority,
                       summary: classification.summary,
-                      tags: classification.tags
-                    }
+                      tags: classification.tags,
+                    },
                   }
                 } catch {
                   return email // Return unclassified on error
@@ -381,7 +388,9 @@ export class EmailMonitor {
 
           // Store in database
           await emailDatabase.storeEmails(classifiedEmails)
-          logger.info(`💾 Stored ${classifiedEmails.length} emails in database (with AI classification)`)
+          logger.info(
+            `💾 Stored ${classifiedEmails.length} emails in database (with AI classification)`
+          )
 
           toast.success(`Synced ${emails.length} emails from ${account.email}`)
         } catch (error) {

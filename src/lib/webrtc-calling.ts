@@ -53,20 +53,20 @@ export class WebRTCCallManager {
       iceServers: config?.iceServers || [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: 'stun:stun2.l.google.com:19302' },
       ],
       videoEnabled: config?.videoEnabled ?? true,
       audioEnabled: config?.audioEnabled ?? true,
       videoConstraints: config?.videoConstraints || {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        frameRate: { ideal: 30 }
+        frameRate: { ideal: 30 },
       },
       audioConstraints: config?.audioConstraints || {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
-      }
+        autoGainControl: true,
+      },
     }
   }
 
@@ -88,7 +88,7 @@ export class WebRTCCallManager {
         status: 'initiating',
         startTime: new Date().toISOString(),
         duration: 0,
-        isIncoming: false
+        isIncoming: false,
       }
 
       this.updateCallStatus('initiating')
@@ -118,7 +118,7 @@ export class WebRTCCallManager {
 
       return {
         offer,
-        callId: this.callSession.id
+        callId: this.callSession.id,
       }
     } catch (error) {
       logger.error('Error initiating call:', error, 'WebRTC')
@@ -146,7 +146,7 @@ export class WebRTCCallManager {
         status: 'connecting',
         startTime: new Date().toISOString(),
         duration: 0,
-        isIncoming: true
+        isIncoming: true,
       }
 
       this.updateCallStatus('connecting')
@@ -212,7 +212,7 @@ export class WebRTCCallManager {
     try {
       const constraints: MediaStreamConstraints = {
         video: video ? this.config.videoConstraints : false,
-        audio: audio ? this.config.audioConstraints : false
+        audio: audio ? this.config.audioConstraints : false,
       }
 
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -227,11 +227,11 @@ export class WebRTCCallManager {
    */
   private createPeerConnection(): void {
     this.peerConnection = new RTCPeerConnection({
-      iceServers: this.config.iceServers
+      iceServers: this.config.iceServers,
     })
 
     // Handle ICE candidates
-    this.peerConnection.onicecandidate = (event) => {
+    this.peerConnection.onicecandidate = event => {
       if (event.candidate) {
         // In production, send this to signaling server
         logger.debug('ICE candidate:', event.candidate, 'WebRTC')
@@ -239,7 +239,7 @@ export class WebRTCCallManager {
     }
 
     // Handle remote stream
-    this.peerConnection.ontrack = (event) => {
+    this.peerConnection.ontrack = event => {
       if (event.streams && event.streams[0]) {
         this.remoteStream = event.streams[0]
         if (this.onRemoteStreamCallback) {
@@ -271,7 +271,7 @@ export class WebRTCCallManager {
     }
 
     // Handle data channel
-    this.peerConnection.ondatachannel = (event) => {
+    this.peerConnection.ondatachannel = event => {
       this.dataChannel = event.channel
       this.setupDataChannel()
     }
@@ -287,7 +287,7 @@ export class WebRTCCallManager {
       logger.debug('Data channel opened', null, 'WebRTC')
     }
 
-    this.dataChannel.onmessage = (event) => {
+    this.dataChannel.onmessage = event => {
       logger.debug('Data channel message:', event.data, 'WebRTC')
       // Handle chat messages during call
     }
@@ -346,9 +346,9 @@ export class WebRTCCallManager {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: {
           ...this.config.videoConstraints,
-          facingMode: newFacingMode
+          facingMode: newFacingMode,
         },
-        audio: false
+        audio: false,
       })
 
       const newVideoTrack = newStream.getVideoTracks()[0]
@@ -399,7 +399,9 @@ export class WebRTCCallManager {
     if (this.callSession) {
       this.callSession.endTime = new Date().toISOString()
       this.callSession.duration = Math.floor(
-        (new Date(this.callSession.endTime).getTime() - new Date(this.callSession.startTime).getTime()) / 1000
+        (new Date(this.callSession.endTime).getTime() -
+          new Date(this.callSession.startTime).getTime()) /
+          1000
       )
     }
 
@@ -549,10 +551,11 @@ export class CallHistoryManager {
       videoCalls: history.filter(c => c.type === 'video').length,
       audioCalls: history.filter(c => c.type === 'audio').length,
       missedCalls: history.filter(c => c.status === 'missed').length,
-      averageDuration: 0
+      averageDuration: 0,
     }
 
-    stats.averageDuration = stats.totalCalls > 0 ? Math.floor(stats.totalDuration / stats.totalCalls) : 0
+    stats.averageDuration =
+      stats.totalCalls > 0 ? Math.floor(stats.totalDuration / stats.totalCalls) : 0
 
     return stats
   }
@@ -581,12 +584,12 @@ export class SignalingService {
           resolve()
         }
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = event => {
           const message = JSON.parse(event.data)
           this.handleMessage(message)
         }
 
-        this.ws.onerror = (error) => {
+        this.ws.onerror = error => {
           logger.error('Signaling error:', error, 'WebRTC')
           reject(error)
         }
@@ -633,12 +636,14 @@ export class SignalingService {
    */
   sendOffer(to: string, offer: RTCSessionDescriptionInit, callType: 'video' | 'audio'): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'offer',
-        to,
-        offer,
-        callType
-      }))
+      this.ws.send(
+        JSON.stringify({
+          type: 'offer',
+          to,
+          offer,
+          callType,
+        })
+      )
     }
   }
 
@@ -647,11 +652,13 @@ export class SignalingService {
    */
   sendAnswer(to: string, answer: RTCSessionDescriptionInit): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'answer',
-        to,
-        answer
-      }))
+      this.ws.send(
+        JSON.stringify({
+          type: 'answer',
+          to,
+          answer,
+        })
+      )
     }
   }
 
@@ -660,11 +667,13 @@ export class SignalingService {
    */
   sendIceCandidate(to: string, candidate: RTCIceCandidateInit): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'ice-candidate',
-        to,
-        candidate
-      }))
+      this.ws.send(
+        JSON.stringify({
+          type: 'ice-candidate',
+          to,
+          candidate,
+        })
+      )
     }
   }
 

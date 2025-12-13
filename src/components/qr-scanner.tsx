@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, X, QrCode, Lightning, LightningSlash, CameraRotate, Warning } from '@phosphor-icons/react'
+import {
+  Camera,
+  X,
+  QrCode,
+  Lightning,
+  LightningSlash,
+  CameraRotate,
+  Warning,
+} from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -94,9 +102,9 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
         video: {
           facingMode: { ideal: facingMode },
           width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
+          height: { ideal: 720, min: 480 },
         },
-        audio: false
+        audio: false,
       }
 
       console.log('[QRScanner] Requesting camera with constraints:', constraints)
@@ -175,7 +183,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
           if (capabilities?.focusMode?.includes('continuous')) {
             await track.applyConstraints({
               // @ts-ignore
-              advanced: [{ focusMode: 'continuous' }]
+              advanced: [{ focusMode: 'continuous' }],
             })
             console.log('[QRScanner] Auto-focus enabled')
           }
@@ -183,7 +191,6 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
           console.log('[QRScanner] Auto-focus not supported')
         }
       }
-
     } catch (err: any) {
       console.error('[QRScanner] Camera error:', err)
 
@@ -244,7 +251,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
 
       // Try to detect QR code
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'attemptBoth'
+        inversionAttempts: 'attemptBoth',
       })
 
       if (code && code.data && code.data.trim()) {
@@ -281,7 +288,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
       if (capabilities?.torch) {
         await track.applyConstraints({
           // @ts-ignore
-          advanced: [{ torch: !flashEnabled }]
+          advanced: [{ torch: !flashEnabled }],
         })
         setFlashEnabled(!flashEnabled)
       } else {
@@ -293,7 +300,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
   }
 
   const switchCamera = () => {
-    setFacingMode(prev => prev === 'user' ? 'environment' : 'user')
+    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'))
   }
 
   const handleClose = () => {
@@ -370,7 +377,9 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
                 <div className="absolute inset-0 flex items-center justify-center p-6 bg-black z-10">
                   <Card className="p-6 max-w-sm text-center bg-zinc-900 border-zinc-800">
                     <Camera className="w-16 h-16 mx-auto mb-4 text-zinc-500" weight="duotone" />
-                    <h3 className="text-lg font-semibold mb-2 text-white">Camera Access Required</h3>
+                    <h3 className="text-lg font-semibold mb-2 text-white">
+                      Camera Access Required
+                    </h3>
                     <p className="text-sm text-zinc-400 mb-4">
                       Please enable camera permissions in your browser settings to scan QR codes.
                     </p>
@@ -406,7 +415,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
                       style={{
                         width: 'min(280px, 70vw)',
                         height: 'min(280px, 70vw)',
-                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)'
+                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
                       }}
                     />
                   </div>
@@ -417,7 +426,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
                       className="relative"
                       style={{
                         width: 'min(280px, 70vw)',
-                        height: 'min(280px, 70vw)'
+                        height: 'min(280px, 70vw)',
                       }}
                     >
                       {/* Corner markers */}
@@ -436,7 +445,7 @@ export function QRScanner({ isOpen, onClose, onScan }: QRScannerProps) {
                             duration: 1.5,
                             repeat: Infinity,
                             repeatType: 'reverse',
-                            ease: 'easeInOut'
+                            ease: 'easeInOut',
                           }}
                         />
                       )}

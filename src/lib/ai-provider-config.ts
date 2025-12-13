@@ -37,7 +37,7 @@ const DEFAULT_MODELS: Record<AIProvider, string> = {
   groq: 'llama-3.3-70b-versatile',
   openai: 'gpt-4o-mini',
   anthropic: 'claude-3-haiku-20240307',
-  deepseek: 'deepseek-chat'
+  deepseek: 'deepseek-chat',
 }
 
 // API endpoints
@@ -45,7 +45,7 @@ const API_ENDPOINTS: Record<AIProvider, string> = {
   groq: 'https://api.groq.com/openai/v1/chat/completions',
   openai: 'https://api.openai.com/v1/chat/completions',
   anthropic: 'https://api.anthropic.com/v1/messages',
-  deepseek: 'https://api.deepseek.com/v1/chat/completions'
+  deepseek: 'https://api.deepseek.com/v1/chat/completions',
 }
 
 // Default free provider (Groq has generous free tier)
@@ -71,8 +71,8 @@ export function getAISettings(): UserAISettings {
     usageStats: {
       totalMessages: 0,
       tokensUsed: 0,
-      lastUsed: 0
-    }
+      lastUsed: 0,
+    },
   }
 }
 
@@ -125,7 +125,7 @@ export function getActiveProvider(): AIProviderConfig {
       provider: 'groq',
       apiKey: import.meta.env.VITE_GROQ_API_KEY,
       model: DEFAULT_MODELS.groq,
-      maxTokens: 4096
+      maxTokens: 4096,
     }
   }
 
@@ -133,7 +133,7 @@ export function getActiveProvider(): AIProviderConfig {
     provider,
     apiKey: customKey || import.meta.env.VITE_GROQ_API_KEY,
     model: DEFAULT_MODELS[provider],
-    maxTokens: 4096
+    maxTokens: 4096,
   }
 }
 
@@ -163,29 +163,29 @@ export function getAvailableProviders(): Array<{
       name: 'Groq (Llama 3.3)',
       hasKey: !!settings.customKeys.groq || !!import.meta.env.VITE_GROQ_API_KEY,
       isFree: true,
-      description: 'Free, fast AI. Great for tutoring and general tasks.'
+      description: 'Free, fast AI. Great for tutoring and general tasks.',
     },
     {
       provider: 'openai',
       name: 'OpenAI (GPT-4)',
       hasKey: !!settings.customKeys.openai,
       isFree: false,
-      description: 'Premium quality. Requires your own API key.'
+      description: 'Premium quality. Requires your own API key.',
     },
     {
       provider: 'anthropic',
       name: 'Claude (Anthropic)',
       hasKey: !!settings.customKeys.anthropic,
       isFree: false,
-      description: 'Excellent for learning. Requires your own API key.'
+      description: 'Excellent for learning. Requires your own API key.',
     },
     {
       provider: 'deepseek',
       name: 'DeepSeek',
       hasKey: !!settings.customKeys.deepseek,
       isFree: false,
-      description: 'Very affordable. Requires your own API key.'
-    }
+      description: 'Very affordable. Requires your own API key.',
+    },
   ]
 }
 
@@ -204,7 +204,7 @@ export function updateUsageStats(tokensUsed: number): void {
  * Make a chat completion request to the active provider
  */
 export async function chatCompletion(
-  messages: Array<{ role: 'system' | 'user' | 'assistant', content: string }>,
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   options?: {
     maxTokens?: number
     temperature?: number
@@ -229,18 +229,20 @@ export async function chatCompletion(
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': config.apiKey,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
           model: config.model,
           max_tokens: options?.maxTokens || config.maxTokens,
           temperature: options?.temperature || 0.7,
           system: messages.find(m => m.role === 'system')?.content || '',
-          messages: messages.filter(m => m.role !== 'system').map(m => ({
-            role: m.role,
-            content: m.content
-          }))
-        })
+          messages: messages
+            .filter(m => m.role !== 'system')
+            .map(m => ({
+              role: m.role,
+              content: m.content,
+            })),
+        }),
       })
 
       if (!response.ok) {
@@ -255,7 +257,7 @@ export async function chatCompletion(
       return {
         content: data.content?.[0]?.text || '',
         tokensUsed,
-        provider: config.provider
+        provider: config.provider,
       }
     } else {
       // OpenAI-compatible API (Groq, OpenAI, DeepSeek)
@@ -263,15 +265,15 @@ export async function chatCompletion(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`
+          Authorization: `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify({
           model: config.model,
           messages,
           max_tokens: options?.maxTokens || config.maxTokens,
           temperature: options?.temperature || 0.7,
-          stream: options?.stream || false
-        })
+          stream: options?.stream || false,
+        }),
       })
 
       if (!response.ok) {
@@ -286,7 +288,7 @@ export async function chatCompletion(
       return {
         content: data.choices?.[0]?.message?.content || '',
         tokensUsed,
-        provider: config.provider
+        provider: config.provider,
       }
     }
   } catch (error) {
@@ -300,9 +302,7 @@ export async function chatCompletion(
  */
 export async function testAPIKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {
-    const testMessages = [
-      { role: 'user' as const, content: 'Say "Hello" in one word.' }
-    ]
+    const testMessages = [{ role: 'user' as const, content: 'Say "Hello" in one word.' }]
 
     if (provider === 'anthropic') {
       const response = await fetch(API_ENDPOINTS.anthropic, {
@@ -310,13 +310,13 @@ export async function testAPIKey(provider: AIProvider, apiKey: string): Promise<
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
           model: DEFAULT_MODELS.anthropic,
           max_tokens: 10,
-          messages: testMessages
-        })
+          messages: testMessages,
+        }),
       })
       return response.ok
     } else {
@@ -324,13 +324,13 @@ export async function testAPIKey(provider: AIProvider, apiKey: string): Promise<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           model: DEFAULT_MODELS[provider],
           messages: testMessages,
-          max_tokens: 10
-        })
+          max_tokens: 10,
+        }),
       })
       return response.ok
     }

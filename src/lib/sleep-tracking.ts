@@ -45,7 +45,7 @@ export function recordUnlockEvent(): void {
       wakeTime: null,
       hours: 0,
       quality: 0,
-      date: today
+      date: today,
     }
   }
 
@@ -98,13 +98,15 @@ export function getTodaySleepData(): SleepData {
   const today = new Date().toDateString()
   const history: SleepHistory = getSleepHistory()
 
-  return history[today] || {
-    bedtime: null,
-    wakeTime: null,
-    hours: 0,
-    quality: 0,
-    date: today
-  }
+  return (
+    history[today] || {
+      bedtime: null,
+      wakeTime: null,
+      hours: 0,
+      quality: 0,
+      date: today,
+    }
+  )
 }
 
 /**
@@ -126,7 +128,7 @@ export function getAverageSleepData(days: number = 7): { hours: number; quality:
 
   return {
     hours: Math.round((totalHours / recentDays.length) * 10) / 10,
-    quality: Math.round(totalQuality / recentDays.length)
+    quality: Math.round(totalQuality / recentDays.length),
   }
 }
 

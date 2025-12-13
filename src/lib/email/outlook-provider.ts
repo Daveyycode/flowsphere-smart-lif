@@ -50,7 +50,10 @@ export class OutlookProvider extends EmailProvider {
    */
   async getAuthUrlAsync(): Promise<string> {
     console.log('[Outlook OAuth] Starting auth flow...')
-    console.log('[Outlook OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 8)}...` : 'MISSING')
+    console.log(
+      '[Outlook OAuth] Client ID:',
+      this.clientId ? `${this.clientId.substring(0, 8)}...` : 'MISSING'
+    )
     console.log('[Outlook OAuth] Redirect URI:', this.redirectUri)
 
     if (!this.clientId) {
@@ -72,10 +75,11 @@ export class OutlookProvider extends EmailProvider {
         response_type: 'code',
         redirect_uri: this.redirectUri,
         response_mode: 'query',
-        scope: 'openid profile email https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access',
+        scope:
+          'openid profile email https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access',
         state: Math.random().toString(36).substring(2),
         code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
+        code_challenge_method: 'S256',
       })
 
       const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`
@@ -83,7 +87,9 @@ export class OutlookProvider extends EmailProvider {
       return authUrl
     } catch (error) {
       console.error('[Outlook OAuth] PKCE generation failed:', error)
-      throw new Error(`Failed to generate PKCE: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Failed to generate PKCE: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -121,7 +127,7 @@ export class OutlookProvider extends EmailProvider {
         const response = await fetch(OAUTH_EDGE_FUNCTION, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -147,7 +153,11 @@ export class OutlookProvider extends EmailProvider {
           }
 
           // Provide more specific error messages
-          const errorMsg = errorData.error_description || errorData.error || errorData.details?.error_description || 'Token exchange failed'
+          const errorMsg =
+            errorData.error_description ||
+            errorData.error ||
+            errorData.details?.error_description ||
+            'Token exchange failed'
           throw new Error(errorMsg)
         }
 
@@ -162,7 +172,7 @@ export class OutlookProvider extends EmailProvider {
         return {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken || '',
-          expiresIn: data.expiresIn || 3600
+          expiresIn: data.expiresIn || 3600,
         }
       } catch (fetchError) {
         console.error('[Outlook OAuth] Fetch error:', fetchError)
@@ -179,8 +189,8 @@ export class OutlookProvider extends EmailProvider {
   async getUserInfo(accessToken: string): Promise<{ email: string; name: string }> {
     const response = await fetch('https://graph.microsoft.com/v1.0/me', {
       headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
+        Authorization: `Bearer ${accessToken}`,
+      },
     })
 
     if (!response.ok) {
@@ -190,7 +200,7 @@ export class OutlookProvider extends EmailProvider {
     const data = await response.json()
     return {
       email: data.mail || data.userPrincipalName,
-      name: data.displayName || data.userPrincipalName
+      name: data.displayName || data.userPrincipalName,
     }
   }
 
@@ -212,8 +222,8 @@ export class OutlookProvider extends EmailProvider {
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${account.accessToken}`,
-        Prefer: 'outlook.body-content-type="text"'
-      }
+        Prefer: 'outlook.body-content-type="text"',
+      },
     })
 
     if (!response.ok) {
@@ -230,7 +240,7 @@ export class OutlookProvider extends EmailProvider {
     return {
       emails,
       nextPageToken: data['@odata.nextLink'],
-      totalResults: data.value.length
+      totalResults: data.value.length,
     }
   }
 
@@ -276,12 +286,13 @@ export class OutlookProvider extends EmailProvider {
       provider: 'outlook',
       from: {
         name: outlookMsg.from?.emailAddress?.name || '',
-        email: outlookMsg.from?.emailAddress?.address || ''
+        email: outlookMsg.from?.emailAddress?.address || '',
       },
-      to: outlookMsg.toRecipients?.map((r: any) => ({
-        email: r.emailAddress?.address || '',
-        name: r.emailAddress?.name
-      })) || [],
+      to:
+        outlookMsg.toRecipients?.map((r: any) => ({
+          email: r.emailAddress?.address || '',
+          name: r.emailAddress?.name,
+        })) || [],
       subject: outlookMsg.subject || '',
       body: outlookMsg.body?.content || '',
       htmlBody: outlookMsg.body?.contentType === 'html' ? outlookMsg.body?.content : undefined,
@@ -294,9 +305,9 @@ export class OutlookProvider extends EmailProvider {
             id: a.id,
             filename: a.name,
             mimeType: a.contentType,
-            size: a.size
+            size: a.size,
           }))
-        : undefined
+        : undefined,
     }
   }
 
@@ -311,22 +322,22 @@ export class OutlookProvider extends EmailProvider {
       subject: email.subject,
       body: {
         contentType: email.html ? 'HTML' : 'Text',
-        content: email.html || email.body
+        content: email.html || email.body,
       },
       toRecipients: email.to.map(e => ({
         emailAddress: {
-          address: e
-        }
-      }))
+          address: e,
+        },
+      })),
     }
 
     const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${account.accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message }),
     })
 
     if (!response.ok) {
@@ -347,7 +358,7 @@ export class OutlookProvider extends EmailProvider {
       const response = await fetch(OAUTH_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -369,7 +380,7 @@ export class OutlookProvider extends EmailProvider {
       return {
         ...account,
         accessToken: data.accessToken,
-        expiresAt: Date.now() + data.expiresIn * 1000
+        expiresAt: Date.now() + data.expiresIn * 1000,
       }
     }
 
@@ -384,7 +395,7 @@ export class OutlookProvider extends EmailProvider {
 
     const result = await this.searchEmails(account, {
       after: afterDate,
-      maxResults: 100
+      maxResults: 100,
     })
 
     return result.emails

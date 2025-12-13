@@ -19,7 +19,7 @@ import {
   createSOSAlert,
   getSOSAlerts,
   acknowledgeSOSAlert,
-  SOSAlert
+  SOSAlert,
 } from '@/lib/gps-tracking'
 import { toast } from 'sonner'
 
@@ -86,15 +86,18 @@ export function useGPSTracking(): UseGPSTrackingReturn {
 
     // Check permission state
     if ('permissions' in navigator) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        setHasPermission(result.state === 'granted')
-
-        result.onchange = () => {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then(result => {
           setHasPermission(result.state === 'granted')
-        }
-      }).catch(() => {
-        // Permission API not fully supported
-      })
+
+          result.onchange = () => {
+            setHasPermission(result.state === 'granted')
+          }
+        })
+        .catch(() => {
+          // Permission API not fully supported
+        })
     }
   }, [])
 
@@ -117,7 +120,7 @@ export function useGPSTracking(): UseGPSTrackingReturn {
       setLocationHistory(getLocationHistory('me'))
 
       toast.success('Location updated', {
-        description: location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
+        description: location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`,
       })
 
       return location
@@ -127,7 +130,7 @@ export function useGPSTracking(): UseGPSTrackingReturn {
       setHasPermission(false)
 
       toast.error('Location error', {
-        description: errorMsg
+        description: errorMsg,
       })
 
       return null
@@ -147,13 +150,13 @@ export function useGPSTracking(): UseGPSTrackingReturn {
     setError(null)
 
     const watchId = startContinuousTracking(
-      (location) => {
+      location => {
         setCurrentLocation(location)
         setIsLoading(false)
         setHasPermission(true)
         setLocationHistory(getLocationHistory('me'))
       },
-      (geoError) => {
+      geoError => {
         let errorMsg = 'Location tracking failed'
         if (geoError.code === 1) {
           errorMsg = 'Location permission denied'
@@ -168,7 +171,7 @@ export function useGPSTracking(): UseGPSTrackingReturn {
       watchIdRef.current = watchId
       setIsTracking(true)
       toast.success('GPS tracking started', {
-        description: 'Your location is being monitored for family safety'
+        description: 'Your location is being monitored for family safety',
       })
     }
   }, [isSupported])
@@ -182,30 +185,36 @@ export function useGPSTracking(): UseGPSTrackingReturn {
   }, [])
 
   // Calculate distance from current location
-  const getDistanceFrom = useCallback((lat: number, lng: number): number | null => {
-    if (!currentLocation) return null
-    return calculateDistance(currentLocation.lat, currentLocation.lng, lat, lng)
-  }, [currentLocation])
+  const getDistanceFrom = useCallback(
+    (lat: number, lng: number): number | null => {
+      if (!currentLocation) return null
+      return calculateDistance(currentLocation.lat, currentLocation.lng, lat, lng)
+    },
+    [currentLocation]
+  )
 
   // Send SOS alert
-  const sendSOS = useCallback((memberName: string, message?: string): SOSAlert | null => {
-    if (!currentLocation) {
-      toast.error('Cannot send SOS', {
-        description: 'Location not available. Please enable GPS.'
+  const sendSOS = useCallback(
+    (memberName: string, message?: string): SOSAlert | null => {
+      if (!currentLocation) {
+        toast.error('Cannot send SOS', {
+          description: 'Location not available. Please enable GPS.',
+        })
+        return null
+      }
+
+      const alert = createSOSAlert('me', memberName, currentLocation, message)
+      setSOSAlerts(getSOSAlerts())
+
+      toast.error('SOS ALERT SENT', {
+        description: `Emergency alert sent with your current location`,
+        duration: 10000,
       })
-      return null
-    }
 
-    const alert = createSOSAlert('me', memberName, currentLocation, message)
-    setSOSAlerts(getSOSAlerts())
-
-    toast.error('SOS ALERT SENT', {
-      description: `Emergency alert sent with your current location`,
-      duration: 10000
-    })
-
-    return alert
-  }, [currentLocation])
+      return alert
+    },
+    [currentLocation]
+  )
 
   // Acknowledge SOS
   const acknowledgeSOS = useCallback((alertId: string, memberId: string) => {
@@ -236,7 +245,7 @@ export function useGPSTracking(): UseGPSTrackingReturn {
     getDistanceFrom,
     sendSOS,
     sosAlerts,
-    acknowledgeSOS
+    acknowledgeSOS,
   }
 }
 

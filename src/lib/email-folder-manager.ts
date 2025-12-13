@@ -58,9 +58,9 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'keyword', value: 'deadline', match: 'contains' },
       { type: 'keyword', value: 'team', match: 'contains' },
       { type: 'subject', value: 're:', match: 'startsWith' },
-      { type: 'subject', value: 'fwd:', match: 'startsWith' }
+      { type: 'subject', value: 'fwd:', match: 'startsWith' },
     ],
-    count: 0
+    count: 0,
   },
   {
     id: 'subscriptions',
@@ -77,9 +77,9 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'keyword', value: 'invoice', match: 'contains' },
       { type: 'keyword', value: 'payment', match: 'contains' },
       { type: 'keyword', value: 'unsubscribe', match: 'contains' },
-      { type: 'keyword', value: 'renewal', match: 'contains' }
+      { type: 'keyword', value: 'renewal', match: 'contains' },
     ],
-    count: 0
+    count: 0,
   },
   {
     id: 'financial',
@@ -96,9 +96,9 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'keyword', value: 'transaction', match: 'contains' },
       { type: 'domain', value: 'paypal.com', match: 'contains' },
       { type: 'domain', value: 'stripe.com', match: 'contains' },
-      { type: 'domain', value: 'bank', match: 'contains' }
+      { type: 'domain', value: 'bank', match: 'contains' },
     ],
-    count: 0
+    count: 0,
   },
   {
     id: 'personal',
@@ -109,10 +109,8 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
     description: 'Personal emails from friends and family',
     emailIds: [],
     autoCategory: true,
-    rules: [
-      { type: 'keyword', value: 'personal', match: 'contains' }
-    ],
-    count: 0
+    rules: [{ type: 'keyword', value: 'personal', match: 'contains' }],
+    count: 0,
   },
   {
     id: 'social',
@@ -128,9 +126,9 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'domain', value: 'twitter.com', match: 'contains' },
       { type: 'domain', value: 'linkedin.com', match: 'contains' },
       { type: 'domain', value: 'instagram.com', match: 'contains' },
-      { type: 'keyword', value: 'notification', match: 'contains' }
+      { type: 'keyword', value: 'notification', match: 'contains' },
     ],
-    count: 0
+    count: 0,
   },
   {
     id: 'promotions',
@@ -146,9 +144,9 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'keyword', value: 'offer', match: 'contains' },
       { type: 'keyword', value: 'discount', match: 'contains' },
       { type: 'keyword', value: '%', match: 'contains' },
-      { type: 'keyword', value: 'shop now', match: 'contains' }
+      { type: 'keyword', value: 'shop now', match: 'contains' },
     ],
-    count: 0
+    count: 0,
   },
   {
     id: 'important',
@@ -163,10 +161,10 @@ export const DEFAULT_FOLDERS: EmailFolder[] = [
       { type: 'keyword', value: 'urgent', match: 'contains' },
       { type: 'keyword', value: 'important', match: 'contains' },
       { type: 'keyword', value: 'action required', match: 'contains' },
-      { type: 'keyword', value: 'deadline', match: 'contains' }
+      { type: 'keyword', value: 'deadline', match: 'contains' },
     ],
-    count: 0
-  }
+    count: 0,
+  },
 ]
 
 /**
@@ -189,7 +187,7 @@ export function autoCategorizEmails(
         suggestedFolder: topSuggestion.path,
         confidence: topSuggestion.confidence,
         reasons: [topSuggestion.reason],
-        verified: false
+        verified: false,
       })
     } else {
       // Default to personal if no matches
@@ -198,7 +196,7 @@ export function autoCategorizEmails(
         suggestedFolder: '/personal',
         confidence: 50,
         reasons: ['No specific category matched - defaulting to personal'],
-        verified: false
+        verified: false,
       })
     }
   })
@@ -223,7 +221,7 @@ export function suggestFoldersForEmail(
         folder: folder.name,
         path: folder.path,
         confidence: matchScore,
-        reason: generateMatchReason(email, folder)
+        reason: generateMatchReason(email, folder),
       })
     }
   })
@@ -242,7 +240,7 @@ function calculateFolderMatch(email: EmailMessage, folder: EmailFolder): number 
   const emailLower = {
     from: email.from.toLowerCase(),
     subject: email.subject.toLowerCase(),
-    body: email.body.toLowerCase()
+    body: email.body.toLowerCase(),
   }
 
   const domain = email.from.split('@')[1]?.toLowerCase() || ''
@@ -305,17 +303,14 @@ function matchText(text: string, value: string, match: FolderRule['match']): boo
 /**
  * Get bonus points if email category matches folder
  */
-function getCategoryBonus(
-  category: EmailMessage['category'],
-  folderId: string
-): number {
+function getCategoryBonus(category: EmailMessage['category'], folderId: string): number {
   const mapping: Record<string, string[]> = {
     work: ['work'],
     subscription: ['subscriptions'],
     financial: ['financial'],
     personal: ['personal'],
     social: ['social'],
-    promotion: ['promotions']
+    promotion: ['promotions'],
   }
 
   const matchingFolders = mapping[category] || []
@@ -409,15 +404,13 @@ export function getFolderStats(folders: EmailFolder[]): {
   uncategorized: number
 } {
   const totalCategorized = folders.reduce((sum, f) => sum + f.count, 0)
-  const mostPopular = folders.reduce((max, f) =>
-    f.count > max.count ? f : max
-  , folders[0])
+  const mostPopular = folders.reduce((max, f) => (f.count > max.count ? f : max), folders[0])
 
   return {
     totalFolders: folders.length,
     totalCategorized,
     mostPopularFolder: mostPopular?.name || 'None',
-    uncategorized: 0 // Will be calculated when comparing with total emails
+    uncategorized: 0, // Will be calculated when comparing with total emails
   }
 }
 
@@ -442,7 +435,7 @@ export function createCustomFolder(
     emailIds: [],
     autoCategory: true,
     rules,
-    count: 0
+    count: 0,
   }
 }
 
@@ -460,14 +453,14 @@ export function moveEmailToFolder(
       return {
         ...folder,
         emailIds: folder.emailIds.filter(id => id !== emailId),
-        count: folder.count - 1
+        count: folder.count - 1,
       }
     }
     if (folder.path === toFolder) {
       return {
         ...folder,
         emailIds: [...folder.emailIds, emailId],
-        count: folder.count + 1
+        count: folder.count + 1,
       }
     }
     return folder

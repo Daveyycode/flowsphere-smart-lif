@@ -3,15 +3,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Phone, 
-  FirstAid, 
-  FireExtinguisher, 
+import {
+  Phone,
+  FirstAid,
+  FireExtinguisher,
   ShieldWarning,
   Warning,
   HeartStraight,
   HandHeart,
-  MapPin
+  MapPin,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
@@ -41,7 +41,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '911',
         description: 'Police, Fire, Medical Emergency',
         icon: <ShieldWarning className="w-6 h-6" weight="fill" />,
-        color: 'bg-destructive'
+        color: 'bg-destructive',
       },
       {
         id: '2',
@@ -49,7 +49,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '911',
         description: 'Fire emergency and rescue',
         icon: <FireExtinguisher className="w-6 h-6" weight="fill" />,
-        color: 'bg-coral'
+        color: 'bg-coral',
       },
       {
         id: '3',
@@ -57,7 +57,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '911',
         description: 'Ambulance and medical assistance',
         icon: <FirstAid className="w-6 h-6" weight="fill" />,
-        color: 'bg-destructive'
+        color: 'bg-destructive',
       },
       {
         id: '4',
@@ -65,7 +65,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '1-800-222-1222',
         description: '24/7 poison emergency helpline',
         icon: <Warning className="w-6 h-6" weight="fill" />,
-        color: 'bg-accent'
+        color: 'bg-accent',
       },
       {
         id: '5',
@@ -73,7 +73,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '988',
         description: 'Crisis support and prevention',
         icon: <HeartStraight className="w-6 h-6" weight="fill" />,
-        color: 'bg-coral'
+        color: 'bg-coral',
       },
       {
         id: '6',
@@ -81,10 +81,10 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         number: '1-800-799-7233',
         description: 'National domestic violence hotline',
         icon: <HandHeart className="w-6 h-6" weight="fill" />,
-        color: 'bg-primary'
-      }
+        color: 'bg-primary',
+      },
     ]
-    
+
     return baseHotlines
   }
 
@@ -138,34 +138,27 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
             <div>
               <h3 className="font-semibold text-destructive mb-1">Emergency Notice</h3>
               <p className="text-sm text-muted-foreground">
-                If you or someone else is in immediate danger, call 911 immediately. 
-                These hotlines are for emergencies and crisis support.
+                If you or someone else is in immediate danger, call 911 immediately. These hotlines
+                are for emergencies and crisis support.
               </p>
             </div>
           </div>
         </Card>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {hotlines.map((hotline) => (
-            <Card 
-              key={hotline.id}
-              className="p-4 hover:shadow-lg transition-shadow"
-            >
+          {hotlines.map(hotline => (
+            <Card key={hotline.id} className="p-4 hover:shadow-lg transition-shadow">
               <div className="flex flex-col h-full">
                 <div className="flex items-start gap-3 mb-4">
                   <div className={`${hotline.color} text-white p-3 rounded-lg flex-shrink-0`}>
                     {hotline.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground mb-1">
-                      {hotline.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {hotline.description}
-                    </p>
+                    <h3 className="font-semibold text-foreground mb-1">{hotline.name}</h3>
+                    <p className="text-sm text-muted-foreground">{hotline.description}</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-auto">
                   <Button
                     className="w-full"
@@ -181,9 +174,7 @@ export function EmergencyDialog({ isOpen, onClose }: EmergencyDialogProps) {
         </div>
 
         <Card className="p-4 mt-4">
-          <h3 className="text-lg font-semibold mb-3">
-            International Emergency Numbers
-          </h3>
+          <h3 className="text-lg font-semibold mb-3">International Emergency Numbers</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <p className="text-sm font-semibold mb-1">Europe</p>

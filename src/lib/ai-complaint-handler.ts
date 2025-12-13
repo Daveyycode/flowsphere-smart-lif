@@ -53,35 +53,35 @@ export async function analyzeComplaint(complaint: Complaint): Promise<AIResoluti
         { keywords: ['slow', 'loading', 'performance'], solution: 'Performance Optimization' },
         { keywords: ['crash', 'error', 'bug', 'broken'], solution: 'Bug Investigation' },
         { keywords: ['sync', 'not updating', 'refresh'], solution: 'Data Synchronization' },
-        { keywords: ['notification', 'alert', 'not receiving'], solution: 'Notification Settings' }
+        { keywords: ['notification', 'alert', 'not receiving'], solution: 'Notification Settings' },
       ],
-      confidence: 0.85
+      confidence: 0.85,
     },
     billing: {
       patterns: [
         { keywords: ['charge', 'charged', 'payment'], solution: 'Billing Review' },
         { keywords: ['cancel', 'refund', 'subscription'], solution: 'Subscription Management' },
         { keywords: ['invoice', 'receipt', 'billing'], solution: 'Invoice Generation' },
-        { keywords: ['price', 'cost', 'expensive'], solution: 'Pricing Information' }
+        { keywords: ['price', 'cost', 'expensive'], solution: 'Pricing Information' },
       ],
-      confidence: 0.75
+      confidence: 0.75,
     },
     feature: {
       patterns: [
         { keywords: ['how to', 'can i', 'is it possible'], solution: 'Feature Tutorial' },
         { keywords: ['missing', 'where is', 'cannot find'], solution: 'Feature Location Guide' },
-        { keywords: ['request', 'suggestion', 'add'], solution: 'Feature Request Logged' }
+        { keywords: ['request', 'suggestion', 'add'], solution: 'Feature Request Logged' },
       ],
-      confidence: 0.80
+      confidence: 0.8,
     },
     service: {
       patterns: [
         { keywords: ['support', 'help', 'assistance'], solution: 'Support Guidance' },
         { keywords: ['response', 'reply', 'contact'], solution: 'Contact Information' },
-        { keywords: ['account', 'profile', 'settings'], solution: 'Account Management' }
+        { keywords: ['account', 'profile', 'settings'], solution: 'Account Management' },
       ],
-      confidence: 0.70
-    }
+      confidence: 0.7,
+    },
   }
 
   const text = `${complaint.subject} ${complaint.description}`.toLowerCase()
@@ -111,7 +111,7 @@ export async function analyzeComplaint(complaint: Complaint): Promise<AIResoluti
       confidence,
       analysis: `AI has analyzed your ${category} complaint and identified a solution.`,
       solution: generateSolution(category, matchedPattern.solution, complaint),
-      suggestedActions: generateActions(category, matchedPattern.solution)
+      suggestedActions: generateActions(category, matchedPattern.solution),
     }
   } else {
     return {
@@ -119,7 +119,10 @@ export async function analyzeComplaint(complaint: Complaint): Promise<AIResoluti
       confidence,
       analysis: `AI could not confidently resolve this complaint. This issue requires human review.`,
       solution: 'Your complaint has been escalated to our executive team for personal attention.',
-      suggestedActions: ['CEO will review your case personally', 'You will receive a response via email within 24 hours']
+      suggestedActions: [
+        'CEO will review your case personally',
+        'You will receive a response via email within 24 hours',
+      ],
     }
   }
 }
@@ -252,19 +255,30 @@ Emergency support available 24/7 for Gold+ subscribers.`,
 4. Connected Devices: View and manage all devices
 5. Delete Account: Available in Settings > Advanced
 
-All changes sync across all your devices instantly.`
+All changes sync across all your devices instantly.`,
   }
 
-  return solutions[solutionType] || `Hi ${complaint.userName}, our AI team is working on your ${category} issue. You'll receive a detailed response soon.`
+  return (
+    solutions[solutionType] ||
+    `Hi ${complaint.userName}, our AI team is working on your ${category} issue. You'll receive a detailed response soon.`
+  )
 }
 
 function generateActions(category: string, solutionType: string): string[] {
   const actions: Record<string, string[]> = {
     'Password Reset': ['Reset password', 'Contact support if needed', 'Enable 2FA for security'],
     'Performance Optimization': ['Clear cache', 'Update browser', 'Check connection'],
-    'Bug Investigation': ['Wait for engineering review', 'Try workarounds', 'Monitor email for updates'],
+    'Bug Investigation': [
+      'Wait for engineering review',
+      'Try workarounds',
+      'Monitor email for updates',
+    ],
     'Data Synchronization': ['Refresh page', 'Check connection', 'Re-login if needed'],
-    'Notification Settings': ['Check settings', 'Enable browser notifications', 'Check spam folder'],
+    'Notification Settings': [
+      'Check settings',
+      'Enable browser notifications',
+      'Check spam folder',
+    ],
     'Billing Review': ['Review billing history', 'Download invoice', 'Contact if discrepancy'],
     'Subscription Management': ['Visit subscription settings', 'Compare plans', 'Manage billing'],
     'Invoice Generation': ['Download from settings', 'Check email', 'Save for records'],
@@ -274,7 +288,7 @@ function generateActions(category: string, solutionType: string): string[] {
     'Feature Request Logged': ['Vote on similar requests', 'Share with team', 'Monitor updates'],
     'Support Guidance': ['Check Help Center', 'Use AI chat', 'Email support'],
     'Contact Information': ['Save contact info', 'Follow on social', 'Join community'],
-    'Account Management': ['Update profile', 'Review security', 'Manage devices']
+    'Account Management': ['Update profile', 'Review security', 'Manage devices'],
   }
 
   return actions[solutionType] || ['Review your account settings', 'Contact support if needed']
@@ -342,12 +356,16 @@ export async function sendEscalationEmail(
               ${complaint.description.replace(/\n/g, '<br>')}
             </div>
 
-            ${complaint.escalation ? `
+            ${
+              complaint.escalation
+                ? `
             <h3 style="color: #333; margin-top: 30px;">Escalation Reason</h3>
             <p style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;">
               ${complaint.escalation.reason}
             </p>
-            ` : ''}
+            `
+                : ''
+            }
 
             <div style="margin-top: 30px; padding: 20px; background: #e8f4f8; border-radius: 5px; text-align: center;">
               <p style="margin: 0; color: #666;">
@@ -365,7 +383,7 @@ export async function sendEscalationEmail(
             <p>This email was sent because the AI could not automatically resolve the complaint.</p>
           </div>
         </div>
-      `
+      `,
     }
 
     // Simulate email sending (in production, use actual email service)
@@ -386,7 +404,7 @@ function getPriorityColor(priority: string): string {
     low: '#28a745',
     medium: '#ffc107',
     high: '#fd7e14',
-    urgent: '#dc3545'
+    urgent: '#dc3545',
   }
   return colors[priority as keyof typeof colors] || '#6c757d'
 }
@@ -409,7 +427,7 @@ export async function processComplaint(complaint: Complaint): Promise<Complaint>
       analysis: resolution.analysis,
       solution: resolution.solution,
       confidence: resolution.confidence,
-      resolvedAt: new Date().toISOString()
+      resolvedAt: new Date().toISOString(),
     }
   } else {
     // Escalate to CEO
@@ -417,7 +435,7 @@ export async function processComplaint(complaint: Complaint): Promise<Complaint>
     complaint.escalation = {
       reason: resolution.analysis,
       escalatedAt: new Date().toISOString(),
-      emailSent: false
+      emailSent: false,
     }
 
     // Send email to CEO

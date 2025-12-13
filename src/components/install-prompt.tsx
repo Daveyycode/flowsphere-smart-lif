@@ -49,12 +49,12 @@ export function InstallPrompt() {
       // Show manual instructions
       alert(
         'To install FlowSphere:\n\n' +
-        'iOS/Safari:\n' +
-        '1. Tap the Share button (square with arrow)\n' +
-        '2. Tap "Add to Home Screen"\n\n' +
-        'Android/Chrome:\n' +
-        '1. Tap the menu (3 dots)\n' +
-        '2. Tap "Install App" or "Add to Home Screen"'
+          'iOS/Safari:\n' +
+          '1. Tap the Share button (square with arrow)\n' +
+          '2. Tap "Add to Home Screen"\n\n' +
+          'Android/Chrome:\n' +
+          '1. Tap the menu (3 dots)\n' +
+          '2. Tap "Install App" or "Add to Home Screen"'
       )
       return
     }
@@ -113,11 +113,7 @@ export function InstallPrompt() {
                     Install app for faster access, offline use, and notifications
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleInstallClick}
-                      className="flex-1 h-8"
-                    >
+                    <Button size="sm" onClick={handleInstallClick} className="flex-1 h-8">
                       Install
                     </Button>
                     <Button
@@ -138,12 +134,7 @@ export function InstallPrompt() {
 
       {/* Manual install button in header/settings */}
       {!isInstalled && !showPrompt && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowPrompt(true)}
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" onClick={() => setShowPrompt(true)} className="gap-2">
           <Download className="w-4 h-4" />
           Install App
         </Button>

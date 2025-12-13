@@ -25,11 +25,7 @@ function Admin() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <div className="relative inline-block mb-4">
             <Sparkle className="w-12 h-12 text-accent animate-pulse" weight="fill" />
             <div className="absolute inset-0 bg-accent/30 blur-lg" />
@@ -84,7 +80,7 @@ function Admin() {
                 </div>
               </div>
             </div>
-            
+
             <a
               href="/"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -104,7 +100,7 @@ function Admin() {
           </motion.div>
         </main>
       </div>
-      
+
       <Toaster position="top-center" />
     </>
   )

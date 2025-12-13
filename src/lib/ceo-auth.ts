@@ -80,7 +80,7 @@ export function createLoginAttempt(
     ipAddress: '192.168.1.1', // In production, get real IP
     deviceInfo: navigator.userAgent,
     location: 'Philippines', // In production, use geolocation API
-    failureReason
+    failureReason,
   }
 }
 
@@ -134,10 +134,7 @@ export function validateQRLogin(qrData: string, expectedUsername: string): boole
 /**
  * Report login attempt to AI monitoring
  */
-export async function reportToAI(
-  attempt: LoginAttempt,
-  apiKey: string
-): Promise<void> {
+export async function reportToAI(attempt: LoginAttempt, apiKey: string): Promise<void> {
   // In production, send to actual AI service
   logger.debug('Reporting to AI', { attemptId: attempt.id, success: attempt.success })
 
@@ -169,7 +166,7 @@ export function rotateUsername(currentCredentials: CEOCredentials): CEOCredentia
   return {
     ...currentCredentials,
     username: generateUsername(),
-    lastRotation: new Date().toISOString()
+    lastRotation: new Date().toISOString(),
   }
 }
 
@@ -194,7 +191,7 @@ export function hashPassword(password: string): string {
   let hash = 0
   for (let i = 0; i < password.length; i++) {
     const char = password.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
+    hash = (hash << 5) - hash + char
     hash = hash & hash
   }
   return Math.abs(hash).toString(36)
@@ -225,7 +222,7 @@ export function getDeviceFingerprint(): string {
     platform: navigator.platform,
     screen: `${screen.width}x${screen.height}`,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    canvas: canvas.toDataURL()
+    canvas: canvas.toDataURL(),
   }
 
   return btoa(JSON.stringify(fingerprint)).substring(0, 16)

@@ -16,7 +16,7 @@ export function OfflineIndicator() {
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     lastSynced: null,
     pendingSyncs: 0,
-    syncInProgress: false
+    syncInProgress: false,
   })
   const [showDetails, setShowDetails] = useState(false)
 
@@ -28,12 +28,12 @@ export function OfflineIndicator() {
       const pendingCount = await offlineSync.getPendingSyncCount()
       setStatus({
         ...offlineSync.getStatus(),
-        pendingSyncs: pendingCount
+        pendingSyncs: pendingCount,
       })
     })
 
     // Subscribe to updates
-    const unsubscribe = offlineSync.subscribe((newStatus) => {
+    const unsubscribe = offlineSync.subscribe(newStatus => {
       setStatus(newStatus)
     })
 
@@ -70,14 +70,14 @@ export function OfflineIndicator() {
       <button
         onClick={() => setShowDetails(!showDetails)}
         className={cn(
-          "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-all",
+          'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-all',
           status.isOnline
             ? status.syncInProgress
-              ? "bg-blue-500/20 text-blue-500"
+              ? 'bg-blue-500/20 text-blue-500'
               : status.pendingSyncs > 0
-                ? "bg-yellow-500/20 text-yellow-500"
-                : "bg-green-500/20 text-green-500"
-            : "bg-red-500/20 text-red-500"
+                ? 'bg-yellow-500/20 text-yellow-500'
+                : 'bg-green-500/20 text-green-500'
+            : 'bg-red-500/20 text-red-500'
         )}
       >
         {status.isOnline ? (

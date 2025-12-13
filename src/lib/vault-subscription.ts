@@ -43,7 +43,7 @@ export interface VaultSubscription {
 
   // Receipt privacy
   receiptMode: ReceiptMode
-  receiptLabel: string | null  // Custom label for bank statement
+  receiptLabel: string | null // Custom label for bank statement
 
   // Stripe integration
   stripeSubscriptionId: string | null
@@ -53,7 +53,7 @@ export interface VaultSubscription {
   status: SubscriptionStatus
   subscribedAt: string
   expiresAt: string
-  gracePeriodEndsAt: string | null  // 14 days after expiresAt
+  gracePeriodEndsAt: string | null // 14 days after expiresAt
   cancelledAt: string | null
 
   // Timestamps
@@ -90,13 +90,13 @@ export const SUBSCRIPTION_TIERS: Record<VaultTier, SubscriptionTier> = {
     storageLimitGb: 5,
     storageLimitBytes: 5 * 1024 * 1024 * 1024,
     priceMonthly: 3,
-    priceYearly: 30,  // 2 months free
+    priceYearly: 30, // 2 months free
     features: [
       '5 GB encrypted storage',
       'Hidden file disguise',
       'Device-bound encryption',
-      'PIN/Biometric protection'
-    ]
+      'PIN/Biometric protection',
+    ],
   },
   pro: {
     id: 'pro',
@@ -104,14 +104,14 @@ export const SUBSCRIPTION_TIERS: Record<VaultTier, SubscriptionTier> = {
     storageLimitGb: 12,
     storageLimitBytes: 12 * 1024 * 1024 * 1024,
     priceMonthly: 5,
-    priceYearly: 50,  // 2 months free
+    priceYearly: 50, // 2 months free
     features: [
       '12 GB encrypted storage',
       'Hidden file disguise',
       'Device-bound encryption',
       'PIN/Biometric protection',
-      'Priority support'
-    ]
+      'Priority support',
+    ],
   },
   gold: {
     id: 'gold',
@@ -119,16 +119,16 @@ export const SUBSCRIPTION_TIERS: Record<VaultTier, SubscriptionTier> = {
     storageLimitGb: 30,
     storageLimitBytes: 30 * 1024 * 1024 * 1024,
     priceMonthly: 8,
-    priceYearly: 80,  // 2 months free
+    priceYearly: 80, // 2 months free
     features: [
       '30 GB encrypted storage',
       'Hidden file disguise',
       'Device-bound encryption',
       'PIN/Biometric protection',
       'Priority support',
-      'Early access to new features'
-    ]
-  }
+      'Early access to new features',
+    ],
+  },
 }
 
 // Receipt labels that NEVER mention vault/secret/hidden
@@ -138,7 +138,7 @@ export const RECEIPT_LABELS: ReceiptOption[] = [
   { id: 'storage', label: 'FS Storage Plan', description: 'Appears as general storage plan' },
   { id: 'backup', label: 'FS Cloud Backup', description: 'Appears as backup service' },
   { id: 'data', label: 'FS Data Services', description: 'Appears as data management' },
-  { id: 'addon', label: 'FlowSphere Add-on', description: 'Appears as app add-on' }
+  { id: 'addon', label: 'FlowSphere Add-on', description: 'Appears as app add-on' },
 ]
 
 // ============================================
@@ -184,7 +184,7 @@ export async function createVaultSubscription(
   const tierInfo = SUBSCRIPTION_TIERS[tier]
   const now = new Date()
   const expiresAt = new Date(now)
-  expiresAt.setMonth(expiresAt.getMonth() + 1)  // 1 month subscription
+  expiresAt.setMonth(expiresAt.getMonth() + 1) // 1 month subscription
 
   const { data, error } = await supabase
     .from('vault_subscriptions')
@@ -199,7 +199,7 @@ export async function createVaultSubscription(
       status: 'active',
       subscribed_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
-      grace_period_ends_at: null
+      grace_period_ends_at: null,
     })
     .select()
     .single()
@@ -226,7 +226,7 @@ export async function updateSubscriptionTier(
     .update({
       tier: newTier,
       storage_limit_gb: tierInfo.storageLimitGb,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId)
     .select()
@@ -254,7 +254,7 @@ export async function renewSubscription(subscriptionId: string): Promise<VaultSu
       status: 'active',
       expires_at: expiresAt.toISOString(),
       grace_period_ends_at: null,
-      updated_at: now.toISOString()
+      updated_at: now.toISOString(),
     })
     .eq('id', subscriptionId)
     .select()
@@ -277,7 +277,7 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
     .update({
       status: 'cancelled',
       cancelled_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId)
 
@@ -292,7 +292,7 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
  */
 export async function updateStorageUsed(
   subscriptionId: string,
-  bytesChange: number  // positive for add, negative for delete
+  bytesChange: number // positive for add, negative for delete
 ): Promise<void> {
   // Get current usage
   const { data: current } = await supabase
@@ -309,7 +309,7 @@ export async function updateStorageUsed(
     .from('vault_subscriptions')
     .update({
       storage_used_bytes: newUsage,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId)
 }
@@ -350,7 +350,7 @@ async function updateSubscriptionStatus(
 ): Promise<void> {
   const updates: Record<string, unknown> = {
     status,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   }
 
   // Set grace period end date when entering grace period
@@ -360,10 +360,7 @@ async function updateSubscriptionStatus(
     updates.grace_period_ends_at = gracePeriodEnds.toISOString()
   }
 
-  await supabase
-    .from('vault_subscriptions')
-    .update(updates)
-    .eq('id', subscriptionId)
+  await supabase.from('vault_subscriptions').update(updates).eq('id', subscriptionId)
 }
 
 // ============================================
@@ -380,7 +377,7 @@ export function canUpload(subscription: VaultSubscription | null): {
   if (!subscription) {
     return {
       allowed: false,
-      reason: 'No active vault storage subscription. Subscribe to start hiding files.'
+      reason: 'No active vault storage subscription. Subscribe to start hiding files.',
     }
   }
 
@@ -392,20 +389,21 @@ export function canUpload(subscription: VaultSubscription | null): {
     const graceDaysLeft = getGraceDaysRemaining(subscription)
     return {
       allowed: false,
-      reason: `Your subscription expired. You have ${graceDaysLeft} days to renew. Currently in read-only mode.`
+      reason: `Your subscription expired. You have ${graceDaysLeft} days to renew. Currently in read-only mode.`,
     }
   }
 
   if (subscription.status === 'expired') {
     return {
       allowed: false,
-      reason: 'Your subscription has expired. Renew to upload new files. Your existing files are safe.'
+      reason:
+        'Your subscription has expired. Renew to upload new files. Your existing files are safe.',
     }
   }
 
   return {
     allowed: false,
-    reason: 'Subscription is not active.'
+    reason: 'Subscription is not active.',
   }
 }
 
@@ -444,7 +442,7 @@ export function checkStorageLimit(
 
     return {
       allowed: false,
-      reason: `Storage limit exceeded (${usedFormatted} / ${limitFormatted}). Upgrade your plan or delete some files.`
+      reason: `Storage limit exceeded (${usedFormatted} / ${limitFormatted}). Upgrade your plan or delete some files.`,
     }
   }
 
@@ -482,7 +480,7 @@ export function getStatusNotification(subscription: VaultSubscription): {
   action?: string
 } | null {
   if (subscription.status === 'active') {
-    return null  // No notification needed
+    return null // No notification needed
   }
 
   if (subscription.status === 'grace_period') {
@@ -493,21 +491,21 @@ export function getStatusNotification(subscription: VaultSubscription): {
         type: 'error',
         title: 'Last Day of Grace Period',
         message: 'Your grace period ends tomorrow. Renew now to continue uploading files.',
-        action: 'Renew Now'
+        action: 'Renew Now',
       }
     } else if (daysLeft <= 7) {
       return {
         type: 'warning',
         title: `${daysLeft} Days Left`,
         message: 'Your subscription is in grace period. Renew to upload new files.',
-        action: 'Renew Now'
+        action: 'Renew Now',
       }
     } else {
       return {
         type: 'warning',
         title: 'Subscription Expired',
         message: `You have ${daysLeft} days to renew. Currently in read-only mode.`,
-        action: 'Renew Now'
+        action: 'Renew Now',
       }
     }
   }
@@ -516,8 +514,9 @@ export function getStatusNotification(subscription: VaultSubscription): {
     return {
       type: 'error',
       title: 'Read-Only Mode',
-      message: 'Your subscription has expired. Renew anytime to upload new files. Your existing files are safe.',
-      action: 'Renew Now'
+      message:
+        'Your subscription has expired. Renew anytime to upload new files. Your existing files are safe.',
+      action: 'Renew Now',
     }
   }
 
@@ -531,14 +530,17 @@ export function getStatusNotification(subscription: VaultSubscription): {
 /**
  * Get Stripe statement descriptor based on user preference
  */
-export function getStatementDescriptor(receiptMode: ReceiptMode, receiptLabel: string | null): {
+export function getStatementDescriptor(
+  receiptMode: ReceiptMode,
+  receiptLabel: string | null
+): {
   descriptor: string
   suffix: string
 } {
   if (receiptMode === 'bundled') {
     return {
       descriptor: 'FLOWSPHERE',
-      suffix: 'APP'
+      suffix: 'APP',
     }
   }
 
@@ -578,7 +580,7 @@ function mapToSubscription(data: Record<string, unknown>): VaultSubscription {
     gracePeriodEndsAt: data.grace_period_ends_at as string | null,
     cancelledAt: data.cancelled_at as string | null,
     createdAt: data.created_at as string,
-    updatedAt: data.updated_at as string
+    updatedAt: data.updated_at as string,
   }
 }
 
@@ -613,5 +615,5 @@ export default {
   checkStorageLimit,
   getGraceDaysRemaining,
   getStatusNotification,
-  getStatementDescriptor
+  getStatementDescriptor,
 }

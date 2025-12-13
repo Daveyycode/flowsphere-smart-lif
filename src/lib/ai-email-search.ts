@@ -33,7 +33,7 @@ export async function searchEmailsByPathQuery(
       emails: [],
       folder: '',
       count: 0,
-      summary: 'Invalid path format. Use paths like /work, /personal, /subscriptions'
+      summary: 'Invalid path format. Use paths like /work, /personal, /subscriptions',
     }
   }
 
@@ -45,7 +45,7 @@ export async function searchEmailsByPathQuery(
       emails: [],
       folder: path,
       count: 0,
-      summary: `Folder "${path}" not found. Available folders: ${folders.map(f => f.path).join(', ')}`
+      summary: `Folder "${path}" not found. Available folders: ${folders.map(f => f.path).join(', ')}`,
     }
   }
 
@@ -71,7 +71,7 @@ export async function searchEmailsByPathQuery(
     emails: filteredEmails,
     folder: path,
     count: filteredEmails.length,
-    summary
+    summary,
   }
 }
 
@@ -137,23 +137,21 @@ export function parsePathQuery(query: string): {
     return {
       hasPath: false,
       path: '',
-      searchTerms: query.trim()
+      searchTerms: query.trim(),
     }
   }
 
   return {
     hasPath: true,
     path: pathMatch[0],
-    searchTerms: query.replace(/\/([\w-]+)/, '').trim()
+    searchTerms: query.replace(/\/([\w-]+)/, '').trim(),
   }
 }
 
 /**
  * Search web for email-related information (using browser assistance)
  */
-export async function searchWebForEmailContext(
-  request: BrowserSearchRequest
-): Promise<string> {
+export async function searchWebForEmailContext(request: BrowserSearchRequest): Promise<string> {
   // This would integrate with a web search API or browser search
   // For now, we'll provide a mock implementation that simulates browser search
 
@@ -285,7 +283,7 @@ export function needsBrowserAssistance(query: string): boolean {
     'how to',
     'best way',
     'learn about',
-    'research'
+    'research',
   ]
 
   return browserKeywords.some(keyword => query.toLowerCase().includes(keyword))

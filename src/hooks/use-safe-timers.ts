@@ -23,7 +23,7 @@ interface TimerRefs {
 export function useSafeTimers() {
   const timersRef = useRef<TimerRefs>({
     timeouts: new Set(),
-    intervals: new Set()
+    intervals: new Set(),
   })
 
   // Cleanup on unmount
@@ -74,7 +74,7 @@ export function useSafeTimers() {
     clearTimeout: safeClearTimeout,
     setInterval: safeSetInterval,
     clearInterval: safeClearInterval,
-    clearAll
+    clearAll,
   }
 }
 
@@ -192,7 +192,7 @@ export function useCountdown(
     start,
     pause,
     reset,
-    formattedTime: formatTime(secondsLeft)
+    formattedTime: formatTime(secondsLeft),
   }
 }
 

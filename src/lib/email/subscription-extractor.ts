@@ -12,7 +12,15 @@ export interface ExtractedSubscription {
   id: string
   name: string
   serviceName: string
-  category: 'streaming' | 'software' | 'fitness' | 'utilities' | 'ai-services' | 'cloud' | 'productivity' | 'other'
+  category:
+    | 'streaming'
+    | 'software'
+    | 'fitness'
+    | 'utilities'
+    | 'ai-services'
+    | 'cloud'
+    | 'productivity'
+    | 'other'
   amount: number
   currency: string
   billingCycle: 'monthly' | 'yearly' | 'weekly' | 'quarterly'
@@ -39,44 +47,52 @@ export interface SubscriptionAnalysis {
 }
 
 // Known subscription services and their typical billing patterns
-const KNOWN_SERVICES: Record<string, { category: ExtractedSubscription['category'], defaultCycle: ExtractedSubscription['billingCycle'] }> = {
-  'anthropic': { category: 'ai-services', defaultCycle: 'monthly' },
-  'openai': { category: 'ai-services', defaultCycle: 'monthly' },
-  'claude': { category: 'ai-services', defaultCycle: 'monthly' },
-  'chatgpt': { category: 'ai-services', defaultCycle: 'monthly' },
-  'netflix': { category: 'streaming', defaultCycle: 'monthly' },
-  'spotify': { category: 'streaming', defaultCycle: 'monthly' },
+const KNOWN_SERVICES: Record<
+  string,
+  {
+    category: ExtractedSubscription['category']
+    defaultCycle: ExtractedSubscription['billingCycle']
+  }
+> = {
+  anthropic: { category: 'ai-services', defaultCycle: 'monthly' },
+  openai: { category: 'ai-services', defaultCycle: 'monthly' },
+  claude: { category: 'ai-services', defaultCycle: 'monthly' },
+  chatgpt: { category: 'ai-services', defaultCycle: 'monthly' },
+  netflix: { category: 'streaming', defaultCycle: 'monthly' },
+  spotify: { category: 'streaming', defaultCycle: 'monthly' },
   'apple music': { category: 'streaming', defaultCycle: 'monthly' },
   'youtube premium': { category: 'streaming', defaultCycle: 'monthly' },
   'disney+': { category: 'streaming', defaultCycle: 'monthly' },
   'hbo max': { category: 'streaming', defaultCycle: 'monthly' },
   'amazon prime': { category: 'streaming', defaultCycle: 'yearly' },
-  'hulu': { category: 'streaming', defaultCycle: 'monthly' },
-  'adobe': { category: 'software', defaultCycle: 'monthly' },
+  hulu: { category: 'streaming', defaultCycle: 'monthly' },
+  adobe: { category: 'software', defaultCycle: 'monthly' },
   'microsoft 365': { category: 'productivity', defaultCycle: 'yearly' },
   'office 365': { category: 'productivity', defaultCycle: 'yearly' },
   'google one': { category: 'cloud', defaultCycle: 'monthly' },
   'icloud+': { category: 'cloud', defaultCycle: 'monthly' },
-  'dropbox': { category: 'cloud', defaultCycle: 'monthly' },
-  'notion': { category: 'productivity', defaultCycle: 'monthly' },
-  'slack': { category: 'productivity', defaultCycle: 'monthly' },
-  'zoom': { category: 'productivity', defaultCycle: 'monthly' },
-  'canva': { category: 'software', defaultCycle: 'monthly' },
-  'figma': { category: 'software', defaultCycle: 'monthly' },
-  'github': { category: 'software', defaultCycle: 'monthly' },
-  'aws': { category: 'cloud', defaultCycle: 'monthly' },
+  dropbox: { category: 'cloud', defaultCycle: 'monthly' },
+  notion: { category: 'productivity', defaultCycle: 'monthly' },
+  slack: { category: 'productivity', defaultCycle: 'monthly' },
+  zoom: { category: 'productivity', defaultCycle: 'monthly' },
+  canva: { category: 'software', defaultCycle: 'monthly' },
+  figma: { category: 'software', defaultCycle: 'monthly' },
+  github: { category: 'software', defaultCycle: 'monthly' },
+  aws: { category: 'cloud', defaultCycle: 'monthly' },
   'google cloud': { category: 'cloud', defaultCycle: 'monthly' },
-  'vercel': { category: 'cloud', defaultCycle: 'monthly' },
-  'railway': { category: 'cloud', defaultCycle: 'monthly' },
-  'heroku': { category: 'cloud', defaultCycle: 'monthly' },
-  'gym': { category: 'fitness', defaultCycle: 'monthly' },
-  'peloton': { category: 'fitness', defaultCycle: 'monthly' },
+  vercel: { category: 'cloud', defaultCycle: 'monthly' },
+  railway: { category: 'cloud', defaultCycle: 'monthly' },
+  heroku: { category: 'cloud', defaultCycle: 'monthly' },
+  gym: { category: 'fitness', defaultCycle: 'monthly' },
+  peloton: { category: 'fitness', defaultCycle: 'monthly' },
 }
 
 /**
  * Extract subscription details from emails using Groq AI
  */
-export async function extractSubscriptionsFromEmails(emails: Email[]): Promise<ExtractedSubscription[]> {
+export async function extractSubscriptionsFromEmails(
+  emails: Email[]
+): Promise<ExtractedSubscription[]> {
   if (!emails || emails.length === 0) {
     return []
   }
@@ -116,9 +132,10 @@ function groupEmailsBySender(emails: Email[]): Map<string, Email[]> {
 
   // Sort each group by date (newest first)
   for (const [key, emailList] of groups.entries()) {
-    groups.set(key, emailList.sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ))
+    groups.set(
+      key,
+      emailList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    )
   }
 
   return groups
@@ -137,7 +154,11 @@ async function extractSubscriptionFromSenderEmails(
   const emailContent = prepareEmailContentForExtraction(emails.slice(0, 5))
 
   // First try to detect known service
-  const knownService = detectKnownService(senderEmail, latestEmail.subject, latestEmail.body || latestEmail.snippet || '')
+  const knownService = detectKnownService(
+    senderEmail,
+    latestEmail.subject,
+    latestEmail.body || latestEmail.snippet || ''
+  )
 
   if (isGroqConfigured()) {
     // Use Groq AI for detailed extraction
@@ -151,7 +172,11 @@ async function extractSubscriptionFromSenderEmails(
 /**
  * Detect if this is a known subscription service
  */
-function detectKnownService(senderEmail: string, subject: string, body: string): { name: string; info: typeof KNOWN_SERVICES[string] } | null {
+function detectKnownService(
+  senderEmail: string,
+  subject: string,
+  body: string
+): { name: string; info: (typeof KNOWN_SERVICES)[string] } | null {
   const searchText = `${senderEmail} ${subject} ${body}`.toLowerCase()
 
   for (const [serviceName, info] of Object.entries(KNOWN_SERVICES)) {
@@ -167,9 +192,10 @@ function detectKnownService(senderEmail: string, subject: string, body: string):
  * Prepare email content for AI extraction
  */
 function prepareEmailContentForExtraction(emails: Email[]): string {
-  return emails.map((email, i) => {
-    const content = (email.body || email.snippet || '').substring(0, 1000)
-    return `
+  return emails
+    .map((email, i) => {
+      const content = (email.body || email.snippet || '').substring(0, 1000)
+      return `
 --- EMAIL ${i + 1} ---
 From: ${email.from.name || 'Unknown'} <${email.from.email}>
 Subject: ${email.subject}
@@ -177,7 +203,8 @@ Date: ${new Date(email.timestamp).toLocaleDateString()}
 Content:
 ${content}
 `
-  }).join('\n')
+    })
+    .join('\n')
 }
 
 /**
@@ -187,7 +214,7 @@ async function extractWithGroqAI(
   senderEmail: string,
   emails: Email[],
   emailContent: string,
-  knownService: { name: string; info: typeof KNOWN_SERVICES[string] } | null
+  knownService: { name: string; info: (typeof KNOWN_SERVICES)[string] } | null
 ): Promise<ExtractedSubscription | null> {
   const systemPrompt = `You are FlowSphere's Subscription Extraction AI. Your job is to parse subscription-related emails and extract billing information.
 
@@ -223,13 +250,13 @@ Return ONLY valid JSON with the subscription details. If this is NOT a subscript
   try {
     const messages: GroqMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
+      { role: 'user', content: userPrompt },
     ]
 
     const response = await groqChatWithHistory(messages, {
       model: 'llama-3.3-70b-versatile',
       temperature: 0.2,
-      max_tokens: 500
+      max_tokens: 500,
     })
 
     // Parse JSON from response
@@ -257,19 +284,22 @@ Return ONLY valid JSON with the subscription details. If this is NOT a subscript
     return {
       id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: parsed.serviceName || knownService?.name || extractServiceNameFromEmail(senderEmail),
-      serviceName: parsed.serviceName || knownService?.name || extractServiceNameFromEmail(senderEmail),
+      serviceName:
+        parsed.serviceName || knownService?.name || extractServiceNameFromEmail(senderEmail),
       category: knownService?.info.category || detectCategory(parsed.serviceName || senderEmail),
       amount: parsed.amount || 0,
       currency: parsed.currency || 'USD',
       billingCycle: parsed.billingCycle || knownService?.info.defaultCycle || 'monthly',
       nextBillingDate: nextBillingDate || '',
-      lastBillingDate: emails[0] ? new Date(emails[0].timestamp).toISOString().split('T')[0] : undefined,
+      lastBillingDate: emails[0]
+        ? new Date(emails[0].timestamp).toISOString().split('T')[0]
+        : undefined,
       detectedFromEmail: emails[0].subject,
       confidence: parsed.confidence || 0.7,
       emailCount: emails.length,
       senderEmail: senderEmail,
       status: parsed.status || 'active',
-      extractedAt: new Date().toISOString()
+      extractedAt: new Date().toISOString(),
     }
   } catch (error) {
     logger.error('Groq AI extraction failed:', error)
@@ -283,13 +313,23 @@ Return ONLY valid JSON with the subscription details. If this is NOT a subscript
 function extractWithPatterns(
   senderEmail: string,
   emails: Email[],
-  knownService: { name: string; info: typeof KNOWN_SERVICES[string] } | null
+  knownService: { name: string; info: (typeof KNOWN_SERVICES)[string] } | null
 ): ExtractedSubscription | null {
   const latestEmail = emails[0]
-  const content = `${latestEmail.subject} ${latestEmail.body || latestEmail.snippet || ''}`.toLowerCase()
+  const content =
+    `${latestEmail.subject} ${latestEmail.body || latestEmail.snippet || ''}`.toLowerCase()
 
   // Must have billing-related keywords
-  const billingKeywords = ['receipt', 'invoice', 'payment', 'charged', 'billing', 'subscription', 'renewal', 'amount']
+  const billingKeywords = [
+    'receipt',
+    'invoice',
+    'payment',
+    'charged',
+    'billing',
+    'subscription',
+    'renewal',
+    'amount',
+  ]
   const hasBillingKeyword = billingKeywords.some(kw => content.includes(kw))
 
   if (!hasBillingKeyword && !knownService) {
@@ -302,7 +342,7 @@ function extractWithPatterns(
     /(\d+(?:\.\d{2})?)\s*(?:USD|usd)/,
     /amount[:\s]*\$?(\d+(?:\.\d{2})?)/i,
     /total[:\s]*\$?(\d+(?:\.\d{2})?)/i,
-    /charged[:\s]*\$?(\d+(?:\.\d{2})?)/i
+    /charged[:\s]*\$?(\d+(?:\.\d{2})?)/i,
   ]
 
   let amount = 0
@@ -341,7 +381,7 @@ function extractWithPatterns(
     emailCount: emails.length,
     senderEmail: senderEmail,
     status: 'active',
-    extractedAt: new Date().toISOString()
+    extractedAt: new Date().toISOString(),
   }
 }
 
@@ -364,13 +404,23 @@ function extractServiceNameFromEmail(email: string): string {
 function detectCategory(serviceName: string): ExtractedSubscription['category'] {
   const name = serviceName.toLowerCase()
 
-  if (['anthropic', 'openai', 'claude', 'chatgpt', 'gemini', 'mistral'].some(s => name.includes(s))) {
+  if (
+    ['anthropic', 'openai', 'claude', 'chatgpt', 'gemini', 'mistral'].some(s => name.includes(s))
+  ) {
     return 'ai-services'
   }
-  if (['netflix', 'spotify', 'hulu', 'disney', 'hbo', 'youtube', 'apple music'].some(s => name.includes(s))) {
+  if (
+    ['netflix', 'spotify', 'hulu', 'disney', 'hbo', 'youtube', 'apple music'].some(s =>
+      name.includes(s)
+    )
+  ) {
     return 'streaming'
   }
-  if (['aws', 'google cloud', 'azure', 'vercel', 'railway', 'heroku', 'dropbox', 'icloud'].some(s => name.includes(s))) {
+  if (
+    ['aws', 'google cloud', 'azure', 'vercel', 'railway', 'heroku', 'dropbox', 'icloud'].some(s =>
+      name.includes(s)
+    )
+  ) {
     return 'cloud'
   }
   if (['notion', 'slack', 'zoom', 'microsoft', 'office'].some(s => name.includes(s))) {
@@ -389,7 +439,10 @@ function detectCategory(serviceName: string): ExtractedSubscription['category'] 
 /**
  * Calculate next billing date based on last billing and cycle
  */
-function calculateNextBillingDate(lastBilling: Date, cycle: ExtractedSubscription['billingCycle']): string {
+function calculateNextBillingDate(
+  lastBilling: Date,
+  cycle: ExtractedSubscription['billingCycle']
+): string {
   const next = new Date(lastBilling)
 
   switch (cycle) {
@@ -462,8 +515,10 @@ export async function analyzeSubscriptions(
     .filter(sub => sub.status === 'active' && sub.nextBillingDate)
     .map(sub => ({
       subscription: sub,
-      daysUntil: Math.ceil((new Date(sub.nextBillingDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
-      amount: sub.amount
+      daysUntil: Math.ceil(
+        (new Date(sub.nextBillingDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      ),
+      amount: sub.amount,
     }))
     .filter(bill => bill.daysUntil >= 0 && bill.daysUntil <= 30)
     .sort((a, b) => a.daysUntil - b.daysUntil)
@@ -472,18 +527,24 @@ export async function analyzeSubscriptions(
   const insights: string[] = []
 
   if (totalMonthly > 100) {
-    insights.push(`You're spending $${totalMonthly.toFixed(2)}/month on subscriptions. Consider reviewing for unused services.`)
+    insights.push(
+      `You're spending $${totalMonthly.toFixed(2)}/month on subscriptions. Consider reviewing for unused services.`
+    )
   }
 
   const aiServices = subscriptions.filter(s => s.category === 'ai-services')
   if (aiServices.length > 1) {
-    insights.push(`You have ${aiServices.length} AI service subscriptions. Consider consolidating to save money.`)
+    insights.push(
+      `You have ${aiServices.length} AI service subscriptions. Consider consolidating to save money.`
+    )
   }
 
   const dueSoon = upcomingBills.filter(b => b.daysUntil <= 7)
   if (dueSoon.length > 0) {
     const totalDue = dueSoon.reduce((sum, b) => sum + b.amount, 0)
-    insights.push(`${dueSoon.length} subscription${dueSoon.length > 1 ? 's' : ''} due this week totaling $${totalDue.toFixed(2)}`)
+    insights.push(
+      `${dueSoon.length} subscription${dueSoon.length > 1 ? 's' : ''} due this week totaling $${totalDue.toFixed(2)}`
+    )
   }
 
   return {
@@ -491,11 +552,11 @@ export async function analyzeSubscriptions(
     totalMonthlySpend: totalMonthly,
     totalYearlySpend: totalMonthly * 12,
     upcomingBills,
-    insights
+    insights,
   }
 }
 
 export default {
   extractSubscriptionsFromEmails,
-  analyzeSubscriptions
+  analyzeSubscriptions,
 }

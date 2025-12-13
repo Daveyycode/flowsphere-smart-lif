@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ShieldCheck, EnvelopeSimple, Phone, CalendarBlank, MapPin, Camera, Bell, House, Users, Lock, Key, CheckCircle, XCircle, WarningCircle, Microphone } from '@phosphor-icons/react'
+import {
+  ShieldCheck,
+  EnvelopeSimple,
+  Phone,
+  CalendarBlank,
+  MapPin,
+  Camera,
+  Bell,
+  House,
+  Users,
+  Lock,
+  Key,
+  CheckCircle,
+  XCircle,
+  WarningCircle,
+  Microphone,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -14,7 +30,7 @@ import {
   checkPermissionStatus,
   getAllPermissionStatuses,
   type BrowserPermissionType,
-  type PermissionStatus
+  type PermissionStatus,
 } from '@/lib/browser-permissions'
 
 interface PermissionsState {
@@ -65,7 +81,7 @@ export function PermissionsSettings() {
     contacts: false,
     storage: true,
     microphone: false,
-    hasSeenPrompt: false
+    hasSeenPrompt: false,
   })
 
   // Track REAL browser permission status
@@ -73,7 +89,7 @@ export function PermissionsSettings() {
     location: 'prompt',
     notifications: 'prompt',
     camera: 'prompt',
-    microphone: 'prompt'
+    microphone: 'prompt',
   })
 
   const [isRequestingPermission, setIsRequestingPermission] = useState<string | null>(null)
@@ -88,7 +104,8 @@ export function PermissionsSettings() {
       if (permissions) {
         const updates: Partial<PermissionsState> = {}
         if (statuses.location === 'granted' && !permissions.location) updates.location = true
-        if (statuses.notifications === 'granted' && !permissions.notifications) updates.notifications = true
+        if (statuses.notifications === 'granted' && !permissions.notifications)
+          updates.notifications = true
         if (statuses.camera === 'granted' && !permissions.cameras) updates.cameras = true
         if (statuses.microphone === 'granted' && !permissions.microphone) updates.microphone = true
 
@@ -121,18 +138,22 @@ export function PermissionsSettings() {
         // Update browser permission state
         setBrowserPermissions(prev => ({
           ...prev,
-          [type === 'camera' ? 'camera' : type]: 'granted'
+          [type === 'camera' ? 'camera' : type]: 'granted',
         }))
       } else if (result.status === 'denied') {
         setPermissions({ ...permissions!, [stateKey]: false })
-        toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} permission denied. Please enable in browser settings.`)
+        toast.error(
+          `${type.charAt(0).toUpperCase() + type.slice(1)} permission denied. Please enable in browser settings.`
+        )
 
         setBrowserPermissions(prev => ({
           ...prev,
-          [type === 'camera' ? 'camera' : type]: 'denied'
+          [type === 'camera' ? 'camera' : type]: 'denied',
         }))
       } else if (result.status === 'unsupported') {
-        toast.error(`${type.charAt(0).toUpperCase() + type.slice(1)} is not supported in this browser.`)
+        toast.error(
+          `${type.charAt(0).toUpperCase() + type.slice(1)} is not supported in this browser.`
+        )
       }
     } catch (error) {
       console.error(`Error requesting ${type} permission:`, error)
@@ -146,7 +167,9 @@ export function PermissionsSettings() {
     if (!permissions) return
     const newPermissions: PermissionsState = { ...permissions, [key]: value }
     setPermissions(newPermissions)
-    console.log(`[PERMISSION CHANGE] ${key}: ${value ? 'GRANTED' : 'REVOKED'} at ${new Date().toISOString()}`)
+    console.log(
+      `[PERMISSION CHANGE] ${key}: ${value ? 'GRANTED' : 'REVOKED'} at ${new Date().toISOString()}`
+    )
   }
 
   // Get badge for browser permission status
@@ -154,28 +177,40 @@ export function PermissionsSettings() {
     switch (status) {
       case 'granted':
         return (
-          <Badge variant="secondary" className="bg-mint/20 text-mint text-xs flex items-center gap-1">
+          <Badge
+            variant="secondary"
+            className="bg-mint/20 text-mint text-xs flex items-center gap-1"
+          >
             <CheckCircle className="w-3 h-3" weight="fill" />
             Granted
           </Badge>
         )
       case 'denied':
         return (
-          <Badge variant="secondary" className="bg-destructive/20 text-destructive text-xs flex items-center gap-1">
+          <Badge
+            variant="secondary"
+            className="bg-destructive/20 text-destructive text-xs flex items-center gap-1"
+          >
             <XCircle className="w-3 h-3" weight="fill" />
             Blocked
           </Badge>
         )
       case 'unsupported':
         return (
-          <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs flex items-center gap-1">
+          <Badge
+            variant="secondary"
+            className="bg-muted text-muted-foreground text-xs flex items-center gap-1"
+          >
             <WarningCircle className="w-3 h-3" />
             Unsupported
           </Badge>
         )
       default:
         return (
-          <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-600 text-xs flex items-center gap-1">
+          <Badge
+            variant="secondary"
+            className="bg-yellow-500/20 text-yellow-600 text-xs flex items-center gap-1"
+          >
             <WarningCircle className="w-3 h-3" />
             Not Set
           </Badge>
@@ -192,7 +227,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.gmail || false,
       setter: (val: boolean) => updatePermission('gmail', val),
       color: 'coral',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'outlook',
@@ -202,7 +237,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.outlook || false,
       setter: (val: boolean) => updatePermission('outlook', val),
       color: 'accent',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'yahoo',
@@ -212,7 +247,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.yahoo || false,
       setter: (val: boolean) => updatePermission('yahoo', val),
       color: 'primary',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'calls',
@@ -222,7 +257,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.calls || false,
       setter: (val: boolean) => updatePermission('calls', val),
       color: 'mint',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'sms',
@@ -232,7 +267,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.sms || false,
       setter: (val: boolean) => updatePermission('sms', val),
       color: 'accent',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'contacts',
@@ -242,8 +277,8 @@ export function PermissionsSettings() {
       isGranted: permissions?.contacts || false,
       setter: (val: boolean) => updatePermission('contacts', val),
       color: 'coral',
-      isRealBrowser: false
-    }
+      isRealBrowser: false,
+    },
   ]
 
   const calendarPermissions = [
@@ -255,7 +290,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.calendar || false,
       setter: (val: boolean) => updatePermission('calendar', val),
       color: 'primary',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'google-calendar',
@@ -265,7 +300,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.googleCalendar || false,
       setter: (val: boolean) => updatePermission('googleCalendar', val),
       color: 'coral',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'outlook-calendar',
@@ -275,8 +310,8 @@ export function PermissionsSettings() {
       isGranted: permissions?.outlookCalendar || false,
       setter: (val: boolean) => updatePermission('outlookCalendar', val),
       color: 'accent',
-      isRealBrowser: false
-    }
+      isRealBrowser: false,
+    },
   ]
 
   const locationPermissions = [
@@ -290,7 +325,7 @@ export function PermissionsSettings() {
       color: 'mint',
       isRealBrowser: true,
       browserType: 'geolocation' as BrowserPermissionType,
-      stateKey: 'location' as keyof PermissionsState
+      stateKey: 'location' as keyof PermissionsState,
     },
     {
       id: 'family-location',
@@ -300,8 +335,8 @@ export function PermissionsSettings() {
       isGranted: permissions?.familyLocation || false,
       setter: (val: boolean) => updatePermission('familyLocation', val),
       color: 'coral',
-      isRealBrowser: false
-    }
+      isRealBrowser: false,
+    },
   ]
 
   const homePermissions = [
@@ -313,7 +348,7 @@ export function PermissionsSettings() {
       isGranted: permissions?.homeDevices || false,
       setter: (val: boolean) => updatePermission('homeDevices', val),
       color: 'accent',
-      isRealBrowser: false
+      isRealBrowser: false,
     },
     {
       id: 'cameras',
@@ -325,7 +360,7 @@ export function PermissionsSettings() {
       color: 'primary',
       isRealBrowser: true,
       browserType: 'camera' as BrowserPermissionType,
-      stateKey: 'cameras' as keyof PermissionsState
+      stateKey: 'cameras' as keyof PermissionsState,
     },
     {
       id: 'microphone',
@@ -337,8 +372,8 @@ export function PermissionsSettings() {
       color: 'coral',
       isRealBrowser: true,
       browserType: 'microphone' as BrowserPermissionType,
-      stateKey: 'microphone' as keyof PermissionsState
-    }
+      stateKey: 'microphone' as keyof PermissionsState,
+    },
   ]
 
   const dataPermissions = [
@@ -352,7 +387,7 @@ export function PermissionsSettings() {
       color: 'coral',
       isRealBrowser: true,
       browserType: 'notifications' as BrowserPermissionType,
-      stateKey: 'notifications' as keyof PermissionsState
+      stateKey: 'notifications' as keyof PermissionsState,
     },
     {
       id: 'storage',
@@ -362,8 +397,8 @@ export function PermissionsSettings() {
       isGranted: permissions?.storage || false,
       setter: (val: boolean) => updatePermission('storage', val),
       color: 'mint',
-      isRealBrowser: false
-    }
+      isRealBrowser: false,
+    },
   ]
 
   const handlePermissionToggle = (permission: any) => {
@@ -405,7 +440,7 @@ export function PermissionsSettings() {
       contacts: true,
       storage: true,
       microphone: browserPermissions.microphone === 'granted',
-      hasSeenPrompt: true
+      hasSeenPrompt: true,
     }
     setPermissions(allGranted)
 
@@ -431,12 +466,16 @@ export function PermissionsSettings() {
       contacts: false,
       storage: true, // Keep storage
       microphone: false,
-      hasSeenPrompt: true
+      hasSeenPrompt: true,
     }
     setPermissions(allRevoked)
 
-    console.log(`[PERMISSION CHANGE] ALL NON-ESSENTIAL PERMISSIONS REVOKED at ${new Date().toISOString()}`)
-    toast.success('Non-essential permissions revoked. Note: Browser permissions must be revoked in browser settings.')
+    console.log(
+      `[PERMISSION CHANGE] ALL NON-ESSENTIAL PERMISSIONS REVOKED at ${new Date().toISOString()}`
+    )
+    toast.success(
+      'Non-essential permissions revoked. Note: Browser permissions must be revoked in browser settings.'
+    )
   }
 
   const PermissionItem = ({ permission }: { permission: any }) => {
@@ -446,7 +485,9 @@ export function PermissionsSettings() {
     return (
       <div className="flex items-start justify-between py-4 space-x-4">
         <div className="flex items-start space-x-4 flex-1">
-          <div className={`w-12 h-12 rounded-xl bg-${permission.color}/10 flex items-center justify-center flex-shrink-0`}>
+          <div
+            className={`w-12 h-12 rounded-xl bg-${permission.color}/10 flex items-center justify-center flex-shrink-0`}
+          >
             <Icon className={`w-6 h-6 text-${permission.color}`} weight="duotone" />
           </div>
           <div className="flex-1 min-w-0">
@@ -455,7 +496,9 @@ export function PermissionsSettings() {
               {permission.isRealBrowser ? (
                 <>
                   {getPermissionBadge(permission.browserStatus)}
-                  <Badge variant="outline" className="text-xs">Browser</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Browser
+                  </Badge>
                 </>
               ) : (
                 permission.isGranted && (
@@ -509,7 +552,8 @@ export function PermissionsSettings() {
       <div>
         <h1 className="text-4xl font-bold mb-2">Permissions & Privacy</h1>
         <p className="text-muted-foreground">
-          Control what FlowSphere can access. Browser permissions are real and require your approval.
+          Control what FlowSphere can access. Browser permissions are real and require your
+          approval.
         </p>
       </div>
 
@@ -527,23 +571,16 @@ export function PermissionsSettings() {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">Real Browser Permissions</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Location, Camera, Microphone, and Notifications require <strong>real browser permissions</strong>.
-                  When you click "Allow", your browser will prompt you for access.
+                  Location, Camera, Microphone, and Notifications require{' '}
+                  <strong>real browser permissions</strong>. When you click "Allow", your browser
+                  will prompt you for access.
                 </p>
                 <div className="flex gap-3 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={grantAllPermissions}
-                  >
+                  <Button variant="outline" size="sm" onClick={grantAllPermissions}>
                     <Key className="w-4 h-4 mr-2" />
                     Request All
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={revokeAllPermissions}
-                  >
+                  <Button variant="outline" size="sm" onClick={revokeAllPermissions}>
                     <Lock className="w-4 h-4 mr-2" />
                     Revoke Non-Essential
                   </Button>

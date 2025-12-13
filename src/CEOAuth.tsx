@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheckIcon, EyeIcon, EyeSlashIcon, SparklesIcon, KeyIcon } from '@heroicons/react/24/outline';
-import * as OTPAuth from 'otpauth';
-import QRCode from 'qrcode';
+import React, { useState, useEffect } from 'react'
+import {
+  ShieldCheckIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  SparklesIcon,
+  KeyIcon,
+} from '@heroicons/react/24/outline'
+import * as OTPAuth from 'otpauth'
+import QRCode from 'qrcode'
 
 interface CEOAuthProps {
-  onAuthenticated: () => void;
+  onAuthenticated: () => void
 }
 
 /**
@@ -21,30 +27,30 @@ interface CEOAuthProps {
  * - Credentials now loaded from VITE_CEO_USERNAME and VITE_CEO_PASSWORD env vars
  */
 const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [totpCode, setTotpCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'credentials' | 'totp' | 'qr-setup'>('credentials');
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const [totpSecret, setTotpSecret] = useState('');
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<'credentials' | 'totp' | 'qr-setup'>('credentials')
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('')
+  const [totpSecret, setTotpSecret] = useState('')
 
   // CEO Credentials loaded from environment variables
   // Set VITE_CEO_USERNAME and VITE_CEO_PASSWORD in your .env file
   const getCEOCredentials = () => ({
     username: import.meta.env.VITE_CEO_USERNAME || '',
-    password: import.meta.env.VITE_CEO_PASSWORD || ''
-  });
+    password: import.meta.env.VITE_CEO_PASSWORD || '',
+  })
 
   // Check for existing CEO session on mount
   useEffect(() => {
-    const isCEOAuthenticated = localStorage.getItem('flowsphere_ceo_auth');
+    const isCEOAuthenticated = localStorage.getItem('flowsphere_ceo_auth')
     if (isCEOAuthenticated === 'true') {
-      onAuthenticated();
+      onAuthenticated()
     }
-  }, [onAuthenticated]);
+  }, [onAuthenticated])
 
   // SECURITY FIX (Dec 9, 2025): Removed hardcoded TOTP secret
   // TOTP secrets must be generated during first-time setup only
@@ -52,12 +58,12 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
 
   // Generate or retrieve TOTP secret
   useEffect(() => {
-    const storedSecret = localStorage.getItem('flowsphere_ceo_totp_secret');
+    const storedSecret = localStorage.getItem('flowsphere_ceo_totp_secret')
     if (storedSecret) {
-      setTotpSecret(storedSecret);
+      setTotpSecret(storedSecret)
     }
     // No fallback - if no stored secret, user needs to complete 2FA setup
-  }, []);
+  }, [])
 
   // Generate QR code when needed
   const generateQRCode = async (secret: string) => {
@@ -67,30 +73,32 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
-      secret: OTPAuth.Secret.fromBase32(secret)
-    });
+      secret: OTPAuth.Secret.fromBase32(secret),
+    })
 
-    const otpauthUrl = totp.toString();
-    const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
-    setQrCodeDataUrl(qrDataUrl);
-  };
+    const otpauthUrl = totp.toString()
+    const qrDataUrl = await QRCode.toDataURL(otpauthUrl)
+    setQrCodeDataUrl(qrDataUrl)
+  }
 
   const validateCredentials = () => {
     // EXACT match required - credentials from environment variables
-    const creds = getCEOCredentials();
+    const creds = getCEOCredentials()
     if (!creds.username || !creds.password) {
-      console.error('CEO credentials not configured. Set VITE_CEO_USERNAME and VITE_CEO_PASSWORD in .env');
-      return false;
+      console.error(
+        'CEO credentials not configured. Set VITE_CEO_USERNAME and VITE_CEO_PASSWORD in .env'
+      )
+      return false
     }
-    return username === creds.username && password === creds.password;
-  };
+    return username === creds.username && password === creds.password
+  }
 
   const validateTOTP = (code: string, secret: string): boolean => {
     try {
       // STRICT validation - code must be exactly 6 digits
       if (!code || code.trim().length !== 6 || !/^\d{6}$/.test(code.trim())) {
-        console.log('TOTP Validation FAILED: Invalid format');
-        return false;
+        console.log('TOTP Validation FAILED: Invalid format')
+        return false
       }
 
       const totp = new OTPAuth.TOTP({
@@ -99,88 +107,88 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
-        secret: OTPAuth.Secret.fromBase32(secret)
-      });
+        secret: OTPAuth.Secret.fromBase32(secret),
+      })
 
       // Use the library's validate method with a time window
       // This checks current time +/- 1 period (30 seconds)
       const delta = totp.validate({
         token: code.trim(),
-        window: 1  // Allow 1 period before/after (30s window)
-      });
+        window: 1, // Allow 1 period before/after (30s window)
+      })
 
       // delta will be a number if valid, null if invalid
-      const isValid = delta !== null;
+      const isValid = delta !== null
 
       console.log('TOTP Validation:', {
         provided: code.trim(),
         delta: delta,
         valid: isValid,
-        timestamp: new Date().toISOString()
-      });
+        timestamp: new Date().toISOString(),
+      })
 
-      return isValid;
+      return isValid
     } catch (error) {
-      console.error('TOTP validation error:', error);
-      return false;
+      console.error('TOTP validation error:', error)
+      return false
     }
-  };
+  }
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     if (!validateCredentials()) {
-      setError('Invalid credentials. Access denied.');
-      setLoading(false);
-      return;
+      setError('Invalid credentials. Access denied.')
+      setLoading(false)
+      return
     }
 
     // Check if TOTP is already set up
-    const isSetup = localStorage.getItem('flowsphere_ceo_totp_setup') === 'true';
+    const isSetup = localStorage.getItem('flowsphere_ceo_totp_setup') === 'true'
 
     if (!isSetup) {
       // First time login - show QR code
-      await generateQRCode(totpSecret);
-      setStep('qr-setup');
+      await generateQRCode(totpSecret)
+      setStep('qr-setup')
     } else {
       // Subsequent login - go directly to TOTP entry
-      setStep('totp');
+      setStep('totp')
     }
 
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   const handleQRSetupComplete = () => {
     // Save secret and mark setup as complete
-    localStorage.setItem('flowsphere_ceo_totp_secret', totpSecret);
-    localStorage.setItem('flowsphere_ceo_totp_setup', 'true');
-    setStep('totp');
-  };
+    localStorage.setItem('flowsphere_ceo_totp_secret', totpSecret)
+    localStorage.setItem('flowsphere_ceo_totp_setup', 'true')
+    setStep('totp')
+  }
 
   const handleTOTPSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500))
 
-    const secret = localStorage.getItem('flowsphere_ceo_totp_secret') || totpSecret;
+    const secret = localStorage.getItem('flowsphere_ceo_totp_secret') || totpSecret
 
     if (!validateTOTP(totpCode, secret)) {
-      setError('Invalid TOTP code. Please try again.');
-      setLoading(false);
-      return;
+      setError('Invalid TOTP code. Please try again.')
+      setLoading(false)
+      return
     }
 
     // Authentication successful
-    localStorage.setItem('flowsphere_ceo_auth', 'true');
-    localStorage.setItem('flowsphere_ceo_login_time', new Date().toISOString());
-    onAuthenticated();
-  };
+    localStorage.setItem('flowsphere_ceo_auth', 'true')
+    localStorage.setItem('flowsphere_ceo_login_time', new Date().toISOString())
+    onAuthenticated()
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-blue-900 flex items-center justify-center p-4">
@@ -220,7 +228,7 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={e => setUsername(e.target.value)}
                   placeholder="Enter CEO ID"
                   className="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
                   autoComplete="username"
@@ -238,7 +246,7 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     placeholder="Enter password"
                     className="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition pr-12"
                     autoComplete="current-password"
@@ -250,7 +258,11 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-200 hover:text-white transition"
                   >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -276,18 +288,28 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
             <div className="space-y-6">
               <div className="text-center">
                 <KeyIcon className="w-12 h-12 text-yellow-400 mx-auto mb-3" />
-                <h3 className="text-xl font-bold text-white mb-2">Two-Factor Authentication Setup</h3>
-                <p className="text-purple-200 text-sm">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Two-Factor Authentication Setup
+                </h3>
+                <p className="text-purple-200 text-sm">
+                  Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                </p>
               </div>
 
               <div className="bg-white rounded-lg p-4 flex justify-center">
-                {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="TOTP QR Code" className="w-48 h-48" />}
+                {qrCodeDataUrl && (
+                  <img src={qrCodeDataUrl} alt="TOTP QR Code" className="w-48 h-48" />
+                )}
               </div>
 
               <div className="bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-30 rounded-lg p-4">
-                <p className="text-yellow-100 text-xs font-medium mb-2">⚠️ Important - One-Time Setup</p>
+                <p className="text-yellow-100 text-xs font-medium mb-2">
+                  ⚠️ Important - One-Time Setup
+                </p>
                 <p className="text-yellow-200 text-xs">
-                  This QR code will only be shown ONCE. Make sure to scan it now with your authenticator app. You'll need the 6-digit code from your app for all future logins.
+                  This QR code will only be shown ONCE. Make sure to scan it now with your
+                  authenticator app. You'll need the 6-digit code from your app for all future
+                  logins.
                 </p>
               </div>
 
@@ -306,7 +328,9 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
               <div className="text-center mb-4">
                 <KeyIcon className="w-12 h-12 text-green-400 mx-auto mb-3" />
                 <h3 className="text-xl font-bold text-white mb-2">Enter Verification Code</h3>
-                <p className="text-purple-200 text-sm">Enter the 6-digit code from your authenticator app</p>
+                <p className="text-purple-200 text-sm">
+                  Enter the 6-digit code from your authenticator app
+                </p>
               </div>
 
               <div>
@@ -317,7 +341,7 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
                   id="totp"
                   type="text"
                   value={totpCode}
-                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   className="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white text-center text-2xl font-mono tracking-widest placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
                   autoComplete="off"
@@ -344,9 +368,9 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
               <button
                 type="button"
                 onClick={() => {
-                  setStep('credentials');
-                  setTotpCode('');
-                  setError('');
+                  setStep('credentials')
+                  setTotpCode('')
+                  setError('')
                 }}
                 className="w-full text-purple-200 hover:text-white text-sm transition"
               >
@@ -363,7 +387,8 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
                 <div>
                   <p className="text-blue-100 text-xs font-medium mb-1">🔐 Secure CEO Access</p>
                   <p className="text-blue-200 text-xs">
-                    Protected with two-factor authentication (TOTP). Only authorized CEO credentials accepted.
+                    Protected with two-factor authentication (TOTP). Only authorized CEO credentials
+                    accepted.
                   </p>
                 </div>
               </div>
@@ -382,7 +407,7 @@ const CEOAuth: React.FC<CEOAuthProps> = ({ onAuthenticated }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default CEOAuth;
+export default CEOAuth

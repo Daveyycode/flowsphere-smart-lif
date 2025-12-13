@@ -11,15 +11,17 @@ export function speakText(text: string): Promise<void> {
     utterance.volume = 1
 
     const voices = speechSynthesis.getVoices()
-    const preferredVoice = voices.find(voice => 
-      voice.lang.startsWith('en') && (voice.name.includes('Google') || voice.name.includes('Natural'))
+    const preferredVoice = voices.find(
+      voice =>
+        voice.lang.startsWith('en') &&
+        (voice.name.includes('Google') || voice.name.includes('Natural'))
     )
     if (preferredVoice) {
       utterance.voice = preferredVoice
     }
 
     utterance.onend = () => resolve()
-    utterance.onerror = (error) => reject(error)
+    utterance.onerror = error => reject(error)
 
     speechSynthesis.speak(utterance)
   })

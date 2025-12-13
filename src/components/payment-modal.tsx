@@ -1,11 +1,23 @@
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { CreditCard, Lock, Check, Bank, Globe } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -28,19 +40,28 @@ export function PaymentModal({
   planName,
   planPrice,
   billingCycle,
-  onPaymentComplete
+  onPaymentComplete,
 }: PaymentModalProps) {
   const [step, setStep] = useState<'payment' | 'processing' | 'success'>('payment')
   const [cardNumber, setCardNumber] = useState('')
   const [cardName, setCardName] = useState('')
   const [expiryDate, setExpiryDate] = useState('')
   const [cvv, setCvv] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'apple' | 'ph-bank'>('card')
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'apple' | 'ph-bank'>(
+    'card'
+  )
   const [selectedBank, setSelectedBank] = useState<string>('')
   const [accountNumber, setAccountNumber] = useState('')
   const [accountName, setAccountName] = useState('')
-  const [, setStoredPaymentMethod] = useKV<{type: 'card' | 'paypal' | 'apple' | 'ph-bank', last4?: string, bank?: string}>('flowsphere-payment-method', {type: 'card'})
-  const [, setNextBillingDate] = useKV<string>('flowsphere-next-billing', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+  const [, setStoredPaymentMethod] = useKV<{
+    type: 'card' | 'paypal' | 'apple' | 'ph-bank'
+    last4?: string
+    bank?: string
+  }>('flowsphere-payment-method', { type: 'card' })
+  const [, setNextBillingDate] = useKV<string>(
+    'flowsphere-next-billing',
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  )
 
   // Philippine Banks
   const philippineBanks = [
@@ -57,7 +78,7 @@ export function PaymentModal({
     { id: 'psbank', name: 'Philippine Savings Bank (PS Bank)', logo: '🏦' },
     { id: 'maybank', name: 'Maybank Philippines', logo: '🏦' },
     { id: 'gcash', name: 'GCash', logo: '💳' },
-    { id: 'paymaya', name: 'Maya (PayMaya)', logo: '💳' }
+    { id: 'paymaya', name: 'Maya (PayMaya)', logo: '💳' },
   ]
 
   const formatCardNumber = (value: string) => {
@@ -207,7 +228,9 @@ export function PaymentModal({
 
     // REAL PAYMENT PROCESSING - Saves to Supabase database
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
       if (!user) {
         toast.error('Please log in to process payment')
@@ -218,20 +241,19 @@ export function PaymentModal({
       let result
 
       if (paymentMethod === 'card') {
-        result = await processCardPayment(
-          user.id,
-          planName.toLowerCase() as any,
-          planPrice,
-          { cardNumber, cardName, expiryDate, cvv }
-        )
+        result = await processCardPayment(user.id, planName.toLowerCase() as any, planPrice, {
+          cardNumber,
+          cardName,
+          expiryDate,
+          cvv,
+        })
       } else if (paymentMethod === 'ph-bank') {
         const bankName = philippineBanks.find(b => b.id === selectedBank)?.name || selectedBank
-        result = await processBankPayment(
-          user.id,
-          planName.toLowerCase() as any,
-          planPrice,
-          { selectedBank: bankName, accountNumber, accountName }
-        )
+        result = await processBankPayment(user.id, planName.toLowerCase() as any, planPrice, {
+          selectedBank: bankName,
+          accountNumber,
+          accountName,
+        })
       } else {
         toast.error('Payment method not supported yet')
         setStep('payment')
@@ -239,19 +261,22 @@ export function PaymentModal({
       }
 
       if (result.success) {
-        const last4 = paymentMethod === 'card'
-          ? cardNumber.replace(/\s/g, '').slice(-4)
-          : accountNumber.slice(-4)
+        const last4 =
+          paymentMethod === 'card'
+            ? cardNumber.replace(/\s/g, '').slice(-4)
+            : accountNumber.slice(-4)
 
-        const bankName = paymentMethod === 'ph-bank'
-          ? philippineBanks.find(b => b.id === selectedBank)?.name
-          : undefined
+        const bankName =
+          paymentMethod === 'ph-bank'
+            ? philippineBanks.find(b => b.id === selectedBank)?.name
+            : undefined
 
         setStoredPaymentMethod({ type: paymentMethod, last4, bank: bankName })
 
-        const nextBilling = billingCycle === 'monthly'
-          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        const nextBilling =
+          billingCycle === 'monthly'
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         setNextBillingDate(nextBilling.toISOString())
 
         setStep('success')
@@ -305,36 +330,52 @@ export function PaymentModal({
               <DialogHeader>
                 <DialogTitle className="text-xl sm:text-2xl">Complete Your Purchase</DialogTitle>
                 <DialogDescription className="text-sm">
-                  Subscribe to FlowSphere {planName} - ${planPrice}/{billingCycle === 'monthly' ? 'month' : 'year'}
+                  Subscribe to FlowSphere {planName} - ${planPrice}/
+                  {billingCycle === 'monthly' ? 'month' : 'year'}
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                 <div className="space-y-4">
                   <Label className="text-sm font-semibold">Payment Method</Label>
-                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'card' | 'paypal' | 'apple' | 'ph-bank')}>
-                    <Card className={`p-4 cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-primary border-2' : 'border'}`}>
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={value =>
+                      setPaymentMethod(value as 'card' | 'paypal' | 'apple' | 'ph-bank')
+                    }
+                  >
+                    <Card
+                      className={`p-4 cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-primary border-2' : 'border'}`}
+                    >
                       <label className="flex items-center gap-3 cursor-pointer">
                         <RadioGroupItem value="card" id="card" />
                         <CreditCard className="w-5 h-5 text-primary" weight="duotone" />
                         <span className="text-sm font-medium">Credit / Debit Card</span>
                       </label>
                     </Card>
-                    <Card className={`p-4 cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'border-primary border-2' : 'border'}`}>
+                    <Card
+                      className={`p-4 cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'border-primary border-2' : 'border'}`}
+                    >
                       <label className="flex items-center gap-3 cursor-pointer">
                         <RadioGroupItem value="paypal" id="paypal" />
-                        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">P</div>
+                        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                          P
+                        </div>
                         <span className="text-sm font-medium">PayPal</span>
                       </label>
                     </Card>
-                    <Card className={`p-4 cursor-pointer transition-all ${paymentMethod === 'apple' ? 'border-primary border-2' : 'border'}`}>
+                    <Card
+                      className={`p-4 cursor-pointer transition-all ${paymentMethod === 'apple' ? 'border-primary border-2' : 'border'}`}
+                    >
                       <label className="flex items-center gap-3 cursor-pointer">
                         <RadioGroupItem value="apple" id="apple" />
                         <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center text-white text-xs font-bold"></div>
                         <span className="text-sm font-medium">Apple Pay</span>
                       </label>
                     </Card>
-                    <Card className={`p-4 cursor-pointer transition-all ${paymentMethod === 'ph-bank' ? 'border-primary border-2' : 'border'}`}>
+                    <Card
+                      className={`p-4 cursor-pointer transition-all ${paymentMethod === 'ph-bank' ? 'border-primary border-2' : 'border'}`}
+                    >
                       <label className="flex items-center gap-3 cursor-pointer">
                         <RadioGroupItem value="ph-bank" id="ph-bank" />
                         <Bank className="w-5 h-5 text-accent" weight="duotone" />
@@ -352,7 +393,9 @@ export function PaymentModal({
                     className="space-y-4"
                   >
                     <div>
-                      <Label htmlFor="cardNumber" className="text-sm">Card Number</Label>
+                      <Label htmlFor="cardNumber" className="text-sm">
+                        Card Number
+                      </Label>
                       <Input
                         id="cardNumber"
                         type="text"
@@ -365,20 +408,24 @@ export function PaymentModal({
                     </div>
 
                     <div>
-                      <Label htmlFor="cardName" className="text-sm">Cardholder Name</Label>
+                      <Label htmlFor="cardName" className="text-sm">
+                        Cardholder Name
+                      </Label>
                       <Input
                         id="cardName"
                         type="text"
                         placeholder="John Doe"
                         value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
+                        onChange={e => setCardName(e.target.value)}
                         className="mt-1.5 text-base"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="expiryDate" className="text-sm">Expiry Date</Label>
+                        <Label htmlFor="expiryDate" className="text-sm">
+                          Expiry Date
+                        </Label>
                         <Input
                           id="expiryDate"
                           type="text"
@@ -390,7 +437,9 @@ export function PaymentModal({
                         />
                       </div>
                       <div>
-                        <Label htmlFor="cvv" className="text-sm">CVV</Label>
+                        <Label htmlFor="cvv" className="text-sm">
+                          CVV
+                        </Label>
                         <Input
                           id="cvv"
                           type="text"
@@ -437,7 +486,9 @@ export function PaymentModal({
                     className="space-y-4"
                   >
                     <div>
-                      <Label htmlFor="bank" className="text-sm">Select Your Bank</Label>
+                      <Label htmlFor="bank" className="text-sm">
+                        Select Your Bank
+                      </Label>
                       <Select value={selectedBank} onValueChange={setSelectedBank}>
                         <SelectTrigger className="mt-1.5">
                           <SelectValue placeholder="Choose your bank" />
@@ -455,25 +506,29 @@ export function PaymentModal({
                     </div>
 
                     <div>
-                      <Label htmlFor="accountNumber" className="text-sm">Account Number</Label>
+                      <Label htmlFor="accountNumber" className="text-sm">
+                        Account Number
+                      </Label>
                       <Input
                         id="accountNumber"
                         type="text"
                         placeholder="Enter your account number"
                         value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
+                        onChange={e => setAccountNumber(e.target.value)}
                         className="mt-1.5 text-base"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="accountName" className="text-sm">Account Holder Name</Label>
+                      <Label htmlFor="accountName" className="text-sm">
+                        Account Holder Name
+                      </Label>
                       <Input
                         id="accountName"
                         type="text"
                         placeholder="Name as it appears on account"
                         value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
+                        onChange={e => setAccountName(e.target.value)}
                         className="mt-1.5 text-base"
                       />
                     </div>
@@ -501,18 +556,10 @@ export function PaymentModal({
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleClose}
-                    className="flex-1"
-                  >
+                  <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-accent hover:bg-accent/90"
-                  >
+                  <Button type="submit" className="flex-1 bg-accent hover:bg-accent/90">
                     Pay ${planPrice}
                   </Button>
                 </div>
@@ -536,13 +583,15 @@ export function PaymentModal({
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 >
                   <CreditCard className="w-8 h-8 text-accent" weight="duotone" />
                 </motion.div>
               </div>
               <h3 className="text-xl font-semibold mb-2">Processing Payment...</h3>
-              <p className="text-sm text-muted-foreground">Please wait while we process your payment securely</p>
+              <p className="text-sm text-muted-foreground">
+                Please wait while we process your payment securely
+              </p>
             </motion.div>
           )}
 
@@ -557,7 +606,7 @@ export function PaymentModal({
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.2 }}
+                transition={{ type: 'spring', delay: 0.2 }}
                 className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint/20 flex items-center justify-center"
               >
                 <Check className="w-8 h-8 text-mint" weight="bold" />

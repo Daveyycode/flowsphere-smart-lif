@@ -42,12 +42,19 @@ import {
   CaretDown,
   SpeakerHigh,
   Stop,
-  Microphone
+  Microphone,
 } from '@phosphor-icons/react'
 import { EmailAccountStore, Email } from '@/lib/email/email-service'
 import { GmailProvider } from '@/lib/email/gmail-provider'
 import { EmailClassificationRulesStore } from '@/lib/email/email-classification-rules'
-import { askEmailAssistant, getEmailOverview, QUICK_ACTIONS, AssistantResponse, DraftEmail, ConversationMessage } from '@/lib/email/ai-email-assistant'
+import {
+  askEmailAssistant,
+  getEmailOverview,
+  QUICK_ACTIONS,
+  AssistantResponse,
+  DraftEmail,
+  ConversationMessage,
+} from '@/lib/email/ai-email-assistant'
 import { emailDatabase } from '@/lib/email/email-database'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -98,7 +105,7 @@ export function UnifiedEmailSearch({
   initialCategory = 'all',
   initialMode = 'search',
   onLatestAIResponse,
-  onHandoffToGeneral
+  onHandoffToGeneral,
 }: UnifiedEmailSearchProps) {
   const [viewMode, setViewMode] = useState<ViewMode>(initialMode)
   const [searchQuery, setSearchQuery] = useState('')
@@ -195,7 +202,7 @@ export function UnifiedEmailSearch({
           const gmail = new GmailProvider()
           const result = await gmail.searchEmails(account, {
             query: searchQuery,
-            maxResults: 20
+            maxResults: 20,
           })
           emails = result.emails
         }
@@ -205,14 +212,14 @@ export function UnifiedEmailSearch({
           const classification = EmailClassificationRulesStore.classifyByRules({
             subject: email.subject,
             body: email.body || email.snippet || '',
-            from: email.from
+            from: email.from,
           })
 
           allResults.push({
             ...email,
             accountEmail: account.email,
             accountProvider: account.provider,
-            displayCategory: classification.category
+            displayCategory: classification.category,
           })
         }
       } catch (error) {
@@ -221,14 +228,11 @@ export function UnifiedEmailSearch({
     }
 
     // Filter by category if not 'all'
-    const filtered = category === 'all'
-      ? allResults
-      : allResults.filter(r => r.displayCategory === category)
+    const filtered =
+      category === 'all' ? allResults : allResults.filter(r => r.displayCategory === category)
 
     // Sort by date (newest first)
-    filtered.sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
+    filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
     setResults(filtered)
     setIsSearching(false)
@@ -254,7 +258,7 @@ export function UnifiedEmailSearch({
       id: Date.now().toString(),
       type: 'user',
       content: aiQuery,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     setAiMessages(prev => [...prev, userMessage])
@@ -275,7 +279,7 @@ export function UnifiedEmailSearch({
         draftEmail: response.draftEmail,
         timestamp: new Date(),
         handoffToGeneral: response.handoffToGeneral,
-        handoffQuery: response.handoffQuery
+        handoffQuery: response.handoffQuery,
       }
 
       setAiMessages(prev => [...prev, assistantMessage])
@@ -287,7 +291,7 @@ export function UnifiedEmailSearch({
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: "I'm sorry, I encountered an error processing your request. Please try again.",
-        timestamp: new Date()
+        timestamp: new Date(),
       }
       setAiMessages(prev => [...prev, errorMessage])
     } finally {
@@ -401,35 +405,54 @@ export function UnifiedEmailSearch({
 
   const getQuickActionIcon = (icon: string) => {
     switch (icon) {
-      case 'warning': return Warning
-      case 'briefcase': return Briefcase
-      case 'envelope': return Envelope
-      case 'calendar': return Calendar
-      case 'check': return CheckCircle
-      case 'user': return User
-      default: return Lightning
+      case 'warning':
+        return Warning
+      case 'briefcase':
+        return Briefcase
+      case 'envelope':
+        return Envelope
+      case 'calendar':
+        return Calendar
+      case 'check':
+        return CheckCircle
+      case 'user':
+        return User
+      default:
+        return Lightning
     }
   }
 
   const getCategoryColor = (cat: CategoryFilter) => {
     switch (cat) {
-      case 'urgent': return 'bg-red-500/20 text-red-500 border-red-500/30'
-      case 'work': return 'bg-blue-500/20 text-blue-500 border-blue-500/30'
-      case 'personal': return 'bg-green-500/20 text-green-500 border-green-500/30'
-      case 'subs': return 'bg-purple-500/20 text-purple-500 border-purple-500/30'
-      case 'bills': return 'bg-gray-500/20 text-gray-500 border-gray-500/30'
-      default: return 'bg-muted text-muted-foreground'
+      case 'urgent':
+        return 'bg-red-500/20 text-red-500 border-red-500/30'
+      case 'work':
+        return 'bg-blue-500/20 text-blue-500 border-blue-500/30'
+      case 'personal':
+        return 'bg-green-500/20 text-green-500 border-green-500/30'
+      case 'subs':
+        return 'bg-purple-500/20 text-purple-500 border-purple-500/30'
+      case 'bills':
+        return 'bg-gray-500/20 text-gray-500 border-gray-500/30'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
   const getCategoryLabel = (cat: CategoryFilter) => {
     switch (cat) {
-      case 'urgent': return 'Urgent'
-      case 'work': return 'Work'
-      case 'personal': return 'Personal'
-      case 'subs': return 'Subscriptions'
-      case 'bills': return 'Bills'
-      default: return 'All'
+      case 'urgent':
+        return 'Urgent'
+      case 'work':
+        return 'Work'
+      case 'personal':
+        return 'Personal'
+      case 'subs':
+        return 'Subscriptions'
+      case 'bills':
+        return 'Bills'
+      default:
+        return 'All'
     }
   }
 
@@ -472,7 +495,7 @@ export function UnifiedEmailSearch({
           </div>
 
           {/* Mode Toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="mt-2">
+          <Tabs value={viewMode} onValueChange={v => setViewMode(v as ViewMode)} className="mt-2">
             <TabsList className="grid grid-cols-2 w-56 h-8">
               <TabsTrigger value="search" className="text-xs gap-1 h-7">
                 <MagnifyingGlass className="w-3 h-3" />
@@ -487,14 +510,30 @@ export function UnifiedEmailSearch({
 
           {/* Category Tabs - Only show in search mode */}
           {viewMode === 'search' && (
-            <Tabs value={category} onValueChange={(v) => setCategory(v as CategoryFilter)} className="mt-2">
+            <Tabs
+              value={category}
+              onValueChange={v => setCategory(v as CategoryFilter)}
+              className="mt-2"
+            >
               <TabsList className="grid grid-cols-6 w-full h-7">
-                <TabsTrigger value="all" className="text-[10px] h-6">All</TabsTrigger>
-                <TabsTrigger value="urgent" className="text-[10px] h-6 text-red-500">Urgent</TabsTrigger>
-                <TabsTrigger value="work" className="text-[10px] h-6 text-blue-500">Work</TabsTrigger>
-                <TabsTrigger value="personal" className="text-[10px] h-6 text-green-500">Personal</TabsTrigger>
-                <TabsTrigger value="subs" className="text-[10px] h-6 text-purple-500">Subs</TabsTrigger>
-                <TabsTrigger value="bills" className="text-[10px] h-6 text-gray-500">Bills</TabsTrigger>
+                <TabsTrigger value="all" className="text-[10px] h-6">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="urgent" className="text-[10px] h-6 text-red-500">
+                  Urgent
+                </TabsTrigger>
+                <TabsTrigger value="work" className="text-[10px] h-6 text-blue-500">
+                  Work
+                </TabsTrigger>
+                <TabsTrigger value="personal" className="text-[10px] h-6 text-green-500">
+                  Personal
+                </TabsTrigger>
+                <TabsTrigger value="subs" className="text-[10px] h-6 text-purple-500">
+                  Subs
+                </TabsTrigger>
+                <TabsTrigger value="bills" className="text-[10px] h-6 text-gray-500">
+                  Bills
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           )}
@@ -510,7 +549,7 @@ export function UnifiedEmailSearch({
                 <Input
                   placeholder="Search across all email accounts..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="pl-10 pr-10 h-12 text-lg"
                   autoFocus
                 />
@@ -531,9 +570,7 @@ export function UnifiedEmailSearch({
                 <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                   <Spinner className="w-4 h-4 animate-spin" />
                   Searching {searchedAccounts.length} account(s)...
-                  <span className="text-xs">
-                    ({searchedAccounts.join(', ')})
-                  </span>
+                  <span className="text-xs">({searchedAccounts.join(', ')})</span>
                 </div>
               )}
             </div>
@@ -548,9 +585,7 @@ export function UnifiedEmailSearch({
                       <Envelope className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>No emails found for "{searchQuery}"</p>
                       {category !== 'all' && (
-                        <p className="text-sm mt-1">
-                          Try searching in "All" categories
-                        </p>
+                        <p className="text-sm mt-1">Try searching in "All" categories</p>
                       )}
                     </div>
                   )}
@@ -560,7 +595,8 @@ export function UnifiedEmailSearch({
                       <MagnifyingGlass className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>Type at least 2 characters to search</p>
                       <p className="text-sm mt-1">
-                        Searches across all {EmailAccountStore.getActiveAccounts().length} connected account(s)
+                        Searches across all {EmailAccountStore.getActiveAccounts().length} connected
+                        account(s)
                       </p>
                       <Button
                         variant="outline"
@@ -574,12 +610,12 @@ export function UnifiedEmailSearch({
                     </div>
                   )}
 
-                  {results.map((email) => (
+                  {results.map(email => (
                     <div
                       key={`${email.accountEmail}-${email.id}`}
                       className={cn(
-                        "p-3 cursor-pointer hover:bg-muted/50 transition-colors",
-                        selectedEmail?.id === email.id && "bg-muted"
+                        'p-3 cursor-pointer hover:bg-muted/50 transition-colors',
+                        selectedEmail?.id === email.id && 'bg-muted'
                       )}
                       onClick={() => setSelectedEmail(email)}
                     >
@@ -594,21 +630,25 @@ export function UnifiedEmailSearch({
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={cn(
-                              "font-medium truncate",
-                              !email.read && "font-semibold"
-                            )}>
+                            <span
+                              className={cn('font-medium truncate', !email.read && 'font-semibold')}
+                            >
                               {email.from.name || email.from.email}
                             </span>
-                            <Badge variant="outline" className={cn("text-xs", getCategoryColor(email.displayCategory))}>
+                            <Badge
+                              variant="outline"
+                              className={cn('text-xs', getCategoryColor(email.displayCategory))}
+                            >
                               {getCategoryLabel(email.displayCategory)}
                             </Badge>
                           </div>
 
-                          <p className={cn(
-                            "text-sm truncate",
-                            !email.read ? "font-medium" : "text-muted-foreground"
-                          )}>
+                          <p
+                            className={cn(
+                              'text-sm truncate',
+                              !email.read ? 'font-medium' : 'text-muted-foreground'
+                            )}
+                          >
                             {email.subject}
                           </p>
 
@@ -642,7 +682,10 @@ export function UnifiedEmailSearch({
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <Tag className="w-3 h-3" />
                       <span>{selectedEmail.accountEmail}</span>
-                      <Badge variant="outline" className={cn("text-xs", getCategoryColor(selectedEmail.displayCategory))}>
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs', getCategoryColor(selectedEmail.displayCategory))}
+                      >
                         {getCategoryLabel(selectedEmail.displayCategory)}
                       </Badge>
                     </div>
@@ -656,22 +699,32 @@ export function UnifiedEmailSearch({
 
                   {/* Quick Actions */}
                   <div className="p-3 border-t flex gap-2 flex-shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setDraftEmail({
-                        to: selectedEmail.from.email,
-                        subject: `Re: ${selectedEmail.subject}`,
-                        body: '',
-                        replyTo: selectedEmail
-                      })
-                      setShowComposer(true)
-                    }}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setDraftEmail({
+                          to: selectedEmail.from.email,
+                          subject: `Re: ${selectedEmail.subject}`,
+                          body: '',
+                          replyTo: selectedEmail,
+                        })
+                        setShowComposer(true)
+                      }}
+                    >
                       <ArrowBendUpLeft className="w-4 h-4 mr-1" />
                       Reply
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setViewMode('ai')
-                      setAiQuery(`Summarize and help me reply to this email from ${selectedEmail.from.name || selectedEmail.from.email} about "${selectedEmail.subject}"`)
-                    }}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setViewMode('ai')
+                        setAiQuery(
+                          `Summarize and help me reply to this email from ${selectedEmail.from.name || selectedEmail.from.email} about "${selectedEmail.subject}"`
+                        )
+                      }}
+                    >
                       <Robot className="w-4 h-4 mr-1" />
                       AI Help
                     </Button>
@@ -699,7 +752,7 @@ export function UnifiedEmailSearch({
                   Quick Actions
                 </p>
                 <div className="grid grid-cols-3 gap-2">
-                  {QUICK_ACTIONS.map((action) => {
+                  {QUICK_ACTIONS.map(action => {
                     const Icon = getQuickActionIcon(action.icon)
                     return (
                       <Button
@@ -737,7 +790,11 @@ export function UnifiedEmailSearch({
                     variant="outline"
                     size="sm"
                     className="justify-start gap-2 h-auto py-2 px-3"
-                    onClick={() => handleQuickAction("Help me draft a professional email reply to my most recent work email")}
+                    onClick={() =>
+                      handleQuickAction(
+                        'Help me draft a professional email reply to my most recent work email'
+                      )
+                    }
                   >
                     <ArrowBendUpLeft className="w-4 h-4" weight="duotone" />
                     <span className="text-xs">Draft Reply</span>
@@ -747,30 +804,26 @@ export function UnifiedEmailSearch({
             )}
 
             {/* AI Messages */}
-            <div
-              className="flex-1 p-4 overflow-y-auto min-h-0"
-              ref={aiScrollRef}
-            >
+            <div className="flex-1 p-4 overflow-y-auto min-h-0" ref={aiScrollRef}>
               <div className="space-y-4">
                 <AnimatePresence mode="popLayout">
-                  {aiMessages.map((message) => (
+                  {aiMessages.map(message => (
                     <motion.div
                       key={message.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className={cn(
-                        "flex gap-3",
-                        message.type === 'user' && "flex-row-reverse"
-                      )}
+                      className={cn('flex gap-3', message.type === 'user' && 'flex-row-reverse')}
                     >
                       {/* Avatar */}
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                        message.type === 'assistant'
-                          ? "bg-gradient-to-br from-primary to-accent"
-                          : "bg-muted"
-                      )}>
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                          message.type === 'assistant'
+                            ? 'bg-gradient-to-br from-primary to-accent'
+                            : 'bg-muted'
+                        )}
+                      >
                         {message.type === 'assistant' ? (
                           <Robot className="w-5 h-5 text-white" weight="fill" />
                         ) : (
@@ -779,16 +832,20 @@ export function UnifiedEmailSearch({
                       </div>
 
                       {/* Content */}
-                      <div className={cn(
-                        "flex-1 space-y-2 max-w-[80%]",
-                        message.type === 'user' && "flex flex-col items-end"
-                      )}>
-                        <div className={cn(
-                          "rounded-lg p-3",
-                          message.type === 'assistant'
-                            ? "bg-muted"
-                            : "bg-primary text-primary-foreground"
-                        )}>
+                      <div
+                        className={cn(
+                          'flex-1 space-y-2 max-w-[80%]',
+                          message.type === 'user' && 'flex flex-col items-end'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'rounded-lg p-3',
+                            message.type === 'assistant'
+                              ? 'bg-muted'
+                              : 'bg-primary text-primary-foreground'
+                          )}
+                        >
                           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                           {/* Hear Summary button for assistant messages */}
                           {message.type === 'assistant' && (
@@ -822,8 +879,13 @@ export function UnifiedEmailSearch({
                               <span className="text-xs font-medium">Draft Suggestion</span>
                             </div>
                             <div className="space-y-1 text-xs">
-                              <p><strong>To:</strong> {message.draftEmail.to || '(recipient)'}</p>
-                              <p><strong>Subject:</strong> {message.draftEmail.subject || '(subject)'}</p>
+                              <p>
+                                <strong>To:</strong> {message.draftEmail.to || '(recipient)'}
+                              </p>
+                              <p>
+                                <strong>Subject:</strong>{' '}
+                                {message.draftEmail.subject || '(subject)'}
+                              </p>
                             </div>
                             <div className="flex gap-2 mt-2">
                               <Button
@@ -855,7 +917,7 @@ export function UnifiedEmailSearch({
                               Related Emails ({message.emails.length})
                             </p>
                             <div className="space-y-1 max-h-48 overflow-y-auto">
-                              {message.emails.slice(0, 5).map((email) => (
+                              {message.emails.slice(0, 5).map(email => (
                                 <div
                                   key={email.id}
                                   className="p-2 rounded-lg bg-background border hover:bg-muted/50 cursor-pointer transition-colors"
@@ -865,7 +927,14 @@ export function UnifiedEmailSearch({
                                   }}
                                 >
                                   <div className="flex items-center gap-2 mb-1">
-                                    <Badge className={cn("text-[10px] px-1.5 py-0", getCategoryColor(email.category as CategoryFilter || 'bills'))}>
+                                    <Badge
+                                      className={cn(
+                                        'text-[10px] px-1.5 py-0',
+                                        getCategoryColor(
+                                          (email.category as CategoryFilter) || 'bills'
+                                        )
+                                      )}
+                                    >
                                       {email.category || 'bills'}
                                     </Badge>
                                     <span className="text-[10px] text-muted-foreground">
@@ -937,7 +1006,9 @@ export function UnifiedEmailSearch({
                       </div>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
                         <Spinner className="w-4 h-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">Analyzing your emails...</span>
+                        <span className="text-sm text-muted-foreground">
+                          Analyzing your emails...
+                        </span>
                       </div>
                     </motion.div>
                   )}
@@ -951,7 +1022,7 @@ export function UnifiedEmailSearch({
                 ref={aiInputRef}
                 placeholder="Ask about your emails... (e.g., 'What's urgent today?' or 'Help me reply to...')"
                 value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
+                onChange={e => setAiQuery(e.target.value)}
                 disabled={isAiLoading}
                 className="flex-1"
               />
@@ -959,12 +1030,15 @@ export function UnifiedEmailSearch({
               <Button
                 type="button"
                 size="icon"
-                variant={isRecording ? "destructive" : "outline"}
+                variant={isRecording ? 'destructive' : 'outline'}
                 onClick={handleVoiceInput}
                 disabled={isAiLoading}
-                title={isRecording ? "Stop recording" : "Voice input"}
+                title={isRecording ? 'Stop recording' : 'Voice input'}
               >
-                <Microphone className={cn("w-5 h-5", isRecording && "animate-pulse")} weight={isRecording ? "fill" : "regular"} />
+                <Microphone
+                  className={cn('w-5 h-5', isRecording && 'animate-pulse')}
+                  weight={isRecording ? 'fill' : 'regular'}
+                />
               </Button>
               <Button type="submit" size="icon" disabled={isAiLoading || !aiQuery.trim()}>
                 {isAiLoading ? (
@@ -986,10 +1060,15 @@ export function UnifiedEmailSearch({
                   <PencilSimple className="w-4 h-4" />
                   {draftEmail.replyTo ? 'Reply to Email' : 'Compose New Email'}
                 </h3>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                  setShowComposer(false)
-                  setAttachments([])
-                }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setShowComposer(false)
+                    setAttachments([])
+                  }}
+                >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -1000,7 +1079,7 @@ export function UnifiedEmailSearch({
                   <Input
                     placeholder="recipient@email.com"
                     value={draftEmail.to}
-                    onChange={(e) => setDraftEmail({ ...draftEmail, to: e.target.value })}
+                    onChange={e => setDraftEmail({ ...draftEmail, to: e.target.value })}
                     className="h-9"
                   />
                 </div>
@@ -1010,7 +1089,7 @@ export function UnifiedEmailSearch({
                   <Input
                     placeholder="Email subject"
                     value={draftEmail.subject}
-                    onChange={(e) => setDraftEmail({ ...draftEmail, subject: e.target.value })}
+                    onChange={e => setDraftEmail({ ...draftEmail, subject: e.target.value })}
                     className="h-9"
                   />
                 </div>
@@ -1023,7 +1102,9 @@ export function UnifiedEmailSearch({
                       size="sm"
                       className="h-6 text-xs px-2"
                       onClick={() => {
-                        setAiQuery(`Help me write a professional email to ${draftEmail.to || 'someone'} about "${draftEmail.subject || 'this topic'}"`)
+                        setAiQuery(
+                          `Help me write a professional email to ${draftEmail.to || 'someone'} about "${draftEmail.subject || 'this topic'}"`
+                        )
                         setShowComposer(false)
                         handleAiSubmit()
                       }}
@@ -1035,7 +1116,7 @@ export function UnifiedEmailSearch({
                   <Textarea
                     placeholder="Write your message here..."
                     value={draftEmail.body}
-                    onChange={(e) => setDraftEmail({ ...draftEmail, body: e.target.value })}
+                    onChange={e => setDraftEmail({ ...draftEmail, body: e.target.value })}
                     className="min-h-[150px] max-h-[250px] resize-y text-sm"
                   />
                 </div>
@@ -1052,7 +1133,7 @@ export function UnifiedEmailSearch({
                       ref={fileInputRef}
                       className="hidden"
                       multiple
-                      onChange={async (e) => {
+                      onChange={async e => {
                         const files = e.target.files
                         if (!files) return
 
@@ -1060,7 +1141,7 @@ export function UnifiedEmailSearch({
                         for (const file of Array.from(files)) {
                           // Convert to base64
                           const reader = new FileReader()
-                          const base64 = await new Promise<string>((resolve) => {
+                          const base64 = await new Promise<string>(resolve => {
                             reader.onload = () => {
                               const result = reader.result as string
                               // Remove data URL prefix to get raw base64
@@ -1074,7 +1155,7 @@ export function UnifiedEmailSearch({
                             filename: file.name,
                             mimeType: file.type || 'application/octet-stream',
                             data: base64,
-                            size: file.size
+                            size: file.size,
                           })
                         }
 
@@ -1096,7 +1177,10 @@ export function UnifiedEmailSearch({
                   {attachments.length > 0 && (
                     <div className="border rounded-lg p-2 space-y-1 bg-muted/30">
                       {attachments.map((att, index) => (
-                        <div key={index} className="flex items-center justify-between text-xs p-1 hover:bg-muted rounded">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between text-xs p-1 hover:bg-muted rounded"
+                        >
                           <div className="flex items-center gap-2 truncate">
                             <File className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                             <span className="truncate">{att.filename}</span>
@@ -1108,7 +1192,9 @@ export function UnifiedEmailSearch({
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"
-                            onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                            onClick={() =>
+                              setAttachments(prev => prev.filter((_, i) => i !== index))
+                            }
                           >
                             <Trash className="w-3 h-3 text-destructive" />
                           </Button>
@@ -1131,15 +1217,17 @@ export function UnifiedEmailSearch({
 
               <div className="p-3 border-t flex gap-2 justify-between flex-shrink-0">
                 <div className="text-xs text-muted-foreground">
-                  {attachments.length > 0 && (
-                    <span>{attachments.length} file(s) attached</span>
-                  )}
+                  {attachments.length > 0 && <span>{attachments.length} file(s) attached</span>}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => {
-                    setShowComposer(false)
-                    setAttachments([])
-                  }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowComposer(false)
+                      setAttachments([])
+                    }}
+                  >
                     Cancel
                   </Button>
                   <Button
@@ -1170,7 +1258,7 @@ export function UnifiedEmailSearch({
                               subject: draftEmail.subject,
                               body: draftEmail.body,
                               html: draftEmail.body.replace(/\n/g, '<br>'),
-                              attachments: attachments.length > 0 ? attachments : undefined
+                              attachments: attachments.length > 0 ? attachments : undefined,
                             })
                           }
 
@@ -1224,7 +1312,12 @@ export function UnifiedEmailSearch({
           </span>
           <div className="flex items-center gap-3">
             <span>{EmailAccountStore.getActiveAccounts().length} account(s)</span>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => onOpenChange(false)}
+            >
               Close
             </Button>
           </div>

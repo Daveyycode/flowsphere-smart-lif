@@ -63,14 +63,16 @@ export const WeatherStore = {
     try {
       const weatherData: SharedWeatherData = {
         ...data,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       }
       localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(weatherData))
 
       // Dispatch event for cross-component sync
-      window.dispatchEvent(new CustomEvent('flowsphere-weather-update', {
-        detail: weatherData
-      }))
+      window.dispatchEvent(
+        new CustomEvent('flowsphere-weather-update', {
+          detail: weatherData,
+        })
+      )
     } catch (error) {
       logger.error('Failed to set weather cache', error, 'WeatherStore')
     }
@@ -100,7 +102,7 @@ export const WeatherStore = {
    */
   clear(): void {
     localStorage.removeItem(WEATHER_CACHE_KEY)
-  }
+  },
 }
 
 // ==========================================
@@ -150,13 +152,15 @@ export const TrafficStore = {
     try {
       const trafficData: SharedTrafficData = {
         ...data,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       }
       localStorage.setItem(TRAFFIC_CACHE_KEY, JSON.stringify(trafficData))
 
-      window.dispatchEvent(new CustomEvent('flowsphere-traffic-update', {
-        detail: trafficData
-      }))
+      window.dispatchEvent(
+        new CustomEvent('flowsphere-traffic-update', {
+          detail: trafficData,
+        })
+      )
     } catch (error) {
       logger.error('Failed to set traffic cache', error, 'TrafficStore')
     }
@@ -177,7 +181,7 @@ export const TrafficStore = {
 
   clear(): void {
     localStorage.removeItem(TRAFFIC_CACHE_KEY)
-  }
+  },
 }
 
 // ==========================================
@@ -211,15 +215,17 @@ export const NotificationSyncStore = {
         ...notification,
         id: `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toISOString(),
-        isRead: false
+        isRead: false,
       }
       queue.push(newNotification)
       localStorage.setItem(NOTIFICATION_QUEUE_KEY, JSON.stringify(queue))
 
       // Dispatch event for App.tsx to consume
-      window.dispatchEvent(new CustomEvent('flowsphere-notification-new', {
-        detail: newNotification
-      }))
+      window.dispatchEvent(
+        new CustomEvent('flowsphere-notification-new', {
+          detail: newNotification,
+        })
+      )
     } catch (error) {
       logger.error('Failed to queue notification', error, 'NotificationSyncStore')
     }
@@ -266,13 +272,15 @@ export const NotificationSyncStore = {
 
       return {
         unread: notifications.filter((n: any) => !n.isRead).length,
-        important: notifications.filter((n: any) => n.type === 'important' || n.priority === 'high').length,
-        emergency: notifications.filter((n: any) => n.type === 'emergency' || n.type === 'urgent').length
+        important: notifications.filter((n: any) => n.type === 'important' || n.priority === 'high')
+          .length,
+        emergency: notifications.filter((n: any) => n.type === 'emergency' || n.type === 'urgent')
+          .length,
       }
     } catch {
       return { unread: 0, important: 0, emergency: 0 }
     }
-  }
+  },
 }
 
 // ==========================================
@@ -310,7 +318,7 @@ export const FamilyLocationStore = {
         location: member.location || 'Unknown',
         coordinates: member.gpsCoordinates,
         lastUpdated: member.lastSeen || new Date().toISOString(),
-        status: member.status || 'Unknown'
+        status: member.status || 'Unknown',
       }))
     } catch (error) {
       logger.error('Failed to get family locations', error, 'FamilyLocationStore')
@@ -321,7 +329,11 @@ export const FamilyLocationStore = {
   /**
    * Update a family member's location
    */
-  updateLocation(memberId: string, location: string, coordinates?: { lat: number; lng: number }): void {
+  updateLocation(
+    memberId: string,
+    location: string,
+    coordinates?: { lat: number; lng: number }
+  ): void {
     try {
       const familyRaw = localStorage.getItem('flowsphere-family')
       if (!familyRaw) return
@@ -334,14 +346,16 @@ export const FamilyLocationStore = {
           ...family[memberIndex],
           location,
           gpsCoordinates: coordinates,
-          lastSeen: new Date().toISOString()
+          lastSeen: new Date().toISOString(),
         }
         localStorage.setItem('flowsphere-family', JSON.stringify(family))
 
         // Dispatch update event
-        window.dispatchEvent(new CustomEvent('flowsphere-family-location-update', {
-          detail: { memberId, location, coordinates }
-        }))
+        window.dispatchEvent(
+          new CustomEvent('flowsphere-family-location-update', {
+            detail: { memberId, location, coordinates },
+          })
+        )
       }
     } catch (error) {
       logger.error('Failed to update family location', error, 'FamilyLocationStore')
@@ -351,7 +365,13 @@ export const FamilyLocationStore = {
   /**
    * Subscribe to family location updates
    */
-  subscribe(callback: (data: { memberId: string; location: string; coordinates?: { lat: number; lng: number } }) => void): () => void {
+  subscribe(
+    callback: (data: {
+      memberId: string
+      location: string
+      coordinates?: { lat: number; lng: number }
+    }) => void
+  ): () => void {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent
       callback(customEvent.detail)
@@ -370,9 +390,9 @@ export const FamilyLocationStore = {
       .map(loc => ({
         label: `${loc.name}'s Location`,
         address: loc.location,
-        type: 'family' as const
+        type: 'family' as const,
       }))
-  }
+  },
 }
 
 // ==========================================
@@ -394,20 +414,20 @@ export const SyncStatusTracker = {
     return {
       weather: {
         lastSync: weatherData?.lastUpdated || null,
-        isStale: !WeatherStore.isValid()
+        isStale: !WeatherStore.isValid(),
       },
       traffic: {
         lastSync: trafficData?.lastUpdated || null,
-        isStale: !TrafficStore.isValid()
+        isStale: !TrafficStore.isValid(),
       },
       notifications: {
         lastSync: new Date().toISOString(),
-        isStale: false
+        isStale: false,
       },
       family: {
         lastSync: new Date().toISOString(),
-        isStale: false
-      }
+        isStale: false,
+      },
     }
   },
 
@@ -417,7 +437,7 @@ export const SyncStatusTracker = {
   logStatus(): void {
     const status = this.getStatus()
     logger.info('Data Sync Status:', status, 'SyncStatusTracker')
-  }
+  },
 }
 
 // Export all stores
@@ -426,5 +446,5 @@ export default {
   TrafficStore,
   NotificationSyncStore,
   FamilyLocationStore,
-  SyncStatusTracker
+  SyncStatusTracker,
 }

@@ -44,7 +44,7 @@ function generateContextPrompt(context: AIContext): string {
     userName = 'User',
     subscription = 'basic',
     currentTime = new Date().toLocaleTimeString(),
-    dndEnabled = false
+    dndEnabled = false,
   } = context
 
   const deviceCount = devices.length
@@ -87,7 +87,7 @@ export async function callEnhancedAI(
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
     ...conversationHistory.slice(-5), // Keep last 5 messages for context
-    { role: 'user', content: userMessage }
+    { role: 'user', content: userMessage },
   ]
 
   const provider = (import.meta.env.VITE_AI_PROVIDER || 'groq') as 'groq' | 'openai'
@@ -121,15 +121,15 @@ async function callGroq(messages: ChatMessage[], apiKey: string): Promise<string
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages,
       temperature: 0.7,
       max_tokens: 200,
-      top_p: 0.9
-    })
+      top_p: 0.9,
+    }),
   })
 
   if (!response.ok) {
@@ -145,14 +145,14 @@ async function callOpenAI(messages: ChatMessage[], apiKey: string): Promise<stri
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages,
       temperature: 0.7,
-      max_tokens: 200
-    })
+      max_tokens: 200,
+    }),
   })
 
   if (!response.ok) {
@@ -179,7 +179,7 @@ function generateSmartFallback(userMessage: string, context: AIContext): string 
   if (msg.includes('family') || msg.includes('kids') || msg.includes('where')) {
     return familyMembers.length > 0
       ? `All ${familyMembers.length} family members are tracked. Would you like to see their locations?`
-      : "No family members added yet. Add them in the Family section."
+      : 'No family members added yet. Add them in the Family section.'
   }
 
   // Notifications
@@ -192,7 +192,7 @@ function generateSmartFallback(userMessage: string, context: AIContext): string 
 
   // Help
   if (msg.includes('help') || msg.includes('what can you')) {
-    return "I can help you: control devices 💡 | track family 👨‍👩‍👧‍👦 | manage notifications 🔔 | check traffic 🚗 | and more! What do you need?"
+    return 'I can help you: control devices 💡 | track family 👨‍👩‍👧‍👦 | manage notifications 🔔 | check traffic 🚗 | and more! What do you need?'
   }
 
   return "I'm here to help! Try asking about your devices, family, notifications, or traffic updates."
@@ -203,19 +203,14 @@ function generateSmartFallback(userMessage: string, context: AIContext): string 
  */
 export function generateSmartSuggestions(context: AIContext): SmartSuggestion[] {
   const suggestions: SmartSuggestion[] = []
-  const {
-    devices = [],
-    notifications = [],
-    automations = [],
-    dndEnabled = false
-  } = context
+  const { devices = [], notifications = [], automations = [], dndEnabled = false } = context
 
   const hour = new Date().getHours()
 
   // Evening automation suggestion
   if (hour >= 18 && hour < 22) {
-    const hasEveningAuto = automations.some(a =>
-      a.name.toLowerCase().includes('evening') || a.name.toLowerCase().includes('night')
+    const hasEveningAuto = automations.some(
+      a => a.name.toLowerCase().includes('evening') || a.name.toLowerCase().includes('night')
     )
     if (!hasEveningAuto) {
       suggestions.push({
@@ -224,7 +219,7 @@ export function generateSmartSuggestions(context: AIContext): SmartSuggestion[] 
         title: 'Create Evening Routine',
         description: 'Automatically dim lights and lock doors at sunset',
         icon: '🌙',
-        priority: 'medium'
+        priority: 'medium',
       })
     }
   }
@@ -238,7 +233,7 @@ export function generateSmartSuggestions(context: AIContext): SmartSuggestion[] 
       title: `${unread} Unread Notifications`,
       description: 'You have pending notifications to review',
       icon: '🔔',
-      priority: 'high'
+      priority: 'high',
     })
   }
 
@@ -251,7 +246,7 @@ export function generateSmartSuggestions(context: AIContext): SmartSuggestion[] 
       title: `${offline} Device${offline > 1 ? 's' : ''} Offline`,
       description: 'Some devices may need attention',
       icon: '⚠️',
-      priority: 'medium'
+      priority: 'medium',
     })
   }
 
@@ -263,7 +258,7 @@ export function generateSmartSuggestions(context: AIContext): SmartSuggestion[] 
       title: 'Do Not Disturb Active',
       description: 'You might miss important alerts',
       icon: '🔕',
-      priority: 'low'
+      priority: 'low',
     })
   }
 
@@ -286,7 +281,7 @@ export function generateProactiveInsights(context: AIContext): string[] {
   if (totalDevices > 0) {
     const percentage = Math.round((activeDevices / totalDevices) * 100)
     if (percentage === 100) {
-      insights.push("✨ All devices are online and running smoothly!")
+      insights.push('✨ All devices are online and running smoothly!')
     } else if (percentage < 50) {
       insights.push(`⚠️ Only ${percentage}% of devices are online. Check your network.`)
     }
@@ -294,7 +289,7 @@ export function generateProactiveInsights(context: AIContext): string[] {
 
   const activeAutomations = automations.filter(a => a.isActive).length
   if (activeAutomations === 0 && automations.length > 0) {
-    insights.push("💡 Tip: Enable automations to save time and energy")
+    insights.push('💡 Tip: Enable automations to save time and energy')
   }
 
   return insights

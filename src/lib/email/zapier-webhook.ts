@@ -48,14 +48,14 @@ export class ZapierWebhookHandler {
       provider: payload.provider as any,
       from: {
         email: payload.from,
-        name: payload.fromName || payload.from
+        name: payload.fromName || payload.from,
       },
       to: [],
       subject: payload.subject || `${payload.type} from ${payload.provider}`,
       body: payload.body,
       snippet: payload.snippet || payload.body.substring(0, 200),
       timestamp: payload.timestamp,
-      read: false
+      read: false,
     }
 
     // Classify with AI
@@ -71,7 +71,7 @@ export class ZapierWebhookHandler {
       timestamp: payload.timestamp,
       category: classification.category,
       priority: classification.priority,
-      summary: classification.summary
+      summary: classification.summary,
     }
 
     // Store alert
@@ -122,17 +122,17 @@ export class ZapierWebhookHandler {
     if (alert.category === 'emergency') {
       toast.error(`${icon} Emergency Alert`, {
         description: `${alert.provider}: ${alert.summary}`,
-        duration: 10000
+        duration: 10000,
       })
     } else if (alert.category === 'important') {
       toast.warning(`${icon} Important Update`, {
         description: `${alert.provider}: ${alert.summary}`,
-        duration: 5000
+        duration: 5000,
       })
     } else {
       toast.info(`${icon} New ${alert.type}`, {
         description: `${alert.provider}: ${alert.summary}`,
-        duration: 3000
+        duration: 3000,
       })
     }
   }
@@ -147,7 +147,7 @@ export class ZapierWebhookHandler {
       outlook: '📬',
       twitter: '🐦',
       facebook: '👥',
-      instagram: '📸'
+      instagram: '📸',
     }
     return icons[provider] || '📬'
   }

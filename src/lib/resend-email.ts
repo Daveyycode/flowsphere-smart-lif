@@ -46,7 +46,7 @@ export async function sendEmailWithResend(options: SendEmailOptions): Promise<Se
       const response = await fetch(EMAIL_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -84,7 +84,7 @@ export async function sendEmailWithResend(options: SendEmailOptions): Promise<Se
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -117,7 +117,7 @@ export async function sendEmailWithResend(options: SendEmailOptions): Promise<Se
     console.error('[Resend] Error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error'
+      error: error instanceof Error ? error.message : 'Network error',
     }
   }
 }

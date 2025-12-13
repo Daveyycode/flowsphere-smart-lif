@@ -19,21 +19,21 @@ import { logger } from '@/lib/security-utils'
 // ========== TYPES ==========
 
 export interface DeviceFingerprint {
-  id: string                    // Final fingerprint hash
+  id: string // Final fingerprint hash
   components: FingerprintComponents
-  timestamp: number             // When fingerprint was generated
-  version: number               // Fingerprint algorithm version
+  timestamp: number // When fingerprint was generated
+  version: number // Fingerprint algorithm version
 }
 
 export interface FingerprintComponents {
-  canvas: string                // Canvas fingerprint
-  webgl: string                 // WebGL renderer/vendor
-  audio: string                 // Audio context fingerprint
-  screen: string                // Screen properties
-  hardware: string              // Hardware concurrency, memory
-  timezone: string              // Timezone info
-  platform: string              // Platform/OS info
-  fonts: string                 // Available fonts hash
+  canvas: string // Canvas fingerprint
+  webgl: string // WebGL renderer/vendor
+  audio: string // Audio context fingerprint
+  screen: string // Screen properties
+  hardware: string // Hardware concurrency, memory
+  timezone: string // Timezone info
+  platform: string // Platform/OS info
+  fonts: string // Available fonts hash
 }
 
 export interface DeviceBindingResult {
@@ -41,7 +41,7 @@ export interface DeviceBindingResult {
   isNewDevice: boolean
   currentFingerprint: string
   storedFingerprint: string | null
-  matchScore: number            // 0-100, how similar devices are
+  matchScore: number // 0-100, how similar devices are
 }
 
 // ========== CONSTANTS ==========
@@ -49,7 +49,7 @@ export interface DeviceBindingResult {
 const FINGERPRINT_VERSION = 1
 const STORAGE_KEY = 'flowsphere-device-fp'
 const BINDING_KEY = 'flowsphere-device-binding'
-const MATCH_THRESHOLD = 85      // Minimum score to consider same device
+const MATCH_THRESHOLD = 85 // Minimum score to consider same device
 
 // ========== CANVAS FINGERPRINT ==========
 
@@ -184,7 +184,7 @@ function getScreenFingerprint(): string {
       window.devicePixelRatio || 1,
       s.availWidth,
       s.availHeight,
-      (s as any).orientation?.type || 'unknown'
+      (s as any).orientation?.type || 'unknown',
     ].join('|')
   } catch (error) {
     logger.debug('Screen fingerprint failed', error, 'DeviceFingerprint')
@@ -205,7 +205,7 @@ function getHardwareFingerprint(): string {
       nav.vendor || 'unknown',
       nav.productSub || 'unknown',
       nav.language || 'unknown',
-      nav.languages?.join(',') || 'unknown'
+      nav.languages?.join(',') || 'unknown',
     ].join('|')
   } catch (error) {
     logger.debug('Hardware fingerprint generation failed', error)
@@ -237,16 +237,27 @@ function getPlatformFingerprint(): string {
     const ua = nav.userAgent
 
     // Extract key parts without volatile version numbers
-    const browser = ua.includes('Chrome') ? 'Chrome' :
-                   ua.includes('Firefox') ? 'Firefox' :
-                   ua.includes('Safari') ? 'Safari' :
-                   ua.includes('Edge') ? 'Edge' : 'Other'
+    const browser = ua.includes('Chrome')
+      ? 'Chrome'
+      : ua.includes('Firefox')
+        ? 'Firefox'
+        : ua.includes('Safari')
+          ? 'Safari'
+          : ua.includes('Edge')
+            ? 'Edge'
+            : 'Other'
 
-    const os = ua.includes('Windows') ? 'Windows' :
-               ua.includes('Mac') ? 'Mac' :
-               ua.includes('Linux') ? 'Linux' :
-               ua.includes('Android') ? 'Android' :
-               ua.includes('iOS') || ua.includes('iPhone') ? 'iOS' : 'Other'
+    const os = ua.includes('Windows')
+      ? 'Windows'
+      : ua.includes('Mac')
+        ? 'Mac'
+        : ua.includes('Linux')
+          ? 'Linux'
+          : ua.includes('Android')
+            ? 'Android'
+            : ua.includes('iOS') || ua.includes('iPhone')
+              ? 'iOS'
+              : 'Other'
 
     return `${browser}|${os}|${nav.platform}`
   } catch (error) {
@@ -260,11 +271,29 @@ function getPlatformFingerprint(): string {
 function getFontsFingerprint(): string {
   try {
     const testFonts = [
-      'Arial', 'Arial Black', 'Calibri', 'Cambria', 'Comic Sans MS',
-      'Courier', 'Courier New', 'Georgia', 'Helvetica', 'Impact',
-      'Lucida Console', 'Lucida Sans', 'Monaco', 'Palatino',
-      'Tahoma', 'Times', 'Times New Roman', 'Trebuchet MS', 'Verdana',
-      'Roboto', 'Open Sans', 'Segoe UI', 'San Francisco'
+      'Arial',
+      'Arial Black',
+      'Calibri',
+      'Cambria',
+      'Comic Sans MS',
+      'Courier',
+      'Courier New',
+      'Georgia',
+      'Helvetica',
+      'Impact',
+      'Lucida Console',
+      'Lucida Sans',
+      'Monaco',
+      'Palatino',
+      'Tahoma',
+      'Times',
+      'Times New Roman',
+      'Trebuchet MS',
+      'Verdana',
+      'Roboto',
+      'Open Sans',
+      'Segoe UI',
+      'San Francisco',
     ]
 
     const canvas = document.createElement('canvas')
@@ -318,7 +347,7 @@ async function hashComponents(components: FingerprintComponents): Promise<string
     components.hardware,
     components.timezone,
     components.platform,
-    components.fonts
+    components.fonts,
   ].join('::')
 
   return await hashString(combined)
@@ -330,10 +359,7 @@ async function hashComponents(components: FingerprintComponents): Promise<string
  * Generate a complete device fingerprint
  */
 export async function generateDeviceFingerprint(): Promise<DeviceFingerprint> {
-  const [canvas, audio] = await Promise.all([
-    getCanvasFingerprint(),
-    getAudioFingerprint()
-  ])
+  const [canvas, audio] = await Promise.all([getCanvasFingerprint(), getAudioFingerprint()])
 
   const components: FingerprintComponents = {
     canvas,
@@ -343,7 +369,7 @@ export async function generateDeviceFingerprint(): Promise<DeviceFingerprint> {
     hardware: getHardwareFingerprint(),
     timezone: getTimezoneFingerprint(),
     platform: getPlatformFingerprint(),
-    fonts: getFontsFingerprint()
+    fonts: getFontsFingerprint(),
   }
 
   const id = await hashComponents(components)
@@ -352,7 +378,7 @@ export async function generateDeviceFingerprint(): Promise<DeviceFingerprint> {
     id,
     components,
     timestamp: Date.now(),
-    version: FINGERPRINT_VERSION
+    version: FINGERPRINT_VERSION,
   }
 }
 
@@ -399,7 +425,7 @@ export async function bindDeviceToEmail(email: string): Promise<void> {
     email: email.toLowerCase().trim(),
     fingerprintId: fingerprint.id,
     boundAt: Date.now(),
-    version: FINGERPRINT_VERSION
+    version: FINGERPRINT_VERSION,
   }
   localStorage.setItem(BINDING_KEY, JSON.stringify(binding))
   logger.info('Device bound to email', { email }, 'DeviceBinding')
@@ -421,7 +447,7 @@ export async function verifyDeviceBinding(email: string): Promise<DeviceBindingR
         isNewDevice: true,
         currentFingerprint: currentFingerprint.id,
         storedFingerprint: null,
-        matchScore: 0
+        matchScore: 0,
       }
     }
 
@@ -434,7 +460,7 @@ export async function verifyDeviceBinding(email: string): Promise<DeviceBindingR
         isNewDevice: true,
         currentFingerprint: currentFingerprint.id,
         storedFingerprint: binding.fingerprintId,
-        matchScore: 0
+        matchScore: 0,
       }
     }
 
@@ -447,7 +473,7 @@ export async function verifyDeviceBinding(email: string): Promise<DeviceBindingR
         isNewDevice: false,
         currentFingerprint: currentFingerprint.id,
         storedFingerprint: binding.fingerprintId,
-        matchScore: 100
+        matchScore: 100,
       }
     }
 
@@ -457,9 +483,8 @@ export async function verifyDeviceBinding(email: string): Promise<DeviceBindingR
       isNewDevice: true,
       currentFingerprint: currentFingerprint.id,
       storedFingerprint: binding.fingerprintId,
-      matchScore: 0
+      matchScore: 0,
     }
-
   } catch (error) {
     logger.debug('Device binding verification failed', error)
     return {
@@ -467,7 +492,7 @@ export async function verifyDeviceBinding(email: string): Promise<DeviceBindingR
       isNewDevice: true,
       currentFingerprint: currentFingerprint.id,
       storedFingerprint: null,
-      matchScore: 0
+      matchScore: 0,
     }
   }
 }
@@ -493,7 +518,7 @@ export function clearVaultData(): void {
     'flowsphere-biometric-credential',
     'flowsphere-messenger-contacts',
     'flowsphere-messenger-messages',
-    'flowsphere-device-binding'
+    'flowsphere-device-binding',
   ]
 
   keysToRemove.forEach(key => {
@@ -517,10 +542,7 @@ export function clearVaultData(): void {
  * Derive a vault encryption key bound to email + device
  * This ensures vault data can ONLY be decrypted on the original device
  */
-export async function deriveDeviceBoundKey(
-  email: string,
-  password: string
-): Promise<CryptoKey> {
+export async function deriveDeviceBoundKey(email: string, password: string): Promise<CryptoKey> {
   const fingerprint = await getDeviceFingerprint()
 
   // Combine email + password + device fingerprint
@@ -543,7 +565,7 @@ export async function deriveDeviceBoundKey(
       name: 'PBKDF2',
       salt,
       iterations: 310000, // OWASP 2023 recommendation
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
@@ -579,7 +601,7 @@ export async function checkDeviceChange(email: string): Promise<DeviceChangeResu
     return {
       deviceChanged: false,
       action: 'continue',
-      message: 'Device verified. Access granted.'
+      message: 'Device verified. Access granted.',
     }
   }
 
@@ -588,7 +610,8 @@ export async function checkDeviceChange(email: string): Promise<DeviceChangeResu
     return {
       deviceChanged: true,
       action: 'restore',
-      message: 'Different device detected. Your vault data from the previous device cannot be accessed. Would you like to set up FlowSphere on this new device? All previous vault data will remain on the original device.'
+      message:
+        'Different device detected. Your vault data from the previous device cannot be accessed. Would you like to set up FlowSphere on this new device? All previous vault data will remain on the original device.',
     }
   }
 
@@ -596,6 +619,6 @@ export async function checkDeviceChange(email: string): Promise<DeviceChangeResu
   return {
     deviceChanged: false,
     action: 'new_setup',
-    message: 'Welcome to FlowSphere. Setting up secure vault on this device.'
+    message: 'Welcome to FlowSphere. Setting up secure vault on this device.',
   }
 }

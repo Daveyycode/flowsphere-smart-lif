@@ -49,7 +49,12 @@ export interface CameraAlert {
   id: string
   cameraId: string
   cameraName: string
-  alertType: 'motion-detected' | 'person-detected' | 'camera-offline' | 'low-battery' | 'recording-stopped'
+  alertType:
+    | 'motion-detected'
+    | 'person-detected'
+    | 'camera-offline'
+    | 'low-battery'
+    | 'recording-stopped'
   severity: 'info' | 'warning' | 'critical'
   timestamp: string
   title: string
@@ -74,15 +79,13 @@ export interface CameraStream {
  * Connect to CCTV camera (simulated)
  * In production, would use actual camera API (ONVIF, RTSP, etc.)
  */
-export async function connectCamera(
-  connectionInfo: {
-    ip: string
-    port: number
-    username: string
-    password: string
-    protocol: 'rtsp' | 'http' | 'onvif'
-  }
-): Promise<CCTVCamera> {
+export async function connectCamera(connectionInfo: {
+  ip: string
+  port: number
+  username: string
+  password: string
+  protocol: 'rtsp' | 'http' | 'onvif'
+}): Promise<CCTVCamera> {
   // Simulate connection delay
   await new Promise(resolve => setTimeout(resolve, 1000))
 
@@ -105,8 +108,8 @@ export async function connectCamera(
     lastActivity: new Date().toISOString(),
     recordingSchedule: {
       enabled: true,
-      mode: 'motion'
-    }
+      mode: 'motion',
+    },
   }
 
   return camera
@@ -125,7 +128,7 @@ export async function getCameraStream(camera: CCTVCamera): Promise<CameraStream>
     streamUrl: camera.streamUrl,
     isLive: camera.status === 'online' || camera.status === 'recording',
     quality: 'auto',
-    latency: 500
+    latency: 500,
   }
 }
 
@@ -147,7 +150,15 @@ export async function getCameraSnapshot(camera: CCTVCamera): Promise<string> {
  */
 export async function controlPTZ(
   camera: CCTVCamera,
-  action: 'pan-left' | 'pan-right' | 'tilt-up' | 'tilt-down' | 'zoom-in' | 'zoom-out' | 'preset'| 'home',
+  action:
+    | 'pan-left'
+    | 'pan-right'
+    | 'tilt-up'
+    | 'tilt-down'
+    | 'zoom-in'
+    | 'zoom-out'
+    | 'preset'
+    | 'home',
   value?: number
 ): Promise<void> {
   if (!camera.hasPTZ) {
@@ -184,7 +195,7 @@ export function monitorCameras(
           timestamp: new Date().toISOString(),
           snapshotUrl: camera.snapshotUrl,
           confidence: 0.85 + Math.random() * 0.15,
-          severity: eventType === 'person' ? 'alert' : 'info'
+          severity: eventType === 'person' ? 'alert' : 'info',
         }
 
         onEvent(event)
@@ -205,8 +216,8 @@ export function monitorCameras(
             actions: [
               { label: 'View Live', type: 'view-live' },
               { label: 'View Recording', type: 'view-recording' },
-              { label: 'Dismiss', type: 'dismiss' }
-            ]
+              { label: 'Dismiss', type: 'dismiss' },
+            ],
           }
 
           onAlert(alert)
@@ -225,7 +236,7 @@ export function monitorCameras(
           title: `📹 Camera Offline - ${camera.name}`,
           message: `${camera.name} at ${camera.location} has gone offline. Check power and network connection.`,
           actionable: false,
-          actions: [{ label: 'Dismiss', type: 'dismiss' }]
+          actions: [{ label: 'Dismiss', type: 'dismiss' }],
         }
 
         onAlert(alert)
@@ -243,7 +254,7 @@ export function monitorCameras(
           title: `🔋 Low Battery - ${camera.name}`,
           message: `${camera.name} battery is at ${camera.batteryLevel}%. Charge soon.`,
           actionable: false,
-          actions: [{ label: 'Dismiss', type: 'dismiss' }]
+          actions: [{ label: 'Dismiss', type: 'dismiss' }],
         }
 
         onAlert(alert)
@@ -275,17 +286,26 @@ export async function getCameraRecordings(
   camera: CCTVCamera,
   startDate: Date,
   endDate: Date
-): Promise<Array<{
-  id: string
-  timestamp: string
-  duration: number
-  thumbnailUrl: string
-  videoUrl: string
-  events: string[]
-}>> {
+): Promise<
+  Array<{
+    id: string
+    timestamp: string
+    duration: number
+    thumbnailUrl: string
+    videoUrl: string
+    events: string[]
+  }>
+> {
   // In production, would fetch actual recordings from NVR/camera
   // For now, return mock data
-  const recordings: Array<{ id: string; timestamp: string; duration: number; thumbnailUrl: string; videoUrl: string; events: string[] }> = []
+  const recordings: Array<{
+    id: string
+    timestamp: string
+    duration: number
+    thumbnailUrl: string
+    videoUrl: string
+    events: string[]
+  }> = []
   const daysDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
 
   for (let i = 0; i < Math.min(daysDiff, 10); i++) {
@@ -296,7 +316,7 @@ export async function getCameraRecordings(
       duration: Math.floor(Math.random() * 300) + 60, // 60-360 seconds
       thumbnailUrl: camera.snapshotUrl || '',
       videoUrl: `${camera.streamUrl}/recording-${i}.mp4`,
-      events: ['motion']
+      events: ['motion'],
     })
   }
 
@@ -324,11 +344,11 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Go to Account > Authorized Client Apps',
       '3. Generate API token',
       '4. Enter token in FlowSphere AI',
-      '5. Cameras will auto-discover'
+      '5. Cameras will auto-discover',
     ],
     defaultPort: 443,
     protocol: 'http',
-    appSupport: true
+    appSupport: true,
   },
   {
     brand: 'Nest',
@@ -338,11 +358,11 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Enable Camera API in settings',
       '3. Generate access token',
       '4. Link to FlowSphere AI',
-      '5. Grant camera permissions'
+      '5. Grant camera permissions',
     ],
     defaultPort: 443,
     protocol: 'http',
-    appSupport: true
+    appSupport: true,
   },
   {
     brand: 'Arlo',
@@ -352,11 +372,11 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Enable API access',
       '3. Copy API credentials',
       '4. Paste into FlowSphere AI',
-      '5. Select cameras to monitor'
+      '5. Select cameras to monitor',
     ],
     defaultPort: 443,
     protocol: 'http',
-    appSupport: true
+    appSupport: true,
   },
   {
     brand: 'Hikvision',
@@ -366,11 +386,11 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Enable ONVIF in camera settings',
       '3. Create user account with viewer permissions',
       '4. Enter IP and credentials in FlowSphere AI',
-      '5. Test connection'
+      '5. Test connection',
     ],
     defaultPort: 554,
     protocol: 'rtsp',
-    appSupport: false
+    appSupport: false,
   },
   {
     brand: 'Dahua',
@@ -380,11 +400,11 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Enable RTSP stream',
       '3. Configure motion detection',
       '4. Add camera to FlowSphere AI with IP:554',
-      '5. Test live view'
+      '5. Test live view',
     ],
     defaultPort: 554,
     protocol: 'rtsp',
-    appSupport: false
+    appSupport: false,
   },
   {
     brand: 'Wyze',
@@ -394,12 +414,12 @@ export const SUPPORTED_CAMERAS: CameraBrandSetup[] = [
       '2. Note RTSP URL and credentials',
       '3. Add to FlowSphere AI',
       '4. Configure alerts',
-      '5. Done!'
+      '5. Done!',
     ],
     defaultPort: 554,
     protocol: 'rtsp',
-    appSupport: true
-  }
+    appSupport: true,
+  },
 ]
 
 /**
@@ -424,8 +444,8 @@ export function generateMockCameras(): CCTVCamera[] {
       lastActivity: new Date().toISOString(),
       recordingSchedule: {
         enabled: true,
-        mode: 'motion'
-      }
+        mode: 'motion',
+      },
     },
     {
       id: 'camera-2',
@@ -444,8 +464,8 @@ export function generateMockCameras(): CCTVCamera[] {
       lastActivity: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       recordingSchedule: {
         enabled: true,
-        mode: 'continuous'
-      }
+        mode: 'continuous',
+      },
     },
     {
       id: 'camera-3',
@@ -467,9 +487,9 @@ export function generateMockCameras(): CCTVCamera[] {
         schedule: [
           { day: 1, startTime: '08:00', endTime: '18:00' },
           { day: 2, startTime: '08:00', endTime: '18:00' },
-          { day: 3, startTime: '08:00', endTime: '18:00' }
-        ]
-      }
-    }
+          { day: 3, startTime: '08:00', endTime: '18:00' },
+        ],
+      },
+    },
   ]
 }

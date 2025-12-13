@@ -16,7 +16,7 @@ import {
   Trash,
   TestTube,
   Sparkle,
-  Info
+  Info,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import {
@@ -26,7 +26,7 @@ import {
   removeProviderAPIKey,
   testAPIKey,
   AIProvider,
-  UserAISettings
+  UserAISettings,
 } from '@/lib/ai-provider-config'
 
 export function AIProviderSettings() {
@@ -80,27 +80,32 @@ export function AIProviderSettings() {
 
   const getProviderLogo = (provider: AIProvider) => {
     switch (provider) {
-      case 'groq': return '⚡'
-      case 'openai': return '🤖'
-      case 'anthropic': return '🧠'
-      case 'deepseek': return '🔍'
-      default: return '✨'
+      case 'groq':
+        return '⚡'
+      case 'openai':
+        return '🤖'
+      case 'anthropic':
+        return '🧠'
+      case 'deepseek':
+        return '🔍'
+      default:
+        return '✨'
     }
   }
 
   if (!settings) return null
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn('space-y-6', isMobile && 'space-y-4')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
               <Brain className="w-6 h-6 text-purple-500" weight="fill" />
             </div>
             <div>
-              <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
+              <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>
                 AI Provider Settings
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -119,9 +124,9 @@ export function AIProviderSettings() {
             <div className="text-sm">
               <p className="font-medium text-blue-500">Bring Your Own API Key (BYOK)</p>
               <p className="text-muted-foreground mt-1">
-                FlowSphere uses Groq by default (free tier). You can add your own API keys
-                for OpenAI, Anthropic, or DeepSeek to use those providers instead.
-                Your keys are stored locally on your device.
+                FlowSphere uses Groq by default (free tier). You can add your own API keys for
+                OpenAI, Anthropic, or DeepSeek to use those providers instead. Your keys are stored
+                locally on your device.
               </p>
             </div>
           </div>
@@ -160,7 +165,7 @@ export function AIProviderSettings() {
 
       {/* Provider List */}
       <div className="space-y-4">
-        {providers.map((provider) => (
+        {providers.map(provider => (
           <Card key={provider.provider}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-4">
@@ -215,10 +220,12 @@ export function AIProviderSettings() {
                             type={showKeys[provider.provider] ? 'text' : 'password'}
                             placeholder={`Enter your ${provider.name} API key`}
                             value={newKeys[provider.provider] || ''}
-                            onChange={(e) => setNewKeys(prev => ({
-                              ...prev,
-                              [provider.provider]: e.target.value
-                            }))}
+                            onChange={e =>
+                              setNewKeys(prev => ({
+                                ...prev,
+                                [provider.provider]: e.target.value,
+                              }))
+                            }
                             className="pr-10"
                           />
                           <button
@@ -236,7 +243,9 @@ export function AIProviderSettings() {
                         <Button
                           size="sm"
                           onClick={() => handleSaveKey(provider.provider)}
-                          disabled={testingProvider === provider.provider || !newKeys[provider.provider]}
+                          disabled={
+                            testingProvider === provider.provider || !newKeys[provider.provider]
+                          }
                         >
                           {testingProvider === provider.provider ? (
                             <TestTube className="w-4 h-4 animate-pulse" />
@@ -247,9 +256,12 @@ export function AIProviderSettings() {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {provider.provider === 'openai' && 'Get your API key from platform.openai.com'}
-                        {provider.provider === 'anthropic' && 'Get your API key from console.anthropic.com'}
-                        {provider.provider === 'deepseek' && 'Get your API key from platform.deepseek.com'}
+                        {provider.provider === 'openai' &&
+                          'Get your API key from platform.openai.com'}
+                        {provider.provider === 'anthropic' &&
+                          'Get your API key from console.anthropic.com'}
+                        {provider.provider === 'deepseek' &&
+                          'Get your API key from platform.deepseek.com'}
                       </p>
                     </div>
                   )}
@@ -258,7 +270,8 @@ export function AIProviderSettings() {
 
               {provider.isFree && provider.provider === 'groq' && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Groq provides free access with generous limits. No API key required for basic usage.
+                  Groq provides free access with generous limits. No API key required for basic
+                  usage.
                 </p>
               )}
             </CardContent>

@@ -6,10 +6,10 @@
  */
 
 export type BrowserPermissionType =
-  | 'geolocation'       // Location
-  | 'notifications'     // Push notifications
-  | 'camera'           // Camera access
-  | 'microphone'       // Microphone access
+  | 'geolocation' // Location
+  | 'notifications' // Push notifications
+  | 'camera' // Camera access
+  | 'microphone' // Microphone access
 
 export type PermissionStatus = 'granted' | 'denied' | 'prompt' | 'unsupported'
 
@@ -21,7 +21,9 @@ interface PermissionResult {
 /**
  * Check current permission status without prompting
  */
-export async function checkPermissionStatus(type: BrowserPermissionType): Promise<PermissionStatus> {
+export async function checkPermissionStatus(
+  type: BrowserPermissionType
+): Promise<PermissionStatus> {
   try {
     switch (type) {
       case 'geolocation':
@@ -91,13 +93,13 @@ async function requestGeolocation(): Promise<PermissionResult> {
     return { status: 'unsupported', error: 'Geolocation not supported' }
   }
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     navigator.geolocation.getCurrentPosition(
       () => {
         console.log('[Permissions] Geolocation GRANTED by user')
         resolve({ status: 'granted' })
       },
-      (error) => {
+      error => {
         console.log('[Permissions] Geolocation DENIED:', error.message)
         if (error.code === error.PERMISSION_DENIED) {
           resolve({ status: 'denied', error: 'User denied location access' })
@@ -125,7 +127,7 @@ async function requestNotifications(): Promise<PermissionResult> {
     // Show a test notification to confirm it works
     new Notification('FlowSphere', {
       body: 'Notifications are now enabled!',
-      icon: '/favicon.ico'
+      icon: '/favicon.ico',
     })
   }
 
@@ -211,7 +213,7 @@ export async function getAllPermissionStatuses(): Promise<{
     checkPermissionStatus('geolocation'),
     checkPermissionStatus('notifications'),
     checkPermissionStatus('camera'),
-    checkPermissionStatus('microphone')
+    checkPermissionStatus('microphone'),
   ])
 
   return { location, notifications, camera, microphone }

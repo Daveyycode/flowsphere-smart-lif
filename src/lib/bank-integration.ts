@@ -160,7 +160,7 @@ export class BankIntegrationManager {
     if (!this.plaidConfig) {
       return {
         success: false,
-        error: 'Plaid not configured'
+        error: 'Plaid not configured',
       }
     }
 
@@ -185,13 +185,13 @@ export class BankIntegrationManager {
         currency: 'USD',
         balance: {
           current: 5432.18,
-          available: 5432.18
+          available: 5432.18,
         },
         status: 'active',
         connectionType: 'plaid',
         lastSync: new Date().toISOString(),
         autoSync: true,
-        syncFrequency: 'daily'
+        syncFrequency: 'daily',
       }
 
       // Save account
@@ -204,12 +204,12 @@ export class BankIntegrationManager {
 
       return {
         success: true,
-        accounts: [mockAccount]
+        accounts: [mockAccount],
       }
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Connection failed'
+        error: error instanceof Error ? error.message : 'Connection failed',
       }
     }
   }
@@ -225,7 +225,7 @@ export class BankIntegrationManager {
     if (!this.stripeConfig) {
       return {
         success: false,
-        error: 'Stripe not configured'
+        error: 'Stripe not configured',
       }
     }
 
@@ -242,13 +242,13 @@ export class BankIntegrationManager {
         currency: 'USD',
         balance: {
           current: 12847.92,
-          available: 10432.50
+          available: 10432.5,
         },
         status: 'active',
         connectionType: 'stripe',
         lastSync: new Date().toISOString(),
         autoSync: true,
-        syncFrequency: 'realtime'
+        syncFrequency: 'realtime',
       }
 
       const accounts = this.getAllAccounts()
@@ -257,12 +257,12 @@ export class BankIntegrationManager {
 
       return {
         success: true,
-        account: stripeAccount
+        account: stripeAccount,
       }
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Connection failed'
+        error: error instanceof Error ? error.message : 'Connection failed',
       }
     }
   }
@@ -286,13 +286,13 @@ export class BankIntegrationManager {
       currency: 'USD',
       balance: {
         current: balance,
-        available: balance
+        available: balance,
       },
       status: 'active',
       connectionType: 'manual',
       lastSync: new Date().toISOString(),
       autoSync: false,
-      syncFrequency: 'daily'
+      syncFrequency: 'daily',
     }
 
     const accounts = this.getAllAccounts()
@@ -375,7 +375,7 @@ export class BankIntegrationManager {
 
       // Update last sync
       this.updateAccount(accountId, {
-        lastSync: new Date().toISOString()
+        lastSync: new Date().toISOString(),
       })
 
       return newTransactions
@@ -428,7 +428,11 @@ export class BankIntegrationManager {
   /**
    * Categorize transaction
    */
-  categorizeTransaction(transactionId: string, category: string, subcategory?: string): Transaction {
+  categorizeTransaction(
+    transactionId: string,
+    category: string,
+    subcategory?: string
+  ): Transaction {
     const transactions = this.getAllTransactions()
     const index = transactions.findIndex(t => t.id === transactionId)
 
@@ -513,12 +517,7 @@ export class BankIntegrationManager {
   /**
    * Create budget
    */
-  createBudget(
-    name: string,
-    category: string,
-    amount: number,
-    period: Budget['period']
-  ): Budget {
+  createBudget(name: string, category: string, amount: number, period: Budget['period']): Budget {
     const now = new Date()
     let endDate: Date
 
@@ -546,10 +545,10 @@ export class BankIntegrationManager {
         at50Percent: false,
         at75Percent: false,
         at90Percent: false,
-        atLimit: false
+        atLimit: false,
       },
       startDate: now.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
     }
 
     const budgets = this.getAllBudgets()
@@ -629,9 +628,9 @@ export class BankIntegrationManager {
         metrics: {
           'This Month': totalThisMonth,
           'Last Month': totalLastMonth,
-          'Change': change
+          Change: change,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
     }
 
@@ -654,9 +653,9 @@ export class BankIntegrationManager {
         actionable: true,
         actions: unusedSubscriptions.map(t => `Cancel ${t.merchant?.name || t.description}`),
         metrics: {
-          'Potential Savings': savings
+          'Potential Savings': savings,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
     }
 
@@ -674,7 +673,7 @@ export class BankIntegrationManager {
         impact: 'negative',
         actionable: true,
         actions: overBudget.map(b => `Review ${b.name} budget`),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
     }
 
@@ -741,7 +740,16 @@ export class BankIntegrationManager {
   }
 
   private generateMockTransactions(accountId: string, count: number): Transaction[] {
-    const categories = ['Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 'Entertainment', 'Healthcare', 'Income', 'Transfer']
+    const categories = [
+      'Food & Dining',
+      'Shopping',
+      'Transportation',
+      'Bills & Utilities',
+      'Entertainment',
+      'Healthcare',
+      'Income',
+      'Transfer',
+    ]
     const merchants = [
       { name: 'Starbucks', category: 'Food & Dining' },
       { name: 'Amazon', category: 'Shopping' },
@@ -749,7 +757,7 @@ export class BankIntegrationManager {
       { name: 'PG&E', category: 'Bills & Utilities' },
       { name: 'Netflix', category: 'Entertainment' },
       { name: 'CVS Pharmacy', category: 'Healthcare' },
-      { name: 'Employer', category: 'Income' }
+      { name: 'Employer', category: 'Income' },
     ]
 
     const transactions: Transaction[] = []
@@ -768,13 +776,13 @@ export class BankIntegrationManager {
         description: merchant.name,
         merchant: {
           name: merchant.name,
-          category: merchant.category
+          category: merchant.category,
         },
         amount: isIncome ? Math.random() * 3000 + 2000 : -(Math.random() * 100 + 5),
         type: isIncome ? 'credit' : 'debit',
         category: merchant.category,
         pending: Math.random() < 0.1,
-        tags: []
+        tags: [],
       })
     }
 

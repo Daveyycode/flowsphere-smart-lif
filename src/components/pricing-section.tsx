@@ -30,15 +30,10 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
       monthlyPrice: 14.99,
       yearlyPrice: 13.49,
       description: 'First-time users',
-      features: [
-        'Email sorting',
-        'Daily prayers',
-        'Basic scheduler',
-        'Limited AI usage'
-      ],
+      features: ['Email sorting', 'Daily prayers', 'Basic scheduler', 'Limited AI usage'],
       cta: 'Get Started',
       color: 'gray',
-      icon: '🩶'
+      icon: '🩶',
     },
     {
       name: 'Pro',
@@ -50,11 +45,11 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
         'Traffic alerts',
         'Learning scheduler',
         'AI automation',
-        'Unlimited AI usage'
+        'Unlimited AI usage',
       ],
       cta: 'Upgrade to Pro',
       color: 'blue',
-      icon: '🩵'
+      icon: '🩵',
     },
     {
       name: 'Gold',
@@ -66,12 +61,12 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
         'Full automation',
         'Family dashboard',
         'Voice control',
-        'Advanced analytics'
+        'Advanced analytics',
       ],
       cta: 'Go Gold',
       color: 'gold',
       isPopular: true,
-      icon: '💛'
+      icon: '💛',
     },
     {
       name: 'Family / Team',
@@ -83,12 +78,12 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
         'Multi-account (up to 5 users)',
         'Tutor AI',
         'Complete home integration',
-        'Team management & concierge support'
+        'Team management & concierge support',
       ],
       cta: 'Get Family Plan',
       color: 'purple',
-      icon: '💎'
-    }
+      icon: '💎',
+    },
   ]
 
   const getColorClasses = (color: string, isPopular?: boolean) => {
@@ -98,29 +93,30 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
         gradient: 'from-gray-50 to-gray-100',
         button: 'bg-gray-700 hover:bg-gray-800 text-white',
         badge: 'bg-gray-100 text-gray-700',
-        glow: ''
+        glow: '',
       },
       blue: {
         border: 'border-blue-300',
         gradient: 'from-blue-50 to-blue-100',
         button: 'bg-blue-600 hover:bg-blue-700 text-white',
         badge: 'bg-blue-100 text-blue-700',
-        glow: ''
+        glow: '',
       },
       gold: {
         border: 'border-yellow-400',
         gradient: 'from-yellow-50 to-yellow-100',
-        button: 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white',
+        button:
+          'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white',
         badge: 'bg-yellow-100 text-yellow-800',
-        glow: 'shadow-[0_0_30px_-10px_rgba(234,179,8,0.8)]'
+        glow: 'shadow-[0_0_30px_-10px_rgba(234,179,8,0.8)]',
       },
       purple: {
         border: 'border-purple-400',
         gradient: 'from-purple-50 to-purple-100',
         button: 'bg-purple-600 hover:bg-purple-700 text-white',
         badge: 'bg-purple-100 text-purple-700',
-        glow: ''
-      }
+        glow: '',
+      },
     }
 
     return baseClasses[color as keyof typeof baseClasses]
@@ -141,7 +137,9 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
           </p>
 
           <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <span className={`text-sm sm:text-base font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <span
+              className={`text-sm sm:text-base font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
+            >
               Monthly
             </span>
             <Switch
@@ -149,7 +147,9 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
               onCheckedChange={setIsYearly}
               className="data-[state=checked]:bg-primary"
             />
-            <span className={`text-sm sm:text-base font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <span
+              className={`text-sm sm:text-base font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
+            >
               Yearly
             </span>
             <span className="text-xs sm:text-sm bg-green-100 text-green-700 px-2 sm:px-3 py-1 rounded-full font-semibold">
@@ -218,15 +218,13 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                   </p>
 
                   <ul className="space-y-2 sm:space-y-3 mb-5 sm:mb-6 flex-1">
-                    {plan.features.map((feature) => (
+                    {plan.features.map(feature => (
                       <li key={feature} className="flex items-start gap-2">
-                        <Check 
-                          weight="bold" 
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" 
+                        <Check
+                          weight="bold"
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5"
                         />
-                        <span className="text-xs sm:text-sm text-foreground">
-                          {feature}
-                        </span>
+                        <span className="text-xs sm:text-sm text-foreground">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -242,7 +240,6 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
             )
           })}
         </div>
-
       </div>
     </section>
   )

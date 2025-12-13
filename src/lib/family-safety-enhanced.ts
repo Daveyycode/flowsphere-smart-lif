@@ -135,12 +135,15 @@ export class EnhancedFamilySafetyManager {
   /**
    * Update member location
    */
-  updateLocation(memberId: string, location: {
-    lat: number
-    lon: number
-    address: string
-    accuracy: number
-  }): void {
+  updateLocation(
+    memberId: string,
+    location: {
+      lat: number
+      lon: number
+      address: string
+      accuracy: number
+    }
+  ): void {
     const member = this.getMember(memberId)
     if (!member) return
 
@@ -148,10 +151,10 @@ export class EnhancedFamilySafetyManager {
       current: {
         lat: location.lat,
         lon: location.lon,
-        address: location.address
+        address: location.address,
       },
       lastUpdated: new Date().toISOString(),
-      accuracy: location.accuracy
+      accuracy: location.accuracy,
     }
 
     this.saveMember(member)
@@ -172,7 +175,7 @@ export class EnhancedFamilySafetyManager {
     member.battery = {
       level,
       charging,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     }
 
     this.saveMember(member)
@@ -186,7 +189,7 @@ export class EnhancedFamilySafetyManager {
         location: member.location.current,
         timestamp: new Date().toISOString(),
         severity: 'warning',
-        message: `${member.name}'s battery is low (${level}%)`
+        message: `${member.name}'s battery is low (${level}%)`,
       })
     }
   }
@@ -200,7 +203,7 @@ export class EnhancedFamilySafetyManager {
 
     const newZone: SafeZone = {
       ...zone,
-      id: `zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      id: `zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     }
 
     member.safeZones.push(newZone)
@@ -225,7 +228,7 @@ export class EnhancedFamilySafetyManager {
       name: type.charAt(0).toUpperCase() + type.slice(1),
       address,
       coordinates,
-      radius
+      radius,
     }
 
     // Create safe zone
@@ -242,7 +245,7 @@ export class EnhancedFamilySafetyManager {
         radius,
         active: true,
         alertOnExit: true,
-        alertOnEntry: false
+        alertOnEntry: false,
       })
     }
 
@@ -288,7 +291,7 @@ export class EnhancedFamilySafetyManager {
           location: currentLocation,
           timestamp: new Date().toISOString(),
           severity: 'warning',
-          message: `${member.name} left ${zone.name}`
+          message: `${member.name} left ${zone.name}`,
         })
       }
 
@@ -302,7 +305,7 @@ export class EnhancedFamilySafetyManager {
           location: currentLocation,
           timestamp: new Date().toISOString(),
           severity: 'info',
-          message: `${member.name} arrived at ${zone.name}`
+          message: `${member.name} arrived at ${zone.name}`,
         })
       }
 
@@ -335,16 +338,21 @@ export class EnhancedFamilySafetyManager {
       timestamp: new Date().toISOString(),
       emergency: true,
       acknowledged: [],
-      played: []
+      played: [],
     }
 
     // Save memo
     const memos = this.getAllVoiceMemos()
     memos.push(memo)
-    localStorage.setItem(this.memosKey, JSON.stringify(memos.map(m => ({
-      ...m,
-      audioBlob: undefined // Don't stringify blob
-    }))))
+    localStorage.setItem(
+      this.memosKey,
+      JSON.stringify(
+        memos.map(m => ({
+          ...m,
+          audioBlob: undefined, // Don't stringify blob
+        }))
+      )
+    )
 
     // Store blob separately
     this.storeMemoAudio(memo.id, audioBlob)
@@ -396,7 +404,7 @@ export class EnhancedFamilySafetyManager {
       new Notification('🚨 EMERGENCY MESSAGE', {
         body: `Emergency voice message from ${memo.fromMemberName}`,
         requireInteraction: true,
-        tag: 'emergency-memo'
+        tag: 'emergency-memo',
       } as NotificationOptions)
     }
   }
@@ -489,7 +497,7 @@ export class EnhancedFamilySafetyManager {
     const newAlert: LocationAlert = {
       ...alert,
       id: `alert-${Date.now()}`,
-      acknowledged: false
+      acknowledged: false,
     }
 
     alerts.push(newAlert)
@@ -515,20 +523,20 @@ export class EnhancedFamilySafetyManager {
     logger.info('Email notification details', {
       to: 'user@example.com',
       subject: `Family Safety Alert: ${alert.memberName}`,
-      body: `${alert.message}\n\nLocation: ${alert.location.address}\nTime: ${new Date(alert.timestamp).toLocaleString()}`
+      body: `${alert.message}\n\nLocation: ${alert.location.address}\nTime: ${new Date(alert.timestamp).toLocaleString()}`,
     })
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3 // Earth radius in meters
-    const φ1 = lat1 * Math.PI / 180
-    const φ2 = lat2 * Math.PI / 180
-    const Δφ = (lat2 - lat1) * Math.PI / 180
-    const Δλ = (lon2 - lon1) * Math.PI / 180
+    const φ1 = (lat1 * Math.PI) / 180
+    const φ2 = (lat2 * Math.PI) / 180
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
     return R * c
@@ -605,22 +613,22 @@ export class LocationTrackingService {
     if (!navigator.geolocation) return
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      position => {
         this.manager.updateLocation(memberId, {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
           address: 'Current Location', // Reverse geocode in production
-          accuracy: position.coords.accuracy
+          accuracy: position.coords.accuracy,
         })
 
         // Update battery if available
         if ('getBattery' in navigator) {
-          (navigator as any).getBattery().then((battery: any) => {
+          ;(navigator as any).getBattery().then((battery: any) => {
             this.manager.updateBattery(memberId, battery.level * 100, battery.charging)
           })
         }
       },
-      (error) => {
+      error => {
         logger.error('Location error:', error)
       },
       { enableHighAccuracy: false, timeout: 10000 }

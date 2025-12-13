@@ -22,22 +22,22 @@ import { logger } from '@/lib/security-utils'
 // ========== TYPES ==========
 
 export interface SplitConversationId {
-  fullId: string           // Complete ID (stored on server only)
-  partA: string            // User1's partial ID
-  partB: string            // User2's partial ID
-  bridgeKey: string        // Server verification key
-  createdAt: string        // ISO timestamp
-  expiresAt?: string       // Optional expiration
+  fullId: string // Complete ID (stored on server only)
+  partA: string // User1's partial ID
+  partB: string // User2's partial ID
+  bridgeKey: string // Server verification key
+  createdAt: string // ISO timestamp
+  expiresAt?: string // Optional expiration
 }
 
 export interface ConversationPairing {
-  id: string               // UUID
+  id: string // UUID
   fullConversationId: string
-  user1ProfileId: string   // Creator's profile ID
-  user1PartialId: string   // Creator's partial conversation ID
-  user2ProfileId: string   // Scanner's profile ID
-  user2PartialId: string   // Scanner's partial conversation ID
-  bridgeKey: string        // Server-side verification key
+  user1ProfileId: string // Creator's profile ID
+  user1PartialId: string // Creator's partial conversation ID
+  user2ProfileId: string // Scanner's profile ID
+  user2PartialId: string // Scanner's partial conversation ID
+  bridgeKey: string // Server-side verification key
   createdAt: string
   isActive: boolean
 }
@@ -45,8 +45,8 @@ export interface ConversationPairing {
 // ========== CONSTANTS ==========
 
 const CONVERSATION_PREFIX = 'cONv_'
-const PARTIAL_LENGTH = 12  // Length of each user's partial ID
-const BRIDGE_LENGTH = 8    // Length of server bridge key
+const PARTIAL_LENGTH = 12 // Length of each user's partial ID
+const BRIDGE_LENGTH = 8 // Length of server bridge key
 const FULL_ID_LENGTH = PARTIAL_LENGTH + BRIDGE_LENGTH + PARTIAL_LENGTH // 32 chars
 
 // ========== CORE FUNCTIONS ==========
@@ -67,7 +67,11 @@ function generateSecureRandom(length: number): string {
 /**
  * Hash two profile IDs together to create a deterministic seed
  */
-async function hashProfileIds(profile1: string, profile2: string, timestamp: number): Promise<string> {
+async function hashProfileIds(
+  profile1: string,
+  profile2: string,
+  timestamp: number
+): Promise<string> {
   const combined = `${profile1}::${profile2}::${timestamp}::FlowSphere-ConvID-v1`
   const encoder = new TextEncoder()
   const data = encoder.encode(combined)
@@ -138,7 +142,7 @@ export async function generateSplitConversationId(
     partA: `${CONVERSATION_PREFIX}${partA}`,
     partB: `${CONVERSATION_PREFIX}${partB}`,
     bridgeKey: bridge,
-    createdAt: new Date(timestamp).toISOString()
+    createdAt: new Date(timestamp).toISOString(),
   }
 }
 
@@ -200,10 +204,7 @@ export function getOtherPartialId(
 /**
  * Determine which user (1 or 2) owns a partial ID
  */
-export function getUserRole(
-  partialId: string,
-  fullId: string
-): 'user1' | 'user2' | null {
+export function getUserRole(partialId: string, fullId: string): 'user1' | 'user2' | null {
   const partialBody = partialId.replace(CONVERSATION_PREFIX, '')
   const fullBody = fullId.replace(CONVERSATION_PREFIX, '')
 
@@ -235,7 +236,7 @@ export function createPairingRecord(
     user2PartialId: splitId.partB,
     bridgeKey: splitId.bridgeKey,
     createdAt: splitId.createdAt,
-    isActive: true
+    isActive: true,
   }
 }
 
@@ -309,10 +310,10 @@ export function validateMessageRouting(
   pairing: ConversationPairing
 ): MessageRoutingInfo {
   // Determine if sender is user1 or user2
-  const isUser1 = pairing.user1PartialId === senderPartialId &&
-                  pairing.user1ProfileId === senderProfileId
-  const isUser2 = pairing.user2PartialId === senderPartialId &&
-                  pairing.user2ProfileId === senderProfileId
+  const isUser1 =
+    pairing.user1PartialId === senderPartialId && pairing.user1ProfileId === senderProfileId
+  const isUser2 =
+    pairing.user2PartialId === senderPartialId && pairing.user2ProfileId === senderProfileId
 
   if (!isUser1 && !isUser2) {
     return {
@@ -322,7 +323,7 @@ export function validateMessageRouting(
       recipientProfileId: '',
       recipientPartialId: '',
       bridgeKey: pairing.bridgeKey,
-      isValid: false
+      isValid: false,
     }
   }
 
@@ -333,7 +334,7 @@ export function validateMessageRouting(
     recipientProfileId: isUser1 ? pairing.user2ProfileId : pairing.user1ProfileId,
     recipientPartialId: isUser1 ? pairing.user2PartialId : pairing.user1PartialId,
     bridgeKey: pairing.bridgeKey,
-    isValid: true
+    isValid: true,
   }
 }
 
@@ -346,5 +347,5 @@ export default {
   getUserRole,
   createPairingRecord,
   validateMessageRouting,
-  SPLIT_CONVERSATION_SCHEMA
+  SPLIT_CONVERSATION_SCHEMA,
 }

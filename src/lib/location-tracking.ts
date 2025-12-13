@@ -48,20 +48,17 @@ export class LocationTracker {
 
       // Request high accuracy location tracking
       this.watchId = navigator.geolocation.watchPosition(
-        async (position) => {
+        async position => {
           const locationData: LocationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           }
 
           // Reverse geocode to get address
           try {
-            const address = await this.reverseGeocode(
-              locationData.latitude,
-              locationData.longitude
-            )
+            const address = await this.reverseGeocode(locationData.latitude, locationData.longitude)
             locationData.address = address
           } catch (error) {
             console.error('Reverse geocoding failed:', error)
@@ -76,14 +73,14 @@ export class LocationTracker {
             resolve()
           }
         },
-        (error) => {
+        error => {
           console.error('Location tracking error:', error)
           reject(error)
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 0
+          maximumAge: 0,
         }
       )
     })
@@ -111,19 +108,16 @@ export class LocationTracker {
       }
 
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
+        async position => {
           const locationData: LocationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           }
 
           try {
-            const address = await this.reverseGeocode(
-              locationData.latitude,
-              locationData.longitude
-            )
+            const address = await this.reverseGeocode(locationData.latitude, locationData.longitude)
             locationData.address = address
           } catch (error) {
             console.error('Reverse geocoding failed:', error)
@@ -132,13 +126,13 @@ export class LocationTracker {
           this.currentLocation = locationData
           resolve(locationData)
         },
-        (error) => {
+        error => {
           reject(error)
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 0
+          maximumAge: 0,
         }
       )
     })
@@ -153,8 +147,8 @@ export class LocationTracker {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
         {
           headers: {
-            'User-Agent': 'FlowSphere-App'
-          }
+            'User-Agent': 'FlowSphere-App',
+          },
         }
       )
 
@@ -170,7 +164,7 @@ export class LocationTracker {
         state: data.address?.state,
         country: data.address?.country,
         postalCode: data.address?.postcode,
-        fullAddress: data.display_name
+        fullAddress: data.display_name,
       }
 
       return address

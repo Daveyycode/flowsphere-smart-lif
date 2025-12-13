@@ -35,10 +35,11 @@ export class PhoneCallingService {
   /**
    * Call a family member by name
    */
-  async callByName(name: string, initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'): Promise<boolean> {
-    const member = this.familyMembers.find(m =>
-      m.name.toLowerCase().includes(name.toLowerCase())
-    )
+  async callByName(
+    name: string,
+    initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'
+  ): Promise<boolean> {
+    const member = this.familyMembers.find(m => m.name.toLowerCase().includes(name.toLowerCase()))
 
     if (!member) {
       console.error(`Family member "${name}" not found`)
@@ -56,9 +57,12 @@ export class PhoneCallingService {
   /**
    * Call a family member by relationship (e.g., "husband", "son", "daughter")
    */
-  async callByRelationship(relationship: string, initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'): Promise<boolean> {
-    const member = this.familyMembers.find(m =>
-      m.relationship?.toLowerCase() === relationship.toLowerCase()
+  async callByRelationship(
+    relationship: string,
+    initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'
+  ): Promise<boolean> {
+    const member = this.familyMembers.find(
+      m => m.relationship?.toLowerCase() === relationship.toLowerCase()
     )
 
     if (!member) {
@@ -77,7 +81,11 @@ export class PhoneCallingService {
   /**
    * Initiate a phone call
    */
-  private async initiateCall(name: string, phoneNumber: string, initiatedBy: 'user' | 'ai-voice' | 'emergency'): Promise<boolean> {
+  private async initiateCall(
+    name: string,
+    phoneNumber: string,
+    initiatedBy: 'user' | 'ai-voice' | 'emergency'
+  ): Promise<boolean> {
     try {
       // Get current location
       const locationTracker = getLocationTracker()
@@ -92,7 +100,7 @@ export class PhoneCallingService {
         timestamp: Date.now(),
         initiatedBy,
         userLocation,
-        status: 'initiated'
+        status: 'initiated',
       }
 
       this.callHistory.push(callLog)
@@ -111,7 +119,10 @@ export class PhoneCallingService {
   /**
    * Call with location context (shares current location with recipient)
    */
-  async callWithLocation(nameOrRelationship: string, initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'): Promise<{
+  async callWithLocation(
+    nameOrRelationship: string,
+    initiatedBy: 'user' | 'ai-voice' | 'emergency' = 'ai-voice'
+  ): Promise<{
     success: boolean
     locationShared: boolean
     address?: string
@@ -123,8 +134,8 @@ export class PhoneCallingService {
 
     // If not found, try by relationship
     if (!member) {
-      member = this.familyMembers.find(m =>
-        m.relationship?.toLowerCase() === nameOrRelationship.toLowerCase()
+      member = this.familyMembers.find(
+        m => m.relationship?.toLowerCase() === nameOrRelationship.toLowerCase()
       )
     }
 
@@ -154,7 +165,7 @@ export class PhoneCallingService {
     return {
       success,
       locationShared: !!currentLocation,
-      address
+      address,
     }
   }
 
@@ -184,7 +195,7 @@ export class PhoneCallingService {
     return {
       totalCalls: membersWithPhones.length,
       successful,
-      location: address
+      location: address,
     }
   }
 
@@ -237,17 +248,15 @@ export class PhoneCallingService {
    * Get family member by name
    */
   getFamilyMemberByName(name: string): FamilyMember | undefined {
-    return this.familyMembers.find(m =>
-      m.name.toLowerCase().includes(name.toLowerCase())
-    )
+    return this.familyMembers.find(m => m.name.toLowerCase().includes(name.toLowerCase()))
   }
 
   /**
    * Get family member by relationship
    */
   getFamilyMemberByRelationship(relationship: string): FamilyMember | undefined {
-    return this.familyMembers.find(m =>
-      m.relationship?.toLowerCase() === relationship.toLowerCase()
+    return this.familyMembers.find(
+      m => m.relationship?.toLowerCase() === relationship.toLowerCase()
     )
   }
 }

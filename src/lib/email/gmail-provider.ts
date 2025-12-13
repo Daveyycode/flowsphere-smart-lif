@@ -28,7 +28,10 @@ export class GmailProvider extends EmailProvider {
    */
   getAuthUrl(): string {
     // Debug logging
-    console.log('[Gmail OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 15)}...` : 'MISSING')
+    console.log(
+      '[Gmail OAuth] Client ID:',
+      this.clientId ? `${this.clientId.substring(0, 15)}...` : 'MISSING'
+    )
     console.log('[Gmail OAuth] Redirect URI:', this.redirectUri)
 
     if (!this.clientId) {
@@ -45,12 +48,12 @@ export class GmailProvider extends EmailProvider {
         'https://www.googleapis.com/auth/gmail.send',
         'https://www.googleapis.com/auth/gmail.modify',
         'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile'
+        'https://www.googleapis.com/auth/userinfo.profile',
       ].join(' '),
       access_type: 'offline',
       prompt: 'consent',
       // Add state for CSRF protection
-      state: Math.random().toString(36).substring(2, 15)
+      state: Math.random().toString(36).substring(2, 15),
     })
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
@@ -72,7 +75,7 @@ export class GmailProvider extends EmailProvider {
       const response = await fetch(OAUTH_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -92,7 +95,7 @@ export class GmailProvider extends EmailProvider {
       return {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        expiresIn: data.expiresIn
+        expiresIn: data.expiresIn,
       }
     }
 
@@ -105,8 +108,8 @@ export class GmailProvider extends EmailProvider {
   async getUserInfo(accessToken: string): Promise<{ email: string; name: string }> {
     const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
+        Authorization: `Bearer ${accessToken}`,
+      },
     })
 
     if (!response.ok) {
@@ -116,7 +119,7 @@ export class GmailProvider extends EmailProvider {
     const data = await response.json()
     return {
       email: data.email,
-      name: data.name
+      name: data.name,
     }
   }
 
@@ -141,7 +144,7 @@ export class GmailProvider extends EmailProvider {
 
     const params = new URLSearchParams({
       q: query,
-      maxResults: maxResults.toString()
+      maxResults: maxResults.toString(),
     })
 
     if (options.pageToken) {
@@ -152,8 +155,8 @@ export class GmailProvider extends EmailProvider {
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params.toString()}`,
       {
         headers: {
-          Authorization: `Bearer ${account.accessToken}`
-        }
+          Authorization: `Bearer ${account.accessToken}`,
+        },
       }
     )
 
@@ -184,7 +187,7 @@ export class GmailProvider extends EmailProvider {
     return {
       emails,
       nextPageToken: data.nextPageToken,
-      totalResults: data.resultSizeEstimate || 0
+      totalResults: data.resultSizeEstimate || 0,
     }
   }
 
@@ -196,8 +199,8 @@ export class GmailProvider extends EmailProvider {
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
       {
         headers: {
-          Authorization: `Bearer ${account.accessToken}`
-        }
+          Authorization: `Bearer ${account.accessToken}`,
+        },
       }
     )
 
@@ -224,7 +227,7 @@ export class GmailProvider extends EmailProvider {
       provider: 'gmail',
       from: {
         name: fromMatch[1]?.trim() || '',
-        email: fromMatch[2]?.trim() || from
+        email: fromMatch[2]?.trim() || from,
       },
       to: [{ email: getHeader('To') }],
       subject: getHeader('Subject'),
@@ -232,7 +235,7 @@ export class GmailProvider extends EmailProvider {
       snippet: gmailMsg.snippet,
       timestamp: new Date(parseInt(gmailMsg.internalDate)).toISOString(),
       read: !gmailMsg.labelIds?.includes('UNREAD'),
-      labels: gmailMsg.labelIds || []
+      labels: gmailMsg.labelIds || [],
     }
   }
 
@@ -321,7 +324,7 @@ export class GmailProvider extends EmailProvider {
       const parts: string[] = [
         `To: ${email.to.join(', ')}`,
         'From: me',
-        `Subject: ${email.subject}`
+        `Subject: ${email.subject}`,
       ]
 
       // Reply headers if this is a reply
@@ -351,9 +354,9 @@ export class GmailProvider extends EmailProvider {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${account.accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     })
 
     if (!response.ok) {
@@ -394,7 +397,7 @@ export class GmailProvider extends EmailProvider {
       html: replyBody,
       attachments,
       replyToMessageId: originalEmail.id,
-      threadId: originalEmail.threadId
+      threadId: originalEmail.threadId,
     })
   }
 
@@ -410,8 +413,8 @@ export class GmailProvider extends EmailProvider {
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
       {
         headers: {
-          Authorization: `Bearer ${account.accessToken}`
-        }
+          Authorization: `Bearer ${account.accessToken}`,
+        },
       }
     )
 
@@ -422,7 +425,7 @@ export class GmailProvider extends EmailProvider {
     const data = await response.json()
     return {
       data: data.data, // Base64 encoded
-      size: data.size
+      size: data.size,
     }
   }
 
@@ -439,7 +442,7 @@ export class GmailProvider extends EmailProvider {
       const response = await fetch(OAUTH_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -461,7 +464,7 @@ export class GmailProvider extends EmailProvider {
       return {
         ...account,
         accessToken: data.accessToken,
-        expiresAt: Date.now() + data.expiresIn * 1000
+        expiresAt: Date.now() + data.expiresIn * 1000,
       }
     }
 
@@ -472,11 +475,12 @@ export class GmailProvider extends EmailProvider {
    * Get new emails since timestamp
    */
   async getNewEmails(account: EmailAccount, since?: string): Promise<Email[]> {
-    const afterDate = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const afterDate =
+      since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     const result = await this.searchEmails(account, {
       after: afterDate,
-      maxResults: 100
+      maxResults: 100,
     })
 
     return result.emails

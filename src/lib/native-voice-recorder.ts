@@ -18,10 +18,14 @@ let VoiceRecorder: VoiceRecorderPlugin | null = null
 
 try {
   VoiceRecorder = registerPlugin<VoiceRecorderPlugin>('VoiceRecorder')
-  logger.info('[VoiceRecorder] Plugin registered', {
-    platform: Capacitor.getPlatform(),
-    isNative: Capacitor.isNativePlatform()
-  }, 'VoiceRecorder')
+  logger.info(
+    '[VoiceRecorder] Plugin registered',
+    {
+      platform: Capacitor.getPlatform(),
+      isNative: Capacitor.isNativePlatform(),
+    },
+    'VoiceRecorder'
+  )
 } catch (error) {
   logger.error('[VoiceRecorder] Failed to register plugin', error, 'VoiceRecorder')
 }

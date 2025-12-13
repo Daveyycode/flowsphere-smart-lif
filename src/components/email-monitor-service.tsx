@@ -20,7 +20,11 @@ interface PendingNotification {
 }
 
 export function EmailMonitorService() {
-  const pendingNotificationsRef = useRef<PendingNotification>({ count: 0, emails: [], lastUpdate: 0 })
+  const pendingNotificationsRef = useRef<PendingNotification>({
+    count: 0,
+    emails: [],
+    lastUpdate: 0,
+  })
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -55,29 +59,42 @@ export function EmailMonitorService() {
     if (validAccounts.length > 0) {
       console.log('🔍 Starting email monitor with', validAccounts.length, 'valid OAuth account(s)')
 
-      globalEmailMonitor.start((alert) => {
+      globalEmailMonitor.start(alert => {
         console.log('📧 New email alert:', alert)
 
         // Determine category and priority
-        const category = alert.classification.category === 'emergency' ? 'emergency' :
-                        alert.classification.category === 'important' ? 'important' :
-                        alert.classification.category === 'work' ? 'work' :
-                        alert.classification.category === 'personal' ? 'personal' : 'regular'
+        const category =
+          alert.classification.category === 'emergency'
+            ? 'emergency'
+            : alert.classification.category === 'important'
+              ? 'important'
+              : alert.classification.category === 'work'
+                ? 'work'
+                : alert.classification.category === 'personal'
+                  ? 'personal'
+                  : 'regular'
 
-        const priority = alert.classification.isUrgent ? 'high' :
-                        alert.classification.category === 'important' ? 'medium' : 'low'
+        const priority = alert.classification.isUrgent
+          ? 'high'
+          : alert.classification.category === 'important'
+            ? 'medium'
+            : 'low'
 
         // SYNC FIX: Push to shared notification store for App.tsx and morning-brief
         NotificationSyncStore.queueNotification({
           type: 'email',
-          title: category === 'emergency' ? '🚨 Emergency Email' :
-                 category === 'important' ? '📧 Important Email' : '📬 New Email',
+          title:
+            category === 'emergency'
+              ? '🚨 Emergency Email'
+              : category === 'important'
+                ? '📧 Important Email'
+                : '📬 New Email',
           message: alert.classification.summary || alert.email.subject,
           from: alert.email.from.name || alert.email.from.email,
           category: category as 'emergency' | 'important' | 'regular' | 'work' | 'personal',
           priority: priority as 'high' | 'medium' | 'low',
           emailId: alert.email.id,
-          provider: alert.email.provider
+          provider: alert.email.provider,
         })
 
         // UI FIX: Batch notifications - collect emails and show single consolidated toast
@@ -87,7 +104,7 @@ export function EmailMonitorService() {
             description: `From: ${alert.email.from.name || alert.email.from.email}\n${alert.classification.summary}`,
             duration: 10000,
             dismissible: true,
-            closeButton: true
+            closeButton: true,
           })
         } else {
           // Batch regular notifications
@@ -95,7 +112,7 @@ export function EmailMonitorService() {
           pendingNotificationsRef.current.emails.push({
             from: alert.email.from.name || alert.email.from.email,
             subject: alert.email.subject,
-            category
+            category,
           })
           pendingNotificationsRef.current.lastUpdate = Date.now()
 
@@ -118,17 +135,21 @@ export function EmailMonitorService() {
                   description: `From: ${email.from}`,
                   duration: 4000,
                   dismissible: true,
-                  closeButton: true
+                  closeButton: true,
                 })
               } else {
                 // Multiple emails - show consolidated notification
                 toast.info(`📬 ${pending.count} New Emails`, {
-                  description: importantCount > 0
-                    ? `${importantCount} important, ${regularCount} regular`
-                    : `From: ${pending.emails.slice(0, 3).map(e => e.from).join(', ')}${pending.count > 3 ? '...' : ''}`,
+                  description:
+                    importantCount > 0
+                      ? `${importantCount} important, ${regularCount} regular`
+                      : `From: ${pending.emails
+                          .slice(0, 3)
+                          .map(e => e.from)
+                          .join(', ')}${pending.count > 3 ? '...' : ''}`,
                   duration: 5000,
                   dismissible: true,
-                  closeButton: true
+                  closeButton: true,
                 })
               }
 

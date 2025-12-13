@@ -136,7 +136,10 @@ export async function handleOAuthCallback(): Promise<EmailAccount | null> {
     }
 
     // Get the current session
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
 
     if (error || !session) {
       console.error('[EmailOAuth] No session after callback:', error)
@@ -155,10 +158,10 @@ export async function handleOAuthCallback(): Promise<EmailAccount | null> {
 
     // Map callback provider to our provider type
     const providerMap: Record<string, 'gmail' | 'outlook' | 'icloud'> = {
-      'google': 'gmail',
-      'outlook': 'outlook',
-      'azure': 'outlook',
-      'apple': 'icloud',
+      google: 'gmail',
+      outlook: 'outlook',
+      azure: 'outlook',
+      apple: 'icloud',
     }
 
     const provider = providerMap[oauthCallback] || 'gmail'
@@ -204,7 +207,10 @@ export interface IMAPCredentials {
 }
 
 // IMAP presets for common providers
-export const IMAP_PRESETS: Record<string, Omit<IMAPCredentials, 'email' | 'password' | 'provider'>> = {
+export const IMAP_PRESETS: Record<
+  string,
+  Omit<IMAPCredentials, 'email' | 'password' | 'provider'>
+> = {
   yahoo: {
     imapHost: 'imap.mail.yahoo.com',
     imapPort: 993,
@@ -256,7 +262,8 @@ export async function connectIMAPEmail(credentials: IMAPCredentials): Promise<Em
   // The actual IMAP operations happen through our email provider classes
   const account: EmailAccount = {
     id: `${credentials.provider}_${credentials.email}_${Date.now()}`,
-    provider: credentials.provider === 'imap' ? 'gmail' : credentials.provider as 'yahoo' | 'icloud',
+    provider:
+      credentials.provider === 'imap' ? 'gmail' : (credentials.provider as 'yahoo' | 'icloud'),
     email: credentials.email,
     name: credentials.email.split('@')[0],
     accessToken: credentials.password, // App-specific password
@@ -400,5 +407,8 @@ Note: App passwords work as an alternative to OAuth.
     `,
   }
 
-  return instructions[provider] || 'Please check your email provider\'s documentation for app password setup.'
+  return (
+    instructions[provider] ||
+    "Please check your email provider's documentation for app password setup."
+  )
 }

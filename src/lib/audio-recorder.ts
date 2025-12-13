@@ -25,20 +25,20 @@ export class AudioRecorder {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 16000 // Lower sample rate for mobile
-        }
+          sampleRate: 16000, // Lower sample rate for mobile
+        },
       })
 
       // Create MediaRecorder with mobile-compatible codec
       const mimeType = this.getSupportedMimeType()
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 128000,
       })
 
       this.audioChunks = []
 
-      this.mediaRecorder.ondataavailable = (event) => {
+      this.mediaRecorder.ondataavailable = event => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data)
         }
@@ -86,7 +86,7 @@ export class AudioRecorder {
       'audio/webm;codecs=opus',
       'audio/ogg;codecs=opus',
       'audio/mp4',
-      'audio/wav'
+      'audio/wav',
     ]
 
     for (const type of types) {
@@ -125,29 +125,99 @@ export interface TranscriptionResult {
 
 // Language code to name mapping for Whisper
 const WHISPER_LANGUAGE_NAMES: Record<string, string> = {
-  'en': 'English', 'zh': 'Chinese', 'es': 'Spanish', 'hi': 'Hindi', 'ar': 'Arabic',
-  'bn': 'Bengali', 'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese', 'de': 'German',
-  'fr': 'French', 'it': 'Italian', 'ko': 'Korean', 'tr': 'Turkish', 'vi': 'Vietnamese',
-  'ta': 'Tamil', 'ur': 'Urdu', 'te': 'Telugu', 'mr': 'Marathi', 'nl': 'Dutch',
-  'pl': 'Polish', 'uk': 'Ukrainian', 'ro': 'Romanian', 'el': 'Greek', 'cs': 'Czech',
-  'sv': 'Swedish', 'hu': 'Hungarian', 'da': 'Danish', 'fi': 'Finnish', 'no': 'Norwegian',
-  'th': 'Thai', 'id': 'Indonesian', 'ms': 'Malay', 'tl': 'Filipino/Tagalog', 'he': 'Hebrew',
-  'fa': 'Persian/Farsi', 'pa': 'Punjabi', 'sw': 'Swahili', 'af': 'Afrikaans', 'ca': 'Catalan',
-  'cy': 'Welsh', 'ga': 'Irish', 'eu': 'Basque', 'gl': 'Galician', 'hr': 'Croatian',
-  'sk': 'Slovak', 'sl': 'Slovenian', 'sr': 'Serbian', 'bg': 'Bulgarian', 'lt': 'Lithuanian',
-  'lv': 'Latvian', 'et': 'Estonian', 'mt': 'Maltese', 'sq': 'Albanian', 'mk': 'Macedonian',
-  'bs': 'Bosnian', 'is': 'Icelandic', 'ne': 'Nepali', 'si': 'Sinhala', 'kn': 'Kannada',
-  'ml': 'Malayalam', 'gu': 'Gujarati', 'as': 'Assamese', 'lo': 'Lao', 'my': 'Burmese',
-  'km': 'Khmer', 'mn': 'Mongolian', 'hy': 'Armenian', 'ka': 'Georgian', 'az': 'Azerbaijani',
-  'kk': 'Kazakh', 'uz': 'Uzbek', 'yo': 'Yoruba', 'ha': 'Hausa', 'am': 'Amharic',
-  'so': 'Somali', 'yi': 'Yiddish', 'la': 'Latin', 'eo': 'Esperanto', 'jw': 'Javanese',
-  'su': 'Sundanese', 'mi': 'Maori', 'haw': 'Hawaiian', 'ceb': 'Cebuano'
+  en: 'English',
+  zh: 'Chinese',
+  es: 'Spanish',
+  hi: 'Hindi',
+  ar: 'Arabic',
+  bn: 'Bengali',
+  pt: 'Portuguese',
+  ru: 'Russian',
+  ja: 'Japanese',
+  de: 'German',
+  fr: 'French',
+  it: 'Italian',
+  ko: 'Korean',
+  tr: 'Turkish',
+  vi: 'Vietnamese',
+  ta: 'Tamil',
+  ur: 'Urdu',
+  te: 'Telugu',
+  mr: 'Marathi',
+  nl: 'Dutch',
+  pl: 'Polish',
+  uk: 'Ukrainian',
+  ro: 'Romanian',
+  el: 'Greek',
+  cs: 'Czech',
+  sv: 'Swedish',
+  hu: 'Hungarian',
+  da: 'Danish',
+  fi: 'Finnish',
+  no: 'Norwegian',
+  th: 'Thai',
+  id: 'Indonesian',
+  ms: 'Malay',
+  tl: 'Filipino/Tagalog',
+  he: 'Hebrew',
+  fa: 'Persian/Farsi',
+  pa: 'Punjabi',
+  sw: 'Swahili',
+  af: 'Afrikaans',
+  ca: 'Catalan',
+  cy: 'Welsh',
+  ga: 'Irish',
+  eu: 'Basque',
+  gl: 'Galician',
+  hr: 'Croatian',
+  sk: 'Slovak',
+  sl: 'Slovenian',
+  sr: 'Serbian',
+  bg: 'Bulgarian',
+  lt: 'Lithuanian',
+  lv: 'Latvian',
+  et: 'Estonian',
+  mt: 'Maltese',
+  sq: 'Albanian',
+  mk: 'Macedonian',
+  bs: 'Bosnian',
+  is: 'Icelandic',
+  ne: 'Nepali',
+  si: 'Sinhala',
+  kn: 'Kannada',
+  ml: 'Malayalam',
+  gu: 'Gujarati',
+  as: 'Assamese',
+  lo: 'Lao',
+  my: 'Burmese',
+  km: 'Khmer',
+  mn: 'Mongolian',
+  hy: 'Armenian',
+  ka: 'Georgian',
+  az: 'Azerbaijani',
+  kk: 'Kazakh',
+  uz: 'Uzbek',
+  yo: 'Yoruba',
+  ha: 'Hausa',
+  am: 'Amharic',
+  so: 'Somali',
+  yi: 'Yiddish',
+  la: 'Latin',
+  eo: 'Esperanto',
+  jw: 'Javanese',
+  su: 'Sundanese',
+  mi: 'Maori',
+  haw: 'Hawaiian',
+  ceb: 'Cebuano',
 }
 
 /**
  * Transcribe audio using OpenAI Whisper API
  */
-async function transcribeWithOpenAI(audioBlob: Blob, targetLanguage?: string): Promise<TranscriptionResult> {
+async function transcribeWithOpenAI(
+  audioBlob: Blob,
+  targetLanguage?: string
+): Promise<TranscriptionResult> {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured')
   }
@@ -165,9 +235,9 @@ async function transcribeWithOpenAI(audioBlob: Blob, targetLanguage?: string): P
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
-    body: formData
+    body: formData,
   })
 
   if (!response.ok) {
@@ -181,7 +251,7 @@ async function transcribeWithOpenAI(audioBlob: Blob, targetLanguage?: string): P
 
   return {
     text: data.text,
-    detectedLanguage
+    detectedLanguage,
   }
 }
 
@@ -189,7 +259,10 @@ async function transcribeWithOpenAI(audioBlob: Blob, targetLanguage?: string): P
  * Transcribe audio using Groq Whisper API (fallback)
  * Groq uses whisper-large-v3-turbo model for fast, accurate transcription
  */
-async function transcribeWithGroq(audioBlob: Blob, targetLanguage?: string): Promise<TranscriptionResult> {
+async function transcribeWithGroq(
+  audioBlob: Blob,
+  targetLanguage?: string
+): Promise<TranscriptionResult> {
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured')
   }
@@ -207,9 +280,9 @@ async function transcribeWithGroq(audioBlob: Blob, targetLanguage?: string): Pro
   const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`
+      Authorization: `Bearer ${GROQ_API_KEY}`,
     },
-    body: formData
+    body: formData,
   })
 
   if (!response.ok) {
@@ -223,7 +296,7 @@ async function transcribeWithGroq(audioBlob: Blob, targetLanguage?: string): Pro
 
   return {
     text: data.text,
-    detectedLanguage
+    detectedLanguage,
   }
 }
 
@@ -234,7 +307,10 @@ async function transcribeWithGroq(audioBlob: Blob, targetLanguage?: string): Pro
  *
  * This ensures transcription works even if one service is unavailable
  */
-export async function transcribeAudio(audioBlob: Blob, targetLanguage?: string): Promise<TranscriptionResult> {
+export async function transcribeAudio(
+  audioBlob: Blob,
+  targetLanguage?: string
+): Promise<TranscriptionResult> {
   // Try OpenAI Whisper first (if configured)
   if (OPENAI_API_KEY) {
     try {
@@ -258,7 +334,9 @@ export async function transcribeAudio(audioBlob: Blob, targetLanguage?: string):
   }
 
   // No API keys configured
-  throw new Error('No transcription service configured. Please add VITE_OPENAI_API_KEY or VITE_GROQ_API_KEY to your .env file')
+  throw new Error(
+    'No transcription service configured. Please add VITE_OPENAI_API_KEY or VITE_GROQ_API_KEY to your .env file'
+  )
 }
 
 /**

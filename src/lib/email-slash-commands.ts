@@ -45,12 +45,7 @@ export function generateEmailSlashCommands(folders: EmailFolder[]): EmailSlashCo
       icon: folder.icon,
       category: 'Email Navigation',
       usage: `${command} [search terms]`,
-      examples: [
-        `${command}`,
-        `${command} unread`,
-        `${command} from:john`,
-        `${command} urgent`
-      ]
+      examples: [`${command}`, `${command} unread`, `${command} from:john`, `${command} urgent`],
     })
   })
 
@@ -63,7 +58,7 @@ export function generateEmailSlashCommands(folders: EmailFolder[]): EmailSlashCo
       icon: 'folder-open',
       category: 'Email Utilities',
       usage: '/email-paths',
-      examples: ['/email-paths']
+      examples: ['/email-paths'],
     },
     {
       command: '/email-search',
@@ -72,7 +67,7 @@ export function generateEmailSlashCommands(folders: EmailFolder[]): EmailSlashCo
       icon: 'magnifying-glass',
       category: 'Email Utilities',
       usage: '/email-search [query]',
-      examples: ['/email-search invoice', '/email-search meeting', '/email-search @john']
+      examples: ['/email-search invoice', '/email-search meeting', '/email-search @john'],
     },
     {
       command: '/email-unread',
@@ -81,7 +76,7 @@ export function generateEmailSlashCommands(folders: EmailFolder[]): EmailSlashCo
       icon: 'envelope-simple',
       category: 'Email Utilities',
       usage: '/email-unread [folder]',
-      examples: ['/email-unread', '/email-unread work', '/email-unread personal']
+      examples: ['/email-unread', '/email-unread work', '/email-unread personal'],
     },
     {
       command: '/email-important',
@@ -90,7 +85,7 @@ export function generateEmailSlashCommands(folders: EmailFolder[]): EmailSlashCo
       icon: 'star',
       category: 'Email Utilities',
       usage: '/email-important',
-      examples: ['/email-important']
+      examples: ['/email-important'],
     }
   )
 
@@ -120,7 +115,7 @@ export function parseEmailSlashCommand(input: string): {
   return {
     command,
     args,
-    isEmailCommand: true
+    isEmailCommand: true,
   }
 }
 
@@ -138,7 +133,7 @@ export function executeEmailSlashCommand(
     return {
       command: input,
       executed: false,
-      error: 'Not an email slash command'
+      error: 'Not an email slash command',
     }
   }
 
@@ -173,7 +168,7 @@ export function executeEmailSlashCommand(
   return {
     command,
     executed: false,
-    error: `Unknown command: ${command}`
+    error: `Unknown command: ${command}`,
   }
 }
 
@@ -196,8 +191,8 @@ function handleEmailPathsCommand(folders: EmailFolder[]): SlashCommandResult {
       path: '',
       emails: [],
       count: folders.length,
-      message
-    }
+      message,
+    },
   }
 }
 
@@ -213,7 +208,7 @@ function handleEmailSearchCommand(
     return {
       command: '/email-search',
       executed: false,
-      error: 'Please provide search terms. Usage: /email-search [query]'
+      error: 'Please provide search terms. Usage: /email-search [query]',
     }
   }
 
@@ -260,8 +255,8 @@ function handleEmailSearchCommand(
       path: '',
       emails: matchingEmails,
       count: matchingEmails.length,
-      message
-    }
+      message,
+    },
   }
 }
 
@@ -277,9 +272,8 @@ function handleEmailUnreadCommand(
 
   if (args.length > 0) {
     const folderName = args[0].toLowerCase()
-    targetFolder = folders.find(f =>
-      f.name.toLowerCase().includes(folderName) ||
-      f.path.toLowerCase().includes(folderName)
+    targetFolder = folders.find(
+      f => f.name.toLowerCase().includes(folderName) || f.path.toLowerCase().includes(folderName)
     )
   }
 
@@ -287,9 +281,7 @@ function handleEmailUnreadCommand(
 
   if (targetFolder) {
     // Filter unread in specific folder
-    unreadEmails = emails.filter(
-      email => !email.read && targetFolder.emailIds.includes(email.id)
-    )
+    unreadEmails = emails.filter(email => !email.read && targetFolder.emailIds.includes(email.id))
   } else {
     // All unread emails
     unreadEmails = emails.filter(email => !email.read)
@@ -313,8 +305,8 @@ function handleEmailUnreadCommand(
       path: targetFolder?.path || '',
       emails: unreadEmails,
       count: unreadEmails.length,
-      message
-    }
+      message,
+    },
   }
 }
 
@@ -362,8 +354,8 @@ function handleEmailImportantCommand(
       path: '',
       emails: importantEmails,
       count: importantEmails.length,
-      message
-    }
+      message,
+    },
   }
 }
 
@@ -428,8 +420,8 @@ function handleFolderCommand(
       path: folder.path,
       emails: folderEmails,
       count: folderEmails.length,
-      message
-    }
+      message,
+    },
   }
 }
 
@@ -446,9 +438,7 @@ export function getEmailCommandSuggestions(
     return []
   }
 
-  return commands.filter(cmd =>
-    cmd.command.toLowerCase().startsWith(partialInput.toLowerCase())
-  )
+  return commands.filter(cmd => cmd.command.toLowerCase().startsWith(partialInput.toLowerCase()))
 }
 
 /**

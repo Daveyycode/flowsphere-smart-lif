@@ -4,7 +4,11 @@
  * Monitors social media accounts and suspicious activities
  */
 
-import { FaceCaptureSecurityManager, CapturedFace, SuspiciousActivityDetector } from './face-capture-security'
+import {
+  FaceCaptureSecurityManager,
+  CapturedFace,
+  SuspiciousActivityDetector,
+} from './face-capture-security'
 import { logger } from '@/lib/security-utils'
 
 export interface LoginSession {
@@ -51,7 +55,12 @@ export interface SocialMediaAlert {
   id: string
   accountId: string
   platform: string
-  type: 'first-time-login' | 'suspicious-login' | 'password-change' | 'new-device' | 'unusual-location'
+  type:
+    | 'first-time-login'
+    | 'suspicious-login'
+    | 'password-change'
+    | 'new-device'
+    | 'unusual-location'
   timestamp: string
   details: string
   location?: {
@@ -94,7 +103,7 @@ export class ActiveSessionsMonitor {
       const face = await this.faceCapture.captureOnFirstTimeLogin(email, {
         username,
         ipAddress: await this.getIPAddress(),
-        location: await this.getLocation()
+        location: await this.getLocation(),
       })
       capturedFaceId = face?.id
     }
@@ -113,7 +122,7 @@ export class ActiveSessionsMonitor {
       capturedFaceId,
       suspicious: false,
       suspicionReasons: [],
-      acknowledged: false
+      acknowledged: false,
     }
 
     // Save session
@@ -125,15 +134,12 @@ export class ActiveSessionsMonitor {
   /**
    * Record failed login attempt
    */
-  async recordFailedLogin(
-    email: string,
-    reason?: string
-  ): Promise<LoginSession> {
+  async recordFailedLogin(email: string, reason?: string): Promise<LoginSession> {
     // Capture face silently on failed login
     const face = await this.faceCapture.captureOnFailedLogin(email, {
       username: email,
       ipAddress: await this.getIPAddress(),
-      location: await this.getLocation()
+      location: await this.getLocation(),
     })
 
     // Record attempt in suspicious detector
@@ -164,7 +170,7 @@ export class ActiveSessionsMonitor {
       suspicious: isSuspicious || suspicionReasons.length > 0,
       suspicionReasons,
       acknowledged: false,
-      notes: reason
+      notes: reason,
     }
 
     // Save session
@@ -177,7 +183,7 @@ export class ActiveSessionsMonitor {
         {
           email,
           ipAddress,
-          location: await this.getLocation()
+          location: await this.getLocation(),
         }
       )
     }
@@ -210,7 +216,6 @@ export class ActiveSessionsMonitor {
       }
 
       return validSessions
-
     } catch (error) {
       logger.error('Failed to get sessions from storage', error, 'ActiveSessionsMonitor')
       return []
@@ -283,7 +288,7 @@ export class ActiveSessionsMonitor {
     topFailedEmails: Array<{ email: string; count: number }>
   } {
     const sessions = this.getAllSessions()
-    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000)
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
     const recent = sessions.filter(s => new Date(s.timestamp).getTime() > cutoff)
 
     // Count unique users and IPs
@@ -313,7 +318,7 @@ export class ActiveSessionsMonitor {
       unacknowledged: recent.filter(s => !s.acknowledged).length,
       uniqueUsers,
       uniqueIPs,
-      topFailedEmails
+      topFailedEmails,
     }
   }
 
@@ -333,7 +338,7 @@ export class ActiveSessionsMonitor {
       username,
       email,
       monitoringEnabled: true,
-      alerts: []
+      alerts: [],
     }
 
     const accounts = this.getAllSocialAccounts()
@@ -392,12 +397,14 @@ export class ActiveSessionsMonitor {
           username: account.username,
           email: account.email,
           ipAddress: location?.ipAddress,
-          location: location ? {
-            lat: 0,
-            lon: 0,
-            city: location.city,
-            country: location.country
-          } : undefined
+          location: location
+            ? {
+                lat: 0,
+                lon: 0,
+                city: location.city,
+                country: location.country,
+              }
+            : undefined,
         }
       )
       capturedFaceId = face?.id
@@ -412,7 +419,7 @@ export class ActiveSessionsMonitor {
       details,
       location,
       capturedFaceId,
-      acknowledged: false
+      acknowledged: false,
     }
 
     account.alerts.push(alert)
@@ -459,9 +466,8 @@ export class ActiveSessionsMonitor {
    */
   private isFirstTimeLogin(email: string): boolean {
     const sessions = this.getAllSessions()
-    const userSessions = sessions.filter(s =>
-      s.user.email === email &&
-      (s.type === 'successful' || s.type === 'first-time')
+    const userSessions = sessions.filter(
+      s => s.user.email === email && (s.type === 'successful' || s.type === 'first-time')
     )
     return userSessions.length === 0
   }
@@ -503,7 +509,7 @@ export class ActiveSessionsMonitor {
       os,
       platform: navigator.platform,
       screenResolution: `${screen.width}x${screen.height}`,
-      userAgent
+      userAgent,
     }
   }
 
@@ -525,15 +531,17 @@ export class ActiveSessionsMonitor {
    */
   private async getLocation(): Promise<{ lat: number; lon: number } | undefined> {
     try {
-      const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      const permission = await navigator.permissions.query({
+        name: 'geolocation' as PermissionName,
+      })
 
       if (permission.state === 'granted') {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
           navigator.geolocation.getCurrentPosition(
-            (position) => {
+            position => {
               resolve({
                 lat: position.coords.latitude,
-                lon: position.coords.longitude
+                lon: position.coords.longitude,
               })
             },
             () => resolve(undefined),
@@ -561,7 +569,7 @@ export class ActiveSessionsMonitor {
     return {
       lat: location?.lat || 0,
       lon: location?.lon || 0,
-      ipAddress
+      ipAddress,
     }
   }
 
@@ -574,10 +582,11 @@ export class ActiveSessionsMonitor {
     const now = Date.now()
 
     // Recent failed attempts (last hour)
-    const recentFailed = sessions.filter(s =>
-      s.user.email === email &&
-      s.type === 'failed' &&
-      now - new Date(s.timestamp).getTime() < 60 * 60 * 1000
+    const recentFailed = sessions.filter(
+      s =>
+        s.user.email === email &&
+        s.type === 'failed' &&
+        now - new Date(s.timestamp).getTime() < 60 * 60 * 1000
     )
 
     if (recentFailed.length >= 3) {

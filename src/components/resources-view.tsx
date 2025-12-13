@@ -4,13 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { 
-  GameController, 
-  Newspaper, 
-  Clock,
-  TrendUp,
-  Warning
-} from '@phosphor-icons/react'
+import { GameController, Newspaper, Clock, TrendUp, Warning } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
 interface GameSession {
@@ -42,9 +36,9 @@ export function ResourcesView() {
   const getTodaysSessions = (childName: string) => {
     const today = new Date().toDateString()
     return (gameSessions || [])
-      .filter(session => 
-        session.childName === childName && 
-        new Date(session.date).toDateString() === today
+      .filter(
+        session =>
+          session.childName === childName && new Date(session.date).toDateString() === today
       )
       .reduce((total, session) => total + session.duration, 0)
   }
@@ -57,9 +51,7 @@ export function ResourcesView() {
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2 font-heading">
           Resources & Monitoring
         </h1>
-        <p className="text-muted-foreground">
-          Track activities and stay updated with daily news
-        </p>
+        <p className="text-muted-foreground">Track activities and stay updated with daily news</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -76,7 +68,7 @@ export function ResourcesView() {
 
           <div className="space-y-6">
             {children.length > 0 ? (
-              children.map((child) => {
+              children.map(child => {
                 const todayMinutes = getTodaysSessions(child)
                 const percentage = (todayMinutes / dailyLimit) * 100
                 const isOverLimit = todayMinutes > dailyLimit
@@ -102,16 +94,19 @@ export function ResourcesView() {
                         </Badge>
                       )}
                     </div>
-                    
-                    <Progress 
-                      value={Math.min(percentage, 100)} 
+
+                    <Progress
+                      value={Math.min(percentage, 100)}
                       className={`h-2 ${isOverLimit ? '[&>*]:bg-destructive' : ''}`}
                     />
 
                     <div className="flex flex-wrap gap-2">
                       {(gameSessions || [])
-                        .filter(s => s.childName === child && 
-                          new Date(s.date).toDateString() === new Date().toDateString())
+                        .filter(
+                          s =>
+                            s.childName === child &&
+                            new Date(s.date).toDateString() === new Date().toDateString()
+                        )
                         .map(session => (
                           <Badge key={session.id} variant="secondary" className="text-xs">
                             <Clock className="w-3 h-3 mr-1" />
@@ -165,16 +160,10 @@ export function ResourcesView() {
                         <Badge variant="secondary" className="text-xs">
                           {news.category}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {news.time}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{news.time}</span>
                       </div>
-                      <h3 className="font-semibold text-sm sm:text-base mb-1">
-                        {news.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {news.source}
-                      </p>
+                      <h3 className="font-semibold text-sm sm:text-base mb-1">{news.title}</h3>
+                      <p className="text-xs text-muted-foreground">{news.source}</p>
                     </div>
                     <TrendUp className="w-5 h-5 text-primary flex-shrink-0" />
                   </div>

@@ -17,20 +17,24 @@ export async function generateSummary(transcript: string): Promise<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: [{
-        role: 'system',
-        content: 'You are a meeting summarization assistant. Provide clear, concise summaries with bullet points.'
-      }, {
-        role: 'user',
-        content: `Summarize this meeting transcript:\n\n${transcript}\n\nProvide:\n- Key discussion points\n- Decisions made\n- Action items\n- Important deadlines`
-      }],
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a meeting summarization assistant. Provide clear, concise summaries with bullet points.',
+        },
+        {
+          role: 'user',
+          content: `Summarize this meeting transcript:\n\n${transcript}\n\nProvide:\n- Key discussion points\n- Decisions made\n- Action items\n- Important deadlines`,
+        },
+      ],
       temperature: 0.7,
-      max_tokens: 1000
-    })
+      max_tokens: 1000,
+    }),
   })
 
   if (!response.ok) {
@@ -53,13 +57,17 @@ export async function generateScripts(transcript: string, summary?: string) {
     callOpenAI(basePrompt + 'FORMAL style transcript with professional language and structure.'),
     callOpenAI(basePrompt + 'CASUAL style transcript with friendly, conversational tone.'),
     callOpenAI(basePrompt + 'REPORT style with executive summary, decisions, and action items.'),
-    callOpenAI(basePrompt + 'MEETING MINUTES style with standard meeting format.')
+    callOpenAI(basePrompt + 'MEETING MINUTES style with standard meeting format.'),
   ])
 
   return { formal, casual, report, meeting }
 }
 
-export async function processCommand(command: string, context?: any, conversationHistory?: Array<{role: string, content: string}>): Promise<string> {
+export async function processCommand(
+  command: string,
+  context?: any,
+  conversationHistory?: Array<{ role: string; content: string }>
+): Promise<string> {
   // Import web search utilities
   const { shouldSearchWeb, quickSearch, isWebSearchEnabled } = await import('@/lib/web-search')
 
@@ -112,23 +120,25 @@ ${webSearchContext ? `\n\n--- WEB SEARCH RESULTS ---\n${webSearchContext}\n--- E
 Remember: You're a full AI assistant, not just a home controller. Help with everything!`
 
     // Build messages array with conversation history
-    const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
-      { role: 'system', content: systemPrompt }
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt },
     ]
 
     // Add conversation history (last 15 messages for better context)
     if (conversationHistory && conversationHistory.length > 0) {
       const recentHistory = conversationHistory.slice(-15)
-      messages.push(...recentHistory.map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content
-      })) as Array<{role: 'system' | 'user' | 'assistant', content: string}>)
+      messages.push(
+        ...(recentHistory.map(m => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.content,
+        })) as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>)
+      )
     }
 
     // Add current command
     messages.push({
       role: 'user',
-      content: command
+      content: command,
     })
 
     try {
@@ -160,7 +170,7 @@ Remember: You're a full AI assistant, not just a home controller. Help with ever
         if (attempt > 0) {
           // Wait before retry: 2s, 4s
           const delay = Math.pow(2, attempt) * 1000
-          console.log(`[AI] Rate limited, retrying in ${delay/1000}s...`)
+          console.log(`[AI] Rate limited, retrying in ${delay / 1000}s...`)
           await new Promise(r => setTimeout(r, delay))
         }
 
@@ -168,14 +178,14 @@ Remember: You're a full AI assistant, not just a home controller. Help with ever
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model: 'llama-3.3-70b-versatile',
             messages,
             temperature: 0.9,
-            max_tokens: 2000
-          })
+            max_tokens: 2000,
+          }),
         })
 
         if (fullResponse.ok) {
@@ -193,7 +203,9 @@ Remember: You're a full AI assistant, not just a home controller. Help with ever
         // Other errors - don't retry
         const errorData = await fullResponse.json().catch(() => ({}))
         console.error('[AI] Groq API error:', fullResponse.status, errorData)
-        throw new Error(`Groq API error: ${fullResponse.status} - ${errorData.error?.message || 'Unknown error'}`)
+        throw new Error(
+          `Groq API error: ${fullResponse.status} - ${errorData.error?.message || 'Unknown error'}`
+        )
       }
 
       // All retries failed
@@ -238,8 +250,8 @@ Context: ${JSON.stringify(context || {})}
 
 You're a full AI assistant, not just a home controller. Help with everything!`
 
-  const messages: Array<{role: string, content: string}> = [
-    { role: 'system', content: systemPrompt }
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
   ]
 
   if (conversationHistory && conversationHistory.length > 0) {
@@ -249,21 +261,21 @@ You're a full AI assistant, not just a home controller. Help with everything!`
 
   messages.push({
     role: 'user',
-    content: command
+    content: command,
   })
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages,
       temperature: 0.9,
-      max_tokens: 2000 // INCREASED from 300 to 2000
-    })
+      max_tokens: 2000, // INCREASED from 300 to 2000
+    }),
   })
 
   if (!response.ok) {
@@ -280,14 +292,14 @@ async function callOpenAI(prompt: string): Promise<string> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      max_tokens: 2000
-    })
+      max_tokens: 2000,
+    }),
   })
 
   const data = await response.json()

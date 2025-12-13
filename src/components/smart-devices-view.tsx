@@ -7,8 +7,20 @@ import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
 import {
@@ -33,7 +45,7 @@ import {
   House,
   Lightning,
   Trash,
-  Gear
+  Gear,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -43,7 +55,7 @@ import {
   SmartDevice,
   SmartDeviceType,
   SmartDeviceTrait,
-  DeviceCommands
+  DeviceCommands,
 } from '@/lib/smart-home-integration'
 
 interface Room {
@@ -73,7 +85,7 @@ export function SmartDevicesView() {
   useEffect(() => {
     setDevices(smartHome.getDevices())
 
-    const unsubscribe = smartHome.subscribe((updatedDevices) => {
+    const unsubscribe = smartHome.subscribe(updatedDevices => {
       setDevices(updatedDevices)
     })
 
@@ -98,7 +110,7 @@ export function SmartDevicesView() {
         id: device.room.toLowerCase().replace(/\s+/g, '-'),
         name: device.room,
         icon: getRoomIcon(device.room),
-        deviceCount: 1
+        deviceCount: 1,
       })
     }
     return acc
@@ -180,7 +192,7 @@ export function SmartDevicesView() {
       traits: getTraitsForType(newDeviceType),
       room: newDeviceRoom,
       isOnline: true,
-      state: { on: false }
+      state: { on: false },
     })
 
     toast.success('Device added!')
@@ -196,34 +208,40 @@ export function SmartDevicesView() {
 
   const getDeviceIcon = (type: SmartDeviceType) => {
     switch (type) {
-      case 'light': return Lightbulb
-      case 'thermostat': return Thermometer
-      case 'lock': return Lock
-      case 'camera': return Camera
-      case 'fan': return Fan
-      case 'speaker': return SpeakerHigh
-      case 'display': return Television
-      default: return Power
+      case 'light':
+        return Lightbulb
+      case 'thermostat':
+        return Thermometer
+      case 'lock':
+        return Lock
+      case 'camera':
+        return Camera
+      case 'fan':
+        return Fan
+      case 'speaker':
+        return SpeakerHigh
+      case 'display':
+        return Television
+      default:
+        return Power
     }
   }
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn('space-y-6', isMobile && 'space-y-4')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <Devices className="w-6 h-6 text-blue-500" weight="fill" />
               </div>
               <div>
-                <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
+                <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>
                   Smart Devices
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Control your connected devices
-                </p>
+                <p className="text-sm text-muted-foreground">Control your connected devices</p>
               </div>
             </div>
 
@@ -235,7 +253,7 @@ export function SmartDevicesView() {
                   onClick={handleSyncDevices}
                   disabled={isSyncing}
                 >
-                  <ArrowClockwise className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+                  <ArrowClockwise className={cn('w-4 h-4', isSyncing && 'animate-spin')} />
                   {!isMobile && <span className="ml-2">Sync</span>}
                 </Button>
               )}
@@ -257,12 +275,15 @@ export function SmartDevicesView() {
                       <Input
                         placeholder="e.g., Living Room Light"
                         value={newDeviceName}
-                        onChange={(e) => setNewDeviceName(e.target.value)}
+                        onChange={e => setNewDeviceName(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Device Type</Label>
-                      <Select value={newDeviceType} onValueChange={(v) => setNewDeviceType(v as SmartDeviceType)}>
+                      <Select
+                        value={newDeviceType}
+                        onValueChange={v => setNewDeviceType(v as SmartDeviceType)}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -310,14 +331,19 @@ export function SmartDevicesView() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center",
-                smartHome.isGoogleConnected() ? "bg-green-500/20" : "bg-muted"
-              )}>
-                <GoogleLogo className={cn(
-                  "w-5 h-5",
-                  smartHome.isGoogleConnected() ? "text-green-500" : "text-muted-foreground"
-                )} weight="bold" />
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center',
+                  smartHome.isGoogleConnected() ? 'bg-green-500/20' : 'bg-muted'
+                )}
+              >
+                <GoogleLogo
+                  className={cn(
+                    'w-5 h-5',
+                    smartHome.isGoogleConnected() ? 'text-green-500' : 'text-muted-foreground'
+                  )}
+                  weight="bold"
+                />
               </div>
               <div>
                 <h3 className="font-medium">Google Home</h3>
@@ -351,7 +377,7 @@ export function SmartDevicesView() {
       </Card>
 
       {/* Quick Stats */}
-      <div className={cn("grid gap-3", isMobile ? "grid-cols-2" : "grid-cols-4")}>
+      <div className={cn('grid gap-3', isMobile ? 'grid-cols-2' : 'grid-cols-4')}>
         <Card className="bg-green-500/10 border-green-500/20">
           <CardContent className="p-4 text-center">
             <WifiHigh className="w-6 h-6 mx-auto mb-2 text-green-500" weight="fill" />
@@ -382,7 +408,7 @@ export function SmartDevicesView() {
         </Card>
       </div>
 
-      <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+      <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
         {/* Rooms Sidebar */}
         <Card className="col-span-1">
           <CardHeader className="pb-3">
@@ -397,10 +423,10 @@ export function SmartDevicesView() {
                 <button
                   onClick={() => setSelectedRoom(null)}
                   className={cn(
-                    "w-full p-3 rounded-lg flex items-center justify-between transition-all",
+                    'w-full p-3 rounded-lg flex items-center justify-between transition-all',
                     selectedRoom === null
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/50 hover:bg-muted"
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/50 hover:bg-muted'
                   )}
                 >
                   <div className="flex items-center gap-2">
@@ -410,15 +436,15 @@ export function SmartDevicesView() {
                   <span className="text-sm opacity-70">{devices.length}</span>
                 </button>
 
-                {rooms.map((room) => (
+                {rooms.map(room => (
                   <button
                     key={room.id}
                     onClick={() => setSelectedRoom(room.name)}
                     className={cn(
-                      "w-full p-3 rounded-lg flex items-center justify-between transition-all",
+                      'w-full p-3 rounded-lg flex items-center justify-between transition-all',
                       selectedRoom === room.name
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/50 hover:bg-muted"
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 hover:bg-muted'
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -434,7 +460,7 @@ export function SmartDevicesView() {
         </Card>
 
         {/* Devices Grid */}
-        <Card className={cn(!isMobile && "col-span-2")}>
+        <Card className={cn(!isMobile && 'col-span-2')}>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -455,8 +481,8 @@ export function SmartDevicesView() {
               </div>
             ) : (
               <ScrollArea className="h-96">
-                <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-2")}>
-                  {roomDevices.map((device) => {
+                <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+                  {roomDevices.map(device => {
                     const Icon = getDeviceIcon(device.type)
                     return (
                       <motion.div
@@ -464,22 +490,27 @@ export function SmartDevicesView() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className={cn(
-                          "p-4 rounded-xl border transition-all",
+                          'p-4 rounded-xl border transition-all',
                           device.state.on
-                            ? "bg-primary/10 border-primary/30"
-                            : "bg-card border-border"
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'bg-card border-border'
                         )}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-10 h-10 rounded-full flex items-center justify-center",
-                              device.state.on ? "bg-primary/20" : "bg-muted"
-                            )}>
-                              <Icon className={cn(
-                                "w-5 h-5",
-                                device.state.on ? "text-primary" : "text-muted-foreground"
-                              )} weight={device.state.on ? "fill" : "regular"} />
+                            <div
+                              className={cn(
+                                'w-10 h-10 rounded-full flex items-center justify-center',
+                                device.state.on ? 'bg-primary/20' : 'bg-muted'
+                              )}
+                            >
+                              <Icon
+                                className={cn(
+                                  'w-5 h-5',
+                                  device.state.on ? 'text-primary' : 'text-muted-foreground'
+                                )}
+                                weight={device.state.on ? 'fill' : 'regular'}
+                              />
                             </div>
                             <div>
                               <h4 className="font-medium text-sm">{device.name}</h4>
@@ -515,28 +546,32 @@ export function SmartDevicesView() {
                             )}
                             <Switch
                               checked={device.state.on || false}
-                              onCheckedChange={() => handleToggleDevice(device.id, device.state.on || false)}
+                              onCheckedChange={() =>
+                                handleToggleDevice(device.id, device.state.on || false)
+                              }
                               disabled={!device.isOnline}
                             />
                           </div>
                         </div>
 
                         {/* Device-specific controls */}
-                        {device.type === 'light' && device.state.on && device.traits.includes('Brightness') && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <span>Brightness</span>
-                              <span>{device.state.brightness || 100}%</span>
+                        {device.type === 'light' &&
+                          device.state.on &&
+                          device.traits.includes('Brightness') && (
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                <span>Brightness</span>
+                                <span>{device.state.brightness || 100}%</span>
+                              </div>
+                              <Slider
+                                value={[device.state.brightness || 100]}
+                                onValueChange={v => handleBrightnessChange(device.id, v)}
+                                max={100}
+                                step={1}
+                                disabled={!device.isOnline}
+                              />
                             </div>
-                            <Slider
-                              value={[device.state.brightness || 100]}
-                              onValueChange={(v) => handleBrightnessChange(device.id, v)}
-                              max={100}
-                              step={1}
-                              disabled={!device.isOnline}
-                            />
-                          </div>
-                        )}
+                          )}
 
                         {device.type === 'thermostat' && (
                           <div className="mt-3">
@@ -546,7 +581,7 @@ export function SmartDevicesView() {
                             </div>
                             <Slider
                               value={[device.state.targetTemperature || 72]}
-                              onValueChange={(v) => handleTemperatureChange(device.id, v)}
+                              onValueChange={v => handleTemperatureChange(device.id, v)}
                               min={60}
                               max={85}
                               step={1}
@@ -563,10 +598,12 @@ export function SmartDevicesView() {
                         {device.type === 'lock' && (
                           <div className="mt-3">
                             <Button
-                              variant={device.state.locked ? "secondary" : "outline"}
+                              variant={device.state.locked ? 'secondary' : 'outline'}
                               size="sm"
                               className="w-full"
-                              onClick={() => handleLockToggle(device.id, device.state.locked || false)}
+                              onClick={() =>
+                                handleLockToggle(device.id, device.state.locked || false)
+                              }
                               disabled={!device.isOnline}
                             >
                               {device.state.locked ? (
@@ -592,7 +629,7 @@ export function SmartDevicesView() {
                             </div>
                             <Slider
                               value={[device.state.volume || 50]}
-                              onValueChange={(v) => handleVolumeChange(device.id, v)}
+                              onValueChange={v => handleVolumeChange(device.id, v)}
                               max={100}
                               step={1}
                               disabled={!device.isOnline}
@@ -613,7 +650,7 @@ export function SmartDevicesView() {
       <Card className="bg-muted/30">
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">Coming Soon</h3>
-          <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+          <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
             <div className="flex items-start gap-3 opacity-50">
               <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center flex-shrink-0">
                 <SpeakerHigh className="w-5 h-5 text-gray-500" />
@@ -631,9 +668,7 @@ export function SmartDevicesView() {
               </div>
               <div>
                 <h4 className="font-medium">Apple HomeKit</h4>
-                <p className="text-sm text-muted-foreground">
-                  Sync with your Apple Home devices
-                </p>
+                <p className="text-sm text-muted-foreground">Sync with your Apple Home devices</p>
               </div>
             </div>
             <div className="flex items-start gap-3 opacity-50">
@@ -642,9 +677,7 @@ export function SmartDevicesView() {
               </div>
               <div>
                 <h4 className="font-medium">Matter Protocol</h4>
-                <p className="text-sm text-muted-foreground">
-                  Universal smart home standard
-                </p>
+                <p className="text-sm text-muted-foreground">Universal smart home standard</p>
               </div>
             </div>
           </div>
@@ -658,14 +691,14 @@ export function SmartDevicesView() {
 function getRoomIcon(room: string): string {
   const icons: Record<string, string> = {
     'Living Room': '🛋️',
-    'Bedroom': '🛏️',
-    'Kitchen': '🍳',
-    'Bathroom': '🚿',
-    'Office': '💼',
-    'Garage': '🚗',
-    'Outdoor': '🌳',
+    Bedroom: '🛏️',
+    Kitchen: '🍳',
+    Bathroom: '🚿',
+    Office: '💼',
+    Garage: '🚗',
+    Outdoor: '🌳',
     'Dining Room': '🍽️',
-    'Hallway': '🚪'
+    Hallway: '🚪',
   }
   return icons[room] || '🏠'
 }
@@ -683,7 +716,7 @@ function getTraitsForType(type: SmartDeviceType): SmartDeviceTrait[] {
     air_purifier: ['OnOff', 'FanSpeed'],
     vacuum: ['OnOff', 'StartStop'],
     sensor: [],
-    outlet: ['OnOff']
+    outlet: ['OnOff'],
   }
   return traitMap[type] || ['OnOff']
 }

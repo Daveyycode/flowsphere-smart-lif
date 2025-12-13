@@ -44,8 +44,9 @@ export class NativeWeatherIntegration {
     return {
       geolocation: 'geolocation' in navigator,
       notifications: 'Notification' in window,
-      backgroundSync: 'serviceWorker' in navigator && 'sync' in (ServiceWorkerRegistration.prototype || {}),
-      vibration: 'vibrate' in navigator
+      backgroundSync:
+        'serviceWorker' in navigator && 'sync' in (ServiceWorkerRegistration.prototype || {}),
+      vibration: 'vibrate' in navigator,
     }
   }
 
@@ -88,7 +89,7 @@ export class NativeWeatherIntegration {
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
             () => resolve(),
-            (error) => reject(error),
+            error => reject(error),
             { timeout: 5000 }
           )
         })
@@ -117,18 +118,18 @@ export class NativeWeatherIntegration {
     if (this.watchId !== null) return
 
     this.watchId = navigator.geolocation.watchPosition(
-      async (position) => {
+      async position => {
         // Update weather when location changes significantly
         const weather = await this.weatherManager.getCurrentWeather(true)
         onWeatherUpdate(weather)
       },
-      (error) => {
+      error => {
         console.error('Location tracking error:', error)
       },
       {
         enableHighAccuracy: false,
         maximumAge: 300000, // 5 minutes
-        timeout: 10000
+        timeout: 10000,
       }
     )
   }
@@ -150,10 +151,13 @@ export class NativeWeatherIntegration {
     if (this.autoRefreshInterval) return
 
     // Refresh every 10 minutes
-    this.autoRefreshInterval = setInterval(async () => {
-      const weather = await this.weatherManager.getCurrentWeather(true)
-      onWeatherUpdate(weather)
-    }, 10 * 60 * 1000)
+    this.autoRefreshInterval = setInterval(
+      async () => {
+        const weather = await this.weatherManager.getCurrentWeather(true)
+        onWeatherUpdate(weather)
+      },
+      10 * 60 * 1000
+    )
   }
 
   /**
@@ -195,7 +199,7 @@ export class NativeWeatherIntegration {
         badge: '/weather-badge.png',
         tag: options?.tag || 'weather-update',
         requireInteraction: false,
-        silent: false
+        silent: false,
       })
 
       // Vibrate if enabled and supported
@@ -221,14 +225,10 @@ export class NativeWeatherIntegration {
     if (this.notificationSettings.alerts && weather.alerts) {
       for (const alert of weather.alerts) {
         if (alert.severity === 'severe' || alert.severity === 'extreme') {
-          await this.sendWeatherNotification(
-            `⚠️ ${alert.title}`,
-            alert.description,
-            {
-              vibrate: true,
-              tag: `alert-${alert.type}`
-            }
-          )
+          await this.sendWeatherNotification(`⚠️ ${alert.title}`, alert.description, {
+            vibrate: true,
+            tag: `alert-${alert.type}`,
+          })
         }
       }
     }
@@ -251,11 +251,13 @@ export class NativeWeatherIntegration {
     }
 
     // Check for rain
-    const rainCheck = weather.forecast.hourly.slice(0, 3).some(h => h.condition.toLowerCase().includes('rain'))
+    const rainCheck = weather.forecast.hourly
+      .slice(0, 3)
+      .some(h => h.condition.toLowerCase().includes('rain'))
     if (rainCheck && this.notificationSettings.alerts) {
       await this.sendWeatherNotification(
         '🌧️ Rain Expected',
-        'Rain expected in the next 3 hours. Don\'t forget your umbrella!',
+        "Rain expected in the next 3 hours. Don't forget your umbrella!",
         { tag: 'rain-alert' }
       )
     }
@@ -267,7 +269,7 @@ export class NativeWeatherIntegration {
   updateNotificationSettings(settings: Partial<WeatherNotificationSettings>): void {
     this.notificationSettings = {
       ...this.notificationSettings,
-      ...settings
+      ...settings,
     }
     this.saveNotificationSettings()
   }
@@ -301,7 +303,7 @@ export class NativeWeatherIntegration {
       const androidWeatherApps = [
         'com.google.android.apps.weather', // Google Weather
         'com.weather.Weather', // Weather.com
-        'com.accuweather.android' // AccuWeather
+        'com.accuweather.android', // AccuWeather
       ]
 
       // Try to open with intent
@@ -325,7 +327,7 @@ export class NativeWeatherIntegration {
       await navigator.share({
         title: `Weather in ${weather.location.city}`,
         text: `Currently ${Math.round(weather.current.temperature)}°C and ${weather.current.description}. ${weather.current.icon}`,
-        url: window.location.href
+        url: window.location.href,
       })
     } catch (error) {
       console.error('Share error:', error)
@@ -345,13 +347,15 @@ export class NativeWeatherIntegration {
   private loadNotificationSettings(): WeatherNotificationSettings {
     try {
       const saved = localStorage.getItem(this.storageKey)
-      return saved ? JSON.parse(saved) : {
-        enabled: true,
-        alerts: true,
-        dailyForecast: true,
-        severeWeather: true,
-        temperature: true
-      }
+      return saved
+        ? JSON.parse(saved)
+        : {
+            enabled: true,
+            alerts: true,
+            dailyForecast: true,
+            severeWeather: true,
+            temperature: true,
+          }
     } catch (error) {
       logger.debug('Failed to load weather notification settings', error)
       return {
@@ -359,7 +363,7 @@ export class NativeWeatherIntegration {
         alerts: true,
         dailyForecast: true,
         severeWeather: true,
-        temperature: true
+        temperature: true,
       }
     }
   }

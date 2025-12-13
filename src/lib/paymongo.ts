@@ -98,17 +98,17 @@ class PayMongoService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': this.getAuthHeader()
+        Authorization: this.getAuthHeader(),
       },
       body: JSON.stringify({
         data: {
           attributes: {
             amount: options.amount,
             description: options.description,
-            remarks: options.remarks || 'FlowSphere Payment'
-          }
-        }
-      })
+            remarks: options.remarks || 'FlowSphere Payment',
+          },
+        },
+      }),
     })
 
     if (!response.ok) {
@@ -131,8 +131,8 @@ class PayMongoService {
   async getPaymentLink(linkId: string): Promise<PayMongoPaymentLink> {
     const response = await fetch(`${this.baseUrl}/links/${linkId}`, {
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -149,8 +149,8 @@ class PayMongoService {
   async listPaymentLinks(): Promise<PayMongoPaymentLink[]> {
     const response = await fetch(`${this.baseUrl}/links`, {
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -168,8 +168,8 @@ class PayMongoService {
     const response = await fetch(`${this.baseUrl}/links/${linkId}/archive`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -187,8 +187,8 @@ class PayMongoService {
     const response = await fetch(`${this.baseUrl}/links/${linkId}/unarchive`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -205,8 +205,8 @@ class PayMongoService {
   async getPayment(paymentId: string): Promise<PayMongoPayment> {
     const response = await fetch(`${this.baseUrl}/payments/${paymentId}`, {
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -223,8 +223,8 @@ class PayMongoService {
   async listPayments(): Promise<PayMongoPayment[]> {
     const response = await fetch(`${this.baseUrl}/payments`, {
       headers: {
-        'Authorization': this.getAuthHeader()
-      }
+        Authorization: this.getAuthHeader(),
+      },
     })
 
     if (!response.ok) {
@@ -241,7 +241,7 @@ class PayMongoService {
   formatAmount(centavos: number): string {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'PHP'
+      currency: 'PHP',
     }).format(centavos / 100)
   }
 
@@ -257,12 +257,12 @@ class PayMongoService {
    */
   getPaymentMethodName(type: string): string {
     const methods: Record<string, string> = {
-      'gcash': 'GCash',
-      'grab_pay': 'GrabPay',
-      'paymaya': 'Maya',
-      'card': 'Card',
-      'dob': 'Direct Online Banking',
-      'billease': 'BillEase'
+      gcash: 'GCash',
+      grab_pay: 'GrabPay',
+      paymaya: 'Maya',
+      card: 'Card',
+      dob: 'Direct Online Banking',
+      billease: 'BillEase',
     }
     return methods[type] || type
   }
@@ -272,11 +272,11 @@ class PayMongoService {
    */
   getStatusColor(status: string): string {
     const colors: Record<string, string> = {
-      'paid': 'bg-mint/20 text-mint',
-      'unpaid': 'bg-yellow-500/20 text-yellow-500',
-      'pending': 'bg-yellow-500/20 text-yellow-500',
-      'expired': 'bg-muted text-muted-foreground',
-      'failed': 'bg-destructive/20 text-destructive'
+      paid: 'bg-mint/20 text-mint',
+      unpaid: 'bg-yellow-500/20 text-yellow-500',
+      pending: 'bg-yellow-500/20 text-yellow-500',
+      expired: 'bg-muted text-muted-foreground',
+      failed: 'bg-destructive/20 text-destructive',
     }
     return colors[status] || 'bg-muted text-muted-foreground'
   }

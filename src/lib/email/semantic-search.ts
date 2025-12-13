@@ -25,9 +25,7 @@ export async function semanticEmailSearch(options: SearchOptions): Promise<Searc
   const { query, category, unreadOnly, limit = 100 } = options
 
   // Get base emails
-  let emails = category
-    ? await emailDatabase.getEmailsByCategory(category)
-    : await getAllEmails()
+  let emails = category ? await emailDatabase.getEmailsByCategory(category) : await getAllEmails()
 
   // Filter by unread if needed
   if (unreadOnly) {
@@ -89,18 +87,18 @@ async function expandSearchTerms(query: string): Promise<string[]> {
 
   // Common synonyms and related terms
   const synonyms: Record<string, string[]> = {
-    'dole': ['department of labor', 'labor department', 'employment'],
-    'bir': ['bureau of internal revenue', 'tax', 'revenue'],
-    'sss': ['social security', 'social security system'],
-    'philhealth': ['phil health', 'health insurance'],
+    dole: ['department of labor', 'labor department', 'employment'],
+    bir: ['bureau of internal revenue', 'tax', 'revenue'],
+    sss: ['social security', 'social security system'],
+    philhealth: ['phil health', 'health insurance'],
     'pag-ibig': ['pagibig', 'hdmf', 'housing fund'],
-    'meeting': ['conference', 'call', 'zoom', 'meet', 'discussion'],
-    'urgent': ['important', 'asap', 'critical', 'emergency', 'priority'],
-    'bill': ['invoice', 'payment', 'billing', 'charge', 'subscription'],
-    'deadline': ['due date', 'due', 'expires', 'expiration'],
-    'work': ['office', 'job', 'project', 'task', 'team'],
-    'personal': ['private', 'family', 'home'],
-    'spam': ['junk', 'promotional', 'advertisement'],
+    meeting: ['conference', 'call', 'zoom', 'meet', 'discussion'],
+    urgent: ['important', 'asap', 'critical', 'emergency', 'priority'],
+    bill: ['invoice', 'payment', 'billing', 'charge', 'subscription'],
+    deadline: ['due date', 'due', 'expires', 'expiration'],
+    work: ['office', 'job', 'project', 'task', 'team'],
+    personal: ['private', 'family', 'home'],
+    spam: ['junk', 'promotional', 'advertisement'],
   }
 
   // Add synonyms

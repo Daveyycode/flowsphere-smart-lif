@@ -33,7 +33,7 @@ export async function getCurrentWeather(city: string = 'San Francisco'): Promise
       icon: '02d',
       humidity: 65,
       windSpeed: 8,
-      description: 'Add VITE_WEATHER_API_KEY to .env for real weather data'
+      description: 'Add VITE_WEATHER_API_KEY to .env for real weather data',
     }
   }
 
@@ -54,7 +54,7 @@ export async function getCurrentWeather(city: string = 'San Francisco'): Promise
     icon: data.weather[0].icon,
     humidity: data.main.humidity,
     windSpeed: Math.round(data.wind.speed),
-    description: data.weather[0].description
+    description: data.weather[0].description,
   }
 }
 
@@ -66,7 +66,7 @@ export async function get5DayForecast(city: string = 'San Francisco'): Promise<F
       { date: 'Tomorrow', tempHigh: 73, tempLow: 60, condition: 'Cloudy', icon: '02d' },
       { date: 'Wednesday', tempHigh: 70, tempLow: 58, condition: 'Rainy', icon: '10d' },
       { date: 'Thursday', tempHigh: 72, tempLow: 59, condition: 'Partly Cloudy', icon: '02d' },
-      { date: 'Friday', tempHigh: 74, tempLow: 61, condition: 'Sunny', icon: '01d' }
+      { date: 'Friday', tempHigh: 74, tempLow: 61, condition: 'Sunny', icon: '01d' },
     ]
   }
 
@@ -92,7 +92,7 @@ export async function get5DayForecast(city: string = 'San Francisco'): Promise<F
         tempHigh: item.main.temp_max,
         tempLow: item.main.temp_min,
         condition: item.weather[0].main,
-        icon: item.weather[0].icon
+        icon: item.weather[0].icon,
       }
     } else {
       daily[date].tempHigh = Math.max(daily[date].tempHigh, item.main.temp_max)
@@ -100,11 +100,13 @@ export async function get5DayForecast(city: string = 'San Francisco'): Promise<F
     }
   })
 
-  return Object.values(daily).slice(0, 5).map((day: any) => ({
-    ...day,
-    tempHigh: Math.round(day.tempHigh),
-    tempLow: Math.round(day.tempLow)
-  }))
+  return Object.values(daily)
+    .slice(0, 5)
+    .map((day: any) => ({
+      ...day,
+      tempHigh: Math.round(day.tempHigh),
+      tempLow: Math.round(day.tempLow),
+    }))
 }
 
 export function getWeatherIcon(iconCode: string): string {

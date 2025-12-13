@@ -50,7 +50,7 @@ export async function getTrafficData(_origin: string, _destination: string): Pro
     currentTravelTime: 25,
     normalTravelTime: 25,
     trafficLevel: 'low',
-    alternativeRoutes: []
+    alternativeRoutes: [],
   }
 }
 
@@ -58,7 +58,11 @@ export async function getRouteTraffic(_routeId: string, _to?: string): Promise<T
   return getTrafficData('', '')
 }
 
-export async function getTrafficIncidents(_lat: number, _lng: number, _radiusMiles: number): Promise<TrafficIncident[]> {
+export async function getTrafficIncidents(
+  _lat: number,
+  _lng: number,
+  _radiusMiles: number
+): Promise<TrafficIncident[]> {
   // Stub implementation - would integrate with real traffic API
   return []
 }
@@ -68,7 +72,7 @@ export function formatTrafficCondition(condition: TrafficData['condition']): str
     light: 'Light traffic',
     moderate: 'Moderate traffic',
     heavy: 'Heavy traffic',
-    severe: 'Severe congestion'
+    severe: 'Severe congestion',
   }
   return labels[condition]
 }

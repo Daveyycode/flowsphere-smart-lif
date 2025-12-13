@@ -1,9 +1,9 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @layer base {
   * {
-    @apply border-border
+    @apply border-border;
   }
 }
 
@@ -14,14 +14,14 @@
   --card: oklch(0.99 0.005 180);
   --card-foreground: oklch(0.15 0.02 240);
 
-  --popover: oklch(1.00 0 0);
+  --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 240);
 
-  --primary: oklch(0.65 0.20 160);
+  --primary: oklch(0.65 0.2 160);
   --primary-foreground: oklch(0.98 0.01 180);
 
   --secondary: oklch(0.92 0.08 200);
-  --secondary-foreground: oklch(0.20 0.05 240);
+  --secondary-foreground: oklch(0.2 0.05 240);
 
   --muted: oklch(0.94 0.02 180);
   --muted-foreground: oklch(0.45 0.02 240);
@@ -36,15 +36,15 @@
   --mint-foreground: oklch(0.2 0 0);
 
   --blue-light: oklch(0.75 0.15 240);
-  --blue-mid: oklch(0.60 0.20 250);
+  --blue-mid: oklch(0.6 0.2 250);
   --blue-deep: oklch(0.45 0.18 260);
 
-  --destructive: oklch(0.65 0.20 25);
+  --destructive: oklch(0.65 0.2 25);
   --destructive-foreground: oklch(0.98 0.01 180);
 
   --border: oklch(0.88 0.02 180);
   --input: oklch(0.88 0.02 180);
-  --ring: oklch(0.65 0.20 160);
+  --ring: oklch(0.65 0.2 160);
 
   --radius: 0.75rem;
 
@@ -60,33 +60,33 @@
   --line-height: 1.5;
   --letter-spacing: 0px;
 
-  --chart-1: oklch(0.65 0.20 160);
+  --chart-1: oklch(0.65 0.2 160);
 
   --chart-2: oklch(0.75 0.15 280);
 
   --chart-3: oklch(0.55 0.18 120);
 
-  --chart-4: oklch(0.70 0.12 320);
+  --chart-4: oklch(0.7 0.12 320);
 
-  --chart-5: oklch(0.60 0.15 40);
+  --chart-5: oklch(0.6 0.15 40);
 
   --sidebar: oklch(0.96 0.01 180);
 
   --sidebar-foreground: oklch(0.15 0.02 240);
 
-  --sidebar-primary: oklch(0.65 0.20 160);
+  --sidebar-primary: oklch(0.65 0.2 160);
 
   --sidebar-primary-foreground: oklch(0.98 0.01 180);
 
   --sidebar-accent: oklch(0.92 0.08 200);
 
-  --sidebar-accent-foreground: oklch(0.20 0.05 240);
+  --sidebar-accent-foreground: oklch(0.2 0.05 240);
 
   --sidebar-border: oklch(0.88 0.02 180);
 
-  --sidebar-ring: oklch(0.65 0.20 160);
+  --sidebar-ring: oklch(0.65 0.2 160);
 
-  --shadow-color: oklch(0.65 0.20 160);
+  --shadow-color: oklch(0.65 0.2 160);
 
   --shadow-opacity: 0.15;
 
@@ -98,7 +98,7 @@
 
   --shadow-offset-y: 4px;
 
-  --spacing: 0.20rem;
+  --spacing: 0.2rem;
 }
 
 @theme {
@@ -144,31 +144,51 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-size: var(--font-size);
-    font-family: var(--font-family), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    font-family:
+      var(--font-family),
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      'Noto Sans',
+      sans-serif,
+      'Apple Color Emoji',
+      'Segoe UI Emoji',
+      'Segoe UI Symbol',
+      'Noto Color Emoji';
     line-height: var(--line-height);
     letter-spacing: var(--letter-spacing);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-family), var(--font-heading);
   }
-  
+
   h1 {
     @apply text-2xl sm:text-3xl md:text-4xl;
   }
-  
+
   h2 {
     @apply text-xl sm:text-2xl md:text-3xl;
   }
-  
+
   h3 {
     @apply text-lg sm:text-xl md:text-2xl;
   }
-  
+
   h4 {
     @apply text-base sm:text-lg;
   }
-  
+
   @supports (padding: env(safe-area-inset-bottom)) {
     .safe-area-inset-bottom {
       padding-bottom: env(safe-area-inset-bottom);
@@ -180,7 +200,7 @@
   .glow-accent {
     box-shadow: 0 0 20px -5px var(--accent);
   }
-  
+
   .glow-primary {
     box-shadow: 0 0 20px -5px var(--primary);
   }
@@ -190,7 +210,12 @@
   }
 
   .blue-ombre {
-    background: linear-gradient(135deg, var(--blue-light) 0%, var(--blue-mid) 50%, var(--blue-deep) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--blue-light) 0%,
+      var(--blue-mid) 50%,
+      var(--blue-deep) 100%
+    );
   }
 
   .blue-ombre-subtle {
@@ -200,27 +225,27 @@
   .blue-border-gradient {
     border-image: linear-gradient(135deg, var(--blue-light), var(--blue-mid), var(--blue-deep)) 1;
   }
-  
+
   .text-responsive-xs {
     @apply text-[10px] sm:text-xs;
   }
-  
+
   .text-responsive-sm {
     @apply text-xs sm:text-sm;
   }
-  
+
   .text-responsive-base {
     @apply text-sm sm:text-base;
   }
-  
+
   .text-responsive-lg {
     @apply text-base sm:text-lg;
   }
-  
+
   .text-responsive-xl {
     @apply text-lg sm:text-xl md:text-2xl;
   }
-  
+
   .min-touch-target {
     min-width: 44px;
     min-height: 44px;

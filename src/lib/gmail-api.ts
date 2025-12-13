@@ -3,14 +3,19 @@
  * Connects to Gmail API and fetches emails for scanning
  */
 
-import { scanEmails, detectSubscriptions, generateEmailInsights, type EmailMessage } from './email-scanner'
+import {
+  scanEmails,
+  detectSubscriptions,
+  generateEmailInsights,
+  type EmailMessage,
+} from './email-scanner'
 import { logger } from '@/lib/security-utils'
 
 // Gmail API Configuration
 const GMAIL_API_BASE = 'https://www.googleapis.com/gmail/v1'
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.modify'
+  'https://www.googleapis.com/auth/gmail.modify',
 ]
 
 export interface GmailConfig {
@@ -37,7 +42,7 @@ export class GmailAPIService {
     this.config = config || {
       clientId: import.meta.env.VITE_GMAIL_CLIENT_ID || '',
       apiKey: import.meta.env.VITE_GMAIL_API_KEY || '',
-      clientSecret: import.meta.env.VITE_GMAIL_CLIENT_SECRET || ''
+      clientSecret: import.meta.env.VITE_GMAIL_CLIENT_SECRET || '',
     }
 
     this.loadTokenFromStorage()
@@ -69,11 +74,11 @@ export class GmailAPIService {
           expires_in: response.expires_in || 3600,
           token_type: response.token_type || 'Bearer',
           scope: response.scope,
-          expires_at: Date.now() + (response.expires_in * 1000)
+          expires_at: Date.now() + response.expires_in * 1000,
         }
 
         this.saveTokenToStorage()
-      }
+      },
     })
   }
 
@@ -129,7 +134,7 @@ export class GmailAPIService {
           expires_in: response.expires_in || 3600,
           token_type: response.token_type || 'Bearer',
           scope: response.scope,
-          expires_at: Date.now() + (response.expires_in * 1000)
+          expires_at: Date.now() + response.expires_in * 1000,
         }
 
         this.saveTokenToStorage()
@@ -185,7 +190,7 @@ export class GmailAPIService {
     if (this.token) {
       try {
         await fetch(`https://oauth2.googleapis.com/revoke?token=${this.token.access_token}`, {
-          method: 'POST'
+          method: 'POST',
         })
       } catch (error) {
         logger.error('Error revoking token', error, 'GmailAPI')
@@ -248,7 +253,7 @@ export class GmailAPIService {
       promotions: 'category:promotions',
       updates: 'category:updates',
       forums: 'category:forums',
-      primary: 'category:primary'
+      primary: 'category:primary',
     }
 
     const query = categoryQueries[category.toLowerCase()] || ''
@@ -266,8 +271,8 @@ export class GmailAPIService {
     await this.makeRequest(`/users/me/messages/${emailId}/modify`, {
       method: 'POST',
       body: JSON.stringify({
-        removeLabelIds: ['UNREAD']
-      })
+        removeLabelIds: ['UNREAD'],
+      }),
     })
   }
 
@@ -282,8 +287,8 @@ export class GmailAPIService {
     await this.makeRequest(`/users/me/messages/${emailId}/modify`, {
       method: 'POST',
       body: JSON.stringify({
-        addLabelIds: ['UNREAD']
-      })
+        addLabelIds: ['UNREAD'],
+      }),
     })
   }
 
@@ -291,7 +296,11 @@ export class GmailAPIService {
    * Make authenticated request to Gmail API
    * Automatically handles token expiry and re-authentication
    */
-  private async makeRequest(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<any> {
+  private async makeRequest(
+    endpoint: string,
+    options: RequestInit = {},
+    retryCount = 0
+  ): Promise<any> {
     // Check if token is expired or missing
     if (!this.token || this.token.expires_at <= Date.now()) {
       // Token expired - try to re-authenticate silently
@@ -315,8 +324,8 @@ export class GmailAPIService {
       headers: {
         Authorization: `${this.token.token_type} ${this.token.access_token}`,
         'Content-Type': 'application/json',
-        ...options.headers
-      }
+        ...options.headers,
+      },
     })
 
     // Handle 401 Unauthorized - token might be revoked
@@ -328,7 +337,9 @@ export class GmailAPIService {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Gmail API request failed' } }))
+      const error = await response
+        .json()
+        .catch(() => ({ error: { message: 'Gmail API request failed' } }))
 
       // Provide user-friendly error messages
       if (response.status === 401) {
@@ -375,7 +386,7 @@ export class GmailAPIService {
       subject: getHeader('Subject'),
       body: body || 'No body content',
       timestamp: new Date(parseInt(message.internalDate)).toISOString(),
-      read: !message.labelIds?.includes('UNREAD')
+      read: !message.labelIds?.includes('UNREAD'),
     }
   }
 
@@ -446,6 +457,6 @@ export async function fetchAndAnalyzeEmails(maxResults: number = 50) {
   return {
     emails,
     subscriptions,
-    insights
+    insights,
   }
 }

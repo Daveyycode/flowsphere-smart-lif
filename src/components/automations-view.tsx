@@ -1,27 +1,39 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Lightning, 
-  Plus, 
-  Clock, 
-  Lightbulb, 
-  Thermometer, 
+import {
+  Lightning,
+  Plus,
+  Clock,
+  Lightbulb,
+  Thermometer,
   Lock,
   Sun,
   Moon,
   MapPin,
   Play,
   Pause,
-  Trash
+  Trash,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 
 export interface Automation {
@@ -46,7 +58,7 @@ export function AutomationsView({
   automations,
   onToggleAutomation,
   onDeleteAutomation,
-  onAddAutomation
+  onAddAutomation,
 }: AutomationsViewProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newAutomation, setNewAutomation] = useState<{
@@ -60,37 +72,53 @@ export function AutomationsView({
     trigger: 'time',
     triggerDetails: '',
     actions: [],
-    icon: 'lightning'
+    icon: 'lightning',
   })
 
   const getAutomationIcon = (icon: string) => {
     switch (icon) {
-      case 'sun': return Sun
-      case 'moon': return Moon
-      case 'lock': return Lock
-      case 'lightbulb': return Lightbulb
-      case 'thermometer': return Thermometer
-      default: return Lightning
+      case 'sun':
+        return Sun
+      case 'moon':
+        return Moon
+      case 'lock':
+        return Lock
+      case 'lightbulb':
+        return Lightbulb
+      case 'thermometer':
+        return Thermometer
+      default:
+        return Lightning
     }
   }
 
   const getTriggerIcon = (trigger: string) => {
     switch (trigger) {
-      case 'time': return Clock
-      case 'location': return MapPin
-      case 'device': return Lightbulb
-      default: return Lightning
+      case 'time':
+        return Clock
+      case 'location':
+        return MapPin
+      case 'device':
+        return Lightbulb
+      default:
+        return Lightning
     }
   }
 
   const getIconColor = (icon: string) => {
     switch (icon) {
-      case 'sun': return 'coral'
-      case 'moon': return 'primary'
-      case 'lock': return 'accent'
-      case 'lightbulb': return 'mint'
-      case 'thermometer': return 'coral'
-      default: return 'accent'
+      case 'sun':
+        return 'coral'
+      case 'moon':
+        return 'primary'
+      case 'lock':
+        return 'accent'
+      case 'lightbulb':
+        return 'mint'
+      case 'thermometer':
+        return 'coral'
+      default:
+        return 'accent'
     }
   }
 
@@ -113,16 +141,16 @@ export function AutomationsView({
     onAddAutomation({
       ...newAutomation,
       isActive: true,
-      actions: newAutomation.actions.length > 0 ? newAutomation.actions : ['Turn on lights']
+      actions: newAutomation.actions.length > 0 ? newAutomation.actions : ['Turn on lights'],
     })
-    
+
     setIsAddDialogOpen(false)
     setNewAutomation({
       name: '',
       trigger: 'time',
       triggerDetails: '',
       actions: [],
-      icon: 'lightning'
+      icon: 'lightning',
     })
     toast.success('Automation created successfully')
   }
@@ -132,9 +160,7 @@ export function AutomationsView({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold mb-2">Automations</h1>
-          <p className="text-muted-foreground">
-            Create intelligent routines for your smart home
-          </p>
+          <p className="text-muted-foreground">Create intelligent routines for your smart home</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -154,15 +180,17 @@ export function AutomationsView({
                   id="automation-name"
                   placeholder="Morning Routine"
                   value={newAutomation.name}
-                  onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })}
+                  onChange={e => setNewAutomation({ ...newAutomation, name: e.target.value })}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="trigger-type">Trigger Type</Label>
                 <Select
                   value={newAutomation.trigger}
-                  onValueChange={(value: any) => setNewAutomation({ ...newAutomation, trigger: value })}
+                  onValueChange={(value: any) =>
+                    setNewAutomation({ ...newAutomation, trigger: value })
+                  }
                 >
                   <SelectTrigger id="trigger-type">
                     <SelectValue />
@@ -181,13 +209,18 @@ export function AutomationsView({
                 <Input
                   id="trigger-details"
                   placeholder={
-                    newAutomation.trigger === 'time' ? '6:45 AM' :
-                    newAutomation.trigger === 'location' ? 'When arriving home' :
-                    newAutomation.trigger === 'device' ? 'When light turns on' :
-                    'Temperature below 65°F'
+                    newAutomation.trigger === 'time'
+                      ? '6:45 AM'
+                      : newAutomation.trigger === 'location'
+                        ? 'When arriving home'
+                        : newAutomation.trigger === 'device'
+                          ? 'When light turns on'
+                          : 'Temperature below 65°F'
                   }
                   value={newAutomation.triggerDetails}
-                  onChange={(e) => setNewAutomation({ ...newAutomation, triggerDetails: e.target.value })}
+                  onChange={e =>
+                    setNewAutomation({ ...newAutomation, triggerDetails: e.target.value })
+                  }
                 />
               </div>
 
@@ -195,7 +228,9 @@ export function AutomationsView({
                 <Label htmlFor="icon-select">Icon</Label>
                 <Select
                   value={newAutomation.icon}
-                  onValueChange={(value: any) => setNewAutomation({ ...newAutomation, icon: value })}
+                  onValueChange={(value: any) =>
+                    setNewAutomation({ ...newAutomation, icon: value })
+                  }
                 >
                   <SelectTrigger id="icon-select">
                     <SelectValue />
@@ -211,10 +246,7 @@ export function AutomationsView({
                 </Select>
               </div>
 
-              <Button 
-                onClick={handleAddAutomation} 
-                className="w-full bg-accent hover:bg-accent/90"
-              >
+              <Button onClick={handleAddAutomation} className="w-full bg-accent hover:bg-accent/90">
                 Create Automation
               </Button>
             </div>
@@ -236,7 +268,8 @@ export function AutomationsView({
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">Automate Your Life</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Set up intelligent automations that respond to your daily patterns. Save time and energy by letting FlowSphere handle routine tasks automatically.
+                  Set up intelligent automations that respond to your daily patterns. Save time and
+                  energy by letting FlowSphere handle routine tasks automatically.
                 </p>
                 <Button variant="link" className="text-accent p-0 h-auto">
                   Learn about automation best practices →
@@ -260,10 +293,7 @@ export function AutomationsView({
           <p className="text-muted-foreground mb-6">
             Create your first automation to start saving time
           </p>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-accent hover:bg-accent/90"
-          >
+          <Button onClick={() => setIsAddDialogOpen(true)} className="bg-accent hover:bg-accent/90">
             <Plus className="w-5 h-5 mr-2" weight="bold" />
             Create Your First Automation
           </Button>
@@ -282,11 +312,15 @@ export function AutomationsView({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <Card className={`border-border/50 hover:border-${color}/50 transition-all duration-300 ${automation.isActive ? 'hover:shadow-lg' : 'opacity-70'}`}>
+                <Card
+                  className={`border-border/50 hover:border-${color}/50 transition-all duration-300 ${automation.isActive ? 'hover:shadow-lg' : 'opacity-70'}`}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start space-x-3">
-                        <div className={`w-12 h-12 rounded-xl bg-${color}/10 flex items-center justify-center flex-shrink-0`}>
+                        <div
+                          className={`w-12 h-12 rounded-xl bg-${color}/10 flex items-center justify-center flex-shrink-0`}
+                        >
                           <Icon className={`w-6 h-6 text-${color}`} weight="duotone" />
                         </div>
                         <div>
@@ -301,7 +335,7 @@ export function AutomationsView({
                       </div>
                       <Switch
                         checked={automation.isActive}
-                        onCheckedChange={(checked) => handleToggle(automation.id, checked)}
+                        onCheckedChange={checked => handleToggle(automation.id, checked)}
                       />
                     </div>
 

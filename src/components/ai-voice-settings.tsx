@@ -26,18 +26,91 @@ interface VoiceOption {
 }
 
 const voiceOptions: VoiceOption[] = [
-  { name: 'Samantha', lang: 'en-US', description: 'Professional American female voice', gender: 'female', accent: 'American', recommended: true },
-  { name: 'Alex', lang: 'en-US', description: 'Clear American male voice', gender: 'male', accent: 'American' },
-  { name: 'Victoria', lang: 'en-GB', description: 'Elegant British female voice', gender: 'female', accent: 'British' },
-  { name: 'Daniel', lang: 'en-GB', description: 'Distinguished British male voice', gender: 'male', accent: 'British' },
-  { name: 'Karen', lang: 'en-AU', description: 'Friendly Australian female voice', gender: 'female', accent: 'Australian' },
-  { name: 'Tom', lang: 'en-US', description: 'Energetic American male voice', gender: 'male', accent: 'American' },
-  { name: 'Fiona', lang: 'en-scotland', description: 'Warm Scottish female voice', gender: 'female', accent: 'Scottish' },
-  { name: 'Moira', lang: 'en-IE', description: 'Charming Irish female voice', gender: 'female', accent: 'Irish' },
-  { name: 'Tessa', lang: 'en-ZA', description: 'Professional South African female voice', gender: 'female', accent: 'South African' },
-  { name: 'Veena', lang: 'en-IN', description: 'Clear Indian female voice', gender: 'female', accent: 'Indian' },
-  { name: 'Rishi', lang: 'en-IN', description: 'Professional Indian male voice', gender: 'male', accent: 'Indian' },
-  { name: 'Tian-Tian', lang: 'zh-CN', description: 'Natural Mandarin female voice', gender: 'female', accent: 'Mandarin' }
+  {
+    name: 'Samantha',
+    lang: 'en-US',
+    description: 'Professional American female voice',
+    gender: 'female',
+    accent: 'American',
+    recommended: true,
+  },
+  {
+    name: 'Alex',
+    lang: 'en-US',
+    description: 'Clear American male voice',
+    gender: 'male',
+    accent: 'American',
+  },
+  {
+    name: 'Victoria',
+    lang: 'en-GB',
+    description: 'Elegant British female voice',
+    gender: 'female',
+    accent: 'British',
+  },
+  {
+    name: 'Daniel',
+    lang: 'en-GB',
+    description: 'Distinguished British male voice',
+    gender: 'male',
+    accent: 'British',
+  },
+  {
+    name: 'Karen',
+    lang: 'en-AU',
+    description: 'Friendly Australian female voice',
+    gender: 'female',
+    accent: 'Australian',
+  },
+  {
+    name: 'Tom',
+    lang: 'en-US',
+    description: 'Energetic American male voice',
+    gender: 'male',
+    accent: 'American',
+  },
+  {
+    name: 'Fiona',
+    lang: 'en-scotland',
+    description: 'Warm Scottish female voice',
+    gender: 'female',
+    accent: 'Scottish',
+  },
+  {
+    name: 'Moira',
+    lang: 'en-IE',
+    description: 'Charming Irish female voice',
+    gender: 'female',
+    accent: 'Irish',
+  },
+  {
+    name: 'Tessa',
+    lang: 'en-ZA',
+    description: 'Professional South African female voice',
+    gender: 'female',
+    accent: 'South African',
+  },
+  {
+    name: 'Veena',
+    lang: 'en-IN',
+    description: 'Clear Indian female voice',
+    gender: 'female',
+    accent: 'Indian',
+  },
+  {
+    name: 'Rishi',
+    lang: 'en-IN',
+    description: 'Professional Indian male voice',
+    gender: 'male',
+    accent: 'Indian',
+  },
+  {
+    name: 'Tian-Tian',
+    lang: 'zh-CN',
+    description: 'Natural Mandarin female voice',
+    gender: 'female',
+    accent: 'Mandarin',
+  },
 ]
 
 export function AIVoiceSettings() {
@@ -45,7 +118,7 @@ export function AIVoiceSettings() {
     name: 'Samantha',
     rate: 0.95,
     pitch: 1.0,
-    volume: 1.0
+    volume: 1.0,
   })
 
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
@@ -53,8 +126,9 @@ export function AIVoiceSettings() {
   const [testingVoice, setTestingVoice] = useState<string | null>(null)
 
   // Detect iOS
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
   useEffect(() => {
     if ('speechSynthesis' in window) {
@@ -85,14 +159,15 @@ export function AIVoiceSettings() {
     setIsPlaying(true)
     setTestingVoice(voiceName)
 
-    const testText = "Hello! This is how I sound. I'm FlowSphere's AI assistant, here to help you manage your daily life."
+    const testText =
+      "Hello! This is how I sound. I'm FlowSphere's AI assistant, here to help you manage your daily life."
     const utterance = new SpeechSynthesisUtterance(testText)
-    
+
     const voice = availableVoices.find(v => v.name.includes(voiceName))
     if (voice) {
       utterance.voice = voice
     }
-    
+
     utterance.rate = voiceSettings?.rate || 0.95
     utterance.pitch = voiceSettings?.pitch || 1.0
     utterance.volume = voiceSettings?.volume || 1.0
@@ -112,31 +187,31 @@ export function AIVoiceSettings() {
   }
 
   const selectVoice = (voiceName: string) => {
-    setVoiceSettings((current) => ({
+    setVoiceSettings(current => ({
       ...(current || { rate: 0.95, pitch: 1.0, volume: 1.0 }),
-      name: voiceName
+      name: voiceName,
     }))
     toast.success(`Voice changed to ${voiceName}`)
   }
 
   const updateRate = (value: number[]) => {
-    setVoiceSettings((current) => ({
+    setVoiceSettings(current => ({
       ...(current || { name: 'Samantha', pitch: 1.0, volume: 1.0 }),
-      rate: value[0]
+      rate: value[0],
     }))
   }
 
   const updatePitch = (value: number[]) => {
-    setVoiceSettings((current) => ({
+    setVoiceSettings(current => ({
       ...(current || { name: 'Samantha', rate: 0.95, volume: 1.0 }),
-      pitch: value[0]
+      pitch: value[0],
     }))
   }
 
   const updateVolume = (value: number[]) => {
-    setVoiceSettings((current) => ({
+    setVoiceSettings(current => ({
       ...(current || { name: 'Samantha', rate: 0.95, pitch: 1.0 }),
-      volume: value[0]
+      volume: value[0],
     }))
   }
 
@@ -145,7 +220,7 @@ export function AIVoiceSettings() {
       name: 'Samantha',
       rate: 0.95,
       pitch: 1.0,
-      volume: 1.0
+      volume: 1.0,
     })
     toast.success('Voice settings reset to defaults')
   }
@@ -154,9 +229,7 @@ export function AIVoiceSettings() {
     <div className="space-y-6 pb-8">
       <div>
         <h1 className="text-4xl font-bold mb-2">AI Voice Settings</h1>
-        <p className="text-muted-foreground">
-          Customize how FlowSphere's AI assistant sounds
-        </p>
+        <p className="text-muted-foreground">Customize how FlowSphere's AI assistant sounds</p>
       </div>
 
       {/* iOS Coming Soon Banner */}
@@ -175,15 +248,18 @@ export function AIVoiceSettings() {
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                     Coming Soon for iOS
-                    <Badge variant="secondary" className="bg-primary/20 text-primary">Beta</Badge>
+                    <Badge variant="secondary" className="bg-primary/20 text-primary">
+                      Beta
+                    </Badge>
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Advanced voice features for iOS are currently in development. Due to iOS system limitations,
-                    some voice controls may have reduced functionality. Full iOS support will be available in the next update.
+                    Advanced voice features for iOS are currently in development. Due to iOS system
+                    limitations, some voice controls may have reduced functionality. Full iOS
+                    support will be available in the next update.
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Basic voice commands are still available, but custom voice selection and advanced
-                    settings work best on desktop or Android devices.
+                    Basic voice commands are still available, but custom voice selection and
+                    advanced settings work best on desktop or Android devices.
                   </p>
                 </div>
               </div>
@@ -232,9 +308,7 @@ export function AIVoiceSettings() {
                               Recommended
                             </Badge>
                           )}
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-accent" weight="bold" />
-                          )}
+                          {isSelected && <Check className="w-4 h-4 text-accent" weight="bold" />}
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{voice.description}</p>
                         <div className="flex gap-2">
@@ -249,7 +323,7 @@ export function AIVoiceSettings() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           testVoice(voice.name)
                         }}
@@ -300,9 +374,7 @@ export function AIVoiceSettings() {
                 value={[voiceSettings?.rate || 0.95]}
                 onValueChange={updateRate}
               />
-              <p className="text-xs text-muted-foreground">
-                Adjust how fast the AI speaks
-              </p>
+              <p className="text-xs text-muted-foreground">Adjust how fast the AI speaks</p>
             </div>
 
             <div className="space-y-3">
@@ -340,17 +412,11 @@ export function AIVoiceSettings() {
                 value={[voiceSettings?.volume || 1.0]}
                 onValueChange={updateVolume}
               />
-              <p className="text-xs text-muted-foreground">
-                Control the voice loudness
-              </p>
+              <p className="text-xs text-muted-foreground">Control the voice loudness</p>
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Button
-                variant="outline"
-                onClick={resetToDefaults}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={resetToDefaults} className="flex-1">
                 Reset to Defaults
               </Button>
               <Button

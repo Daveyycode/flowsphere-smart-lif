@@ -60,9 +60,8 @@ export async function createSubscription(
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + 1) // 1 month
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .insert([{
+    const { error } = await supabase.from('subscriptions').insert([
+      {
         user_id: userId,
         plan_type: planType,
         status: 'trialing',
@@ -70,8 +69,9 @@ export async function createSubscription(
         stripe_subscription_id: stripeSubscriptionId,
         trial_ends_at: trialEndsAt.toISOString(),
         current_period_start: new Date().toISOString(),
-        current_period_end: periodEnd.toISOString()
-      }])
+        current_period_end: periodEnd.toISOString(),
+      },
+    ])
 
     if (error) {
       console.error('Error creating subscription:', error)
@@ -123,15 +123,15 @@ export async function recordPaymentTransaction(
   stripePaymentIntentId?: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('payment_transactions')
-      .insert([{
+    const { error } = await supabase.from('payment_transactions').insert([
+      {
         user_id: userId,
         amount: amount,
         status: status,
         description: description,
-        stripe_payment_intent_id: stripePaymentIntentId
-      }])
+        stripe_payment_intent_id: stripePaymentIntentId,
+      },
+    ])
 
     if (error) {
       console.error('Error recording transaction:', error)
@@ -201,7 +201,7 @@ export async function processCardPayment(
     if (!success) {
       return {
         success: false,
-        message: 'Failed to create subscription record'
+        message: 'Failed to create subscription record',
       }
     }
 
@@ -215,13 +215,13 @@ export async function processCardPayment(
 
     return {
       success: true,
-      message: 'Payment processed successfully!'
+      message: 'Payment processed successfully!',
     }
   } catch (error) {
     console.error('Payment processing error:', error)
     return {
       success: false,
-      message: 'Payment processing failed'
+      message: 'Payment processing failed',
     }
   }
 }
@@ -254,7 +254,7 @@ export async function processBankPayment(
     if (!success) {
       return {
         success: false,
-        message: 'Failed to create subscription'
+        message: 'Failed to create subscription',
       }
     }
 
@@ -268,13 +268,13 @@ export async function processBankPayment(
 
     return {
       success: true,
-      message: 'Payment processed successfully!'
+      message: 'Payment processed successfully!',
     }
   } catch (error) {
     console.error('Bank payment error:', error)
     return {
       success: false,
-      message: 'Payment failed'
+      message: 'Payment failed',
     }
   }
 }

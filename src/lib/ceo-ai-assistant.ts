@@ -144,7 +144,7 @@ export class CEOAIAssistant {
         category: 'AI',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 9
+        relevanceToFlowSphere: 9,
       },
       {
         app: 'Grammarly',
@@ -153,7 +153,7 @@ export class CEOAIAssistant {
         category: 'AI',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 8
+        relevanceToFlowSphere: 8,
       },
       {
         app: 'Otter.ai',
@@ -162,7 +162,7 @@ export class CEOAIAssistant {
         category: 'Productivity',
         userReception: 'positive',
         implementationComplexity: 'high',
-        relevanceToFlowSphere: 10
+        relevanceToFlowSphere: 10,
       },
 
       // Communication features
@@ -173,7 +173,7 @@ export class CEOAIAssistant {
         category: 'Messaging',
         userReception: 'positive',
         implementationComplexity: 'low',
-        relevanceToFlowSphere: 9
+        relevanceToFlowSphere: 9,
       },
       {
         app: 'Telegram',
@@ -182,7 +182,7 @@ export class CEOAIAssistant {
         category: 'Security',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 8
+        relevanceToFlowSphere: 8,
       },
       {
         app: 'Discord',
@@ -191,7 +191,7 @@ export class CEOAIAssistant {
         category: 'Communication',
         userReception: 'positive',
         implementationComplexity: 'high',
-        relevanceToFlowSphere: 7
+        relevanceToFlowSphere: 7,
       },
 
       // Productivity features
@@ -202,7 +202,7 @@ export class CEOAIAssistant {
         category: 'Productivity',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 9
+        relevanceToFlowSphere: 9,
       },
       {
         app: 'Forest',
@@ -211,7 +211,7 @@ export class CEOAIAssistant {
         category: 'Productivity',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 8
+        relevanceToFlowSphere: 8,
       },
 
       // Financial features
@@ -222,7 +222,7 @@ export class CEOAIAssistant {
         category: 'Financial',
         userReception: 'positive',
         implementationComplexity: 'high',
-        relevanceToFlowSphere: 10
+        relevanceToFlowSphere: 10,
       },
       {
         app: 'YNAB',
@@ -231,7 +231,7 @@ export class CEOAIAssistant {
         category: 'Financial',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 7
+        relevanceToFlowSphere: 7,
       },
 
       // Health & Safety
@@ -242,7 +242,7 @@ export class CEOAIAssistant {
         category: 'Safety',
         userReception: 'positive',
         implementationComplexity: 'high',
-        relevanceToFlowSphere: 10
+        relevanceToFlowSphere: 10,
       },
       {
         app: 'Find My (Apple)',
@@ -251,7 +251,7 @@ export class CEOAIAssistant {
         category: 'Safety',
         userReception: 'positive',
         implementationComplexity: 'high',
-        relevanceToFlowSphere: 8
+        relevanceToFlowSphere: 8,
       },
 
       // Smart Home
@@ -262,7 +262,7 @@ export class CEOAIAssistant {
         category: 'Smart Home',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 9
+        relevanceToFlowSphere: 9,
       },
       {
         app: 'Ring',
@@ -271,7 +271,7 @@ export class CEOAIAssistant {
         category: 'Security',
         userReception: 'positive',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 10
+        relevanceToFlowSphere: 10,
       },
 
       // Social features
@@ -282,7 +282,7 @@ export class CEOAIAssistant {
         category: 'Social',
         userReception: 'positive',
         implementationComplexity: 'low',
-        relevanceToFlowSphere: 6
+        relevanceToFlowSphere: 6,
       },
       {
         app: 'Clubhouse',
@@ -291,8 +291,8 @@ export class CEOAIAssistant {
         category: 'Social',
         userReception: 'neutral',
         implementationComplexity: 'medium',
-        relevanceToFlowSphere: 7
-      }
+        relevanceToFlowSphere: 7,
+      },
     ]
 
     // Store for analysis
@@ -315,32 +315,32 @@ export class CEOAIAssistant {
           'AI writing assistant',
           'Team collaboration',
           'Templates',
-          'API access'
+          'API access',
         ],
         strengths: [
           'Extremely flexible and customizable',
           'Strong team collaboration',
-          'Active community and templates'
+          'Active community and templates',
         ],
         weaknesses: [
           'Steep learning curve',
           'Can be slow with large databases',
-          'Offline mode limited'
+          'Offline mode limited',
         ],
         pricing: {
           model: 'freemium',
           tiers: [
             { name: 'Free', price: 0, features: ['Unlimited pages', 'Basic features'] },
             { name: 'Plus', price: 10, features: ['Unlimited file uploads', 'Version history'] },
-            { name: 'Business', price: 18, features: ['Advanced permissions', 'SAML SSO'] }
-          ]
+            { name: 'Business', price: 18, features: ['Advanced permissions', 'SAML SSO'] },
+          ],
         },
         lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         userReviews: {
           positive: ['Love the flexibility', 'Great for teams', 'AI features are amazing'],
           negative: ['Too complex', 'Slow sometimes', 'Expensive for teams'],
-          trending: ['AI assistant', 'Better mobile app', 'Faster sync']
-        }
+          trending: ['AI assistant', 'Better mobile app', 'Faster sync'],
+        },
       },
       {
         name: 'Life360',
@@ -353,32 +353,32 @@ export class CEOAIAssistant {
           'Geofencing alerts',
           'Crash detection',
           'Roadside assistance',
-          'Driver reports'
+          'Driver reports',
         ],
         strengths: [
           'Reliable location tracking',
           'Crash detection works well',
-          'Family circles easy to manage'
+          'Family circles easy to manage',
         ],
-        weaknesses: [
-          'Battery drain concerns',
-          'Privacy concerns',
-          'Ads in free version'
-        ],
+        weaknesses: ['Battery drain concerns', 'Privacy concerns', 'Ads in free version'],
         pricing: {
           model: 'freemium',
           tiers: [
             { name: 'Free', price: 0, features: ['Basic location', 'Circle management'] },
             { name: 'Plus', price: 5, features: ['Crime reports', 'Crash detection'] },
-            { name: 'Driver Protect', price: 8, features: ['Roadside assistance', 'Driver reports'] }
-          ]
+            {
+              name: 'Driver Protect',
+              price: 8,
+              features: ['Roadside assistance', 'Driver reports'],
+            },
+          ],
         },
         lastUpdated: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
         userReviews: {
           positive: ['Peace of mind', 'Great for elderly parents', 'Crash detection saved lives'],
           negative: ['Battery drain', 'Too expensive', 'Privacy issues'],
-          trending: ['Better battery life', 'More privacy controls', 'Indoor location']
-        }
+          trending: ['Better battery life', 'More privacy controls', 'Indoor location'],
+        },
       },
       {
         name: 'Superhuman',
@@ -391,29 +391,21 @@ export class CEOAIAssistant {
           'Keyboard shortcuts',
           'Read statuses',
           'Scheduled sending',
-          'AI triage'
+          'AI triage',
         ],
-        strengths: [
-          'Blazing fast',
-          'Keyboard-first design',
-          'Beautiful UI'
-        ],
-        weaknesses: [
-          'Very expensive ($30/mo)',
-          'Gmail/Outlook only',
-          'Invitation only'
-        ],
+        strengths: ['Blazing fast', 'Keyboard-first design', 'Beautiful UI'],
+        weaknesses: ['Very expensive ($30/mo)', 'Gmail/Outlook only', 'Invitation only'],
         pricing: {
           model: 'subscription',
-          price: 30
+          price: 30,
         },
         lastUpdated: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
         userReviews: {
           positive: ['Worth every penny', 'Made me love email again', 'Insanely fast'],
           negative: ['Too expensive', 'Should be cheaper', 'Not worth $30'],
-          trending: ['AI features', 'Team features', 'Better mobile']
-        }
-      }
+          trending: ['AI features', 'Team features', 'Better mobile'],
+        },
+      },
     ]
 
     // Store competitors
@@ -446,20 +438,30 @@ export class CEOAIAssistant {
             {
               app: feature.app,
               implementation: feature.description,
-              rating: feature.userReception === 'positive' ? 5 : feature.userReception === 'neutral' ? 3 : 2
-            }
+              rating:
+                feature.userReception === 'positive'
+                  ? 5
+                  : feature.userReception === 'neutral'
+                    ? 3
+                    : 2,
+            },
           ],
-          estimatedEffort: feature.implementationComplexity === 'low' ? 'small' : feature.implementationComplexity === 'high' ? 'large' : 'medium',
+          estimatedEffort:
+            feature.implementationComplexity === 'low'
+              ? 'small'
+              : feature.implementationComplexity === 'high'
+                ? 'large'
+                : 'medium',
           expectedImpact: {
             userEngagement: feature.relevanceToFlowSphere,
             revenue: feature.relevanceToFlowSphere - 2,
-            retention: feature.relevanceToFlowSphere - 1
+            retention: feature.relevanceToFlowSphere - 1,
           },
           suggestedBy: 'AI Assistant',
           timestamp: new Date().toISOString(),
           status: 'suggested',
           votes: 0,
-          userDemand: 0
+          userDemand: 0,
         })
       })
 
@@ -489,13 +491,13 @@ export class CEOAIAssistant {
           expectedImpact: {
             userEngagement: Math.min(10, feedbacks.length),
             revenue: Math.min(8, feedbacks.length - 1),
-            retention: Math.min(9, feedbacks.length)
+            retention: Math.min(9, feedbacks.length),
           },
           suggestedBy: 'AI Assistant (User Feedback)',
           timestamp: new Date().toISOString(),
           status: 'suggested',
           votes: feedbacks.length,
-          userDemand: feedbacks.length
+          userDemand: feedbacks.length,
         })
       }
     })
@@ -505,7 +507,8 @@ export class CEOAIAssistant {
       {
         id: 'ai-gen-001',
         title: 'Smart Meeting Assistant with Auto-Actions',
-        description: 'Automatically create calendar events, todos, and reminders from meeting action items',
+        description:
+          'Automatically create calendar events, todos, and reminders from meeting action items',
         category: 'AI',
         priority: 'high',
         source: 'ai-generated',
@@ -513,18 +516,19 @@ export class CEOAIAssistant {
         expectedImpact: {
           userEngagement: 9,
           revenue: 8,
-          retention: 9
+          retention: 9,
         },
         suggestedBy: 'AI Assistant (Gap Analysis)',
         timestamp: new Date().toISOString(),
         status: 'suggested',
         votes: 0,
-        userDemand: 0
+        userDemand: 0,
       },
       {
         id: 'ai-gen-002',
         title: 'Collaborative Vault Sharing',
-        description: 'Allow secure sharing of vault items with family members with permission controls',
+        description:
+          'Allow secure sharing of vault items with family members with permission controls',
         category: 'Security',
         priority: 'medium',
         source: 'ai-generated',
@@ -532,18 +536,19 @@ export class CEOAIAssistant {
         expectedImpact: {
           userEngagement: 8,
           revenue: 9,
-          retention: 8
+          retention: 8,
         },
         suggestedBy: 'AI Assistant (Gap Analysis)',
         timestamp: new Date().toISOString(),
         status: 'suggested',
         votes: 0,
-        userDemand: 0
+        userDemand: 0,
       },
       {
         id: 'ai-gen-003',
         title: 'Predictive Battery Alerts',
-        description: 'ML model predicts when family members will run out of battery based on usage patterns',
+        description:
+          'ML model predicts when family members will run out of battery based on usage patterns',
         category: 'Family Safety',
         priority: 'high',
         source: 'ai-generated',
@@ -551,13 +556,13 @@ export class CEOAIAssistant {
         expectedImpact: {
           userEngagement: 9,
           revenue: 7,
-          retention: 9
+          retention: 9,
         },
         suggestedBy: 'AI Assistant (Gap Analysis)',
         timestamp: new Date().toISOString(),
         status: 'suggested',
         votes: 0,
-        userDemand: 0
+        userDemand: 0,
       }
     )
 
@@ -576,62 +581,72 @@ export class CEOAIAssistant {
         id: 'trend-001',
         name: 'AI-First Applications',
         category: 'Technology',
-        description: 'Apps are integrating AI at the core, not as an add-on. Users expect AI assistance in every feature.',
+        description:
+          'Apps are integrating AI at the core, not as an add-on. Users expect AI assistance in every feature.',
         growth: 145,
         adoption: 67,
         relevance: 10,
         examples: ['ChatGPT', 'Notion AI', 'GitHub Copilot', 'Perplexity'],
-        recommendedAction: 'Integrate AI assistant into every major feature. Make AI feel like a natural part of the workflow.',
-        timestamp: new Date().toISOString()
+        recommendedAction:
+          'Integrate AI assistant into every major feature. Make AI feel like a natural part of the workflow.',
+        timestamp: new Date().toISOString(),
       },
       {
         id: 'trend-002',
         name: 'Privacy-First Design',
         category: 'Security',
-        description: 'Users are increasingly concerned about privacy. Apps that prioritize privacy are winning.',
+        description:
+          'Users are increasingly concerned about privacy. Apps that prioritize privacy are winning.',
         growth: 89,
         adoption: 45,
         relevance: 9,
         examples: ['Signal', 'DuckDuckGo', 'Brave', 'ProtonMail'],
-        recommendedAction: 'Highlight privacy features prominently. Add end-to-end encryption to more features. Be transparent about data usage.',
-        timestamp: new Date().toISOString()
+        recommendedAction:
+          'Highlight privacy features prominently. Add end-to-end encryption to more features. Be transparent about data usage.',
+        timestamp: new Date().toISOString(),
       },
       {
         id: 'trend-003',
         name: 'Super App Integration',
         category: 'Platform',
-        description: 'Apps are becoming all-in-one platforms (messaging + payments + services). Users want fewer apps.',
+        description:
+          'Apps are becoming all-in-one platforms (messaging + payments + services). Users want fewer apps.',
         growth: 78,
         adoption: 34,
         relevance: 10,
         examples: ['WeChat', 'Grab', 'Gojek', 'Paytm'],
-        recommendedAction: 'Continue consolidating features. Add payment integration. Integrate third-party services.',
-        timestamp: new Date().toISOString()
+        recommendedAction:
+          'Continue consolidating features. Add payment integration. Integrate third-party services.',
+        timestamp: new Date().toISOString(),
       },
       {
         id: 'trend-004',
         name: 'Ambient Computing',
         category: 'Technology',
-        description: 'Technology that fades into the background. Proactive assistance without explicit commands.',
+        description:
+          'Technology that fades into the background. Proactive assistance without explicit commands.',
         growth: 112,
         adoption: 28,
         relevance: 9,
         examples: ['Google Ambient Mode', 'Apple Intelligence', 'Alexa Hunches'],
-        recommendedAction: 'Make AI more proactive. Predict user needs. Reduce friction in common tasks.',
-        timestamp: new Date().toISOString()
+        recommendedAction:
+          'Make AI more proactive. Predict user needs. Reduce friction in common tasks.',
+        timestamp: new Date().toISOString(),
       },
       {
         id: 'trend-005',
         name: 'Micro-SaaS & Unbundling',
         category: 'Business',
-        description: 'Users want specialized tools, not bloated suites. Focused features done extremely well.',
+        description:
+          'Users want specialized tools, not bloated suites. Focused features done extremely well.',
         growth: 94,
         adoption: 56,
         relevance: 7,
         examples: ['Linear', 'Superhuman', 'Cron', 'Raycast'],
-        recommendedAction: 'Ensure each feature is best-in-class. Consider offering à la carte pricing for features.',
-        timestamp: new Date().toISOString()
-      }
+        recommendedAction:
+          'Ensure each feature is best-in-class. Consider offering à la carte pricing for features.',
+        timestamp: new Date().toISOString(),
+      },
     ]
 
     localStorage.setItem(this.trendsKey, JSON.stringify(trends))
@@ -648,11 +663,11 @@ export class CEOAIAssistant {
     feedback: UserFeedback[],
     alerts: SecurityAlert[]
   ): Promise<ExecutiveReport> {
-    const criticalIssues = feedback.filter(f => f.priority === 'critical' && f.status !== 'resolved')
+    const criticalIssues = feedback.filter(
+      f => f.priority === 'critical' && f.status !== 'resolved'
+    )
     const suggestions = await this.getSuggestions()
-    const topSuggestions = suggestions
-      .sort((a, b) => b.userDemand - a.userDemand)
-      .slice(0, 5)
+    const topSuggestions = suggestions.sort((a, b) => b.userDemand - a.userDemand).slice(0, 5)
 
     const report: ExecutiveReport = {
       id: `report-${Date.now()}`,
@@ -665,77 +680,81 @@ export class CEOAIAssistant {
           content: `Total users: ${analytics.users.total.toLocaleString()} (+${analytics.users.growth}%)\nNew users this period: ${analytics.users.new}\nActive users: ${analytics.users.active.toLocaleString()}\nChurn rate: ${analytics.users.churnRate}%`,
           metrics: {
             'Total Users': analytics.users.total,
-            'Growth': analytics.users.growth,
-            'Churn': analytics.users.churnRate
+            Growth: analytics.users.growth,
+            Churn: analytics.users.churnRate,
           },
           insights: [
             analytics.users.growth > 10 ? '✅ Strong growth momentum' : '⚠️ Growth slowing',
-            analytics.users.churnRate < 3 ? '✅ Excellent retention' : '⚠️ High churn rate'
-          ]
+            analytics.users.churnRate < 3 ? '✅ Excellent retention' : '⚠️ High churn rate',
+          ],
         },
         {
           title: 'Revenue & Financial',
           content: `Monthly Revenue: $${analytics.financial.revenue.toLocaleString()}\nMRR: $${analytics.financial.mrr.toLocaleString()}\nARPU: $${analytics.financial.arpu.toFixed(2)}\nSubscriptions: ${analytics.financial.subscriptions}`,
           metrics: {
-            'Revenue': analytics.financial.revenue,
-            'MRR': analytics.financial.mrr,
-            'ARPU': analytics.financial.arpu
+            Revenue: analytics.financial.revenue,
+            MRR: analytics.financial.mrr,
+            ARPU: analytics.financial.arpu,
           },
           insights: [
-            analytics.financial.arpu > 10 ? '✅ Healthy ARPU' : '⚠️ Low ARPU, consider upsells'
-          ]
+            analytics.financial.arpu > 10 ? '✅ Healthy ARPU' : '⚠️ Low ARPU, consider upsells',
+          ],
         },
         {
           title: 'Engagement',
           content: `DAU: ${analytics.engagement.dailyActiveUsers.toLocaleString()}\nMAU: ${analytics.engagement.monthlyActiveUsers.toLocaleString()}\nAvg Session: ${Math.floor(analytics.engagement.avgSessionDuration / 60)} min\nRetention: ${analytics.engagement.retentionRate}%`,
           metrics: {
-            'DAU': analytics.engagement.dailyActiveUsers,
-            'Retention': analytics.engagement.retentionRate
+            DAU: analytics.engagement.dailyActiveUsers,
+            Retention: analytics.engagement.retentionRate,
           },
           insights: [
-            analytics.engagement.retentionRate > 80 ? '✅ Excellent retention' : '⚠️ Improve retention',
-            'AI features showing highest engagement'
-          ]
+            analytics.engagement.retentionRate > 80
+              ? '✅ Excellent retention'
+              : '⚠️ Improve retention',
+            'AI features showing highest engagement',
+          ],
         },
         {
           title: 'Critical Issues',
           content: `${criticalIssues.length} critical issues requiring attention`,
-          insights: criticalIssues.map(issue => `🚨 ${issue.subject}`)
+          insights: criticalIssues.map(issue => `🚨 ${issue.subject}`),
         },
         {
           title: 'Security Alerts',
           content: `${alerts.filter(a => !a.resolved).length} unresolved security alerts`,
-          insights: alerts.filter(a => !a.resolved && a.severity === 'critical').map(a => `⚠️ ${a.title}`)
+          insights: alerts
+            .filter(a => !a.resolved && a.severity === 'critical')
+            .map(a => `⚠️ ${a.title}`),
         },
         {
           title: 'Top Feature Opportunities',
           content: 'Based on market trends and user feedback',
-          insights: topSuggestions.map(s => `💡 ${s.title} (${s.userDemand} user requests)`)
-        }
+          insights: topSuggestions.map(s => `💡 ${s.title} (${s.userDemand} user requests)`),
+        },
       ],
       keyMetrics: {
         users: {
           current: analytics.users.total,
-          change: analytics.users.growth
+          change: analytics.users.growth,
         },
         revenue: {
           current: analytics.financial.revenue,
-          change: 12.4 // Mock data
+          change: 12.4, // Mock data
         },
         engagement: {
           current: analytics.engagement.retentionRate,
-          change: 2.1
+          change: 2.1,
         },
         satisfaction: {
           current: 4.6,
-          change: 0.2
-        }
+          change: 0.2,
+        },
       },
       alerts: alerts.filter(a => !a.resolved),
       criticalIssues,
       opportunities: topSuggestions,
       threats: this.identifyThreats(analytics, feedback, alerts),
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     }
 
     // Store report
@@ -935,7 +954,6 @@ export class MonitoringService {
   ): Promise<void> {
     // Check for critical issues (in production, fetch from backend)
     // For now, check localStorage
-
     // Would check:
     // - New critical user complaints
     // - Security breaches

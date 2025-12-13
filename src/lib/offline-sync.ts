@@ -14,7 +14,7 @@ const STORES = {
   TASKS: 'tasks',
   NOTES: 'notes',
   FAMILY: 'family',
-  SYNC_QUEUE: 'syncQueue'
+  SYNC_QUEUE: 'syncQueue',
 }
 
 interface SyncQueueItem {
@@ -50,7 +50,7 @@ class OfflineSyncManager {
   async initialize(): Promise<boolean> {
     if (this.isInitialized) return true
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!('indexedDB' in window)) {
         logger.warn('IndexedDB not supported', null, 'OfflineSync')
         resolve(false)
@@ -80,7 +80,7 @@ class OfflineSyncManager {
         resolve(true)
       }
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result
 
         // Create object stores
@@ -156,7 +156,7 @@ class OfflineSyncManager {
     }
     if (!this.db) return false
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction([storeName, STORES.SYNC_QUEUE], 'readwrite')
       const store = transaction.objectStore(storeName)
       const syncQueue = transaction.objectStore(STORES.SYNC_QUEUE)
@@ -172,7 +172,7 @@ class OfflineSyncManager {
           action,
           data,
           timestamp: Date.now(),
-          retries: 0
+          retries: 0,
         }
 
         syncQueue.put(syncItem)
@@ -196,7 +196,7 @@ class OfflineSyncManager {
     }
     if (!this.db) return null
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction(storeName, 'readonly')
       const store = transaction.objectStore(storeName)
       const request = store.get(id)
@@ -218,7 +218,7 @@ class OfflineSyncManager {
     }
     if (!this.db) return []
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction(storeName, 'readonly')
       const store = transaction.objectStore(storeName)
       const request = store.getAll()
@@ -240,7 +240,7 @@ class OfflineSyncManager {
     }
     if (!this.db) return false
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction([storeName, STORES.SYNC_QUEUE], 'readwrite')
       const store = transaction.objectStore(storeName)
       const syncQueue = transaction.objectStore(STORES.SYNC_QUEUE)
@@ -256,7 +256,7 @@ class OfflineSyncManager {
           action: 'delete',
           data: { id },
           timestamp: Date.now(),
-          retries: 0
+          retries: 0,
         }
 
         syncQueue.put(syncItem)
@@ -312,7 +312,6 @@ class OfflineSyncManager {
 
       // Update last synced time
       localStorage.setItem('flowsphere-last-sync', Date.now().toString())
-
     } catch (error) {
       logger.error('Sync failed', error, 'OfflineSync')
     } finally {
@@ -358,7 +357,7 @@ class OfflineSyncManager {
   private async getSyncQueue(): Promise<SyncQueueItem[]> {
     if (!this.db) return []
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction(STORES.SYNC_QUEUE, 'readonly')
       const store = transaction.objectStore(STORES.SYNC_QUEUE)
       const request = store.getAll()
@@ -379,7 +378,7 @@ class OfflineSyncManager {
   private async removeSyncQueueItem(id: string): Promise<void> {
     if (!this.db) return
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction(STORES.SYNC_QUEUE, 'readwrite')
       const store = transaction.objectStore(STORES.SYNC_QUEUE)
       store.delete(id)
@@ -394,7 +393,7 @@ class OfflineSyncManager {
   private async updateSyncQueueItem(item: SyncQueueItem): Promise<void> {
     if (!this.db) return
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const transaction = this.db!.transaction(STORES.SYNC_QUEUE, 'readwrite')
       const store = transaction.objectStore(STORES.SYNC_QUEUE)
       store.put(item)
@@ -412,7 +411,7 @@ class OfflineSyncManager {
       isOnline: navigator.onLine,
       lastSynced: lastSynced ? parseInt(lastSynced) : null,
       pendingSyncs: 0, // Updated async
-      syncInProgress: this.syncInProgress
+      syncInProgress: this.syncInProgress,
     }
   }
 
@@ -443,7 +442,7 @@ class OfflineSyncManager {
       isOnline: navigator.onLine,
       lastSynced: this.getStatus().lastSynced,
       pendingSyncs,
-      syncInProgress: this.syncInProgress
+      syncInProgress: this.syncInProgress,
     }
 
     this.listeners.forEach(callback => {
@@ -464,7 +463,7 @@ class OfflineSyncManager {
     const storeNames = Object.values(STORES)
 
     for (const storeName of storeNames) {
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         const transaction = this.db!.transaction(storeName, 'readwrite')
         const store = transaction.objectStore(storeName)
         store.clear()
@@ -520,7 +519,7 @@ export function useOfflineSync() {
     getStatus: () => manager.getStatus(),
     getPendingCount: () => manager.getPendingSyncCount(),
     subscribe: (callback: (status: OfflineStatus) => void) => manager.subscribe(callback),
-    clearAll: () => manager.clearAll()
+    clearAll: () => manager.clearAll(),
   }
 }
 

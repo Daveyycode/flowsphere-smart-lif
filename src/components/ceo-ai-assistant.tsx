@@ -22,7 +22,7 @@ import {
   Globe,
   Brain,
   ChartLineUp,
-  Target
+  Target,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -102,9 +102,9 @@ export function CEOAIAssistant() {
         { name: 'Automations', usage: 76 },
         { name: 'Family Tracking', usage: 68 },
         { name: 'AI Assistant', usage: 85 },
-        { name: 'Notifications', usage: 92 }
+        { name: 'Notifications', usage: 92 },
       ],
-      userSatisfaction: 4.6
+      userSatisfaction: 4.6,
     }
     setDailyReport(report)
 
@@ -117,7 +117,7 @@ export function CEOAIAssistant() {
         category: 'Performance',
         priority: 'high',
         date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        status: 'new'
+        status: 'new',
       },
       {
         id: '2',
@@ -126,7 +126,7 @@ export function CEOAIAssistant() {
         category: 'Feature Request',
         priority: 'medium',
         date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        status: 'new'
+        status: 'new',
       },
       {
         id: '3',
@@ -135,7 +135,7 @@ export function CEOAIAssistant() {
         category: 'UI/UX',
         priority: 'low',
         date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        status: 'reviewed'
+        status: 'reviewed',
       },
       {
         id: '4',
@@ -144,7 +144,7 @@ export function CEOAIAssistant() {
         category: 'Integration',
         priority: 'high',
         date: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-        status: 'new'
+        status: 'new',
       },
       {
         id: '5',
@@ -153,8 +153,8 @@ export function CEOAIAssistant() {
         category: 'Performance',
         priority: 'high',
         date: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        status: 'new'
-      }
+        status: 'new',
+      },
     ]
     setUserFeedback(feedback)
   }
@@ -171,53 +171,58 @@ export function CEOAIAssistant() {
         {
           id: '1',
           title: 'AI-Powered Energy Optimization Trending',
-          description: 'Smart home platforms with AI-driven energy management are seeing 340% growth. Users want automated cost-saving recommendations.',
+          description:
+            'Smart home platforms with AI-driven energy management are seeing 340% growth. Users want automated cost-saving recommendations.',
           source: 'Market Research Q4 2024',
           relevance: 95,
           actionable: true,
           implementationDifficulty: 'medium',
-          potentialImpact: 'high'
+          potentialImpact: 'high',
         },
         {
           id: '2',
           title: 'Matter Protocol Adoption Accelerating',
-          description: 'Cross-platform smart home protocol Matter is being adopted by 78% of new IoT devices. Integration is becoming essential.',
+          description:
+            'Cross-platform smart home protocol Matter is being adopted by 78% of new IoT devices. Integration is becoming essential.',
           source: 'IoT Industry Report',
           relevance: 88,
           actionable: true,
           implementationDifficulty: 'hard',
-          potentialImpact: 'high'
+          potentialImpact: 'high',
         },
         {
           id: '3',
           title: 'Voice-First Interfaces Dominating',
-          description: '62% of smart home users prefer voice commands over manual controls. Natural language processing is key differentiator.',
+          description:
+            '62% of smart home users prefer voice commands over manual controls. Natural language processing is key differentiator.',
           source: 'Consumer Behavior Study',
           relevance: 92,
           actionable: true,
           implementationDifficulty: 'medium',
-          potentialImpact: 'high'
+          potentialImpact: 'high',
         },
         {
           id: '4',
           title: 'Predictive Maintenance Gaining Traction',
-          description: 'IoT platforms with predictive device maintenance features reduce support tickets by 45% and increase user retention.',
+          description:
+            'IoT platforms with predictive device maintenance features reduce support tickets by 45% and increase user retention.',
           source: 'Tech Innovation Report',
           relevance: 85,
           actionable: true,
           implementationDifficulty: 'medium',
-          potentialImpact: 'medium'
+          potentialImpact: 'medium',
         },
         {
           id: '5',
           title: 'Privacy-First Features Becoming Standard',
-          description: 'Users demand granular privacy controls. 83% would switch to platforms offering better data transparency.',
+          description:
+            'Users demand granular privacy controls. 83% would switch to platforms offering better data transparency.',
           source: 'Privacy & Security Trends',
           relevance: 90,
           actionable: true,
           implementationDifficulty: 'easy',
-          potentialImpact: 'high'
-        }
+          potentialImpact: 'high',
+        },
       ]
 
       setMarketInsights(insights)
@@ -240,73 +245,87 @@ export function CEOAIAssistant() {
         {
           id: '1',
           title: 'Implement Smart Energy Analytics Dashboard',
-          description: 'Create a dedicated dashboard showing real-time energy consumption per device with AI-powered cost-saving recommendations. Capitalize on the 340% market growth in energy management.',
+          description:
+            'Create a dedicated dashboard showing real-time energy consumption per device with AI-powered cost-saving recommendations. Capitalize on the 340% market growth in energy management.',
           type: 'feature',
           priority: 'critical',
           estimatedEffort: '3-4 weeks',
           expectedImpact: 'High user retention, new revenue stream',
-          reasoning: 'Combines market demand (#1 trending) with user feedback about wanting more value from automation. Could attract environmentally-conscious users.'
+          reasoning:
+            'Combines market demand (#1 trending) with user feedback about wanting more value from automation. Could attract environmentally-conscious users.',
         },
         {
           id: '2',
           title: 'Optimize Automation Loading Performance',
-          description: 'Refactor automation rules engine with lazy loading and caching. Address the #1 user complaint about slow loading times.',
+          description:
+            'Refactor automation rules engine with lazy loading and caching. Address the #1 user complaint about slow loading times.',
           type: 'optimization',
           priority: 'critical',
           estimatedEffort: '2 weeks',
           expectedImpact: 'Reduce complaints by ~50%, improve satisfaction',
-          reasoning: 'Directly addresses high-priority user complaint. Performance issues are driving churn (2.3% rate). Quick win with high impact.'
+          reasoning:
+            'Directly addresses high-priority user complaint. Performance issues are driving churn (2.3% rate). Quick win with high impact.',
         },
         {
           id: '3',
           title: 'Advanced Voice Command System',
-          description: 'Expand voice commands to support complex queries, device grouping, and natural language automation creation. Integrate with popular voice assistants.',
+          description:
+            'Expand voice commands to support complex queries, device grouping, and natural language automation creation. Integrate with popular voice assistants.',
           type: 'feature',
           priority: 'high',
           estimatedEffort: '4-6 weeks',
           expectedImpact: 'Market differentiation, increased engagement',
-          reasoning: 'Aligns with market trend (62% prefer voice) and user suggestion. Could become key competitive advantage.'
+          reasoning:
+            'Aligns with market trend (62% prefer voice) and user suggestion. Could become key competitive advantage.',
         },
         {
           id: '4',
           title: 'Battery Optimization for Family Tracking',
-          description: 'Implement intelligent location polling with adaptive intervals based on movement patterns. Use geofencing to reduce GPS usage.',
+          description:
+            'Implement intelligent location polling with adaptive intervals based on movement patterns. Use geofencing to reduce GPS usage.',
           type: 'improvement',
           priority: 'high',
           estimatedEffort: '1-2 weeks',
           expectedImpact: 'Reduce battery drain by 60%, increase feature adoption',
-          reasoning: 'Addresses specific high-priority complaint. Family tracking is core feature (68% usage) - optimization will drive adoption.'
+          reasoning:
+            'Addresses specific high-priority complaint. Family tracking is core feature (68% usage) - optimization will drive adoption.',
         },
         {
           id: '5',
           title: 'Google Calendar Integration for Automations',
-          description: 'Allow users to create automations based on calendar events. "Leaving for work" automation, "Meeting mode" device settings, etc.',
+          description:
+            'Allow users to create automations based on calendar events. "Leaving for work" automation, "Meeting mode" device settings, etc.',
           type: 'innovation',
           priority: 'medium',
           estimatedEffort: '2-3 weeks',
           expectedImpact: 'Unique feature, competitive advantage',
-          reasoning: 'User-suggested feature with high potential. Creates seamless workflow integration that competitors lack.'
+          reasoning:
+            'User-suggested feature with high potential. Creates seamless workflow integration that competitors lack.',
         },
         {
           id: '6',
           title: 'Predictive Device Maintenance System',
-          description: 'AI analyzes device performance patterns to predict failures and suggest maintenance before issues occur.',
+          description:
+            'AI analyzes device performance patterns to predict failures and suggest maintenance before issues occur.',
           type: 'innovation',
           priority: 'medium',
           estimatedEffort: '5-6 weeks',
           expectedImpact: 'Reduce support tickets by 45%, premium feature',
-          reasoning: 'Market trend showing strong ROI. Could be monetized as Pro/Gold feature. Positions FlowSphere as industry leader.'
+          reasoning:
+            'Market trend showing strong ROI. Could be monetized as Pro/Gold feature. Positions FlowSphere as industry leader.',
         },
         {
           id: '7',
           title: 'Enhanced Privacy Dashboard',
-          description: 'Granular privacy controls with data usage transparency, export capabilities, and third-party integration management.',
+          description:
+            'Granular privacy controls with data usage transparency, export capabilities, and third-party integration management.',
           type: 'feature',
           priority: 'high',
           estimatedEffort: '2 weeks',
           expectedImpact: 'Build trust, regulatory compliance, user retention',
-          reasoning: 'Privacy is critical (83% would switch platforms). Easy implementation with high trust-building impact.'
-        }
+          reasoning:
+            'Privacy is critical (83% would switch platforms). Easy implementation with high trust-building impact.',
+        },
       ]
 
       setRecommendations(aiRecommendations)
@@ -320,20 +339,29 @@ export function CEOAIAssistant() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'bg-destructive text-destructive-foreground'
-      case 'high': return 'bg-orange-500 text-white'
-      case 'medium': return 'bg-blue-mid text-white'
-      case 'low': return 'bg-muted text-muted-foreground'
-      default: return 'bg-muted text-muted-foreground'
+      case 'critical':
+        return 'bg-destructive text-destructive-foreground'
+      case 'high':
+        return 'bg-orange-500 text-white'
+      case 'medium':
+        return 'bg-blue-mid text-white'
+      case 'low':
+        return 'bg-muted text-muted-foreground'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'text-green-500'
-      case 'medium': return 'text-blue-mid'
-      case 'low': return 'text-muted-foreground'
-      default: return 'text-muted-foreground'
+      case 'high':
+        return 'text-green-500'
+      case 'medium':
+        return 'text-blue-mid'
+      case 'low':
+        return 'text-muted-foreground'
+      default:
+        return 'text-muted-foreground'
     }
   }
 
@@ -398,10 +426,11 @@ export function CEOAIAssistant() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold mt-1">{dailyReport.totalUsers.toLocaleString()}</p>
+                    <p className="text-2xl font-bold mt-1">
+                      {dailyReport.totalUsers.toLocaleString()}
+                    </p>
                     <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
-                      <TrendUp className="w-3 h-3" weight="bold" />
-                      +{dailyReport.newSignups} today
+                      <TrendUp className="w-3 h-3" weight="bold" />+{dailyReport.newSignups} today
                     </p>
                   </div>
                   <Users className="w-8 h-8 text-blue-mid" weight="duotone" />
@@ -420,9 +449,12 @@ export function CEOAIAssistant() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Active Users</p>
-                    <p className="text-2xl font-bold mt-1">{dailyReport.activeUsers.toLocaleString()}</p>
+                    <p className="text-2xl font-bold mt-1">
+                      {dailyReport.activeUsers.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {((dailyReport.activeUsers / dailyReport.totalUsers) * 100).toFixed(1)}% engagement
+                      {((dailyReport.activeUsers / dailyReport.totalUsers) * 100).toFixed(1)}%
+                      engagement
                     </p>
                   </div>
                   <ChartLineUp className="w-8 h-8 text-accent" weight="duotone" />
@@ -490,7 +522,7 @@ export function CEOAIAssistant() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {dailyReport?.mostUsedFeatures.map((feature) => (
+              {dailyReport?.mostUsedFeatures.map(feature => (
                 <div key={feature.name} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{feature.name}</span>
@@ -513,23 +545,27 @@ export function CEOAIAssistant() {
         {/* User Feedback Tab */}
         <TabsContent value="feedback" className="space-y-4">
           <div className="grid gap-4">
-            {userFeedback.map((feedback) => (
+            {userFeedback.map(feedback => (
               <motion.div
                 key={feedback.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
               >
-                <Card className={cn(
-                  'border-l-4',
-                  feedback.type === 'complaint' && 'border-l-red-500',
-                  feedback.type === 'suggestion' && 'border-l-blue-mid',
-                  feedback.type === 'praise' && 'border-l-green-500'
-                )}>
+                <Card
+                  className={cn(
+                    'border-l-4',
+                    feedback.type === 'complaint' && 'border-l-red-500',
+                    feedback.type === 'suggestion' && 'border-l-blue-mid',
+                    feedback.type === 'praise' && 'border-l-green-500'
+                  )}
+                >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge variant={feedback.type === 'complaint' ? 'destructive' : 'secondary'}>
+                          <Badge
+                            variant={feedback.type === 'complaint' ? 'destructive' : 'secondary'}
+                          >
                             {feedback.type.charAt(0).toUpperCase() + feedback.type.slice(1)}
                           </Badge>
                           <Badge className={getPriorityColor(feedback.priority)}>
@@ -538,7 +574,9 @@ export function CEOAIAssistant() {
                           <span className="text-xs text-muted-foreground">{feedback.category}</span>
                         </div>
                         <p className="text-sm mb-2">{feedback.message}</p>
-                        <p className="text-xs text-muted-foreground">{formatRelativeTime(feedback.date)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatRelativeTime(feedback.date)}
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         Review
@@ -594,17 +632,19 @@ export function CEOAIAssistant() {
                         <Badge variant="outline">
                           Difficulty: {insight.implementationDifficulty}
                         </Badge>
-                        <Badge className={cn(
-                          insight.potentialImpact === 'high' && 'bg-green-500/20 text-green-500 border-green-500/30',
-                          insight.potentialImpact === 'medium' && 'bg-blue-mid/20 text-blue-mid border-blue-mid/30',
-                          insight.potentialImpact === 'low' && 'bg-muted text-muted-foreground'
-                        )}>
+                        <Badge
+                          className={cn(
+                            insight.potentialImpact === 'high' &&
+                              'bg-green-500/20 text-green-500 border-green-500/30',
+                            insight.potentialImpact === 'medium' &&
+                              'bg-blue-mid/20 text-blue-mid border-blue-mid/30',
+                            insight.potentialImpact === 'low' && 'bg-muted text-muted-foreground'
+                          )}
+                        >
                           Impact: {insight.potentialImpact}
                         </Badge>
                         {insight.actionable && (
-                          <Badge className="bg-accent text-accent-foreground">
-                            Actionable
-                          </Badge>
+                          <Badge className="bg-accent text-accent-foreground">Actionable</Badge>
                         )}
                       </div>
                     </CardContent>
@@ -637,13 +677,15 @@ export function CEOAIAssistant() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className={cn(
-                    'border-2 hover:shadow-lg transition-shadow',
-                    rec.priority === 'critical' && 'border-destructive/50',
-                    rec.priority === 'high' && 'border-orange-500/50',
-                    rec.priority === 'medium' && 'border-blue-mid/50',
-                    rec.priority === 'low' && 'border-muted'
-                  )}>
+                  <Card
+                    className={cn(
+                      'border-2 hover:shadow-lg transition-shadow',
+                      rec.priority === 'critical' && 'border-destructive/50',
+                      rec.priority === 'high' && 'border-orange-500/50',
+                      rec.priority === 'medium' && 'border-blue-mid/50',
+                      rec.priority === 'low' && 'border-muted'
+                    )}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">

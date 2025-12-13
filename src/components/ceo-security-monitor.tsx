@@ -22,7 +22,7 @@ import {
   QrCode,
   User,
   LockKey,
-  ChartLine
+  ChartLine,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,7 +38,10 @@ import type { LoginAttempt, APIKey } from '@/lib/ceo-auth'
 import { generateAPIKey } from '@/lib/ceo-auth'
 
 export function CEOSecurityMonitor() {
-  const [loginAttempts, setLoginAttempts] = useKV<LoginAttempt[]>('flowsphere-ceo-login-attempts', [])
+  const [loginAttempts, setLoginAttempts] = useKV<LoginAttempt[]>(
+    'flowsphere-ceo-login-attempts',
+    []
+  )
   const [apiKeys, setApiKeys] = useKV<APIKey[]>('flowsphere-ceo-api-keys', [
     {
       id: '1',
@@ -46,8 +49,8 @@ export function CEOSecurityMonitor() {
       key: 'fsk_' + 'x'.repeat(32),
       service: 'ai-monitoring',
       createdAt: new Date().toISOString(),
-      enabled: true
-    }
+      enabled: true,
+    },
   ])
 
   const [showKeyModal, setShowKeyModal] = useState(false)
@@ -71,7 +74,7 @@ export function CEOSecurityMonitor() {
       key: generateAPIKey(),
       service: newKeyService,
       createdAt: new Date().toISOString(),
-      enabled: true
+      enabled: true,
     }
 
     setApiKeys([...(apiKeys || []), newKey])
@@ -86,9 +89,7 @@ export function CEOSecurityMonitor() {
   }
 
   const toggleAPIKey = (id: string) => {
-    setApiKeys((apiKeys || []).map(k =>
-      k.id === id ? { ...k, enabled: !k.enabled } : k
-    ))
+    setApiKeys((apiKeys || []).map(k => (k.id === id ? { ...k, enabled: !k.enabled } : k)))
   }
 
   const toggleKeyVisibility = (id: string) => {
@@ -167,13 +168,13 @@ export function CEOSecurityMonitor() {
         <CardContent>
           <ScrollArea className="h-[400px]">
             <div className="space-y-2">
-              {(!loginAttempts || loginAttempts.length === 0) ? (
+              {!loginAttempts || loginAttempts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ShieldCheck className="w-12 h-12 mx-auto mb-3 opacity-50" weight="duotone" />
                   <p className="text-sm">No login attempts recorded yet</p>
                 </div>
               ) : (
-                loginAttempts.map((attempt) => (
+                loginAttempts.map(attempt => (
                   <motion.div
                     key={attempt.id}
                     initial={{ opacity: 0, x: -20 }}
@@ -197,7 +198,10 @@ export function CEOSecurityMonitor() {
                           <span className="font-semibold">
                             {attempt.success ? 'Successful Login' : 'Failed Login'}
                           </span>
-                          <Badge variant={attempt.method === 'qr' ? 'default' : 'secondary'} className="text-xs">
+                          <Badge
+                            variant={attempt.method === 'qr' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
                             {attempt.method === 'qr' ? (
                               <>
                                 <QrCode className="w-3 h-3 mr-1" />
@@ -263,11 +267,7 @@ export function CEOSecurityMonitor() {
                 Keys for AI services to report and monitor security events
               </CardDescription>
             </div>
-            <Button
-              onClick={() => setShowKeyModal(true)}
-              size="sm"
-              className="bg-accent"
-            >
+            <Button onClick={() => setShowKeyModal(true)} size="sm" className="bg-accent">
               <Plus className="w-4 h-4 mr-2" />
               New Key
             </Button>
@@ -275,13 +275,13 @@ export function CEOSecurityMonitor() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {(!apiKeys || apiKeys.length === 0) ? (
+            {!apiKeys || apiKeys.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Key className="w-12 h-12 mx-auto mb-3 opacity-50" weight="duotone" />
                 <p className="text-sm">No API keys created yet</p>
               </div>
             ) : (
-              apiKeys.map((key) => (
+              apiKeys.map(key => (
                 <div
                   key={key.id}
                   className={cn(
@@ -301,12 +301,15 @@ export function CEOSecurityMonitor() {
                         {key.enabled ? (
                           <Badge className="bg-green-500 text-white text-xs">Active</Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-xs">Disabled</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Disabled
+                          </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Created {new Date(key.createdAt).toLocaleDateString()}
-                        {key.lastUsed && ` • Last used ${new Date(key.lastUsed).toLocaleDateString()}`}
+                        {key.lastUsed &&
+                          ` • Last used ${new Date(key.lastUsed).toLocaleDateString()}`}
                       </p>
                     </div>
                   </div>
@@ -376,7 +379,7 @@ export function CEOSecurityMonitor() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               className="w-full max-w-md"
             >
               <Card className="border-2 border-accent/30 shadow-2xl">
@@ -409,7 +412,7 @@ export function CEOSecurityMonitor() {
                       id="key-name"
                       placeholder="e.g., Production AI Monitor"
                       value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
+                      onChange={e => setNewKeyName(e.target.value)}
                     />
                   </div>
 
@@ -418,7 +421,7 @@ export function CEOSecurityMonitor() {
                     <select
                       id="key-service"
                       value={newKeyService}
-                      onChange={(e) => setNewKeyService(e.target.value as APIKey['service'])}
+                      onChange={e => setNewKeyService(e.target.value as APIKey['service'])}
                       className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="ai-monitoring">AI Monitoring</option>

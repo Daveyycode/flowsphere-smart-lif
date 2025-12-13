@@ -17,7 +17,7 @@ import {
   Funnel,
   MagnifyingGlass,
   ArrowUp,
-  CheckSquare
+  CheckSquare,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { type Complaint } from '@/lib/ai-complaint-handler'
@@ -46,7 +52,7 @@ export function CEOComplaintsDashboard() {
       pending: all.filter(c => c.status === 'pending' || c.status === 'ai-analyzing').length,
       aiResolved: all.filter(c => c.status === 'ai-resolved').length,
       escalated: all.filter(c => c.status === 'escalated').length,
-      closed: all.filter(c => c.status === 'closed').length
+      closed: all.filter(c => c.status === 'closed').length,
     }
   }, [complaints])
 
@@ -57,11 +63,12 @@ export function CEOComplaintsDashboard() {
     // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(c =>
-        c.subject.toLowerCase().includes(query) ||
-        c.description.toLowerCase().includes(query) ||
-        c.userName.toLowerCase().includes(query) ||
-        c.userEmail.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        c =>
+          c.subject.toLowerCase().includes(query) ||
+          c.description.toLowerCase().includes(query) ||
+          c.userName.toLowerCase().includes(query) ||
+          c.userEmail.toLowerCase().includes(query)
       )
     }
 
@@ -76,7 +83,9 @@ export function CEOComplaintsDashboard() {
     }
 
     // Sort by date (newest first)
-    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return filtered.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   }, [complaints, searchQuery, statusFilter, priorityFilter])
 
   const getPriorityColor = (priority: Complaint['priority']) => {
@@ -84,18 +93,21 @@ export function CEOComplaintsDashboard() {
       low: 'text-green-500 bg-green-500/10 border-green-500/20',
       medium: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
       high: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
-      urgent: 'text-red-500 bg-red-500/10 border-red-500/20'
+      urgent: 'text-red-500 bg-red-500/10 border-red-500/20',
     }
     return colors[priority]
   }
 
   const getStatusConfig = (status: Complaint['status']) => {
     const config = {
-      'pending': { color: 'bg-gray-500', icon: <CalendarBlank className="w-3 h-3" /> },
+      pending: { color: 'bg-gray-500', icon: <CalendarBlank className="w-3 h-3" /> },
       'ai-analyzing': { color: 'bg-blue-500', icon: <Robot className="w-3 h-3" weight="fill" /> },
-      'ai-resolved': { color: 'bg-green-500', icon: <CheckCircle className="w-3 h-3" weight="fill" /> },
-      'escalated': { color: 'bg-orange-500', icon: <Warning className="w-3 h-3" weight="fill" /> },
-      'closed': { color: 'bg-gray-600', icon: <CheckSquare className="w-3 h-3" weight="fill" /> }
+      'ai-resolved': {
+        color: 'bg-green-500',
+        icon: <CheckCircle className="w-3 h-3" weight="fill" />,
+      },
+      escalated: { color: 'bg-orange-500', icon: <Warning className="w-3 h-3" weight="fill" /> },
+      closed: { color: 'bg-gray-600', icon: <CheckSquare className="w-3 h-3" weight="fill" /> },
     }
     return config[status]
   }
@@ -182,7 +194,7 @@ export function CEOComplaintsDashboard() {
               <Input
                 placeholder="Search..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="pl-7 h-7 text-xs"
               />
             </div>
@@ -192,12 +204,24 @@ export function CEOComplaintsDashboard() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All</SelectItem>
-                <SelectItem value="pending" className="text-xs">Pending</SelectItem>
-                <SelectItem value="ai-analyzing" className="text-xs">Analyzing</SelectItem>
-                <SelectItem value="ai-resolved" className="text-xs">Resolved</SelectItem>
-                <SelectItem value="escalated" className="text-xs">Escalated</SelectItem>
-                <SelectItem value="closed" className="text-xs">Closed</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All
+                </SelectItem>
+                <SelectItem value="pending" className="text-xs">
+                  Pending
+                </SelectItem>
+                <SelectItem value="ai-analyzing" className="text-xs">
+                  Analyzing
+                </SelectItem>
+                <SelectItem value="ai-resolved" className="text-xs">
+                  Resolved
+                </SelectItem>
+                <SelectItem value="escalated" className="text-xs">
+                  Escalated
+                </SelectItem>
+                <SelectItem value="closed" className="text-xs">
+                  Closed
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -206,11 +230,21 @@ export function CEOComplaintsDashboard() {
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">All</SelectItem>
-                <SelectItem value="urgent" className="text-xs">Urgent</SelectItem>
-                <SelectItem value="high" className="text-xs">High</SelectItem>
-                <SelectItem value="medium" className="text-xs">Medium</SelectItem>
-                <SelectItem value="low" className="text-xs">Low</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  All
+                </SelectItem>
+                <SelectItem value="urgent" className="text-xs">
+                  Urgent
+                </SelectItem>
+                <SelectItem value="high" className="text-xs">
+                  High
+                </SelectItem>
+                <SelectItem value="medium" className="text-xs">
+                  Medium
+                </SelectItem>
+                <SelectItem value="low" className="text-xs">
+                  Low
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -244,9 +278,7 @@ export function CEOComplaintsDashboard() {
             <ChatCircleDots className="w-4 h-4 text-accent" weight="duotone" />
             Complaints
           </CardTitle>
-          <CardDescription className="text-[10px]">
-            Click to view details
-          </CardDescription>
+          <CardDescription className="text-[10px]">Click to view details</CardDescription>
         </CardHeader>
         <CardContent className="p-3">
           {filteredComplaints.length === 0 ? (
@@ -259,7 +291,7 @@ export function CEOComplaintsDashboard() {
           ) : (
             <ScrollArea className="h-[400px]">
               <div className="space-y-2">
-                {filteredComplaints.map((complaint) => {
+                {filteredComplaints.map(complaint => {
                   const statusConfig = getStatusConfig(complaint.status)
                   return (
                     <motion.div
@@ -277,7 +309,9 @@ export function CEOComplaintsDashboard() {
                       <div className="flex items-start justify-between gap-2 mb-1.5">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <h4 className="font-semibold text-[10px] truncate">{complaint.subject}</h4>
+                            <h4 className="font-semibold text-[10px] truncate">
+                              {complaint.subject}
+                            </h4>
                             {complaint.status === 'escalated' && (
                               <Badge className="bg-orange-500 text-white gap-1 text-[9px] px-1 py-0">
                                 <ArrowUp className="w-2.5 h-2.5" weight="bold" />
@@ -304,10 +338,21 @@ export function CEOComplaintsDashboard() {
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <Badge variant="outline" className={cn('text-[9px] px-1 py-0', getPriorityColor(complaint.priority))}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[9px] px-1 py-0',
+                              getPriorityColor(complaint.priority)
+                            )}
+                          >
                             {complaint.priority.toUpperCase()}
                           </Badge>
-                          <Badge className={cn('text-white gap-1 text-[9px] px-1 py-0', statusConfig.color)}>
+                          <Badge
+                            className={cn(
+                              'text-white gap-1 text-[9px] px-1 py-0',
+                              statusConfig.color
+                            )}
+                          >
                             {statusConfig.icon}
                             {complaint.status.replace('-', ' ').toUpperCase()}
                           </Badge>
@@ -333,7 +378,7 @@ export function CEOComplaintsDashboard() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
             className="w-full max-w-3xl"
           >
             <Card className="border border-accent/30 shadow-2xl">
@@ -342,7 +387,9 @@ export function CEOComplaintsDashboard() {
                   <ChatCircleDots className="w-4 h-4 text-accent" weight="fill" />
                   Details
                 </CardTitle>
-                <CardDescription className="text-[10px]">ID: {selectedComplaint.id}</CardDescription>
+                <CardDescription className="text-[10px]">
+                  ID: {selectedComplaint.id}
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-3">
                 <ScrollArea className="max-h-[60vh]">
@@ -359,11 +406,19 @@ export function CEOComplaintsDashboard() {
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground mb-0.5">Category</p>
-                        <p className="text-[10px] font-medium capitalize">{selectedComplaint.category}</p>
+                        <p className="text-[10px] font-medium capitalize">
+                          {selectedComplaint.category}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground mb-0.5">Priority</p>
-                        <Badge variant="outline" className={cn('text-[9px] px-1 py-0', getPriorityColor(selectedComplaint.priority))}>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[9px] px-1 py-0',
+                            getPriorityColor(selectedComplaint.priority)
+                          )}
+                        >
                           {selectedComplaint.priority.toUpperCase()}
                         </Badge>
                       </div>
@@ -393,7 +448,9 @@ export function CEOComplaintsDashboard() {
                           <Robot className="w-3 h-3 text-green-500" weight="fill" />
                           AI Resolution
                         </h3>
-                        <p className="text-[10px] mb-1.5">{selectedComplaint.aiResolution.analysis}</p>
+                        <p className="text-[10px] mb-1.5">
+                          {selectedComplaint.aiResolution.analysis}
+                        </p>
                         <div className="p-2 bg-background rounded text-[10px] whitespace-pre-wrap">
                           {selectedComplaint.aiResolution.solution}
                         </div>

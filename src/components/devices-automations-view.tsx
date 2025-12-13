@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Lightbulb, 
-  Thermometer, 
-  Lock, 
-  Camera, 
-  Power, 
-  Plus, 
-  Television, 
-  Robot, 
-  Fan, 
-  SpeakerHigh, 
+import {
+  Lightbulb,
+  Thermometer,
+  Lock,
+  Camera,
+  Power,
+  Plus,
+  Television,
+  Robot,
+  Fan,
+  SpeakerHigh,
   Wind,
   Lightning,
   Clock,
@@ -19,24 +19,45 @@ import {
   MapPin,
   Play,
   Pause,
-  Trash
+  Trash,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 
 export interface Device {
   id: string
   name: string
-  type: 'light' | 'thermostat' | 'lock' | 'camera' | 'television' | 'robot' | 'fan' | 'speaker' | 'air-purifier'
+  type:
+    | 'light'
+    | 'thermostat'
+    | 'lock'
+    | 'camera'
+    | 'television'
+    | 'robot'
+    | 'fan'
+    | 'speaker'
+    | 'air-purifier'
   status: 'online' | 'offline'
   isOn: boolean
   brightness?: number
@@ -82,15 +103,24 @@ export function DevicesAutomationsView({
   onDeleteDevice,
   onToggleAutomation,
   onDeleteAutomation,
-  onAddAutomation
+  onAddAutomation,
 }: DevicesAutomationsViewProps) {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] = useState(false)
   const [isAddAutomationDialogOpen, setIsAddAutomationDialogOpen] = useState(false)
-  
+
   const [newDevice, setNewDevice] = useState<{
     name: string
-    type: 'light' | 'thermostat' | 'lock' | 'camera' | 'television' | 'robot' | 'fan' | 'speaker' | 'air-purifier'
+    type:
+      | 'light'
+      | 'thermostat'
+      | 'lock'
+      | 'camera'
+      | 'television'
+      | 'robot'
+      | 'fan'
+      | 'speaker'
+      | 'air-purifier'
     room: string
     status: 'online' | 'offline'
     isOn: boolean
@@ -101,7 +131,7 @@ export function DevicesAutomationsView({
     room: 'Living Room',
     status: 'online',
     isOn: false,
-    cameraLocation: 'outside'
+    cameraLocation: 'outside',
   })
 
   const [newAutomation, setNewAutomation] = useState<{
@@ -115,67 +145,103 @@ export function DevicesAutomationsView({
     trigger: 'time',
     triggerDetails: '',
     actions: [],
-    icon: 'lightning'
+    icon: 'lightning',
   })
 
   const getDeviceIcon = (type: string) => {
     switch (type) {
-      case 'light': return Lightbulb
-      case 'thermostat': return Thermometer
-      case 'lock': return Lock
-      case 'camera': return Camera
-      case 'television': return Television
-      case 'robot': return Robot
-      case 'fan': return Fan
-      case 'speaker': return SpeakerHigh
-      case 'air-purifier': return Wind
-      default: return Power
+      case 'light':
+        return Lightbulb
+      case 'thermostat':
+        return Thermometer
+      case 'lock':
+        return Lock
+      case 'camera':
+        return Camera
+      case 'television':
+        return Television
+      case 'robot':
+        return Robot
+      case 'fan':
+        return Fan
+      case 'speaker':
+        return SpeakerHigh
+      case 'air-purifier':
+        return Wind
+      default:
+        return Power
     }
   }
 
   const getDeviceColor = (type: string) => {
     switch (type) {
-      case 'light': return 'mint'
-      case 'thermostat': return 'coral'
-      case 'lock': return 'primary'
-      case 'camera': return 'accent'
-      case 'television': return 'accent'
-      case 'robot': return 'primary'
-      case 'fan': return 'mint'
-      case 'speaker': return 'coral'
-      case 'air-purifier': return 'mint'
-      default: return 'muted'
+      case 'light':
+        return 'mint'
+      case 'thermostat':
+        return 'coral'
+      case 'lock':
+        return 'primary'
+      case 'camera':
+        return 'accent'
+      case 'television':
+        return 'accent'
+      case 'robot':
+        return 'primary'
+      case 'fan':
+        return 'mint'
+      case 'speaker':
+        return 'coral'
+      case 'air-purifier':
+        return 'mint'
+      default:
+        return 'muted'
     }
   }
 
   const getAutomationIcon = (icon: string) => {
     switch (icon) {
-      case 'sun': return Sun
-      case 'moon': return Moon
-      case 'lock': return Lock
-      case 'lightbulb': return Lightbulb
-      case 'thermometer': return Thermometer
-      default: return Lightning
+      case 'sun':
+        return Sun
+      case 'moon':
+        return Moon
+      case 'lock':
+        return Lock
+      case 'lightbulb':
+        return Lightbulb
+      case 'thermometer':
+        return Thermometer
+      default:
+        return Lightning
     }
   }
 
   const getTriggerIcon = (trigger: string) => {
     switch (trigger) {
-      case 'time': return Clock
-      case 'location': return MapPin
-      case 'device': return Lightbulb
-      default: return Lightning
+      case 'time':
+        return Clock
+      case 'location':
+        return MapPin
+      case 'device':
+        return Lightbulb
+      default:
+        return Lightning
     }
   }
 
   const getAutomationColor = (icon: string) => {
     switch (icon) {
-      case 'sun': return 'coral'
-      case 'moon': return 'primary'
-      case 'lock': return 'accent'
-      case 'lightbulb': return 'mint'
-      case 'thermometer': return 'coral'
-      default: return 'accent'
+      case 'sun':
+        return 'coral'
+      case 'moon':
+        return 'primary'
+      case 'lock':
+        return 'accent'
+      case 'lightbulb':
+        return 'mint'
+      case 'thermometer':
+        return 'coral'
+      default:
+        return 'accent'
     }
   }
 
@@ -198,13 +264,13 @@ export function DevicesAutomationsView({
       brightness: newDevice.type === 'light' ? 100 : undefined,
       temperature: newDevice.type === 'thermostat' ? 72 : undefined,
       locked: newDevice.type === 'lock' ? true : undefined,
-      volume: (newDevice.type === 'television' || newDevice.type === 'speaker') ? 50 : undefined,
-      speed: (newDevice.type === 'fan' || newDevice.type === 'air-purifier') ? 2 : undefined,
+      volume: newDevice.type === 'television' || newDevice.type === 'speaker' ? 50 : undefined,
+      speed: newDevice.type === 'fan' || newDevice.type === 'air-purifier' ? 2 : undefined,
       channel: newDevice.type === 'television' ? 'HDMI 1' : undefined,
       batteryLevel: newDevice.type === 'robot' ? 100 : undefined,
       cleaningMode: newDevice.type === 'robot' ? 'Auto' : undefined,
       isRecording: newDevice.type === 'camera' ? false : undefined,
-      cameraLocation: newDevice.type === 'camera' ? newDevice.cameraLocation : undefined
+      cameraLocation: newDevice.type === 'camera' ? newDevice.cameraLocation : undefined,
     }
     onAddDevice(deviceToAdd)
     setIsAddDeviceDialogOpen(false)
@@ -214,7 +280,7 @@ export function DevicesAutomationsView({
       room: 'Living Room',
       status: 'online',
       isOn: false,
-      cameraLocation: 'outside'
+      cameraLocation: 'outside',
     })
     toast.success('Device added successfully')
   }
@@ -243,21 +309,32 @@ export function DevicesAutomationsView({
     onAddAutomation({
       ...newAutomation,
       isActive: true,
-      actions: newAutomation.actions.length > 0 ? newAutomation.actions : ['Turn on lights']
+      actions: newAutomation.actions.length > 0 ? newAutomation.actions : ['Turn on lights'],
     })
-    
+
     setIsAddAutomationDialogOpen(false)
     setNewAutomation({
       name: '',
       trigger: 'time',
       triggerDetails: '',
       actions: [],
-      icon: 'lightning'
+      icon: 'lightning',
     })
     toast.success('Automation created successfully')
   }
 
-  const rooms = ['Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Office', 'Garage', 'Outside', 'Driveway', 'Front Door', 'Backyard']
+  const rooms = [
+    'Living Room',
+    'Bedroom',
+    'Kitchen',
+    'Bathroom',
+    'Office',
+    'Garage',
+    'Outside',
+    'Driveway',
+    'Front Door',
+    'Backyard',
+  ]
 
   const cameras = devices.filter(d => d.type === 'camera')
   const outsideCameras = cameras.filter(c => c.cameraLocation === 'outside')
@@ -267,7 +344,7 @@ export function DevicesAutomationsView({
   const renderDeviceCard = (device: Device, index: number) => {
     const Icon = getDeviceIcon(device.type)
     const color = getDeviceColor(device.type)
-    
+
     return (
       <motion.div
         key={device.id}
@@ -275,7 +352,7 @@ export function DevicesAutomationsView({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, delay: index * 0.05 }}
       >
-        <Card 
+        <Card
           className={`border-border/50 hover:border-${color}/50 transition-all duration-300 hover:shadow-lg cursor-pointer ${
             device.isOn ? 'glow-accent' : ''
           }`}
@@ -283,10 +360,12 @@ export function DevicesAutomationsView({
         >
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between mb-3 sm:mb-4">
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-${color}/10 flex items-center justify-center`}>
-                <Icon 
-                  className={`w-5 h-5 sm:w-6 sm:h-6 text-${color} ${device.isOn ? 'animate-pulse' : ''}`} 
-                  weight="duotone" 
+              <div
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-${color}/10 flex items-center justify-center`}
+              >
+                <Icon
+                  className={`w-5 h-5 sm:w-6 sm:h-6 text-${color} ${device.isOn ? 'animate-pulse' : ''}`}
+                  weight="duotone"
                 />
               </div>
               <div className="flex items-center space-x-2">
@@ -299,13 +378,13 @@ export function DevicesAutomationsView({
                 <Switch
                   checked={device.isOn}
                   onCheckedChange={() => handleToggleDevice(device)}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation()
                     handleDeleteDevice(device.id, device.name)
                   }}
@@ -319,14 +398,14 @@ export function DevicesAutomationsView({
             <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{device.room}</p>
 
             {device.type === 'light' && device.brightness !== undefined && device.isOn && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-2" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Brightness</span>
                   <span className="font-medium">{device.brightness}%</span>
                 </div>
                 <Slider
                   value={[device.brightness]}
-                  onValueChange={(value) => handleBrightnessChange(device, value)}
+                  onValueChange={value => handleBrightnessChange(device, value)}
                   max={100}
                   step={1}
                   className="cursor-pointer"
@@ -335,14 +414,14 @@ export function DevicesAutomationsView({
             )}
 
             {device.type === 'thermostat' && device.temperature !== undefined && device.isOn && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-2" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Temperature</span>
                   <span className="font-medium">{device.temperature}°F</span>
                 </div>
                 <Slider
                   value={[device.temperature]}
-                  onValueChange={(value) => handleTemperatureChange(device, value)}
+                  onValueChange={value => handleTemperatureChange(device, value)}
                   min={60}
                   max={85}
                   step={1}
@@ -377,14 +456,14 @@ export function DevicesAutomationsView({
             )}
 
             {device.type === 'television' && device.volume !== undefined && device.isOn && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-2" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Volume</span>
                   <span className="font-medium">{device.volume}%</span>
                 </div>
                 <Slider
                   value={[device.volume]}
-                  onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                  onValueChange={value => onDeviceUpdate(device.id, { volume: value[0] })}
                   max={100}
                   step={1}
                   className="cursor-pointer"
@@ -413,32 +492,34 @@ export function DevicesAutomationsView({
               </div>
             )}
 
-            {(device.type === 'fan' || device.type === 'air-purifier') && device.speed !== undefined && device.isOn && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Speed</span>
-                  <span className="font-medium">Level {device.speed}</span>
+            {(device.type === 'fan' || device.type === 'air-purifier') &&
+              device.speed !== undefined &&
+              device.isOn && (
+                <div className="space-y-2" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Speed</span>
+                    <span className="font-medium">Level {device.speed}</span>
+                  </div>
+                  <Slider
+                    value={[device.speed]}
+                    onValueChange={value => onDeviceUpdate(device.id, { speed: value[0] })}
+                    min={1}
+                    max={5}
+                    step={1}
+                    className="cursor-pointer"
+                  />
                 </div>
-                <Slider
-                  value={[device.speed]}
-                  onValueChange={(value) => onDeviceUpdate(device.id, { speed: value[0] })}
-                  min={1}
-                  max={5}
-                  step={1}
-                  className="cursor-pointer"
-                />
-              </div>
-            )}
+              )}
 
             {device.type === 'speaker' && device.volume !== undefined && device.isOn && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-2" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Volume</span>
                   <span className="font-medium">{device.volume}%</span>
                 </div>
                 <Slider
                   value={[device.volume]}
-                  onValueChange={(value) => onDeviceUpdate(device.id, { volume: value[0] })}
+                  onValueChange={value => onDeviceUpdate(device.id, { volume: value[0] })}
                   max={100}
                   step={1}
                   className="cursor-pointer"
@@ -455,7 +536,9 @@ export function DevicesAutomationsView({
     <div className="space-y-4 sm:space-y-6 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">Devices & Automations</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
+            Devices & Automations
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
             Manage your smart devices and intelligent routines
           </p>
@@ -494,14 +577,16 @@ export function DevicesAutomationsView({
                       id="device-name"
                       placeholder="Living Room Light"
                       value={newDevice.name}
-                      onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })}
+                      onChange={e => setNewDevice({ ...newDevice, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="device-type">Device Type</Label>
                     <Select
                       value={newDevice.type}
-                      onValueChange={(value: Device['type']) => setNewDevice({ ...newDevice, type: value })}
+                      onValueChange={(value: Device['type']) =>
+                        setNewDevice({ ...newDevice, type: value })
+                      }
                     >
                       <SelectTrigger id="device-type">
                         <SelectValue />
@@ -523,14 +608,16 @@ export function DevicesAutomationsView({
                     <Label htmlFor="device-room">Room</Label>
                     <Select
                       value={newDevice.room}
-                      onValueChange={(value) => setNewDevice({ ...newDevice, room: value })}
+                      onValueChange={value => setNewDevice({ ...newDevice, room: value })}
                     >
                       <SelectTrigger id="device-room">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {rooms.map((room) => (
-                          <SelectItem key={room} value={room}>{room}</SelectItem>
+                        {rooms.map(room => (
+                          <SelectItem key={room} value={room}>
+                            {room}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -540,7 +627,9 @@ export function DevicesAutomationsView({
                       <Label htmlFor="camera-location">Camera Location</Label>
                       <Select
                         value={newDevice.cameraLocation}
-                        onValueChange={(value: 'outside' | 'inside') => setNewDevice({ ...newDevice, cameraLocation: value })}
+                        onValueChange={(value: 'outside' | 'inside') =>
+                          setNewDevice({ ...newDevice, cameraLocation: value })
+                        }
                       >
                         <SelectTrigger id="camera-location">
                           <SelectValue />
@@ -552,8 +641,8 @@ export function DevicesAutomationsView({
                       </Select>
                     </div>
                   )}
-                  <Button 
-                    onClick={handleAddDevice} 
+                  <Button
+                    onClick={handleAddDevice}
                     className="w-full bg-accent hover:bg-accent/90"
                     disabled={!newDevice.name}
                   >
@@ -599,12 +688,15 @@ export function DevicesAutomationsView({
 
           {devices.length === 0 && (
             <Card className="p-8 sm:p-12 text-center">
-              <Power className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground" weight="duotone" />
+              <Power
+                className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground"
+                weight="duotone"
+              />
               <h3 className="text-lg sm:text-xl font-semibold mb-2">No Devices Connected</h3>
               <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                 Add your first smart device to get started
               </p>
-              <Button 
+              <Button
                 onClick={() => setIsAddDeviceDialogOpen(true)}
                 className="bg-accent hover:bg-accent/90"
               >
@@ -635,15 +727,17 @@ export function DevicesAutomationsView({
                       id="automation-name"
                       placeholder="Morning Routine"
                       value={newAutomation.name}
-                      onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })}
+                      onChange={e => setNewAutomation({ ...newAutomation, name: e.target.value })}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="trigger-type">Trigger Type</Label>
                     <Select
                       value={newAutomation.trigger}
-                      onValueChange={(value: Automation['trigger']) => setNewAutomation({ ...newAutomation, trigger: value })}
+                      onValueChange={(value: Automation['trigger']) =>
+                        setNewAutomation({ ...newAutomation, trigger: value })
+                      }
                     >
                       <SelectTrigger id="trigger-type">
                         <SelectValue />
@@ -662,13 +756,18 @@ export function DevicesAutomationsView({
                     <Input
                       id="trigger-details"
                       placeholder={
-                        newAutomation.trigger === 'time' ? '6:45 AM' :
-                        newAutomation.trigger === 'location' ? 'When arriving home' :
-                        newAutomation.trigger === 'device' ? 'When light turns on' :
-                        'Temperature below 65°F'
+                        newAutomation.trigger === 'time'
+                          ? '6:45 AM'
+                          : newAutomation.trigger === 'location'
+                            ? 'When arriving home'
+                            : newAutomation.trigger === 'device'
+                              ? 'When light turns on'
+                              : 'Temperature below 65°F'
                       }
                       value={newAutomation.triggerDetails}
-                      onChange={(e) => setNewAutomation({ ...newAutomation, triggerDetails: e.target.value })}
+                      onChange={e =>
+                        setNewAutomation({ ...newAutomation, triggerDetails: e.target.value })
+                      }
                     />
                   </div>
 
@@ -676,7 +775,9 @@ export function DevicesAutomationsView({
                     <Label htmlFor="icon-select">Icon</Label>
                     <Select
                       value={newAutomation.icon}
-                      onValueChange={(value: Automation['icon']) => setNewAutomation({ ...newAutomation, icon: value })}
+                      onValueChange={(value: Automation['icon']) =>
+                        setNewAutomation({ ...newAutomation, icon: value })
+                      }
                     >
                       <SelectTrigger id="icon-select">
                         <SelectValue />
@@ -692,8 +793,8 @@ export function DevicesAutomationsView({
                     </Select>
                   </div>
 
-                  <Button 
-                    onClick={handleAddAutomation} 
+                  <Button
+                    onClick={handleAddAutomation}
                     className="w-full bg-accent hover:bg-accent/90"
                   >
                     Create Automation
@@ -715,9 +816,12 @@ export function DevicesAutomationsView({
                     <Lightning className="w-5 h-5 sm:w-6 sm:h-6 text-accent" weight="fill" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Automate Your Life</h3>
+                    <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">
+                      Automate Your Life
+                    </h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
-                      Set up intelligent automations that respond to your daily patterns. Save time and energy by letting FlowSphere handle routine tasks automatically.
+                      Set up intelligent automations that respond to your daily patterns. Save time
+                      and energy by letting FlowSphere handle routine tasks automatically.
                     </p>
                     <Button variant="link" className="text-accent p-0 h-auto text-xs sm:text-sm">
                       Learn about automation best practices →
@@ -735,13 +839,16 @@ export function DevicesAutomationsView({
               className="text-center py-8 sm:py-12"
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <Lightning className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" weight="duotone" />
+                <Lightning
+                  className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground"
+                  weight="duotone"
+                />
               </div>
               <h3 className="text-lg sm:text-xl font-semibold mb-2">No automations yet</h3>
               <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                 Create your first automation to start saving time
               </p>
-              <Button 
+              <Button
                 onClick={() => setIsAddAutomationDialogOpen(true)}
                 className="bg-accent hover:bg-accent/90"
               >
@@ -763,17 +870,29 @@ export function DevicesAutomationsView({
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
-                    <Card className={`border-border/50 hover:border-${color}/50 transition-all duration-300 ${automation.isActive ? 'hover:shadow-lg' : 'opacity-70'}`}>
+                    <Card
+                      className={`border-border/50 hover:border-${color}/50 transition-all duration-300 ${automation.isActive ? 'hover:shadow-lg' : 'opacity-70'}`}
+                    >
                       <CardContent className="p-4 sm:p-6">
                         <div className="flex items-start justify-between mb-3 sm:mb-4">
                           <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-${color}/10 flex items-center justify-center flex-shrink-0`}>
-                              <Icon className={`w-5 h-5 sm:w-6 sm:h-6 text-${color}`} weight="duotone" />
+                            <div
+                              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-${color}/10 flex items-center justify-center flex-shrink-0`}
+                            >
+                              <Icon
+                                className={`w-5 h-5 sm:w-6 sm:h-6 text-${color}`}
+                                weight="duotone"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-base sm:text-lg mb-1 truncate">{automation.name}</h3>
+                              <h3 className="font-semibold text-base sm:text-lg mb-1 truncate">
+                                {automation.name}
+                              </h3>
                               <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground">
-                                <TriggerIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" weight="duotone" />
+                                <TriggerIcon
+                                  className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
+                                  weight="duotone"
+                                />
                                 <span className="capitalize truncate">{automation.trigger}</span>
                                 <span className="flex-shrink-0">•</span>
                                 <span className="truncate">{automation.triggerDetails}</span>
@@ -782,13 +901,17 @@ export function DevicesAutomationsView({
                           </div>
                           <Switch
                             checked={automation.isActive}
-                            onCheckedChange={(checked) => handleToggleAutomation(automation.id, checked)}
+                            onCheckedChange={checked =>
+                              handleToggleAutomation(automation.id, checked)
+                            }
                             className="flex-shrink-0 ml-2"
                           />
                         </div>
 
                         <div className="space-y-2 mb-3 sm:mb-4">
-                          <p className="text-xs sm:text-sm font-medium text-muted-foreground">Actions:</p>
+                          <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                            Actions:
+                          </p>
                           <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {automation.actions.map((action, i) => (
                               <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs">
@@ -813,12 +936,18 @@ export function DevicesAutomationsView({
                           >
                             {automation.isActive ? (
                               <>
-                                <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" weight="fill" />
+                                <Play
+                                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                                  weight="fill"
+                                />
                                 Run Now
                               </>
                             ) : (
                               <>
-                                <Pause className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" weight="fill" />
+                                <Pause
+                                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                                  weight="fill"
+                                />
                                 Paused
                               </>
                             )}

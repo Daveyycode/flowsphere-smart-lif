@@ -22,7 +22,7 @@ import {
   Key,
   LockKey,
   CheckCircle,
-  XCircle
+  XCircle,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -74,11 +74,12 @@ export function ComplaintsManagement() {
       userName: 'Sarah Johnson',
       userEmail: 'sarah@example.com',
       subject: 'GPS tracking not updating',
-      description: 'The GPS location for my family members hasn\'t updated in 2 hours. This is concerning for safety.',
+      description:
+        "The GPS location for my family members hasn't updated in 2 hours. This is concerning for safety.",
       status: 'pending',
       priority: 'high',
       createdAt: new Date(Date.now() - 3600000).toISOString(),
-      updatedAt: new Date(Date.now() - 3600000).toISOString()
+      updatedAt: new Date(Date.now() - 3600000).toISOString(),
     },
     {
       id: '2',
@@ -91,7 +92,7 @@ export function ComplaintsManagement() {
       priority: 'urgent',
       createdAt: new Date(Date.now() - 7200000).toISOString(),
       updatedAt: new Date(Date.now() - 1800000).toISOString(),
-      assignedTo: 'Admin Team'
+      assignedTo: 'Admin Team',
     },
     {
       id: '3',
@@ -105,8 +106,8 @@ export function ComplaintsManagement() {
       createdAt: new Date(Date.now() - 86400000).toISOString(),
       updatedAt: new Date(Date.now() - 43200000).toISOString(),
       assignedTo: 'Tech Support',
-      resolution: 'Issue resolved with app version 2.1.3 update'
-    }
+      resolution: 'Issue resolved with app version 2.1.3 update',
+    },
   ])
 
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
@@ -115,27 +116,37 @@ export function ComplaintsManagement() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-destructive text-white'
-      case 'high': return 'bg-orange-500 text-white'
-      case 'medium': return 'bg-coral text-white'
-      case 'low': return 'bg-muted text-muted-foreground'
-      default: return 'bg-muted text-muted-foreground'
+      case 'urgent':
+        return 'bg-destructive text-white'
+      case 'high':
+        return 'bg-orange-500 text-white'
+      case 'medium':
+        return 'bg-coral text-white'
+      case 'low':
+        return 'bg-muted text-muted-foreground'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500 text-white'
-      case 'in-progress': return 'bg-blue-500 text-white'
-      case 'resolved': return 'bg-green-500 text-white'
-      case 'closed': return 'bg-muted text-muted-foreground'
-      default: return 'bg-muted text-muted-foreground'
+      case 'pending':
+        return 'bg-yellow-500 text-white'
+      case 'in-progress':
+        return 'bg-blue-500 text-white'
+      case 'resolved':
+        return 'bg-green-500 text-white'
+      case 'closed':
+        return 'bg-muted text-muted-foreground'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
   const handleStatusChange = (id: string, newStatus: Complaint['status']) => {
-    setComplaints((current) =>
-      (current || []).map((c) =>
+    setComplaints(current =>
+      (current || []).map(c =>
         c.id === id ? { ...c, status: newStatus, updatedAt: new Date().toISOString() } : c
       )
     )
@@ -148,14 +159,14 @@ export function ComplaintsManagement() {
       return
     }
 
-    setComplaints((current) =>
-      (current || []).map((c) =>
+    setComplaints(current =>
+      (current || []).map(c =>
         c.id === selectedComplaint.id
           ? {
               ...c,
               status: 'resolved',
               resolution,
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
             }
           : c
       )
@@ -168,14 +179,14 @@ export function ComplaintsManagement() {
   }
 
   const handleDelete = (id: string) => {
-    setComplaints((current) => (current || []).filter((c) => c.id !== id))
+    setComplaints(current => (current || []).filter(c => c.id !== id))
     toast.success('Complaint deleted')
   }
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4">
-        {(complaints || []).map((complaint) => (
+        {(complaints || []).map(complaint => (
           <Card key={complaint.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-4">
@@ -184,9 +195,7 @@ export function ComplaintsManagement() {
                     <Badge className={getPriorityColor(complaint.priority)}>
                       {complaint.priority}
                     </Badge>
-                    <Badge className={getStatusColor(complaint.status)}>
-                      {complaint.status}
-                    </Badge>
+                    <Badge className={getStatusColor(complaint.status)}>{complaint.status}</Badge>
                   </div>
 
                   <h4 className="font-semibold">{complaint.subject}</h4>
@@ -254,7 +263,7 @@ export function ComplaintsManagement() {
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
             className="w-full max-w-2xl"
           >
             <Card>
@@ -266,11 +275,7 @@ export function ComplaintsManagement() {
                       From: {selectedComplaint.userName} ({selectedComplaint.userEmail})
                     </CardDescription>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDetails(false)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setShowDetails(false)}>
                     <X className="w-5 h-5" />
                   </Button>
                 </div>
@@ -288,7 +293,7 @@ export function ComplaintsManagement() {
                   <Textarea
                     placeholder="Enter resolution details..."
                     value={resolution}
-                    onChange={(e) => setResolution(e.target.value)}
+                    onChange={e => setResolution(e.target.value)}
                     className="mt-1"
                     rows={4}
                   />
@@ -329,7 +334,7 @@ export function InquiriesManagement() {
       category: 'billing',
       question: 'Can I upgrade from monthly to annual billing mid-cycle?',
       status: 'pending',
-      createdAt: new Date(Date.now() - 1800000).toISOString()
+      createdAt: new Date(Date.now() - 1800000).toISOString(),
     },
     {
       id: '2',
@@ -338,11 +343,12 @@ export function InquiriesManagement() {
       userEmail: 'lisa@example.com',
       category: 'feature-request',
       question: 'Is there a way to export all family location history?',
-      response: 'Yes! You can export location history from Settings > Data Export. We support CSV and JSON formats.',
+      response:
+        'Yes! You can export location history from Settings > Data Export. We support CSV and JSON formats.',
       status: 'answered',
       createdAt: new Date(Date.now() - 86400000).toISOString(),
-      respondedAt: new Date(Date.now() - 43200000).toISOString()
-    }
+      respondedAt: new Date(Date.now() - 43200000).toISOString(),
+    },
   ])
 
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
@@ -351,11 +357,16 @@ export function InquiriesManagement() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'billing': return 'bg-green-500 text-white'
-      case 'technical': return 'bg-blue-500 text-white'
-      case 'feature-request': return 'bg-purple-500 text-white'
-      case 'general': return 'bg-muted text-muted-foreground'
-      default: return 'bg-muted text-muted-foreground'
+      case 'billing':
+        return 'bg-green-500 text-white'
+      case 'technical':
+        return 'bg-blue-500 text-white'
+      case 'feature-request':
+        return 'bg-purple-500 text-white'
+      case 'general':
+        return 'bg-muted text-muted-foreground'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -365,14 +376,14 @@ export function InquiriesManagement() {
       return
     }
 
-    setInquiries((current) =>
-      (current || []).map((inq) =>
+    setInquiries(current =>
+      (current || []).map(inq =>
         inq.id === selectedInquiry.id
           ? {
               ...inq,
               response,
               status: 'answered',
-              respondedAt: new Date().toISOString()
+              respondedAt: new Date().toISOString(),
             }
           : inq
       )
@@ -386,7 +397,7 @@ export function InquiriesManagement() {
 
   return (
     <div className="space-y-4">
-      {(inquiries || []).map((inquiry) => (
+      {(inquiries || []).map(inquiry => (
         <Card key={inquiry.id} className="hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-4">
@@ -406,9 +417,7 @@ export function InquiriesManagement() {
                 <p className="text-sm font-medium">{inquiry.question}</p>
 
                 {inquiry.response && (
-                  <p className="text-sm text-muted-foreground">
-                    Response: {inquiry.response}
-                  </p>
+                  <p className="text-sm text-muted-foreground">Response: {inquiry.response}</p>
                 )}
 
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -451,7 +460,7 @@ export function InquiriesManagement() {
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
             className="w-full max-w-2xl"
           >
             <Card>
@@ -459,15 +468,9 @@ export function InquiriesManagement() {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle>Inquiry from {selectedInquiry.userName}</CardTitle>
-                    <CardDescription className="mt-2">
-                      {selectedInquiry.userEmail}
-                    </CardDescription>
+                    <CardDescription className="mt-2">{selectedInquiry.userEmail}</CardDescription>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDetails(false)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setShowDetails(false)}>
                     <X className="w-5 h-5" />
                   </Button>
                 </div>
@@ -475,9 +478,7 @@ export function InquiriesManagement() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Question</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedInquiry.question}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedInquiry.question}</p>
                 </div>
 
                 <div>
@@ -485,7 +486,7 @@ export function InquiriesManagement() {
                   <Textarea
                     placeholder="Enter your response..."
                     value={response}
-                    onChange={(e) => setResponse(e.target.value)}
+                    onChange={e => setResponse(e.target.value)}
                     className="mt-1"
                     rows={4}
                   />
@@ -499,10 +500,7 @@ export function InquiriesManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    onClick={handleRespond}
-                    className="flex-1 bg-accent"
-                  >
+                  <Button onClick={handleRespond} className="flex-1 bg-accent">
                     Send Response
                   </Button>
                 </div>
@@ -522,7 +520,10 @@ export function PaymentIntegration() {
   const [accountNumber, setAccountNumber] = useKV<string>('flowsphere-account-number', '')
   const [routingNumber, setRoutingNumber] = useKV<string>('flowsphere-routing-number', '')
   const [showStripeSecret, setShowStripeSecret] = useState(false)
-  const [isStripeConnected, setIsStripeConnected] = useKV<boolean>('flowsphere-stripe-connected', false)
+  const [isStripeConnected, setIsStripeConnected] = useKV<boolean>(
+    'flowsphere-stripe-connected',
+    false
+  )
   const [isBankConnected, setIsBankConnected] = useKV<boolean>('flowsphere-bank-connected', false)
 
   const handleStripeConnect = () => {
@@ -555,7 +556,9 @@ export function PaymentIntegration() {
               </div>
               <div>
                 <CardTitle>Stripe Integration</CardTitle>
-                <CardDescription>Connect your Stripe account for payment processing</CardDescription>
+                <CardDescription>
+                  Connect your Stripe account for payment processing
+                </CardDescription>
               </div>
             </div>
             {isStripeConnected && (
@@ -576,7 +579,7 @@ export function PaymentIntegration() {
                 type="text"
                 placeholder="pk_live_..."
                 value={stripeKey || ''}
-                onChange={(e) => setStripeKey(e.target.value)}
+                onChange={e => setStripeKey(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -591,7 +594,7 @@ export function PaymentIntegration() {
                 type={showStripeSecret ? 'text' : 'password'}
                 placeholder="sk_live_..."
                 value={stripeSecret || ''}
-                onChange={(e) => setStripeSecret(e.target.value)}
+                onChange={e => setStripeSecret(e.target.value)}
                 className="pl-10 pr-10"
               />
               <Button
@@ -644,7 +647,7 @@ export function PaymentIntegration() {
               id="bank-name"
               placeholder="e.g., Chase, Bank of America"
               value={bankName || ''}
-              onChange={(e) => setBankName(e.target.value)}
+              onChange={e => setBankName(e.target.value)}
             />
           </div>
 
@@ -655,7 +658,7 @@ export function PaymentIntegration() {
               type="password"
               placeholder="Enter account number"
               value={accountNumber || ''}
-              onChange={(e) => setAccountNumber(e.target.value)}
+              onChange={e => setAccountNumber(e.target.value)}
             />
           </div>
 
@@ -665,7 +668,7 @@ export function PaymentIntegration() {
               id="routing-number"
               placeholder="9-digit routing number"
               value={routingNumber || ''}
-              onChange={(e) => setRoutingNumber(e.target.value)}
+              onChange={e => setRoutingNumber(e.target.value)}
               maxLength={9}
             />
           </div>

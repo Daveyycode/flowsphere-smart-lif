@@ -23,7 +23,7 @@ import {
   Warning,
   Clock,
   ArrowRight,
-  Gear
+  Gear,
 } from '@phosphor-icons/react'
 import { getRoute, type RouteResult, type RouteCoordinate } from '@/lib/api/routing'
 
@@ -87,7 +87,7 @@ export function FlowSphereMap({
   const mapStyles = {
     streets: 'mapbox://styles/mapbox/streets-v12',
     satellite: 'mapbox://styles/mapbox/satellite-streets-v12',
-    dark: 'mapbox://styles/mapbox/dark-v11'
+    dark: 'mapbox://styles/mapbox/dark-v11',
   }
 
   // Initialize map
@@ -107,21 +107,23 @@ export function FlowSphereMap({
       style: mapStyles[mapStyle],
       center: [120.9842, 14.5995], // Manila default
       zoom: 13,
-      attributionControl: false
+      attributionControl: false,
     })
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
 
     // Add attribution
-    map.current.addControl(new mapboxgl.AttributionControl({
-      compact: true
-    }))
+    map.current.addControl(
+      new mapboxgl.AttributionControl({
+        compact: true,
+      })
+    )
 
     // Get initial location
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const loc: Location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -146,7 +148,7 @@ export function FlowSphereMap({
       if (showTraffic && map.current) {
         map.current.addSource('mapbox-traffic', {
           type: 'vector',
-          url: 'mapbox://mapbox.mapbox-traffic-v1'
+          url: 'mapbox://mapbox.mapbox-traffic-v1',
         })
 
         map.current.addLayer({
@@ -158,14 +160,18 @@ export function FlowSphereMap({
             'line-color': [
               'match',
               ['get', 'congestion'],
-              'low', '#10B981',
-              'moderate', '#F59E0B',
-              'heavy', '#EF4444',
-              'severe', '#7C3AED',
-              '#94A3B8'
+              'low',
+              '#10B981',
+              'moderate',
+              '#F59E0B',
+              'heavy',
+              '#EF4444',
+              'severe',
+              '#7C3AED',
+              '#94A3B8',
             ],
-            'line-width': 2
-          }
+            'line-width': 2,
+          },
         })
       }
     })
@@ -211,13 +217,15 @@ export function FlowSphereMap({
 
     userMarker.current = new mapboxgl.Marker(el)
       .setLngLat([loc.lng, loc.lat])
-      .setPopup(new mapboxgl.Popup().setHTML(`
+      .setPopup(
+        new mapboxgl.Popup().setHTML(`
         <div style="padding: 8px;">
           <strong>Your Location</strong>
           ${loc.accuracy ? `<p style="font-size: 12px; color: #666;">Accuracy: ${Math.round(loc.accuracy)}m</p>` : ''}
           ${loc.speed ? `<p style="font-size: 12px; color: #666;">Speed: ${Math.round(loc.speed * 3.6)} km/h</p>` : ''}
         </div>
-      `))
+      `)
+      )
       .addTo(map.current)
   }
 
@@ -227,7 +235,7 @@ export function FlowSphereMap({
 
     if ('geolocation' in navigator) {
       watchId.current = navigator.geolocation.watchPosition(
-        (position) => {
+        position => {
           const loc: Location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -242,12 +250,12 @@ export function FlowSphereMap({
           if (map.current) {
             map.current.easeTo({
               center: [loc.lng, loc.lat],
-              duration: 1000
+              duration: 1000,
             })
             addUserMarker(loc)
           }
         },
-        (error) => {
+        error => {
           console.error('Geolocation error:', error)
         },
         {
@@ -289,10 +297,10 @@ export function FlowSphereMap({
             newPolylines.set(route.id, {
               polyline: routeData.geometry.coordinates.map((coord: number[]) => ({
                 lng: coord[0],
-                lat: coord[1]
+                lat: coord[1],
               })),
               distanceText: `${(routeData.distance / 1000).toFixed(1)} km`,
-              durationText: `${Math.round(routeData.duration / 60)} min`
+              durationText: `${Math.round(routeData.duration / 60)} min`,
             })
           }
         } catch (error) {
@@ -335,9 +343,9 @@ export function FlowSphereMap({
           properties: {},
           geometry: {
             type: 'LineString',
-            coordinates
-          }
-        }
+            coordinates,
+          },
+        },
       })
 
       const isSelected = selectedRoute?.id === route.id
@@ -349,13 +357,13 @@ export function FlowSphereMap({
         source: `route-${route.id}`,
         layout: {
           'line-join': 'round',
-          'line-cap': 'round'
+          'line-cap': 'round',
         },
         paint: {
           'line-color': color,
           'line-width': isSelected ? 6 : 4,
-          'line-opacity': isSelected ? 1 : 0.6
-        }
+          'line-opacity': isSelected ? 1 : 0.6,
+        },
       })
 
       // Add markers
@@ -380,33 +388,42 @@ export function FlowSphereMap({
     // Start marker
     new mapboxgl.Marker({ color: '#10B981' })
       .setLngLat([route.from.lng, route.from.lat])
-      .setPopup(new mapboxgl.Popup().setHTML(`
+      .setPopup(
+        new mapboxgl.Popup().setHTML(`
         <div style="padding: 8px;">
           <strong>${route.name}</strong>
           <p style="font-size: 12px;">${route.from.address}</p>
         </div>
-      `))
+      `)
+      )
       .addTo(map.current)
 
     // End marker
     new mapboxgl.Marker({ color: '#EF4444' })
       .setLngLat([route.to.lng, route.to.lat])
-      .setPopup(new mapboxgl.Popup().setHTML(`
+      .setPopup(
+        new mapboxgl.Popup().setHTML(`
         <div style="padding: 8px;">
           <strong>Destination</strong>
           <p style="font-size: 12px;">${route.to.address}</p>
         </div>
-      `))
+      `)
+      )
       .addTo(map.current)
   }
 
   const getTrafficColor = (condition?: string) => {
     switch (condition) {
-      case 'light': return '#10B981'
-      case 'moderate': return '#F59E0B'
-      case 'heavy': return '#EF4444'
-      case 'severe': return '#7C3AED'
-      default: return '#3B82F6'
+      case 'light':
+        return '#10B981'
+      case 'moderate':
+        return '#F59E0B'
+      case 'heavy':
+        return '#EF4444'
+      case 'severe':
+        return '#7C3AED'
+      default:
+        return '#3B82F6'
     }
   }
 
@@ -414,7 +431,7 @@ export function FlowSphereMap({
     setIsLocating(true)
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const loc: Location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -425,7 +442,7 @@ export function FlowSphereMap({
             map.current.easeTo({
               center: [loc.lng, loc.lat],
               zoom: 15,
-              duration: 1000
+              duration: 1000,
             })
             addUserMarker(loc)
           }
@@ -442,7 +459,10 @@ export function FlowSphereMap({
   // No token warning
   if (!hasToken) {
     return (
-      <div className={`relative rounded-xl overflow-hidden bg-muted ${className}`} style={{ height }}>
+      <div
+        className={`relative rounded-xl overflow-hidden bg-muted ${className}`}
+        style={{ height }}
+      >
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
           <Warning className="w-12 h-12 text-yellow-500 mb-4" weight="duotone" />
           <h3 className="text-lg font-semibold mb-2">Mapbox Token Required</h3>
@@ -461,8 +481,8 @@ export function FlowSphereMap({
               className="text-primary underline"
             >
               mapbox.com
-            </a>
-            {' '}(50,000 free map loads/month)
+            </a>{' '}
+            (50,000 free map loads/month)
           </p>
         </div>
       </div>
@@ -595,7 +615,9 @@ export function FlowSphereMap({
                         {selectedRoute.trafficCondition && (
                           <span
                             className="px-1.5 py-0.5 rounded text-white text-xs"
-                            style={{ backgroundColor: getTrafficColor(selectedRoute.trafficCondition) }}
+                            style={{
+                              backgroundColor: getTrafficColor(selectedRoute.trafficCondition),
+                            }}
                           >
                             {selectedRoute.trafficCondition}
                           </span>

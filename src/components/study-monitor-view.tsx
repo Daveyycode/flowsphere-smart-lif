@@ -22,7 +22,7 @@ import {
   ChartBar,
   User,
   X,
-  Info
+  Info,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS: MonitorSettings = {
   analysisInterval: 15, // Every 15 seconds
   distractionThreshold: 120, // 2 minutes of distraction
   enableAlerts: true,
-  enableSound: true
+  enableSound: true,
 }
 
 const STORAGE_KEY = 'flowsphere-study-monitor'
@@ -74,7 +74,9 @@ export function StudyMonitorView() {
   const [isOnBreak, setIsOnBreak] = useState(false)
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const [currentStatus, setCurrentStatus] = useState<'studying' | 'distracted' | 'away' | 'break'>('studying')
+  const [currentStatus, setCurrentStatus] = useState<'studying' | 'distracted' | 'away' | 'break'>(
+    'studying'
+  )
   const [focusScore, setFocusScore] = useState(100)
   const [sessionDuration, setSessionDuration] = useState(0)
   const [distractedDuration, setDistractedDuration] = useState(0)
@@ -97,8 +99,8 @@ export function StudyMonitorView() {
         video: {
           facingMode: 'user', // Front camera for self-view
           width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
+          height: { ideal: 480 },
+        },
       })
 
       if (videoRef.current) {
@@ -152,7 +154,9 @@ export function StudyMonitorView() {
   }, [isOnBreak])
 
   // Analyze image with AI
-  const analyzeStudyBehavior = async (imageBase64: string): Promise<{
+  const analyzeStudyBehavior = async (
+    imageBase64: string
+  ): Promise<{
     isStudying: boolean
     confidence: number
     details: string
@@ -189,24 +193,28 @@ export function StudyMonitorView() {
       return {
         isStudying: false,
         confidence: 75 + Math.floor(Math.random() * 20),
-        details: 'Child appears to be looking away from study materials'
+        details: 'Child appears to be looking away from study materials',
       }
     } else if (rand > 0.95) {
       return {
         isStudying: false,
         confidence: 60 + Math.floor(Math.random() * 30),
-        details: 'Child may be distracted or using phone'
+        details: 'Child may be distracted or using phone',
       }
     }
     return {
       isStudying: true,
       confidence: 80 + Math.floor(Math.random() * 15),
-      details: 'Child appears focused on study materials'
+      details: 'Child appears focused on study materials',
     }
   }
 
   // Handle analysis result
-  const handleAnalysisResult = (analysis: { isStudying: boolean; confidence: number; details: string }) => {
+  const handleAnalysisResult = (analysis: {
+    isStudying: boolean
+    confidence: number
+    details: string
+  }) => {
     if (analysis.isStudying) {
       setCurrentStatus('studying')
       // Reset distraction timer
@@ -236,7 +244,10 @@ export function StudyMonitorView() {
     }
 
     // Update focus score
-    const newScore = Math.max(0, Math.min(100, analysis.isStudying ? focusScore + 2 : focusScore - 5))
+    const newScore = Math.max(
+      0,
+      Math.min(100, analysis.isStudying ? focusScore + 2 : focusScore - 5)
+    )
     setFocusScore(newScore)
   }
 
@@ -249,7 +260,7 @@ export function StudyMonitorView() {
       new Notification('Study Monitor Alert', {
         body: `Distraction detected: ${reason}`,
         icon: '/icon.png',
-        badge: '/badge.png'
+        badge: '/badge.png',
       })
     }
 
@@ -261,7 +272,7 @@ export function StudyMonitorView() {
     // Toast notification
     toast.warning('Distraction Detected', {
       description: reason,
-      duration: 10000
+      duration: 10000,
     })
 
     // Log distraction event
@@ -269,7 +280,7 @@ export function StudyMonitorView() {
       sessionRef.current.distractions.push({
         timestamp: Date.now(),
         duration: settings?.distractionThreshold || 120,
-        description: reason
+        description: reason,
       })
     }
   }
@@ -309,7 +320,7 @@ export function StudyMonitorView() {
       focusedTime: 0,
       distractedTime: 0,
       distractions: [],
-      focusScore: 100
+      focusScore: 100,
     }
 
     setIsMonitoring(true)
@@ -371,14 +382,14 @@ export function StudyMonitorView() {
   const takeBreak = () => {
     setIsOnBreak(true)
     setCurrentStatus('break')
-    toast.info("Taking a break. Monitoring paused.")
+    toast.info('Taking a break. Monitoring paused.')
   }
 
   // Resume from break
   const resumeFromBreak = () => {
     setIsOnBreak(false)
     setCurrentStatus('studying')
-    toast.success("Break ended. Back to studying!")
+    toast.success('Break ended. Back to studying!')
   }
 
   // Cleanup on unmount
@@ -405,48 +416,52 @@ export function StudyMonitorView() {
   // Get status color
   const getStatusColor = () => {
     switch (currentStatus) {
-      case 'studying': return 'text-green-500'
-      case 'distracted': return 'text-orange-500'
-      case 'away': return 'text-red-500'
-      case 'break': return 'text-blue-500'
-      default: return 'text-gray-500'
+      case 'studying':
+        return 'text-green-500'
+      case 'distracted':
+        return 'text-orange-500'
+      case 'away':
+        return 'text-red-500'
+      case 'break':
+        return 'text-blue-500'
+      default:
+        return 'text-gray-500'
     }
   }
 
   const getStatusBg = () => {
     switch (currentStatus) {
-      case 'studying': return 'bg-green-500/20'
-      case 'distracted': return 'bg-orange-500/20'
-      case 'away': return 'bg-red-500/20'
-      case 'break': return 'bg-blue-500/20'
-      default: return 'bg-gray-500/20'
+      case 'studying':
+        return 'bg-green-500/20'
+      case 'distracted':
+        return 'bg-orange-500/20'
+      case 'away':
+        return 'bg-red-500/20'
+      case 'break':
+        return 'bg-blue-500/20'
+      default:
+        return 'bg-gray-500/20'
     }
   }
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn('space-y-6', isMobile && 'space-y-4')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
                 <Camera className="w-6 h-6 text-cyan-500" weight="fill" />
               </div>
               <div>
-                <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
+                <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>
                   AI Study Monitor
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Camera-powered focus tracking
-                </p>
+                <p className="text-sm text-muted-foreground">Camera-powered focus tracking</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowPrivacyInfo(true)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => setShowPrivacyInfo(true)}>
               <Info className="w-5 h-5" />
             </Button>
           </CardTitle>
@@ -472,20 +487,36 @@ export function StudyMonitorView() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" weight="fill" />
-                  <p className="text-sm">Video is analyzed locally and <strong>never recorded or stored</strong></p>
+                  <CheckCircle
+                    className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                    weight="fill"
+                  />
+                  <p className="text-sm">
+                    Video is analyzed locally and <strong>never recorded or stored</strong>
+                  </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" weight="fill" />
+                  <CheckCircle
+                    className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                    weight="fill"
+                  />
                   <p className="text-sm">Images are processed and immediately discarded</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" weight="fill" />
+                  <CheckCircle
+                    className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                    weight="fill"
+                  />
                   <p className="text-sm">Only focus status (studying/distracted) is saved</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" weight="fill" />
-                  <p className="text-sm">Child can pause monitoring anytime with the break button</p>
+                  <CheckCircle
+                    className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"
+                    weight="fill"
+                  />
+                  <p className="text-sm">
+                    Child can pause monitoring anytime with the break button
+                  </p>
                 </div>
                 <Button className="w-full" onClick={() => setShowPrivacyInfo(false)}>
                   Got it
@@ -496,10 +527,10 @@ export function StudyMonitorView() {
         )}
       </AnimatePresence>
 
-      <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-2")}>
+      <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
         {/* Camera View */}
         <Card>
-          <CardContent className={cn("p-4", isMobile && "p-3")}>
+          <CardContent className={cn('p-4', isMobile && 'p-3')}>
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
               {cameraActive ? (
                 <>
@@ -511,12 +542,19 @@ export function StudyMonitorView() {
                     className="w-full h-full object-cover"
                   />
                   {/* Status overlay */}
-                  <div className={cn(
-                    "absolute top-3 right-3 px-3 py-1.5 rounded-full flex items-center gap-2",
-                    getStatusBg()
-                  )}>
-                    <div className={cn("w-2 h-2 rounded-full animate-pulse", getStatusColor().replace('text-', 'bg-'))} />
-                    <span className={cn("text-sm font-medium capitalize", getStatusColor())}>
+                  <div
+                    className={cn(
+                      'absolute top-3 right-3 px-3 py-1.5 rounded-full flex items-center gap-2',
+                      getStatusBg()
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full animate-pulse',
+                        getStatusColor().replace('text-', 'bg-')
+                      )}
+                    />
+                    <span className={cn('text-sm font-medium capitalize', getStatusColor())}>
                       {currentStatus}
                     </span>
                   </div>
@@ -609,7 +647,15 @@ export function StudyMonitorView() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Focus Level</span>
-                  <span className={focusScore >= 70 ? 'text-green-500' : focusScore >= 40 ? 'text-yellow-500' : 'text-red-500'}>
+                  <span
+                    className={
+                      focusScore >= 70
+                        ? 'text-green-500'
+                        : focusScore >= 40
+                          ? 'text-yellow-500'
+                          : 'text-red-500'
+                    }
+                  >
                     {focusScore}%
                   </span>
                 </div>
@@ -635,9 +681,7 @@ export function StudyMonitorView() {
                 <Switch
                   id="alerts"
                   checked={settings?.enableAlerts ?? true}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings!, enableAlerts: checked })
-                  }
+                  onCheckedChange={checked => setSettings({ ...settings!, enableAlerts: checked })}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -645,9 +689,7 @@ export function StudyMonitorView() {
                 <Switch
                   id="sound"
                   checked={settings?.enableSound ?? true}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings!, enableSound: checked })
-                  }
+                  onCheckedChange={checked => setSettings({ ...settings!, enableSound: checked })}
                 />
               </div>
               <div className="text-xs text-muted-foreground">
@@ -662,7 +704,7 @@ export function StudyMonitorView() {
       <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">How It Works</h3>
-          <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+          <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                 <Camera className="w-5 h-5 text-blue-500" />
@@ -691,9 +733,7 @@ export function StudyMonitorView() {
               </div>
               <div>
                 <h4 className="font-medium">100% Private</h4>
-                <p className="text-sm text-muted-foreground">
-                  No video is ever recorded or stored
-                </p>
+                <p className="text-sm text-muted-foreground">No video is ever recorded or stored</p>
               </div>
             </div>
           </div>

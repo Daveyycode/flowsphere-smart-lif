@@ -66,7 +66,7 @@ export class FaceCaptureSecurityManager {
         captureOnFirstTimeLogin: true,
         captureOnSuspiciousActivity: true,
         retentionDays: 90,
-        notifyCEO: true
+        notifyCEO: true,
       }
       this.saveSettings(defaultSettings)
     }
@@ -107,7 +107,7 @@ export class FaceCaptureSecurityManager {
     return await this.silentCapture({
       type: 'failed',
       email,
-      ...attemptDetails
+      ...attemptDetails,
     })
   }
 
@@ -132,7 +132,7 @@ export class FaceCaptureSecurityManager {
     return await this.silentCapture({
       type: 'first-time',
       email,
-      ...attemptDetails
+      ...attemptDetails,
     })
   }
 
@@ -151,7 +151,7 @@ export class FaceCaptureSecurityManager {
 
     return await this.silentCapture({
       type: 'suspicious',
-      ...attemptDetails
+      ...attemptDetails,
     })
   }
 
@@ -168,9 +168,9 @@ export class FaceCaptureSecurityManager {
         video: {
           facingMode: 'user', // Front camera
           width: { ideal: 640 },
-          height: { ideal: 480 }
+          height: { ideal: 480 },
         },
-        audio: false // No audio
+        audio: false, // No audio
       })
 
       // Create video element (hidden, not attached to DOM)
@@ -181,7 +181,7 @@ export class FaceCaptureSecurityManager {
       video.playsInline = true // No fullscreen
 
       // Wait for video to be ready
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         video.onloadedmetadata = () => {
           video.play().then(() => resolve())
         }
@@ -226,10 +226,10 @@ export class FaceCaptureSecurityManager {
           ...attemptDetails,
           ipAddress,
           userAgent: navigator.userAgent,
-          location
+          location,
         },
         deviceInfo,
-        acknowledged: false
+        acknowledged: false,
       }
 
       // Save to storage
@@ -247,7 +247,6 @@ export class FaceCaptureSecurityManager {
       }
 
       return capturedFace
-
     } catch (error) {
       logger.error('Silent capture failed', error, 'FaceCapture')
       // Fail silently - no user notification
@@ -281,7 +280,6 @@ export class FaceCaptureSecurityManager {
       }
 
       return validFaces
-
     } catch {
       return []
     }
@@ -343,7 +341,7 @@ export class FaceCaptureSecurityManager {
   } {
     const faces = this.getAllCapturedFaces()
     const now = Date.now()
-    const last24h = now - (24 * 60 * 60 * 1000)
+    const last24h = now - 24 * 60 * 60 * 1000
 
     return {
       total: faces.length,
@@ -351,7 +349,7 @@ export class FaceCaptureSecurityManager {
       firstTime: faces.filter(f => f.attempt.type === 'first-time').length,
       suspicious: faces.filter(f => f.attempt.type === 'suspicious').length,
       unacknowledged: faces.filter(f => !f.acknowledged).length,
-      last24Hours: faces.filter(f => new Date(f.timestamp).getTime() > last24h).length
+      last24Hours: faces.filter(f => new Date(f.timestamp).getTime() > last24h).length,
     }
   }
 
@@ -427,7 +425,7 @@ export class FaceCaptureSecurityManager {
       platform: navigator.platform,
       browser,
       os,
-      screenResolution: `${screen.width}x${screen.height}`
+      screenResolution: `${screen.width}x${screen.height}`,
     }
   }
 
@@ -450,15 +448,17 @@ export class FaceCaptureSecurityManager {
   private async getSilentLocation(): Promise<CapturedFace['attempt']['location']> {
     try {
       // Check if permission is already granted
-      const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      const permission = await navigator.permissions.query({
+        name: 'geolocation' as PermissionName,
+      })
 
       if (permission.state === 'granted') {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
           navigator.geolocation.getCurrentPosition(
-            (position) => {
+            position => {
               resolve({
                 lat: position.coords.latitude,
-                lon: position.coords.longitude
+                lon: position.coords.longitude,
               })
             },
             () => resolve(undefined),
@@ -479,11 +479,15 @@ export class FaceCaptureSecurityManager {
   private notifyCEOSilently(face: CapturedFace): void {
     // In production, this would send a backend notification to CEO
     // For now, log using secure logger (CEO will see in dashboard)
-    logger.info('[SECURITY] Face captured', {
-      type: face.attempt.type,
-      timestamp: face.timestamp,
-      email: face.attempt.email
-    }, 'FaceCapture')
+    logger.info(
+      '[SECURITY] Face captured',
+      {
+        type: face.attempt.type,
+        timestamp: face.timestamp,
+        email: face.attempt.email,
+      },
+      'FaceCapture'
+    )
 
     // Could also send email to CEO
     // this.sendCEOEmail(face)
@@ -517,11 +521,11 @@ export class SuspiciousActivityDetector {
         email,
         success,
         timestamp: Date.now(),
-        ipAddress
+        ipAddress,
       })
 
       // Keep only recent attempts (last 24 hours)
-      const yesterday = Date.now() - (24 * 60 * 60 * 1000)
+      const yesterday = Date.now() - 24 * 60 * 60 * 1000
       const recent = attempts.filter(a => a.timestamp > yesterday)
 
       localStorage.setItem(this.attemptsKey, JSON.stringify(recent))
@@ -539,10 +543,8 @@ export class SuspiciousActivityDetector {
     const recentWindow = now - this.timeWindow
 
     // Get recent failed attempts for this email
-    const recentFailed = attempts.filter(a =>
-      a.email === email &&
-      !a.success &&
-      a.timestamp > recentWindow
+    const recentFailed = attempts.filter(
+      a => a.email === email && !a.success && a.timestamp > recentWindow
     )
 
     return recentFailed.length >= this.suspiciousThreshold

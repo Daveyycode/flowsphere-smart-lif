@@ -33,12 +33,12 @@ export interface CreditPackage {
 
 // Credit costs for different AI features
 export const CREDIT_COSTS = {
-  'ai-call': 2.00,        // $2 per AI phone call
-  'ai-email': 0.50,       // $0.50 per AI email
-  'ai-sms': 0.75,         // $0.75 per AI SMS
-  'ai-search': 0.25,      // $0.25 per AI search/browser query
-  'ai-booking': 1.50,     // $1.50 per AI booking attempt
-  'ai-analysis': 0.50     // $0.50 per AI analysis
+  'ai-call': 2.0, // $2 per AI phone call
+  'ai-email': 0.5, // $0.50 per AI email
+  'ai-sms': 0.75, // $0.75 per AI SMS
+  'ai-search': 0.25, // $0.25 per AI search/browser query
+  'ai-booking': 1.5, // $1.50 per AI booking attempt
+  'ai-analysis': 0.5, // $0.50 per AI analysis
 } as const
 
 // Available credit packages
@@ -46,26 +46,26 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
   {
     id: 'starter',
     name: 'Starter Pack',
-    credits: 2.00,
-    price: 2.00,
-    popular: false
+    credits: 2.0,
+    price: 2.0,
+    popular: false,
   },
   {
     id: 'basic',
     name: 'Basic Pack',
-    credits: 5.00,
-    price: 5.00,
+    credits: 5.0,
+    price: 5.0,
     popular: true,
-    savings: 'Most Popular'
+    savings: 'Most Popular',
   },
   {
     id: 'pro',
     name: 'Pro Pack',
-    credits: 10.00,
-    price: 10.00,
+    credits: 10.0,
+    price: 10.0,
     popular: false,
-    savings: 'Best Value'
-  }
+    savings: 'Best Value',
+  },
 ]
 
 /**
@@ -112,9 +112,9 @@ export function deductCredits(
         description,
         feature,
         timestamp: new Date().toISOString(),
-        status: 'failed'
+        status: 'failed',
       },
-      success: false
+      success: false,
     }
   }
 
@@ -122,7 +122,7 @@ export function deductCredits(
     ...balance,
     used: balance.used + cost,
     remaining: remaining - cost,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
   }
 
   const transaction: CreditTransaction = {
@@ -132,13 +132,13 @@ export function deductCredits(
     description,
     feature,
     timestamp: new Date().toISOString(),
-    status: 'completed'
+    status: 'completed',
   }
 
   return {
     newBalance,
     transaction,
-    success: true
+    success: true,
   }
 }
 
@@ -157,7 +157,7 @@ export function addCredits(
     ...balance,
     total: balance.total + amount,
     remaining: calculateRemainingCredits(balance) + amount,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
   }
 
   const transaction: CreditTransaction = {
@@ -167,12 +167,12 @@ export function addCredits(
     description: `Purchased ${packageName}`,
     feature: 'ai-booking', // Default feature for display
     timestamp: new Date().toISOString(),
-    status: 'completed'
+    status: 'completed',
   }
 
   return {
     newBalance,
-    transaction
+    transaction,
   }
 }
 
@@ -200,9 +200,7 @@ export function getCreditUsageBreakdown(
 /**
  * Get recommended package based on usage
  */
-export function getRecommendedPackage(
-  transactions: CreditTransaction[]
-): CreditPackage {
+export function getRecommendedPackage(transactions: CreditTransaction[]): CreditPackage {
   const monthlyUsage = transactions
     .filter(t => {
       const transactionDate = new Date(t.timestamp)
@@ -238,7 +236,7 @@ export function getFeatureName(feature: keyof typeof CREDIT_COSTS): string {
     'ai-sms': 'AI Text Message',
     'ai-search': 'AI Web Search',
     'ai-booking': 'AI Booking',
-    'ai-analysis': 'AI Analysis'
+    'ai-analysis': 'AI Analysis',
   }
   return names[feature]
 }
@@ -246,10 +244,7 @@ export function getFeatureName(feature: keyof typeof CREDIT_COSTS): string {
 /**
  * Calculate estimated cost for an action
  */
-export function estimateCost(
-  feature: keyof typeof CREDIT_COSTS,
-  quantity: number = 1
-): number {
+export function estimateCost(feature: keyof typeof CREDIT_COSTS, quantity: number = 1): number {
   return CREDIT_COSTS[feature] * quantity
 }
 
@@ -279,20 +274,20 @@ export function getCreditStatusMessage(balance: CreditBalance): {
   if (isBalanceDepleted(balance)) {
     return {
       message: 'Your credits are depleted. Purchase more to continue using AI features.',
-      severity: 'error'
+      severity: 'error',
     }
   }
 
   if (isBalanceLow(balance)) {
     return {
       message: 'Your credit balance is running low. Consider adding more credits.',
-      severity: 'warning'
+      severity: 'warning',
     }
   }
 
   return {
     message: `You have ${formatCredits(calculateRemainingCredits(balance))} in credits available.`,
-    severity: 'success'
+    severity: 'success',
   }
 }
 
@@ -315,20 +310,20 @@ export function validateAPIKeys(keys: UserAPIKeys): {
   if (!keys.verified) {
     return {
       valid: false,
-      message: 'API keys not verified. Please add your own API keys to use AI features.'
+      message: 'API keys not verified. Please add your own API keys to use AI features.',
     }
   }
 
   if (!keys.openai && !keys.anthropic && !keys.google && !keys.custom) {
     return {
       valid: false,
-      message: 'No API keys configured. Add at least one API key to continue.'
+      message: 'No API keys configured. Add at least one API key to continue.',
     }
   }
 
   return {
     valid: true,
-    message: 'API keys validated successfully'
+    message: 'API keys validated successfully',
   }
 }
 

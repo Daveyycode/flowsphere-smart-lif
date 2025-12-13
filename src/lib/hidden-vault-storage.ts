@@ -33,42 +33,42 @@ export type DisguiseType = 'apple' | 'android'
 export type VaultTier = 'basic' | 'pro' | 'gold'
 
 export interface VaultStorageLimits {
-  basic: number  // 5 GB
-  pro: number    // 12 GB
-  gold: number   // 30 GB
+  basic: number // 5 GB
+  pro: number // 12 GB
+  gold: number // 30 GB
 }
 
 export const STORAGE_LIMITS: VaultStorageLimits = {
-  basic: 5 * 1024 * 1024 * 1024,   // 5 GB in bytes
-  pro: 12 * 1024 * 1024 * 1024,    // 12 GB in bytes
-  gold: 30 * 1024 * 1024 * 1024,   // 30 GB in bytes
+  basic: 5 * 1024 * 1024 * 1024, // 5 GB in bytes
+  pro: 12 * 1024 * 1024 * 1024, // 12 GB in bytes
+  gold: 30 * 1024 * 1024 * 1024, // 30 GB in bytes
 }
 
 export const SUBSCRIPTION_PRICES = {
-  basic: 3,  // $3/month
-  pro: 5,    // $5/month
-  gold: 8,   // $8/month
+  basic: 3, // $3/month
+  pro: 5, // $5/month
+  gold: 8, // $8/month
 }
 
 export interface HiddenFile {
-  id: string                    // Unique file ID
-  realName: string              // User's chosen name ("My private photos")
-  disguisedName: string         // System filename ("com.apple.security.7f2a.cert")
-  disguiseType: DisguiseType    // 'apple' or 'android'
-  filePath: string              // Full path on device
-  originalFiles: OriginalFileInfo[]  // Info about encrypted files
-  totalSize: number             // Total encrypted size in bytes
-  createdAt: string             // ISO timestamp
-  updatedAt: string             // ISO timestamp
-  encryptionVersion: string     // For future migrations
+  id: string // Unique file ID
+  realName: string // User's chosen name ("My private photos")
+  disguisedName: string // System filename ("com.apple.security.7f2a.cert")
+  disguiseType: DisguiseType // 'apple' or 'android'
+  filePath: string // Full path on device
+  originalFiles: OriginalFileInfo[] // Info about encrypted files
+  totalSize: number // Total encrypted size in bytes
+  createdAt: string // ISO timestamp
+  updatedAt: string // ISO timestamp
+  encryptionVersion: string // For future migrations
 }
 
 export interface OriginalFileInfo {
-  name: string                  // Original filename
-  size: number                  // Original size in bytes
-  mimeType: string              // Original MIME type
-  offset: number                // Offset in encrypted blob
-  length: number                // Length in encrypted blob
+  name: string // Original filename
+  size: number // Original size in bytes
+  mimeType: string // Original MIME type
+  offset: number // Offset in encrypted blob
+  length: number // Length in encrypted blob
 }
 
 export interface HiddenVaultMetadata {
@@ -98,11 +98,11 @@ export type ProgressCallback = (progress: EncryptionProgress) => void
 const HIDDEN_FOLDER = '.flowsphere'
 const TEMP_FOLDER = '.flowsphere/.temp'
 const METADATA_FILE = '.flowsphere/.vault-meta'
-const CHUNK_SIZE = 10 * 1024 * 1024  // 10 MB chunks for large files
+const CHUNK_SIZE = 10 * 1024 * 1024 // 10 MB chunks for large files
 const VAULT_VERSION = '1.0.0'
 
 // FlowSphere magic bytes for hidden vault files
-const VAULT_MAGIC = new Uint8Array([0x46, 0x53, 0x56, 0x31])  // "FSV1"
+const VAULT_MAGIC = new Uint8Array([0x46, 0x53, 0x56, 0x31]) // "FSV1"
 
 // ============================================
 // INITIALIZATION
@@ -118,14 +118,14 @@ export async function initializeHiddenVault(): Promise<void> {
     await Filesystem.mkdir({
       path: HIDDEN_FOLDER,
       directory: Directory.Documents,
-      recursive: true
-    }).catch(() => {})  // Ignore if exists
+      recursive: true,
+    }).catch(() => {}) // Ignore if exists
 
     // Create temp folder for atomic operations
     await Filesystem.mkdir({
       path: TEMP_FOLDER,
       directory: Directory.Documents,
-      recursive: true
+      recursive: true,
     }).catch(() => {})
 
     // Initialize metadata if doesn't exist
@@ -137,7 +137,7 @@ export async function initializeHiddenVault(): Promise<void> {
         deviceId,
         files: [],
         totalStorageUsed: 0,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       }
       await saveMetadata(initialMetadata)
     }
@@ -159,13 +159,13 @@ async function cleanupTempFiles(): Promise<void> {
   try {
     const tempFiles = await Filesystem.readdir({
       path: TEMP_FOLDER,
-      directory: Directory.Documents
+      directory: Directory.Documents,
     })
 
     for (const file of tempFiles.files) {
       await Filesystem.deleteFile({
         path: `${TEMP_FOLDER}/${file.name}`,
-        directory: Directory.Documents
+        directory: Directory.Documents,
       }).catch(() => {})
     }
   } catch (error) {
@@ -185,7 +185,7 @@ async function loadMetadata(): Promise<HiddenVaultMetadata | null> {
     const result = await Filesystem.readFile({
       path: METADATA_FILE,
       directory: Directory.Documents,
-      encoding: Encoding.UTF8
+      encoding: Encoding.UTF8,
     })
 
     const deviceId = await getDeviceFingerprintId()
@@ -204,14 +204,14 @@ async function saveMetadata(metadata: HiddenVaultMetadata): Promise<void> {
   const deviceId = await getDeviceFingerprintId()
   const encrypted = await fsEncrypt(JSON.stringify(metadata), deviceId, {
     deviceBound: true,
-    oneTimeUse: false
+    oneTimeUse: false,
   })
 
   await Filesystem.writeFile({
     path: METADATA_FILE,
     directory: Directory.Documents,
     data: encrypted.raw,
-    encoding: Encoding.UTF8
+    encoding: Encoding.UTF8,
   })
 }
 
@@ -279,7 +279,7 @@ export async function hideFiles(
         totalFiles: files.length,
         bytesProcessed: totalBytes,
         totalBytes: files.reduce((sum, f) => sum + f.size, 0),
-        percentage: Math.round((i / files.length) * 20)  // 0-20% for reading
+        percentage: Math.round((i / files.length) * 20), // 0-20% for reading
       })
 
       const arrayBuffer = await file.arrayBuffer()
@@ -290,7 +290,7 @@ export async function hideFiles(
         size: file.size,
         mimeType: file.type || 'application/octet-stream',
         offset: totalBytes,
-        length: data.length
+        length: data.length,
       })
 
       fileDataArray.push(data)
@@ -310,7 +310,7 @@ export async function hideFiles(
       realName,
       originalFiles,
       createdAt: new Date().toISOString(),
-      version: VAULT_VERSION
+      version: VAULT_VERSION,
     })
     const metadataBytes = new TextEncoder().encode(metadataJson)
     const metadataLength = new Uint32Array([metadataBytes.length])
@@ -323,7 +323,7 @@ export async function hideFiles(
       totalFiles: files.length,
       bytesProcessed: 0,
       totalBytes,
-      percentage: 25
+      percentage: 25,
     })
 
     // Combine: [metadata_length:4][metadata][file_data]
@@ -337,7 +337,7 @@ export async function hideFiles(
     const encryptionKey = `${userPin}::${deviceId}`
     const encrypted = await fsEncrypt(payload, encryptionKey, {
       deviceBound: true,
-      oneTimeUse: false
+      oneTimeUse: false,
     })
 
     onProgress?.({
@@ -347,18 +347,14 @@ export async function hideFiles(
       totalFiles: files.length,
       bytesProcessed: totalBytes,
       totalBytes,
-      percentage: 60
+      percentage: 60,
     })
 
     // Step 5: Build final file with fake certificate header
-    const certHeader = disguiseType === 'apple'
-      ? APPLE_CERT_HEADER
-      : ANDROID_CREDENTIAL_HEADER
+    const certHeader = disguiseType === 'apple' ? APPLE_CERT_HEADER : ANDROID_CREDENTIAL_HEADER
 
     const encryptedBytes = new TextEncoder().encode(encrypted.raw)
-    const finalFile = new Uint8Array(
-      certHeader.length + VAULT_MAGIC.length + encryptedBytes.length
-    )
+    const finalFile = new Uint8Array(certHeader.length + VAULT_MAGIC.length + encryptedBytes.length)
 
     finalFile.set(certHeader, 0)
     finalFile.set(VAULT_MAGIC, certHeader.length)
@@ -372,14 +368,14 @@ export async function hideFiles(
       totalFiles: files.length,
       bytesProcessed: totalBytes,
       totalBytes,
-      percentage: 75
+      percentage: 75,
     })
 
     const base64Data = arrayBufferToBase64(finalFile.buffer)
     await Filesystem.writeFile({
       path: tempPath,
       directory: Directory.Documents,
-      data: base64Data
+      data: base64Data,
     })
 
     // Step 7: Move to final location (atomic)
@@ -387,7 +383,7 @@ export async function hideFiles(
       from: tempPath,
       to: finalPath,
       directory: Directory.Documents,
-      toDirectory: Directory.Documents
+      toDirectory: Directory.Documents,
     })
 
     // Step 8: Update metadata
@@ -398,7 +394,7 @@ export async function hideFiles(
       totalFiles: files.length,
       bytesProcessed: totalBytes,
       totalBytes,
-      percentage: 95
+      percentage: 95,
     })
 
     const hiddenFile: HiddenFile = {
@@ -411,7 +407,7 @@ export async function hideFiles(
       totalSize: finalFile.length,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      encryptionVersion: VAULT_VERSION
+      encryptionVersion: VAULT_VERSION,
     }
 
     const metadata = await loadMetadata()
@@ -429,17 +425,16 @@ export async function hideFiles(
       totalFiles: files.length,
       bytesProcessed: totalBytes,
       totalBytes,
-      percentage: 100
+      percentage: 100,
     })
 
     console.log('[HIDDEN VAULT] Files hidden successfully:', disguisedName)
     return hiddenFile
-
   } catch (error) {
     // Cleanup temp file on failure
     await Filesystem.deleteFile({
       path: tempPath,
-      directory: Directory.Documents
+      directory: Directory.Documents,
     }).catch(() => {})
 
     console.error('[HIDDEN VAULT] Failed to hide files:', error)
@@ -473,22 +468,23 @@ export async function revealFiles(
       totalFiles: hiddenFile.originalFiles.length,
       bytesProcessed: 0,
       totalBytes: hiddenFile.totalSize,
-      percentage: 10
+      percentage: 10,
     })
 
     // Read the encrypted file
     const result = await Filesystem.readFile({
       path: hiddenFile.filePath,
-      directory: Directory.Documents
+      directory: Directory.Documents,
     })
 
     const fileData = base64ToArrayBuffer(result.data as string)
     const fileBytes = new Uint8Array(fileData)
 
     // Skip the fake certificate header and find vault magic
-    const certHeaderLength = hiddenFile.disguiseType === 'apple'
-      ? APPLE_CERT_HEADER.length
-      : ANDROID_CREDENTIAL_HEADER.length
+    const certHeaderLength =
+      hiddenFile.disguiseType === 'apple'
+        ? APPLE_CERT_HEADER.length
+        : ANDROID_CREDENTIAL_HEADER.length
 
     // Verify vault magic
     const magicStart = certHeaderLength
@@ -509,14 +505,14 @@ export async function revealFiles(
       totalFiles: hiddenFile.originalFiles.length,
       bytesProcessed: 0,
       totalBytes: hiddenFile.totalSize,
-      percentage: 40
+      percentage: 40,
     })
 
     // Decrypt
     const deviceId = await getDeviceFingerprintId()
     const encryptionKey = `${userPin}::${deviceId}`
     const decrypted = await fsDecrypt(encryptedString, encryptionKey, {
-      deviceBound: true
+      deviceBound: true,
     })
 
     const decryptedBytes = decrypted.data
@@ -540,7 +536,7 @@ export async function revealFiles(
         totalFiles: fileMetadata.originalFiles.length,
         bytesProcessed: fileInfo.offset,
         totalBytes: hiddenFile.totalSize,
-        percentage: 60 + Math.round((i / fileMetadata.originalFiles.length) * 40)
+        percentage: 60 + Math.round((i / fileMetadata.originalFiles.length) * 40),
       })
 
       const start = fileDataStart + fileInfo.offset
@@ -550,13 +546,12 @@ export async function revealFiles(
       files.push({
         name: fileInfo.name,
         data: new Blob([fileData], { type: fileInfo.mimeType }),
-        mimeType: fileInfo.mimeType
+        mimeType: fileInfo.mimeType,
       })
     }
 
     console.log('[HIDDEN VAULT] Files revealed:', files.length)
     return { files }
-
   } catch (error) {
     console.error('[HIDDEN VAULT] Failed to reveal files:', error)
     throw new Error('Failed to decrypt. Wrong PIN or corrupted file.')
@@ -582,7 +577,7 @@ export async function deleteHiddenFile(fileId: string): Promise<void> {
   // Delete the actual file
   await Filesystem.deleteFile({
     path: hiddenFile.filePath,
-    directory: Directory.Documents
+    directory: Directory.Documents,
   })
 
   // Update metadata
@@ -626,7 +621,7 @@ export async function canUpload(
       allowed: false,
       reason: `Storage limit exceeded. Used: ${formatBytes(used)} / ${formatBytes(limit)}. Upgrade your plan for more storage.`,
       used,
-      limit
+      limit,
     }
   }
 
@@ -686,5 +681,5 @@ export default {
   getRecommendedDisguise,
   formatBytes,
   STORAGE_LIMITS,
-  SUBSCRIPTION_PRICES
+  SUBSCRIPTION_PRICES,
 }

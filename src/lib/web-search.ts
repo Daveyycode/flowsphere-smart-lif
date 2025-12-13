@@ -169,16 +169,22 @@ export function shouldSearchWeb(query: string): boolean {
   const lowerQuery = query.toLowerCase()
 
   // Check for search indicators
-  if (searchIndicators.some((indicator) => lowerQuery.includes(indicator))) {
+  if (searchIndicators.some(indicator => lowerQuery.includes(indicator))) {
     return true
   }
 
   // Check for question patterns about specific topics
   const questionWords = ['what', 'who', 'when', 'where', 'why', 'how']
-  const startsWithQuestion = questionWords.some((w) => lowerQuery.startsWith(w))
+  const startsWithQuestion = questionWords.some(w => lowerQuery.startsWith(w))
 
   // If it's a question about recent/current events
-  if (startsWithQuestion && (lowerQuery.includes('2024') || lowerQuery.includes('2025') || lowerQuery.includes('latest') || lowerQuery.includes('new'))) {
+  if (
+    startsWithQuestion &&
+    (lowerQuery.includes('2024') ||
+      lowerQuery.includes('2025') ||
+      lowerQuery.includes('latest') ||
+      lowerQuery.includes('new'))
+  ) {
     return true
   }
 

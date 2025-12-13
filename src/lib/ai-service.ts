@@ -45,7 +45,7 @@ async function callGroq(messages: ChatMessage[], apiKey: string): Promise<string
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile', // Fast, cheap, and powerful
@@ -53,8 +53,8 @@ async function callGroq(messages: ChatMessage[], apiKey: string): Promise<string
       temperature: 0.7,
       max_tokens: 150,
       top_p: 1,
-      stream: false
-    })
+      stream: false,
+    }),
   })
 
   if (!response.ok) {
@@ -71,14 +71,14 @@ async function callOpenAI(messages: ChatMessage[], apiKey: string): Promise<stri
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: messages,
       temperature: 0.7,
-      max_tokens: 150
-    })
+      max_tokens: 150,
+    }),
   })
 
   if (!response.ok) {
@@ -94,12 +94,18 @@ function generateFallbackResponse(userInput: string): string {
   const input = userInput.toLowerCase()
 
   // Provide concise fallback responses
-  if (input.includes('how') || input.includes('what') || input.includes('why') || input.includes('when') || input.includes('where')) {
-    return "I control devices, automations, family tracking, emails, and navigation. Just tell me what you need."
+  if (
+    input.includes('how') ||
+    input.includes('what') ||
+    input.includes('why') ||
+    input.includes('when') ||
+    input.includes('where')
+  ) {
+    return 'I control devices, automations, family tracking, emails, and navigation. Just tell me what you need.'
   }
 
   if (input.includes('help')) {
-    return "I control: devices, scenes, themes, emails, family locations, traffic, and all app features. What do you need?"
+    return 'I control: devices, scenes, themes, emails, family locations, traffic, and all app features. What do you need?'
   }
 
   return "I didn't understand that. Try: 'lights', 'darkmode', 'kids', or 'trafficnow'"

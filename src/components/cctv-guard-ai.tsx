@@ -12,7 +12,7 @@ import {
   Stop,
   Bell,
   Plus,
-  Trash
+  Trash,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,13 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 
@@ -61,7 +67,10 @@ export function CCTVGuardAI({ className }: CCTVGuardAIProps) {
   const [cameras, setCameras] = useKV<CCTVCamera[]>('flowsphere-cctv-cameras', [])
 
   // Start with empty events - real events will be generated
-  const [securityEvents, setSecurityEvents] = useKV<SecurityEvent[]>('flowsphere-security-events', [])
+  const [securityEvents, setSecurityEvents] = useKV<SecurityEvent[]>(
+    'flowsphere-security-events',
+    []
+  )
 
   const [guardEnabled, setGuardEnabled] = useKV<boolean>('flowsphere-guard-enabled', true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -70,7 +79,7 @@ export function CCTVGuardAI({ className }: CCTVGuardAIProps) {
     name: '',
     location: '',
     aiEnabled: false,
-    permissionGranted: false
+    permissionGranted: false,
   })
 
   const activeCameras = cameras?.filter(c => c.status === 'online') || []
@@ -79,10 +88,11 @@ export function CCTVGuardAI({ className }: CCTVGuardAIProps) {
   const unreadEvents = securityEvents?.filter(e => !e.isRead) || []
 
   const handleToggleRecording = (cameraId: string) => {
-    setCameras((current) =>
-      current?.map(cam =>
-        cam.id === cameraId ? { ...cam, isRecording: !cam.isRecording } : cam
-      ) || []
+    setCameras(
+      current =>
+        current?.map(cam =>
+          cam.id === cameraId ? { ...cam, isRecording: !cam.isRecording } : cam
+        ) || []
     )
     const camera = cameras?.find(c => c.id === cameraId)
     toast.success(`${camera?.name} recording ${camera?.isRecording ? 'stopped' : 'started'}`)
@@ -105,10 +115,10 @@ export function CCTVGuardAI({ className }: CCTVGuardAIProps) {
       location: newCamera.location,
       status: 'online',
       isRecording: false,
-      aiEnabled: newCamera.aiEnabled
+      aiEnabled: newCamera.aiEnabled,
     }
 
-    setCameras((current) => [...(current || []), camera])
+    setCameras(current => [...(current || []), camera])
     toast.success(`Camera "${newCamera.name}" added successfully`)
     setNewCamera({ name: '', location: '', aiEnabled: false, permissionGranted: false })
     setIsAddCameraOpen(false)
@@ -116,37 +126,36 @@ export function CCTVGuardAI({ className }: CCTVGuardAIProps) {
 
   const handleDeleteCamera = (cameraId: string) => {
     const camera = cameras?.find(c => c.id === cameraId)
-    setCameras((current) => (current || []).filter(c => c.id !== cameraId))
+    setCameras(current => (current || []).filter(c => c.id !== cameraId))
     toast.success(`Camera "${camera?.name}" removed`)
   }
 
   const handleToggleAI = (cameraId: string) => {
-    setCameras((current) =>
-      current?.map(cam =>
-        cam.id === cameraId ? { ...cam, aiEnabled: !cam.aiEnabled } : cam
-      ) || []
+    setCameras(
+      current =>
+        current?.map(cam => (cam.id === cameraId ? { ...cam, aiEnabled: !cam.aiEnabled } : cam)) ||
+        []
     )
     const camera = cameras?.find(c => c.id === cameraId)
     toast.success(`AI monitoring ${camera?.aiEnabled ? 'disabled' : 'enabled'} for ${camera?.name}`)
   }
 
   const handleMarkEventRead = (eventId: string) => {
-    setSecurityEvents((current) =>
-      current?.map(event =>
-        event.id === eventId ? { ...event, isRead: true } : event
-      ) || []
+    setSecurityEvents(
+      current =>
+        current?.map(event => (event.id === eventId ? { ...event, isRead: true } : event)) || []
     )
   }
 
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true)
-    
+
     try {
       const recentEvents = securityEvents?.slice(0, 5).map(e => ({
         camera: e.cameraName,
         type: e.type,
         description: e.description,
-        timestamp: e.timestamp
+        timestamp: e.timestamp,
       }))
 
       const prompt = spark.llmPrompt`You are an AI security guard analyzing CCTV footage events. 
@@ -161,10 +170,10 @@ Provide a brief security summary (2-3 sentences) highlighting:
 Be professional, concise, and reassuring if everything looks normal.`
 
       const analysis = await spark.llm(prompt, 'gpt-4o-mini', false)
-      
+
       toast.success('AI Analysis Complete', {
         description: analysis,
-        duration: 8000
+        duration: 8000,
       })
     } catch (error) {
       console.error('AI analysis error:', error)
@@ -176,28 +185,40 @@ Be professional, concise, and reassuring if everything looks normal.`
 
   const getEventIcon = (type: SecurityEvent['type']) => {
     switch (type) {
-      case 'motion': return Lightning
-      case 'person': return Eye
-      case 'vehicle': return Camera
-      case 'package': return CheckCircle
-      case 'suspicious': return Warning
-      default: return Bell
+      case 'motion':
+        return Lightning
+      case 'person':
+        return Eye
+      case 'vehicle':
+        return Camera
+      case 'package':
+        return CheckCircle
+      case 'suspicious':
+        return Warning
+      default:
+        return Bell
     }
   }
 
   const getEventColor = (severity: SecurityEvent['severity']) => {
     switch (severity) {
-      case 'high': return 'text-destructive'
-      case 'medium': return 'text-primary'
-      case 'low': return 'text-accent'
+      case 'high':
+        return 'text-destructive'
+      case 'medium':
+        return 'text-primary'
+      case 'low':
+        return 'text-accent'
     }
   }
 
   const getSeverityBadge = (severity: SecurityEvent['severity']) => {
     switch (severity) {
-      case 'high': return <Badge variant="destructive">High</Badge>
-      case 'medium': return <Badge className="bg-primary text-primary-foreground">Medium</Badge>
-      case 'low': return <Badge variant="secondary">Low</Badge>
+      case 'high':
+        return <Badge variant="destructive">High</Badge>
+      case 'medium':
+        return <Badge className="bg-primary text-primary-foreground">Medium</Badge>
+      case 'low':
+        return <Badge variant="secondary">Low</Badge>
     }
   }
 
@@ -216,7 +237,7 @@ Be professional, concise, and reassuring if everything looks normal.`
             <Switch
               id="guard-toggle"
               checked={guardEnabled}
-              onCheckedChange={(checked) => {
+              onCheckedChange={checked => {
                 setGuardEnabled(checked)
                 toast.success(`AI Guard ${checked ? 'enabled' : 'disabled'}`)
               }}
@@ -239,7 +260,7 @@ Be professional, concise, and reassuring if everything looks normal.`
                   <Input
                     id="camera-name"
                     value={newCamera.name}
-                    onChange={(e) => setNewCamera({ ...newCamera, name: e.target.value })}
+                    onChange={e => setNewCamera({ ...newCamera, name: e.target.value })}
                     placeholder="Front Door, Backyard, etc."
                   />
                 </div>
@@ -248,7 +269,7 @@ Be professional, concise, and reassuring if everything looks normal.`
                   <Input
                     id="camera-location"
                     value={newCamera.location}
-                    onChange={(e) => setNewCamera({ ...newCamera, location: e.target.value })}
+                    onChange={e => setNewCamera({ ...newCamera, location: e.target.value })}
                     placeholder="Entrance, Garden, etc."
                   />
                 </div>
@@ -256,7 +277,9 @@ Be professional, concise, and reassuring if everything looks normal.`
                   <Checkbox
                     id="ai-enabled"
                     checked={newCamera.aiEnabled}
-                    onCheckedChange={(checked) => setNewCamera({ ...newCamera, aiEnabled: checked as boolean })}
+                    onCheckedChange={checked =>
+                      setNewCamera({ ...newCamera, aiEnabled: checked as boolean })
+                    }
                   />
                   <Label htmlFor="ai-enabled" className="text-sm font-normal cursor-pointer">
                     Enable AI monitoring for this camera
@@ -266,14 +289,17 @@ Be professional, concise, and reassuring if everything looks normal.`
                   <Checkbox
                     id="permission"
                     checked={newCamera.permissionGranted}
-                    onCheckedChange={(checked) => setNewCamera({ ...newCamera, permissionGranted: checked as boolean })}
+                    onCheckedChange={checked =>
+                      setNewCamera({ ...newCamera, permissionGranted: checked as boolean })
+                    }
                   />
                   <div className="flex-1">
                     <Label htmlFor="permission" className="text-sm font-semibold cursor-pointer">
                       Grant Permission *
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      I authorize FlowSphere AI to monitor and analyze footage from this device for security purposes
+                      I authorize FlowSphere AI to monitor and analyze footage from this device for
+                      security purposes
                     </p>
                   </div>
                 </div>
@@ -283,11 +309,7 @@ Be professional, concise, and reassuring if everything looks normal.`
               </div>
             </DialogContent>
           </Dialog>
-          <Button
-            onClick={handleAIAnalysis}
-            disabled={isAnalyzing}
-            className="gap-2"
-          >
+          <Button onClick={handleAIAnalysis} disabled={isAnalyzing} className="gap-2">
             {isAnalyzing ? (
               <>
                 <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -386,13 +408,18 @@ Be professional, concise, and reassuring if everything looks normal.`
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className={`${camera.isRecording ? 'border-destructive/50 bg-destructive/5' : 'bg-muted/30'}`}>
+                    <Card
+                      className={`${camera.isRecording ? 'border-destructive/50 bg-destructive/5' : 'bg-muted/30'}`}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-semibold">{camera.name}</h4>
-                              <Badge variant={camera.status === 'online' ? 'default' : 'secondary'} className="text-xs">
+                              <Badge
+                                variant={camera.status === 'online' ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
                                 {camera.status}
                               </Badge>
                             </div>
@@ -477,7 +504,7 @@ Be professional, concise, and reassuring if everything looks normal.`
                   securityEvents.map((event, index) => {
                     const Icon = getEventIcon(event.type)
                     const colorClass = getEventColor(event.severity)
-                    
+
                     return (
                       <motion.div
                         key={event.id}
@@ -485,10 +512,14 @@ Be professional, concise, and reassuring if everything looks normal.`
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                       >
-                        <Card className={`${event.isRead ? 'bg-muted/30' : 'bg-card border-primary/30'}`}>
+                        <Card
+                          className={`${event.isRead ? 'bg-muted/30' : 'bg-card border-primary/30'}`}
+                        >
                           <CardContent className="p-4">
                             <div className="flex gap-3">
-                              <div className={`w-10 h-10 rounded-full bg-background flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                              <div
+                                className={`w-10 h-10 rounded-full bg-background flex items-center justify-center flex-shrink-0 ${colorClass}`}
+                              >
                                 <Icon className="w-5 h-5" weight="duotone" />
                               </div>
                               <div className="flex-1 space-y-2">

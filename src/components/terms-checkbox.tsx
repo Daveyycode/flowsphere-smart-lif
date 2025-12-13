@@ -17,7 +17,7 @@ export function TermsCheckbox({
   checked,
   onCheckedChange,
   required = false,
-  termsType = 'general'
+  termsType = 'general',
 }: TermsCheckboxProps) {
   const getTermsText = () => {
     switch (termsType) {

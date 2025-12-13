@@ -43,7 +43,7 @@ export async function storeTokenSecurely(data: TokenData): Promise<void> {
       encryptedAccessToken,
       encryptedRefreshToken,
       expiresAt: data.expiresAt,
-      storedAt: Date.now()
+      storedAt: Date.now(),
     }
 
     // Get existing tokens
@@ -95,7 +95,7 @@ export async function retrieveTokenSecurely(
       email: token.email,
       accessToken,
       refreshToken,
-      expiresAt: token.expiresAt
+      expiresAt: token.expiresAt,
     }
   } catch (error) {
     console.error('[SecureTokenStorage] Failed to retrieve token:', error)
@@ -106,18 +106,13 @@ export async function retrieveTokenSecurely(
 /**
  * Remove stored token
  */
-export function removeStoredToken(
-  provider: 'google' | 'yahoo' | 'outlook',
-  email: string
-): void {
+export function removeStoredToken(provider: 'google' | 'yahoo' | 'outlook', email: string): void {
   try {
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
     if (!stored) return
 
     const tokens: StoredToken[] = JSON.parse(stored)
-    const filtered = tokens.filter(
-      t => !(t.provider === provider && t.email === email)
-    )
+    const filtered = tokens.filter(t => !(t.provider === provider && t.email === email))
 
     localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(filtered))
   } catch (error) {

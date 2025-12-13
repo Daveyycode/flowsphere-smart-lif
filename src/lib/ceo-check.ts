@@ -72,7 +72,7 @@ export async function verifyCEOSession(): Promise<boolean> {
     const response = await fetch(CEO_AUTH_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -105,7 +105,6 @@ export async function loginAsCEO(
   username: string,
   password: string
 ): Promise<{ success: boolean; error?: string; email?: string }> {
-
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     logger.error('Supabase not configured', undefined, 'CEOCheck')
     return { success: false, error: 'Server not configured' }
@@ -115,7 +114,7 @@ export async function loginAsCEO(
     const response = await fetch(CEO_AUTH_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -151,10 +150,7 @@ export async function loginAsCEO(
  * Verify credentials without creating session (for validation)
  * Note: This still goes through server - no client-side credential check
  */
-export async function verifyCEOCredentials(
-  username: string,
-  password: string
-): Promise<boolean> {
+export async function verifyCEOCredentials(username: string, password: string): Promise<boolean> {
   const result = await loginAsCEO(username, password)
 
   // If login succeeded, we now have a session
@@ -173,7 +169,7 @@ export async function logoutCEO(): Promise<void> {
       await fetch(CEO_AUTH_ENDPOINT, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -210,7 +206,11 @@ export function getCEOEmail(): string | null {
  * Request username rotation (generates new 6-digit code)
  * Returns new username - must be manually updated in Supabase secrets
  */
-export async function rotateCEOUsername(): Promise<{ success: boolean; newUsername?: string; error?: string }> {
+export async function rotateCEOUsername(): Promise<{
+  success: boolean
+  newUsername?: string
+  error?: string
+}> {
   const session = getStoredSession()
 
   if (!session) {
@@ -221,7 +221,7 @@ export async function rotateCEOUsername(): Promise<{ success: boolean; newUserna
     const response = await fetch(CEO_AUTH_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

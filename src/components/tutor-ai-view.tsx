@@ -19,7 +19,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
 import {
@@ -60,7 +66,7 @@ import {
   Student,
   UserCircle,
   Translate,
-  Bell
+  Bell,
 } from '@phosphor-icons/react'
 import {
   smartCompletion,
@@ -69,7 +75,7 @@ import {
   getTodayUsage,
   AI_PROVIDERS,
   getAvailableProviders,
-  type AIProvider
+  type AIProvider,
 } from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -138,7 +144,7 @@ const AGE_GROUPS = [
   { value: '10-12', label: 'Ages 10-12 (4th - 6th Grade)' },
   { value: '13-15', label: 'Ages 13-15 (7th - 9th Grade)' },
   { value: '16-18', label: 'Ages 16-18 (10th - 12th Grade)' },
-  { value: '18+', label: 'Ages 18+ (College/Adult)' }
+  { value: '18+', label: 'Ages 18+ (College/Adult)' },
 ]
 
 const LANGUAGES = [
@@ -161,7 +167,7 @@ const LANGUAGES = [
   { code: 'pl', name: 'Polish' },
   { code: 'tr', name: 'Turkish' },
   { code: 'id', name: 'Indonesian' },
-  { code: 'other', name: 'Other (AI will detect)' }
+  { code: 'other', name: 'Other (AI will detect)' },
 ]
 
 const SUBJECTS: Subject[] = [
@@ -171,15 +177,21 @@ const SUBJECTS: Subject[] = [
     icon: Calculator,
     color: 'from-blue-500 to-indigo-600',
     emoji: '🧮',
-    systemPrompt: 'You are a patient math tutor. Explain concepts step-by-step with examples. Use simple language appropriate for the student\'s age. If the student struggles, try a different approach. Celebrate correct answers with encouragement!',
+    systemPrompt:
+      "You are a patient math tutor. Explain concepts step-by-step with examples. Use simple language appropriate for the student's age. If the student struggles, try a different approach. Celebrate correct answers with encouragement!",
     ageTopics: {
       '4-6': ['Counting 1-20', 'Shapes recognition', 'Simple addition', 'Colors and patterns'],
-      '7-9': ['Addition & Subtraction', 'Multiplication basics', 'Simple fractions', 'Telling time'],
+      '7-9': [
+        'Addition & Subtraction',
+        'Multiplication basics',
+        'Simple fractions',
+        'Telling time',
+      ],
       '10-12': ['Long division', 'Decimals & percentages', 'Basic geometry', 'Word problems'],
       '13-15': ['Pre-algebra', 'Linear equations', 'Ratios & proportions', 'Basic statistics'],
       '16-18': ['Algebra II', 'Geometry proofs', 'Trigonometry', 'Pre-calculus'],
-      '18+': ['Calculus', 'Linear algebra', 'Statistics', 'Differential equations']
-    }
+      '18+': ['Calculus', 'Linear algebra', 'Statistics', 'Differential equations'],
+    },
   },
   {
     id: 'science',
@@ -187,15 +199,16 @@ const SUBJECTS: Subject[] = [
     icon: Atom,
     color: 'from-green-500 to-emerald-600',
     emoji: '🔬',
-    systemPrompt: 'You are an enthusiastic science tutor. Make complex topics simple and fun. Use real-world examples and encourage curiosity. Ask thought-provoking questions!',
+    systemPrompt:
+      'You are an enthusiastic science tutor. Make complex topics simple and fun. Use real-world examples and encourage curiosity. Ask thought-provoking questions!',
     ageTopics: {
       '4-6': ['Animals & plants', 'Weather', 'Five senses', 'Day and night'],
       '7-9': ['Life cycles', 'Solar system', 'States of matter', 'Simple machines'],
       '10-12': ['Human body', 'Ecosystems', 'Earth science', 'Basic chemistry'],
       '13-15': ['Biology basics', 'Physics fundamentals', 'Chemistry intro', 'Scientific method'],
       '16-18': ['AP Biology', 'AP Chemistry', 'AP Physics', 'Environmental science'],
-      '18+': ['Organic chemistry', 'Quantum physics', 'Genetics', 'Research methods']
-    }
+      '18+': ['Organic chemistry', 'Quantum physics', 'Genetics', 'Research methods'],
+    },
   },
   {
     id: 'english',
@@ -203,15 +216,21 @@ const SUBJECTS: Subject[] = [
     icon: BookOpen,
     color: 'from-purple-500 to-violet-600',
     emoji: '📚',
-    systemPrompt: 'You are a helpful English and reading tutor. Focus on comprehension, vocabulary, grammar, and writing skills. Be encouraging and provide constructive feedback. Use age-appropriate texts and examples.',
+    systemPrompt:
+      'You are a helpful English and reading tutor. Focus on comprehension, vocabulary, grammar, and writing skills. Be encouraging and provide constructive feedback. Use age-appropriate texts and examples.',
     ageTopics: {
       '4-6': ['Letter recognition', 'Phonics', 'Simple words', 'Story time'],
       '7-9': ['Reading fluency', 'Vocabulary building', 'Basic grammar', 'Short stories'],
       '10-12': ['Reading comprehension', 'Paragraph writing', 'Parts of speech', 'Book reports'],
       '13-15': ['Essay writing', 'Literary analysis', 'Grammar rules', 'Creative writing'],
       '16-18': ['College essays', 'Research papers', 'SAT/ACT prep', 'Literature'],
-      '18+': ['Academic writing', 'Critical analysis', 'Professional communication', 'Advanced grammar']
-    }
+      '18+': [
+        'Academic writing',
+        'Critical analysis',
+        'Professional communication',
+        'Advanced grammar',
+      ],
+    },
   },
   {
     id: 'languages',
@@ -219,15 +238,16 @@ const SUBJECTS: Subject[] = [
     icon: Globe,
     color: 'from-orange-500 to-amber-600',
     emoji: '🌍',
-    systemPrompt: 'You are a multilingual language tutor. Help with vocabulary, grammar, and conversation practice. Be patient with pronunciation. Make learning interactive and fun with cultural context!',
+    systemPrompt:
+      'You are a multilingual language tutor. Help with vocabulary, grammar, and conversation practice. Be patient with pronunciation. Make learning interactive and fun with cultural context!',
     ageTopics: {
       '4-6': ['Basic greetings', 'Numbers 1-10', 'Colors', 'Family words'],
       '7-9': ['Common phrases', 'Animals & food', 'Days of week', 'Simple sentences'],
       '10-12': ['Basic conversations', 'Present tense', 'Vocabulary building', 'Culture'],
       '13-15': ['Grammar structures', 'Past/future tense', 'Reading practice', 'Writing basics'],
       '16-18': ['Advanced grammar', 'Literature', 'Essay writing', 'Fluency practice'],
-      '18+': ['Business language', 'Technical vocabulary', 'Idioms', 'Native conversations']
-    }
+      '18+': ['Business language', 'Technical vocabulary', 'Idioms', 'Native conversations'],
+    },
   },
   {
     id: 'general',
@@ -235,16 +255,22 @@ const SUBJECTS: Subject[] = [
     icon: GraduationCap,
     color: 'from-pink-500 to-rose-600',
     emoji: '💡',
-    systemPrompt: 'You are a knowledgeable tutor ready to help with any subject. Adapt your teaching style to the topic and student\'s age. Be helpful, clear, and encouraging. Make learning fun!',
+    systemPrompt:
+      "You are a knowledgeable tutor ready to help with any subject. Adapt your teaching style to the topic and student's age. Be helpful, clear, and encouraging. Make learning fun!",
     ageTopics: {
       '4-6': ['Arts & crafts', 'Music basics', 'Social skills', 'Nature exploration'],
       '7-9': ['History stories', 'Geography basics', 'Art appreciation', 'Coding basics'],
       '10-12': ['World history', 'Current events', 'Digital literacy', 'Study skills'],
       '13-15': ['Research skills', 'Critical thinking', 'Career exploration', 'Financial literacy'],
       '16-18': ['College prep', 'SAT/ACT strategies', 'Life skills', 'Career planning'],
-      '18+': ['Professional development', 'Lifelong learning', 'Specialized topics', 'Self-improvement']
-    }
-  }
+      '18+': [
+        'Professional development',
+        'Lifelong learning',
+        'Specialized topics',
+        'Self-improvement',
+      ],
+    },
+  },
 ]
 
 // Inappropriate language patterns (multilingual)
@@ -259,7 +285,7 @@ const INAPPROPRIATE_PATTERNS = [
 const STORAGE_KEYS = {
   PROFILE: 'flowsphere-tutor-profile-v3',
   SESSIONS: 'flowsphere-tutor-sessions-v3',
-  REPORTS: 'flowsphere-tutor-behavior-reports'
+  REPORTS: 'flowsphere-tutor-behavior-reports',
 }
 
 // ==========================================
@@ -273,7 +299,8 @@ function useSpeechRecognition() {
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     setIsSupported(!!SpeechRecognition)
 
     if (SpeechRecognition) {
@@ -331,24 +358,27 @@ function useTextToSpeech() {
   const [isEnabled, setIsEnabled] = useState(true)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
-  const speak = useCallback((text: string, language: string = 'en-US') => {
-    if (!isEnabled || !('speechSynthesis' in window)) return
+  const speak = useCallback(
+    (text: string, language: string = 'en-US') => {
+      if (!isEnabled || !('speechSynthesis' in window)) return
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel()
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel()
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = language
-    utterance.rate = 0.9 // Slightly slower for learning
-    utterance.pitch = 1.1 // Slightly higher for friendliness
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = language
+      utterance.rate = 0.9 // Slightly slower for learning
+      utterance.pitch = 1.1 // Slightly higher for friendliness
 
-    utterance.onstart = () => setIsSpeaking(true)
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
+      utterance.onstart = () => setIsSpeaking(true)
+      utterance.onend = () => setIsSpeaking(false)
+      utterance.onerror = () => setIsSpeaking(false)
 
-    utteranceRef.current = utterance
-    window.speechSynthesis.speak(utterance)
-  }, [isEnabled])
+      utteranceRef.current = utterance
+      window.speechSynthesis.speak(utterance)
+    },
+    [isEnabled]
+  )
 
   const stop = useCallback(() => {
     window.speechSynthesis.cancel()
@@ -365,7 +395,7 @@ function useTextToSpeech() {
 function TutorCamera({
   isActive,
   onToggle,
-  onBehaviorDetected
+  onBehaviorDetected,
 }: {
   isActive: boolean
   onToggle: () => void
@@ -388,7 +418,7 @@ function TutorCamera({
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 320, height: 240 }
+        video: { facingMode: 'user', width: 320, height: 240 },
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -414,12 +444,7 @@ function TutorCamera({
 
   if (!isActive) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onToggle}
-        className="gap-2"
-      >
+      <Button variant="outline" size="sm" onClick={onToggle} className="gap-2">
         <VideoCamera className="w-4 h-4" />
         Enable Monitor
       </Button>
@@ -429,13 +454,7 @@ function TutorCamera({
   return (
     <div className="relative">
       <div className="relative w-24 h-18 rounded-lg overflow-hidden border-2 border-green-500 bg-black">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-        />
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         <div className="absolute top-1 right-1 flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           <span className="text-[8px] text-white bg-black/50 px-1 rounded">LIVE</span>
@@ -486,8 +505,21 @@ export function TutorAIView() {
   const [analyzingLesson, setAnalyzingLesson] = useState(false)
 
   // Hooks
-  const { isListening, transcript, isSupported: voiceSupported, startListening, stopListening, setTranscript } = useSpeechRecognition()
-  const { isSpeaking, isEnabled: ttsEnabled, setIsEnabled: setTtsEnabled, speak, stop: stopSpeaking } = useTextToSpeech()
+  const {
+    isListening,
+    transcript,
+    isSupported: voiceSupported,
+    startListening,
+    stopListening,
+    setTranscript,
+  } = useSpeechRecognition()
+  const {
+    isSpeaking,
+    isEnabled: ttsEnabled,
+    setIsEnabled: setTtsEnabled,
+    speak,
+    stop: stopSpeaking,
+  } = useTextToSpeech()
 
   // Usage state
   const [usageInfo, setUsageInfo] = useState({ messages: 0, tokens: 0, percentUsed: 0 })
@@ -503,7 +535,7 @@ export function TutorAIView() {
     setUsageInfo({
       messages: today.messages,
       tokens: today.tokens,
-      percentUsed: Math.round(limits.percentUsed)
+      percentUsed: Math.round(limits.percentUsed),
     })
   }, [currentSession])
 
@@ -560,14 +592,17 @@ export function TutorAIView() {
 
     // Could also push to Supabase for parent dashboard
     try {
-      await supabase.from('tutor_behavior_reports').insert({
-        learner_name: profile.name,
-        parent_email: profile.parentEmail,
-        report_type: report.type,
-        details: report.details,
-        severity: report.severity,
-        timestamp: new Date(report.timestamp).toISOString()
-      }).catch(() => {}) // Silent fail if table doesn't exist
+      await supabase
+        .from('tutor_behavior_reports')
+        .insert({
+          learner_name: profile.name,
+          parent_email: profile.parentEmail,
+          report_type: report.type,
+          details: report.details,
+          severity: report.severity,
+          timestamp: new Date(report.timestamp).toISOString(),
+        })
+        .catch(() => {}) // Silent fail if table doesn't exist
     } catch (e) {
       // Silent - table might not exist
     }
@@ -579,7 +614,7 @@ export function TutorAIView() {
 
   const handleSetup = () => {
     if (!setupName.trim()) {
-      toast.error('Please enter the learner\'s name')
+      toast.error("Please enter the learner's name")
       return
     }
 
@@ -592,7 +627,7 @@ export function TutorAIView() {
       streak: 1,
       lastActive: new Date().toISOString().split('T')[0],
       totalSessions: 0,
-      parentEmail: setupParentEmail.trim() || undefined
+      parentEmail: setupParentEmail.trim() || undefined,
     }
 
     setProfile(newProfile)
@@ -613,11 +648,25 @@ export function TutorAIView() {
 
   const getLanguageCode = (): string => {
     const langMap: Record<string, string> = {
-      'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE',
-      'zh': 'zh-CN', 'ja': 'ja-JP', 'ko': 'ko-KR', 'ar': 'ar-SA',
-      'hi': 'hi-IN', 'pt': 'pt-BR', 'ru': 'ru-RU', 'tl': 'fil-PH',
-      'vi': 'vi-VN', 'th': 'th-TH', 'it': 'it-IT', 'nl': 'nl-NL',
-      'pl': 'pl-PL', 'tr': 'tr-TR', 'id': 'id-ID'
+      en: 'en-US',
+      es: 'es-ES',
+      fr: 'fr-FR',
+      de: 'de-DE',
+      zh: 'zh-CN',
+      ja: 'ja-JP',
+      ko: 'ko-KR',
+      ar: 'ar-SA',
+      hi: 'hi-IN',
+      pt: 'pt-BR',
+      ru: 'ru-RU',
+      tl: 'fil-PH',
+      vi: 'vi-VN',
+      th: 'th-TH',
+      it: 'it-IT',
+      nl: 'nl-NL',
+      pl: 'pl-PL',
+      tr: 'tr-TR',
+      id: 'id-ID',
     }
     return langMap[profile?.language || 'en'] || 'en-US'
   }
@@ -627,23 +676,26 @@ export function TutorAIView() {
 
     setAnalyzingLesson(true)
     try {
-      const result = await smartCompletion([
-        {
-          role: 'system',
-          content: `You are an educational curriculum analyzer. Analyze the provided lesson plan/textbook content and create a structured learning outline suitable for a ${getAgeGroup()} year old student. Extract key topics, concepts, and create a simple learning path. Respond in ${LANGUAGES.find(l => l.code === profile?.language)?.name || 'English'}.`
-        },
-        {
-          role: 'user',
-          content: `Analyze this lesson material and create a learning outline:\n\n${lessonPlanText.slice(0, 3000)}`
-        }
-      ], { temperature: 0.5 })
+      const result = await smartCompletion(
+        [
+          {
+            role: 'system',
+            content: `You are an educational curriculum analyzer. Analyze the provided lesson plan/textbook content and create a structured learning outline suitable for a ${getAgeGroup()} year old student. Extract key topics, concepts, and create a simple learning path. Respond in ${LANGUAGES.find(l => l.code === profile?.language)?.name || 'English'}.`,
+          },
+          {
+            role: 'user',
+            content: `Analyze this lesson material and create a learning outline:\n\n${lessonPlanText.slice(0, 3000)}`,
+          },
+        ],
+        { temperature: 0.5 }
+      )
 
       const analysisMsg: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content: `📋 **Lesson Plan Analysis**\n\n${result.content}\n\n---\nI've analyzed your material! Let's start with the first topic. What would you like to learn first?`,
         timestamp: Date.now(),
-        provider: result.provider
+        provider: result.provider,
       }
 
       if (currentSession) {
@@ -651,10 +703,12 @@ export function TutorAIView() {
           ...currentSession,
           messages: [...currentSession.messages, analysisMsg],
           lessonPlan: lessonPlanText,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         }
         setCurrentSession(updatedSession)
-        setSessions(prev => (prev || []).map(s => s.id === updatedSession.id ? updatedSession : s))
+        setSessions(prev =>
+          (prev || []).map(s => (s.id === updatedSession.id ? updatedSession : s))
+        )
       }
 
       setShowLessonUpload(false)
@@ -673,7 +727,7 @@ export function TutorAIView() {
 
     if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
       const reader = new FileReader()
-      reader.onload = (e) => {
+      reader.onload = e => {
         setLessonPlanText(e.target?.result as string)
       }
       reader.readAsText(file)
@@ -690,7 +744,7 @@ export function TutorAIView() {
       subjectId: subject.id,
       messages: [],
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     }
 
     setCurrentSession(newSession)
@@ -729,10 +783,16 @@ IMPORTANT Guidelines:
 9. Be encouraging and patient`
 
     try {
-      const result = await smartCompletion([
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: `Start a ${subject.name} lesson for me! I'm ${profile.age} years old. What should we learn today?` }
-      ], { temperature: 0.8 })
+      const result = await smartCompletion(
+        [
+          { role: 'system', content: systemMessage },
+          {
+            role: 'user',
+            content: `Start a ${subject.name} lesson for me! I'm ${profile.age} years old. What should we learn today?`,
+          },
+        ],
+        { temperature: 0.8 }
+      )
 
       const assistantMsg: Message = {
         id: `msg-${Date.now()}`,
@@ -740,13 +800,13 @@ IMPORTANT Guidelines:
         content: result.content,
         timestamp: Date.now(),
         provider: result.provider,
-        tokens: result.tokens
+        tokens: result.tokens,
       }
 
       const updatedSession = {
         ...session,
         messages: [assistantMsg],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       }
 
       setCurrentSession(updatedSession)
@@ -756,7 +816,6 @@ IMPORTANT Guidelines:
       if (ttsEnabled) {
         speak(result.content.replace(/\*\*/g, '').replace(/#{1,3}/g, ''), getLanguageCode())
       }
-
     } catch (error: any) {
       console.error('Greeting error:', error)
       // Fallback greeting with topic suggestions
@@ -764,7 +823,7 @@ IMPORTANT Guidelines:
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content: `${subject.emoji} Hi ${profile.name}! Welcome to your ${subject.name} lesson!\n\nHere are some topics perfect for you:\n${suggestedTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\nWhich one would you like to explore? Just type the number or the topic!`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       setCurrentSession({ ...session, messages: [fallbackMsg] })
     } finally {
@@ -782,7 +841,7 @@ IMPORTANT Guidelines:
         timestamp: Date.now(),
         type: 'language',
         details: `Message: "${inputMessage.slice(0, 100)}..." - ${contentCheck.reason}`,
-        severity: 'medium'
+        severity: 'medium',
       }
       await reportToParent(report)
     }
@@ -800,7 +859,7 @@ IMPORTANT Guidelines:
       content: inputMessage.trim(),
       timestamp: Date.now(),
       flagged: contentCheck.flagged,
-      flagReason: contentCheck.reason
+      flagReason: contentCheck.reason,
     }
 
     const updatedMessages = [...currentSession.messages, userMsg]
@@ -823,13 +882,13 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
       // Build conversation history (last 10 messages)
       const history = updatedMessages.slice(-10).map(m => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content
+        content: m.content,
       }))
 
-      const result = await smartCompletion([
-        { role: 'system', content: systemMessage },
-        ...history
-      ], { temperature: 0.7 })
+      const result = await smartCompletion(
+        [{ role: 'system', content: systemMessage }, ...history],
+        { temperature: 0.7 }
+      )
 
       const assistantMsg: Message = {
         id: `msg-${Date.now() + 1}`,
@@ -837,29 +896,36 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
         content: result.content,
         timestamp: Date.now(),
         provider: result.provider,
-        tokens: result.tokens
+        tokens: result.tokens,
       }
 
       const finalMessages = [...updatedMessages, assistantMsg]
       const finalSession = { ...currentSession, messages: finalMessages, updatedAt: Date.now() }
 
       setCurrentSession(finalSession)
-      setSessions(prev => (prev || []).map(s => s.id === finalSession.id ? finalSession : s))
+      setSessions(prev => (prev || []).map(s => (s.id === finalSession.id ? finalSession : s)))
 
       // Speak response if TTS enabled
       if (ttsEnabled) {
-        speak(result.content.replace(/\*\*/g, '').replace(/#{1,3}/g, '').slice(0, 500), getLanguageCode())
+        speak(
+          result.content
+            .replace(/\*\*/g, '')
+            .replace(/#{1,3}/g, '')
+            .slice(0, 500),
+          getLanguageCode()
+        )
       }
 
       // Award XP for engagement
-      if (result.content.toLowerCase().includes('correct') ||
-          result.content.toLowerCase().includes('great job') ||
-          result.content.toLowerCase().includes('excellent') ||
-          result.content.includes('+10 XP')) {
-        setProfile(prev => prev ? { ...prev, xp: prev.xp + 10 } : prev)
+      if (
+        result.content.toLowerCase().includes('correct') ||
+        result.content.toLowerCase().includes('great job') ||
+        result.content.toLowerCase().includes('excellent') ||
+        result.content.includes('+10 XP')
+      ) {
+        setProfile(prev => (prev ? { ...prev, xp: prev.xp + 10 } : prev))
         toast.success('+10 XP! Great job!')
       }
-
     } catch (error: any) {
       console.error('Message error:', error)
       toast.error(error.message || 'Could not get response. Please try again.')
@@ -867,7 +933,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
         content: `I'm having trouble connecting right now. Let me try again - please resend your message! 🔄`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       setCurrentSession({ ...currentSession, messages: [...updatedMessages, errorMsg] })
     } finally {
@@ -923,7 +989,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                 <Input
                   placeholder="Enter name"
                   value={setupName}
-                  onChange={(e) => setSetupName(e.target.value)}
+                  onChange={e => setSetupName(e.target.value)}
                 />
               </div>
 
@@ -936,7 +1002,9 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 15 }, (_, i) => i + 4).map(age => (
-                        <SelectItem key={age} value={String(age)}>{age} years old</SelectItem>
+                        <SelectItem key={age} value={String(age)}>
+                          {age} years old
+                        </SelectItem>
                       ))}
                       <SelectItem value="19">18+ (Adult)</SelectItem>
                     </SelectContent>
@@ -948,7 +1016,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                   <Input
                     placeholder="e.g., 5th Grade"
                     value={setupGrade}
-                    onChange={(e) => setSetupGrade(e.target.value)}
+                    onChange={e => setSetupGrade(e.target.value)}
                   />
                 </div>
               </div>
@@ -964,7 +1032,9 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                   </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map(lang => (
-                      <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -979,7 +1049,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                   type="email"
                   placeholder="parent@email.com (optional)"
                   value={setupParentEmail}
-                  onChange={(e) => setSetupParentEmail(e.target.value)}
+                  onChange={e => setSetupParentEmail(e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   Receive alerts about behavior and progress
@@ -1020,10 +1090,20 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b mb-3 gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => setView('home')} className="flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setView('home')}
+              className="flex-shrink-0"
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className={cn("w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0", selectedSubject.color)}>
+            <div
+              className={cn(
+                'w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0',
+                selectedSubject.color
+              )}
+            >
               <SubjectIcon className="w-4 h-4 text-white" weight="fill" />
             </div>
             <div className="min-w-0">
@@ -1089,14 +1169,19 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                     <FileText className="w-4 h-4" />
                     Upload Lesson Plan / Textbook
                   </h3>
-                  <Button variant="ghost" size="icon" className="w-6 h-6" onClick={() => setShowLessonUpload(false)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-6 h-6"
+                    onClick={() => setShowLessonUpload(false)}
+                  >
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
                 <Textarea
                   placeholder="Paste your lesson plan, textbook content, or study material here..."
                   value={lessonPlanText}
-                  onChange={(e) => setLessonPlanText(e.target.value)}
+                  onChange={e => setLessonPlanText(e.target.value)}
                   className="min-h-[100px] text-sm mb-2"
                 />
                 <div className="flex gap-2">
@@ -1138,29 +1223,44 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
         {/* Messages */}
         <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
           <div className="space-y-3 pb-4">
-            {currentSession.messages.map((msg) => (
+            {currentSession.messages.map(msg => (
               <motion.div
                 key={msg.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn("flex gap-2", msg.role === 'user' ? 'justify-end' : 'justify-start')}
+                className={cn('flex gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {msg.role === 'assistant' && (
-                  <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0", selectedSubject.color)}>
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0',
+                      selectedSubject.color
+                    )}
+                  >
                     <Robot className="w-4 h-4 text-white" />
                   </div>
                 )}
 
-                <div className={cn(
-                  "max-w-[80%] rounded-2xl px-3 py-2",
-                  msg.role === 'user'
-                    ? cn("bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-sm", msg.flagged && "border-2 border-red-500")
-                    : "bg-muted rounded-bl-sm"
-                )}>
+                <div
+                  className={cn(
+                    'max-w-[80%] rounded-2xl px-3 py-2',
+                    msg.role === 'user'
+                      ? cn(
+                          'bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-br-sm',
+                          msg.flagged && 'border-2 border-red-500'
+                        )
+                      : 'bg-muted rounded-bl-sm'
+                  )}
+                >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   <div className="flex items-center justify-between mt-1 gap-2">
                     {msg.provider && (
-                      <span className={cn("text-[9px] opacity-60", msg.role === 'user' ? 'text-white/60' : 'text-muted-foreground')}>
+                      <span
+                        className={cn(
+                          'text-[9px] opacity-60',
+                          msg.role === 'user' ? 'text-white/60' : 'text-muted-foreground'
+                        )}
+                      >
                         {AI_PROVIDERS[msg.provider]?.name || msg.provider}
                       </span>
                     )}
@@ -1169,7 +1269,9 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                         variant="ghost"
                         size="icon"
                         className="w-5 h-5 opacity-60 hover:opacity-100"
-                        onClick={() => speak(msg.content.replace(/\*\*/g, '').slice(0, 500), getLanguageCode())}
+                        onClick={() =>
+                          speak(msg.content.replace(/\*\*/g, '').slice(0, 500), getLanguageCode())
+                        }
                       >
                         <SpeakerHigh className="w-3 h-3" />
                       </Button>
@@ -1193,14 +1295,25 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
 
             {isLoading && (
               <div className="flex gap-2">
-                <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", selectedSubject.color)}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center',
+                    selectedSubject.color
+                  )}
+                >
                   <Robot className="w-4 h-4 text-white" />
                 </div>
                 <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <span
+                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }}
+                    />
                   </div>
                 </div>
               </div>
@@ -1225,14 +1338,18 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn("w-8 h-8", ttsEnabled && "text-green-500")}
+                className={cn('w-8 h-8', ttsEnabled && 'text-green-500')}
                 onClick={() => {
                   setTtsEnabled(!ttsEnabled)
                   if (isSpeaking) stopSpeaking()
                 }}
                 title={ttsEnabled ? 'Disable voice' : 'Enable voice'}
               >
-                {ttsEnabled ? <SpeakerHigh className="w-4 h-4" /> : <SpeakerSlash className="w-4 h-4" />}
+                {ttsEnabled ? (
+                  <SpeakerHigh className="w-4 h-4" />
+                ) : (
+                  <SpeakerSlash className="w-4 h-4" />
+                )}
               </Button>
             </div>
 
@@ -1249,21 +1366,25 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
           <div className="flex gap-2">
             {voiceSupported && (
               <Button
-                variant={isListening ? "destructive" : "outline"}
+                variant={isListening ? 'destructive' : 'outline'}
                 size="icon"
                 onClick={handleVoiceToggle}
-                className={cn("flex-shrink-0", isListening && "animate-pulse")}
+                className={cn('flex-shrink-0', isListening && 'animate-pulse')}
               >
-                {isListening ? <MicrophoneSlash className="w-5 h-5" /> : <Microphone className="w-5 h-5" />}
+                {isListening ? (
+                  <MicrophoneSlash className="w-5 h-5" />
+                ) : (
+                  <Microphone className="w-5 h-5" />
+                )}
               </Button>
             )}
 
             <Input
               ref={inputRef}
-              placeholder={isListening ? "Listening..." : "Ask your tutor anything..."}
+              placeholder={isListening ? 'Listening...' : 'Ask your tutor anything...'}
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              onChange={e => setInputMessage(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               disabled={isLoading || isListening}
               className="flex-1"
             />
@@ -1286,7 +1407,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
   // ==========================================
 
   return (
-    <div className={cn("space-y-4", isMobile && "space-y-3")}>
+    <div className={cn('space-y-4', isMobile && 'space-y-3')}>
       {/* Header Card */}
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white">
@@ -1354,7 +1475,7 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
       <div>
         <h2 className="font-semibold mb-3">Choose a Subject</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {SUBJECTS.map((subject) => {
+          {SUBJECTS.map(subject => {
             const Icon = subject.icon
             const ageGroup = getAgeGroup()
             const topics = subject.ageTopics[ageGroup] || []
@@ -1366,7 +1487,12 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
                 onClick={() => startNewChat(subject)}
                 className="p-4 rounded-xl border bg-card hover:border-primary/50 text-left transition-all"
               >
-                <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", subject.color)}>
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2',
+                    subject.color
+                  )}
+                >
                   <Icon className="w-5 h-5 text-white" weight="fill" />
                 </div>
                 <h3 className="font-medium text-sm">{subject.name}</h3>
@@ -1415,17 +1541,24 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
           <h3 className="font-medium text-sm">Powered by Multiple AI</h3>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {Object.values(AI_PROVIDERS).slice(0, 4).map((provider) => (
-            <Badge
-              key={provider.id}
-              variant="secondary"
-              className={cn("text-[10px]", provider.costPer1kTokens === 0 && "bg-green-500/10 text-green-600")}
-            >
-              {provider.name.split(' ')[0]}
-              {provider.costPer1kTokens === 0 && ' (FREE)'}
-            </Badge>
-          ))}
-          <Badge variant="outline" className="text-[10px]">+{Object.keys(AI_PROVIDERS).length - 4} more</Badge>
+          {Object.values(AI_PROVIDERS)
+            .slice(0, 4)
+            .map(provider => (
+              <Badge
+                key={provider.id}
+                variant="secondary"
+                className={cn(
+                  'text-[10px]',
+                  provider.costPer1kTokens === 0 && 'bg-green-500/10 text-green-600'
+                )}
+              >
+                {provider.name.split(' ')[0]}
+                {provider.costPer1kTokens === 0 && ' (FREE)'}
+              </Badge>
+            ))}
+          <Badge variant="outline" className="text-[10px]">
+            +{Object.keys(AI_PROVIDERS).length - 4} more
+          </Badge>
         </div>
       </Card>
 
@@ -1434,37 +1567,45 @@ ${currentSession.lessonPlan ? `\nLesson Plan Context:\n${currentSession.lessonPl
         <div>
           <h2 className="font-semibold mb-3">Recent Sessions</h2>
           <div className="space-y-2">
-            {(sessions || []).slice(-3).reverse().map((session) => {
-              const subject = SUBJECTS.find(s => s.id === session.subjectId)
-              if (!subject) return null
-              const Icon = subject.icon
-              return (
-                <Card
-                  key={session.id}
-                  className="p-3 cursor-pointer hover:border-primary/50 transition-all"
-                  onClick={() => {
-                    setCurrentSession(session)
-                    setSelectedSubject(subject)
-                    setView('chat')
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", subject.color)}>
-                      <Icon className="w-4 h-4 text-white" weight="fill" />
+            {(sessions || [])
+              .slice(-3)
+              .reverse()
+              .map(session => {
+                const subject = SUBJECTS.find(s => s.id === session.subjectId)
+                if (!subject) return null
+                const Icon = subject.icon
+                return (
+                  <Card
+                    key={session.id}
+                    className="p-3 cursor-pointer hover:border-primary/50 transition-all"
+                    onClick={() => {
+                      setCurrentSession(session)
+                      setSelectedSubject(subject)
+                      setView('chat')
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center',
+                          subject.color
+                        )}
+                      >
+                        <Icon className="w-4 h-4 text-white" weight="fill" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{subject.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {session.messages[session.messages.length - 1]?.content.slice(0, 50)}...
+                        </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(session.updatedAt).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{subject.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {session.messages[session.messages.length - 1]?.content.slice(0, 50)}...
-                      </p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(session.updatedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </Card>
-              )
-            })}
+                  </Card>
+                )
+              })}
           </div>
         </div>
       )}

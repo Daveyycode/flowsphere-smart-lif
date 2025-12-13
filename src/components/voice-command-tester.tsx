@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  Microphone, 
-  SpeakerHigh, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Microphone,
+  SpeakerHigh,
+  CheckCircle,
+  XCircle,
   Warning,
   Sparkle,
   LightbulbFilament,
@@ -20,7 +20,7 @@ import {
   Moon,
   House,
   FilmSlate,
-  Palette
+  Palette,
 } from '@phosphor-icons/react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -39,85 +39,85 @@ const commandTests: CommandTest[] = [
     command: 'Turn on living room light',
     description: 'Turns on the living room light',
     requiresConfirmation: false,
-    icon: LightbulbFilament
+    icon: LightbulbFilament,
   },
   {
     category: 'device',
     command: 'Turn off all lights',
     description: 'Turns off all lights in the house',
     requiresConfirmation: false,
-    icon: LightbulbFilament
+    icon: LightbulbFilament,
   },
   {
     category: 'device',
     command: 'Lock all doors',
     description: 'Locks all smart locks',
     requiresConfirmation: false,
-    icon: LockKey
+    icon: LockKey,
   },
   {
     category: 'device',
     command: 'Set temperature to 72',
     description: 'Sets thermostat to 72°F',
     requiresConfirmation: false,
-    icon: ThermometerSimple
+    icon: ThermometerSimple,
   },
   {
     category: 'device',
     command: 'Start recording front camera',
     description: 'Starts recording on front camera',
     requiresConfirmation: false,
-    icon: VideoCamera
+    icon: VideoCamera,
   },
   {
     category: 'scene',
     command: 'Good morning scene',
     description: 'Activates morning routine',
     requiresConfirmation: false,
-    icon: House
+    icon: House,
   },
   {
     category: 'scene',
     command: 'Good night scene',
     description: 'Turns off lights and locks doors',
     requiresConfirmation: false,
-    icon: Moon
+    icon: Moon,
   },
   {
     category: 'scene',
     command: 'Movie scene',
     description: 'Dims living room lights to 20%',
     requiresConfirmation: false,
-    icon: FilmSlate
+    icon: FilmSlate,
   },
   {
     category: 'theme',
     command: 'Change theme to aurora borealis',
     description: 'Changes app theme',
     requiresConfirmation: false,
-    icon: Palette
+    icon: Palette,
   },
   {
     category: 'confirmation',
     command: 'Check kids location',
-    description: 'Checks children\'s GPS locations (requires confirmation)',
+    description: "Checks children's GPS locations (requires confirmation)",
     requiresConfirmation: true,
-    icon: MapPin
+    icon: MapPin,
   },
   {
     category: 'confirmation',
     command: 'Call the kids',
     description: 'Initiates call to children (requires confirmation)',
     requiresConfirmation: true,
-    icon: Phone
+    icon: Phone,
   },
   {
     category: 'confirmation',
     command: 'Call family',
     description: 'Initiates group call (requires confirmation)',
     requiresConfirmation: true,
-    icon: Phone
-  }
+    icon: Phone,
+  },
 ]
 
 export function VoiceCommandTester() {
@@ -128,7 +128,7 @@ export function VoiceCommandTester() {
   const checkSupport = () => {
     const voiceRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
     const textToSpeech = 'speechSynthesis' in window
-    
+
     setVoiceSupported(voiceRecognition)
     setTtsSupported(textToSpeech)
   }
@@ -139,7 +139,8 @@ export function VoiceCommandTester() {
       return
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
 
     recognition.continuous = false
@@ -164,7 +165,9 @@ export function VoiceCommandTester() {
       return
     }
 
-    const utterance = new SpeechSynthesisUtterance('Hello! This is a test of the text to speech system.')
+    const utterance = new SpeechSynthesisUtterance(
+      'Hello! This is a test of the text to speech system.'
+    )
     utterance.rate = 0.95
     utterance.pitch = 1.0
     window.speechSynthesis.speak(utterance)
@@ -213,9 +216,9 @@ export function VoiceCommandTester() {
                   {voiceSupported === null ? '?' : voiceSupported ? '✅' : '❌'}
                 </div>
                 <div className="text-sm text-muted-foreground">Voice Recognition</div>
-                <Button 
-                  onClick={testVoiceRecognition} 
-                  size="sm" 
+                <Button
+                  onClick={testVoiceRecognition}
+                  size="sm"
                   variant="outline"
                   className="w-full"
                 >
@@ -233,12 +236,7 @@ export function VoiceCommandTester() {
                   {ttsSupported === null ? '?' : ttsSupported ? '✅' : '❌'}
                 </div>
                 <div className="text-sm text-muted-foreground">Text-to-Speech</div>
-                <Button 
-                  onClick={testTextToSpeech} 
-                  size="sm" 
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button onClick={testTextToSpeech} size="sm" variant="outline" className="w-full">
                   Test
                 </Button>
               </div>
@@ -252,13 +250,10 @@ export function VoiceCommandTester() {
                 <div className="text-2xl font-bold">
                   {stats.total > 0 ? `${stats.passed}/${stats.total}` : '0/0'}
                 </div>
-                <div className="text-sm text-muted-foreground">Tests Passed ({stats.percentage}%)</div>
-                <Button 
-                  onClick={resetTests} 
-                  size="sm" 
-                  variant="outline"
-                  className="w-full"
-                >
+                <div className="text-sm text-muted-foreground">
+                  Tests Passed ({stats.percentage}%)
+                </div>
+                <Button onClick={resetTests} size="sm" variant="outline" className="w-full">
                   Reset
                 </Button>
               </div>
@@ -275,16 +270,24 @@ export function VoiceCommandTester() {
             <Sparkle className="w-4 h-4" />
             <AlertDescription>
               {voiceSupported && ttsSupported && (
-                <span className="text-mint font-medium">✅ Your browser fully supports voice features!</span>
+                <span className="text-mint font-medium">
+                  ✅ Your browser fully supports voice features!
+                </span>
               )}
               {voiceSupported && !ttsSupported && (
-                <span className="text-amber-500 font-medium">⚠️ Voice recognition works, but text-to-speech is not supported</span>
+                <span className="text-amber-500 font-medium">
+                  ⚠️ Voice recognition works, but text-to-speech is not supported
+                </span>
               )}
               {!voiceSupported && ttsSupported && (
-                <span className="text-amber-500 font-medium">⚠️ Text-to-speech works, but voice recognition is not supported</span>
+                <span className="text-amber-500 font-medium">
+                  ⚠️ Text-to-speech works, but voice recognition is not supported
+                </span>
               )}
               {!voiceSupported && !ttsSupported && (
-                <span className="text-destructive font-medium">❌ Voice features not supported. Try Chrome, Edge, or Safari.</span>
+                <span className="text-destructive font-medium">
+                  ❌ Voice features not supported. Try Chrome, Edge, or Safari.
+                </span>
               )}
             </AlertDescription>
           </Alert>
@@ -301,14 +304,16 @@ export function VoiceCommandTester() {
           <TabsContent value="device" className="space-y-4">
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {commandTests.filter(t => t.category === 'device').map((test) => (
-                  <CommandTestCard 
-                    key={test.command}
-                    test={test}
-                    status={testResults[test.command]}
-                    onMark={markTest}
-                  />
-                ))}
+                {commandTests
+                  .filter(t => t.category === 'device')
+                  .map(test => (
+                    <CommandTestCard
+                      key={test.command}
+                      test={test}
+                      status={testResults[test.command]}
+                      onMark={markTest}
+                    />
+                  ))}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -316,14 +321,16 @@ export function VoiceCommandTester() {
           <TabsContent value="scene" className="space-y-4">
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {commandTests.filter(t => t.category === 'scene').map((test) => (
-                  <CommandTestCard 
-                    key={test.command}
-                    test={test}
-                    status={testResults[test.command]}
-                    onMark={markTest}
-                  />
-                ))}
+                {commandTests
+                  .filter(t => t.category === 'scene')
+                  .map(test => (
+                    <CommandTestCard
+                      key={test.command}
+                      test={test}
+                      status={testResults[test.command]}
+                      onMark={markTest}
+                    />
+                  ))}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -331,14 +338,16 @@ export function VoiceCommandTester() {
           <TabsContent value="theme" className="space-y-4">
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {commandTests.filter(t => t.category === 'theme').map((test) => (
-                  <CommandTestCard 
-                    key={test.command}
-                    test={test}
-                    status={testResults[test.command]}
-                    onMark={markTest}
-                  />
-                ))}
+                {commandTests
+                  .filter(t => t.category === 'theme')
+                  .map(test => (
+                    <CommandTestCard
+                      key={test.command}
+                      test={test}
+                      status={testResults[test.command]}
+                      onMark={markTest}
+                    />
+                  ))}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -347,19 +356,22 @@ export function VoiceCommandTester() {
             <Alert>
               <Warning className="w-4 h-4" />
               <AlertDescription>
-                These commands require user confirmation. The AI will ask "Do you want me to..." before executing.
+                These commands require user confirmation. The AI will ask "Do you want me to..."
+                before executing.
               </AlertDescription>
             </Alert>
             <ScrollArea className="h-96">
               <div className="space-y-3">
-                {commandTests.filter(t => t.category === 'confirmation').map((test) => (
-                  <CommandTestCard 
-                    key={test.command}
-                    test={test}
-                    status={testResults[test.command]}
-                    onMark={markTest}
-                  />
-                ))}
+                {commandTests
+                  .filter(t => t.category === 'confirmation')
+                  .map(test => (
+                    <CommandTestCard
+                      key={test.command}
+                      test={test}
+                      status={testResults[test.command]}
+                      onMark={markTest}
+                    />
+                  ))}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -394,10 +406,12 @@ function CommandTestCard({ test, status, onMark }: CommandTestCardProps) {
   const Icon = test.icon
 
   return (
-    <Card className={`
+    <Card
+      className={`
       ${status === 'pass' ? 'border-mint bg-mint/5' : ''}
       ${status === 'fail' ? 'border-destructive bg-destructive/5' : ''}
-    `}>
+    `}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
@@ -409,9 +423,7 @@ function CommandTestCard({ test, status, onMark }: CommandTestCardProps) {
                 <div className="font-mono text-sm font-medium text-foreground">
                   "{test.command}"
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {test.description}
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">{test.description}</div>
               </div>
               <div className="flex items-center gap-1">
                 {test.requiresConfirmation && (
@@ -429,7 +441,10 @@ function CommandTestCard({ test, status, onMark }: CommandTestCardProps) {
                 onClick={() => onMark(test.command, 'pass')}
                 className="flex-1"
               >
-                <CheckCircle className="w-4 h-4 mr-1" weight={status === 'pass' ? 'fill' : 'regular'} />
+                <CheckCircle
+                  className="w-4 h-4 mr-1"
+                  weight={status === 'pass' ? 'fill' : 'regular'}
+                />
                 Pass
               </Button>
               <Button

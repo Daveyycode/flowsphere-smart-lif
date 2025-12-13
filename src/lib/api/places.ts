@@ -37,7 +37,7 @@ export async function loadGoogleMapsAPI(): Promise<boolean> {
   }
 
   googleMapsLoading = true
-  loadPromise = new Promise((resolve) => {
+  loadPromise = new Promise(resolve => {
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`
     script.async = true
@@ -137,7 +137,7 @@ async function getGooglePredictions(
             return
           }
 
-          const results: PlacePrediction[] = predictions.map((prediction) => ({
+          const results: PlacePrediction[] = predictions.map(prediction => ({
             id: prediction.place_id,
             name: prediction.structured_formatting.main_text,
             address: prediction.description,
@@ -161,10 +161,8 @@ async function getGooglePredictions(
 export async function getPlaceDetails(placeId: string): Promise<PlacePrediction | null> {
   if (!placeId || !window.google?.maps?.places) return null
 
-  return new Promise((resolve) => {
-    const service = new window.google.maps.places.PlacesService(
-      document.createElement('div')
-    )
+  return new Promise(resolve => {
+    const service = new window.google.maps.places.PlacesService(document.createElement('div'))
 
     service.getDetails(
       {
@@ -210,7 +208,7 @@ async function getLocationIQPredictions(query: string): Promise<PlacePrediction[
         `&viewbox=116.0,4.5,127.0,21.5&bounded=0`, // Philippines viewbox, not strict
       {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       }
     )

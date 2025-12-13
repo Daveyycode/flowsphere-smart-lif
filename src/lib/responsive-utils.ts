@@ -267,8 +267,22 @@ export function getResponsiveLayout(device: DeviceInfo['type']): {
     isLargeDesktop: device === 'large-desktop',
     isTouch: device === 'mobile' || device === 'tablet',
     columns: device === 'mobile' ? 1 : device === 'tablet' ? 2 : device === 'desktop' ? 3 : 4,
-    gridCols: device === 'mobile' ? 'grid-cols-1' : device === 'tablet' ? 'grid-cols-2' : device === 'desktop' ? 'grid-cols-3' : 'grid-cols-4',
-    containerPadding: device === 'mobile' ? 'px-4' : device === 'tablet' ? 'px-6' : device === 'desktop' ? 'px-8' : 'px-12',
+    gridCols:
+      device === 'mobile'
+        ? 'grid-cols-1'
+        : device === 'tablet'
+          ? 'grid-cols-2'
+          : device === 'desktop'
+            ? 'grid-cols-3'
+            : 'grid-cols-4',
+    containerPadding:
+      device === 'mobile'
+        ? 'px-4'
+        : device === 'tablet'
+          ? 'px-6'
+          : device === 'desktop'
+            ? 'px-8'
+            : 'px-12',
   }
 }
 

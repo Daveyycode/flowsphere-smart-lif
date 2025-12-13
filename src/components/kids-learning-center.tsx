@@ -1,7 +1,21 @@
 /**
  * Kids Learning Center - Unified AI-Powered Learning Platform
  *
- * Features:
+ * @module KidsLearningCenter
+ * @description A comprehensive AI tutoring system for children ages 3-18.
+ *
+ * ============================================================================
+ * ARCHITECTURE OVERVIEW
+ * ============================================================================
+ *
+ * CONVERSATION FLOW (NLP-based tutoring):
+ * 1. Welcome Phase (3 min) - Greet student, mood check, build rapport
+ * 2. Topic Selection - Help student choose what to learn
+ * 3. Teaching Phase - AI teaches from uploaded content or generates lessons
+ * 4. Q&A Phase - Interactive questions with feedback
+ * 5. Summary Phase - Recap key points, provide encouragement
+ *
+ * FEATURES:
  * - Single unified interface (no redundant tabs)
  * - Textbook/Lesson plan upload for AI analysis
  * - Age & grade-appropriate content generation
@@ -10,6 +24,24 @@
  * - Daily/monthly behavior reports
  * - Cheapest AI first with usage limits
  * - User credit system for AI usage
+ *
+ * DATA FLOW:
+ * - User uploads content → AI extracts topic → Generates lesson
+ * - Student responses → Mood detection → Performance tracking
+ * - Session data → Parent reports (weekly summaries)
+ *
+ * STORAGE:
+ * - localStorage via useKV hook for profiles, sessions, reports
+ * - Supabase for cloud sync (optional)
+ *
+ * AI PROVIDERS (fallback chain):
+ * 1. Groq (free tier)
+ * 2. OpenRouter (free models)
+ * 3. Gemini
+ * 4. OpenAI/DeepSeek/Anthropic (paid)
+ *
+ * @see src/lib/tutor-conversation-flow.ts - Conversation flow utilities
+ * @see src/lib/smart-ai-router.ts - AI provider routing
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -22,7 +54,13 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
@@ -75,9 +113,15 @@ import {
   Image,
   Link,
   FilePdf,
-  Paperclip
+  Paperclip,
 } from '@phosphor-icons/react'
-import { smartCompletion, checkUsageLimits, getTodayUsage, AI_PROVIDERS, type AIProvider } from '@/lib/smart-ai-router'
+import {
+  smartCompletion,
+  checkUsageLimits,
+  getTodayUsage,
+  AI_PROVIDERS,
+  type AIProvider,
+} from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
 import { supabase } from '@/lib/supabase'
@@ -260,11 +304,41 @@ type SessionPhase = 'greeting' | 'learning' | 'review' | 'ended'
 // ==========================================
 
 const SUBJECTS = [
-  { id: 'math', name: 'Mathematics', icon: Lightbulb, color: 'from-blue-500 to-indigo-600', emoji: '🧮' },
-  { id: 'science', name: 'Science', icon: Sparkle, color: 'from-green-500 to-emerald-600', emoji: '🔬' },
-  { id: 'reading', name: 'Reading & Writing', icon: BookOpen, color: 'from-purple-500 to-violet-600', emoji: '📚' },
-  { id: 'language', name: 'Languages', icon: Globe, color: 'from-orange-500 to-amber-600', emoji: '🌍' },
-  { id: 'general', name: 'General Knowledge', icon: GraduationCap, color: 'from-pink-500 to-rose-600', emoji: '💡' }
+  {
+    id: 'math',
+    name: 'Mathematics',
+    icon: Lightbulb,
+    color: 'from-blue-500 to-indigo-600',
+    emoji: '🧮',
+  },
+  {
+    id: 'science',
+    name: 'Science',
+    icon: Sparkle,
+    color: 'from-green-500 to-emerald-600',
+    emoji: '🔬',
+  },
+  {
+    id: 'reading',
+    name: 'Reading & Writing',
+    icon: BookOpen,
+    color: 'from-purple-500 to-violet-600',
+    emoji: '📚',
+  },
+  {
+    id: 'language',
+    name: 'Languages',
+    icon: Globe,
+    color: 'from-orange-500 to-amber-600',
+    emoji: '🌍',
+  },
+  {
+    id: 'general',
+    name: 'General Knowledge',
+    icon: GraduationCap,
+    color: 'from-pink-500 to-rose-600',
+    emoji: '💡',
+  },
 ]
 
 const GRADES = [
@@ -281,12 +355,18 @@ const GRADES = [
   { value: '9th', label: '9th Grade (Freshman)', ages: [14, 15] },
   { value: '10th', label: '10th Grade (Sophomore)', ages: [15, 16] },
   { value: '11th', label: '11th Grade (Junior)', ages: [16, 17] },
-  { value: '12th', label: '12th Grade (Senior)', ages: [17, 18] }
+  { value: '12th', label: '12th Grade (Senior)', ages: [17, 18] },
 ]
 
 const AVATARS: Record<string, string> = {
-  bear: '🐻', rabbit: '🐰', fox: '🦊', owl: '🦉',
-  dolphin: '🐬', lion: '🦁', panda: '🐼', penguin: '🐧'
+  bear: '🐻',
+  rabbit: '🐰',
+  fox: '🦊',
+  owl: '🦉',
+  dolphin: '🐬',
+  lion: '🦁',
+  panda: '🐼',
+  penguin: '🐧',
 }
 
 const LANGUAGES = [
@@ -295,7 +375,7 @@ const LANGUAGES = [
   { code: 'fr', name: 'French' },
   { code: 'zh', name: 'Chinese' },
   { code: 'tl', name: 'Filipino/Tagalog' },
-  { code: 'other', name: 'Other' }
+  { code: 'other', name: 'Other' },
 ]
 
 const FREE_DAILY_CREDITS = 20 // Free AI calls per day
@@ -311,7 +391,7 @@ const STORAGE_KEYS = {
   GAME_PROGRESS: 'flowsphere-kids-games-v2',
   PARENT_SETTINGS: 'flowsphere-kids-parent-settings-v2',
   SESSION_ANALYTICS: 'flowsphere-kids-analytics-v2',
-  WEEKLY_SUMMARIES: 'flowsphere-kids-weekly-v2'
+  WEEKLY_SUMMARIES: 'flowsphere-kids-weekly-v2',
 }
 
 // Session timing constants
@@ -322,140 +402,1392 @@ const FOCUS_OTHER_PERCENT = 20 // 20% on other topics
 
 // Game Categories
 const GAME_CATEGORIES = [
-  { id: 'math', name: 'Math Games', icon: '🧮', color: 'from-blue-500 to-indigo-600', description: 'Numbers & Calculations' },
-  { id: 'memory', name: 'Memory Games', icon: '🧠', color: 'from-purple-500 to-violet-600', description: 'Remember & Recall' },
-  { id: 'logic', name: 'Logic Puzzles', icon: '🧩', color: 'from-green-500 to-emerald-600', description: 'Think & Solve' },
-  { id: 'words', name: 'Word Games', icon: '📝', color: 'from-orange-500 to-amber-600', description: 'Letters & Words' },
-  { id: 'pattern', name: 'Pattern Games', icon: '🔷', color: 'from-cyan-500 to-teal-600', description: 'Find the Pattern' },
-  { id: 'speed', name: 'Speed Challenges', icon: '⚡', color: 'from-yellow-500 to-orange-600', description: 'Quick Thinking' },
-  { id: 'creativity', name: 'Creative Games', icon: '🎨', color: 'from-pink-500 to-rose-600', description: 'Imagine & Create' }
+  {
+    id: 'math',
+    name: 'Math Games',
+    icon: '🧮',
+    color: 'from-blue-500 to-indigo-600',
+    description: 'Numbers & Calculations',
+  },
+  {
+    id: 'memory',
+    name: 'Memory Games',
+    icon: '🧠',
+    color: 'from-purple-500 to-violet-600',
+    description: 'Remember & Recall',
+  },
+  {
+    id: 'logic',
+    name: 'Logic Puzzles',
+    icon: '🧩',
+    color: 'from-green-500 to-emerald-600',
+    description: 'Think & Solve',
+  },
+  {
+    id: 'words',
+    name: 'Word Games',
+    icon: '📝',
+    color: 'from-orange-500 to-amber-600',
+    description: 'Letters & Words',
+  },
+  {
+    id: 'pattern',
+    name: 'Pattern Games',
+    icon: '🔷',
+    color: 'from-cyan-500 to-teal-600',
+    description: 'Find the Pattern',
+  },
+  {
+    id: 'speed',
+    name: 'Speed Challenges',
+    icon: '⚡',
+    color: 'from-yellow-500 to-orange-600',
+    description: 'Quick Thinking',
+  },
+  {
+    id: 'creativity',
+    name: 'Creative Games',
+    icon: '🎨',
+    color: 'from-pink-500 to-rose-600',
+    description: 'Imagine & Create',
+  },
 ]
 
 // 100+ Game Challenges
 const GAME_CHALLENGES: GameChallenge[] = [
   // Math Games (20 challenges)
-  { id: 'math-1', category: 'math', name: 'Number Buddies', description: 'Find numbers that add up to 10', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '➕', type: 'match' },
-  { id: 'math-2', category: 'math', name: 'Count the Stars', description: 'Count objects and pick the right number', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '⭐', type: 'multiple-choice' },
-  { id: 'math-3', category: 'math', name: 'Addition Adventure', description: 'Solve simple addition problems', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎯', type: 'fill-blank' },
-  { id: 'math-4', category: 'math', name: 'Subtraction Safari', description: 'Take away and find the answer', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🦁', type: 'fill-blank' },
-  { id: 'math-5', category: 'math', name: 'Shape Counter', description: 'Count different shapes', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '🔺', type: 'multiple-choice' },
-  { id: 'math-6', category: 'math', name: 'Number Order', description: 'Put numbers in the right order', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 15, icon: '📊', type: 'sequence' },
-  { id: 'math-7', category: 'math', name: 'Double Trouble', description: 'Double the numbers!', minAge: 6, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '✖️', type: 'fill-blank' },
-  { id: 'math-8', category: 'math', name: 'Times Tables', description: 'Practice multiplication', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔢', type: 'speed' },
-  { id: 'math-9', category: 'math', name: 'Division Detective', description: 'Solve division mysteries', minAge: 8, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔍', type: 'fill-blank' },
-  { id: 'math-10', category: 'math', name: 'Fraction Fun', description: 'Match fractions to pictures', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🍕', type: 'match' },
-  { id: 'math-11', category: 'math', name: 'Money Math', description: 'Count coins and bills', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '💰', type: 'multiple-choice' },
-  { id: 'math-12', category: 'math', name: 'Clock Challenge', description: 'Tell the time correctly', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🕐', type: 'multiple-choice' },
-  { id: 'math-13', category: 'math', name: 'Greater or Less', description: 'Compare numbers quickly', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '⚖️', type: 'speed' },
-  { id: 'math-14', category: 'math', name: 'Number Bonds', description: 'Find pairs that make a number', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🤝', type: 'match' },
-  { id: 'math-15', category: 'math', name: 'Math Maze', description: 'Solve equations to find the path', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 30, icon: '🏃', type: 'sequence' },
-  { id: 'math-16', category: 'math', name: 'Place Value Pro', description: 'Understand tens and ones', minAge: 6, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🏠', type: 'multiple-choice' },
-  { id: 'math-17', category: 'math', name: 'Skip Counting', description: 'Count by 2s, 5s, and 10s', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🐰', type: 'sequence' },
-  { id: 'math-18', category: 'math', name: 'Equation Builder', description: 'Build correct equations', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🏗️', type: 'fill-blank' },
-  { id: 'math-19', category: 'math', name: 'Odd & Even Sort', description: 'Sort numbers into groups', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎲', type: 'match' },
-  { id: 'math-20', category: 'math', name: 'Mental Math Race', description: 'Quick calculations challenge', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏎️', type: 'speed' },
+  {
+    id: 'math-1',
+    category: 'math',
+    name: 'Number Buddies',
+    description: 'Find numbers that add up to 10',
+    minAge: 4,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '➕',
+    type: 'match',
+  },
+  {
+    id: 'math-2',
+    category: 'math',
+    name: 'Count the Stars',
+    description: 'Count objects and pick the right number',
+    minAge: 3,
+    maxAge: 5,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '⭐',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'math-3',
+    category: 'math',
+    name: 'Addition Adventure',
+    description: 'Solve simple addition problems',
+    minAge: 5,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎯',
+    type: 'fill-blank',
+  },
+  {
+    id: 'math-4',
+    category: 'math',
+    name: 'Subtraction Safari',
+    description: 'Take away and find the answer',
+    minAge: 5,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🦁',
+    type: 'fill-blank',
+  },
+  {
+    id: 'math-5',
+    category: 'math',
+    name: 'Shape Counter',
+    description: 'Count different shapes',
+    minAge: 3,
+    maxAge: 5,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🔺',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'math-6',
+    category: 'math',
+    name: 'Number Order',
+    description: 'Put numbers in the right order',
+    minAge: 4,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '📊',
+    type: 'sequence',
+  },
+  {
+    id: 'math-7',
+    category: 'math',
+    name: 'Double Trouble',
+    description: 'Double the numbers!',
+    minAge: 6,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '✖️',
+    type: 'fill-blank',
+  },
+  {
+    id: 'math-8',
+    category: 'math',
+    name: 'Times Tables',
+    description: 'Practice multiplication',
+    minAge: 7,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔢',
+    type: 'speed',
+  },
+  {
+    id: 'math-9',
+    category: 'math',
+    name: 'Division Detective',
+    description: 'Solve division mysteries',
+    minAge: 8,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔍',
+    type: 'fill-blank',
+  },
+  {
+    id: 'math-10',
+    category: 'math',
+    name: 'Fraction Fun',
+    description: 'Match fractions to pictures',
+    minAge: 7,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🍕',
+    type: 'match',
+  },
+  {
+    id: 'math-11',
+    category: 'math',
+    name: 'Money Math',
+    description: 'Count coins and bills',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '💰',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'math-12',
+    category: 'math',
+    name: 'Clock Challenge',
+    description: 'Tell the time correctly',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🕐',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'math-13',
+    category: 'math',
+    name: 'Greater or Less',
+    description: 'Compare numbers quickly',
+    minAge: 5,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '⚖️',
+    type: 'speed',
+  },
+  {
+    id: 'math-14',
+    category: 'math',
+    name: 'Number Bonds',
+    description: 'Find pairs that make a number',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🤝',
+    type: 'match',
+  },
+  {
+    id: 'math-15',
+    category: 'math',
+    name: 'Math Maze',
+    description: 'Solve equations to find the path',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 30,
+    icon: '🏃',
+    type: 'sequence',
+  },
+  {
+    id: 'math-16',
+    category: 'math',
+    name: 'Place Value Pro',
+    description: 'Understand tens and ones',
+    minAge: 6,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🏠',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'math-17',
+    category: 'math',
+    name: 'Skip Counting',
+    description: 'Count by 2s, 5s, and 10s',
+    minAge: 5,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🐰',
+    type: 'sequence',
+  },
+  {
+    id: 'math-18',
+    category: 'math',
+    name: 'Equation Builder',
+    description: 'Build correct equations',
+    minAge: 9,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '🏗️',
+    type: 'fill-blank',
+  },
+  {
+    id: 'math-19',
+    category: 'math',
+    name: 'Odd & Even Sort',
+    description: 'Sort numbers into groups',
+    minAge: 5,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎲',
+    type: 'match',
+  },
+  {
+    id: 'math-20',
+    category: 'math',
+    name: 'Mental Math Race',
+    description: 'Quick calculations challenge',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 40,
+    icon: '🏎️',
+    type: 'speed',
+  },
 
   // Memory Games (15 challenges)
-  { id: 'mem-1', category: 'memory', name: 'Animal Match', description: 'Match pairs of cute animals', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🐶', type: 'memory' },
-  { id: 'mem-2', category: 'memory', name: 'Color Memory', description: 'Remember the color sequence', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🌈', type: 'sequence' },
-  { id: 'mem-3', category: 'memory', name: 'Picture Recall', description: 'Remember what you saw', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🖼️', type: 'memory' },
-  { id: 'mem-4', category: 'memory', name: 'Number Memory', description: 'Remember number sequences', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔢', type: 'sequence' },
-  { id: 'mem-5', category: 'memory', name: 'Shape Shuffle', description: 'Remember where shapes were', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔷', type: 'memory' },
-  { id: 'mem-6', category: 'memory', name: 'Sound Memory', description: 'Match sounds to pictures', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🔊', type: 'match' },
-  { id: 'mem-7', category: 'memory', name: 'Story Recall', description: 'Remember details from a story', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📖', type: 'multiple-choice' },
-  { id: 'mem-8', category: 'memory', name: 'Simon Says', description: 'Follow the pattern sequence', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🎮', type: 'sequence' },
-  { id: 'mem-9', category: 'memory', name: "What's Missing?", description: 'Find the missing item', minAge: 4, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '❓', type: 'multiple-choice' },
-  { id: 'mem-10', category: 'memory', name: 'Face Match', description: 'Match faces with names', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '😊', type: 'match' },
-  { id: 'mem-11', category: 'memory', name: 'Word Memory', description: 'Remember lists of words', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '📝', type: 'sequence' },
-  { id: 'mem-12', category: 'memory', name: 'Pattern Recall', description: 'Remember complex patterns', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🎯', type: 'memory' },
-  { id: 'mem-13', category: 'memory', name: 'Emoji Match', description: 'Match emoji pairs', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '😀', type: 'memory' },
-  { id: 'mem-14', category: 'memory', name: 'Location Memory', description: 'Remember item locations', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📍', type: 'memory' },
-  { id: 'mem-15', category: 'memory', name: 'Sequence Master', description: 'Master long sequences', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏆', type: 'sequence' },
+  {
+    id: 'mem-1',
+    category: 'memory',
+    name: 'Animal Match',
+    description: 'Match pairs of cute animals',
+    minAge: 3,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🐶',
+    type: 'memory',
+  },
+  {
+    id: 'mem-2',
+    category: 'memory',
+    name: 'Color Memory',
+    description: 'Remember the color sequence',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🌈',
+    type: 'sequence',
+  },
+  {
+    id: 'mem-3',
+    category: 'memory',
+    name: 'Picture Recall',
+    description: 'Remember what you saw',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🖼️',
+    type: 'memory',
+  },
+  {
+    id: 'mem-4',
+    category: 'memory',
+    name: 'Number Memory',
+    description: 'Remember number sequences',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔢',
+    type: 'sequence',
+  },
+  {
+    id: 'mem-5',
+    category: 'memory',
+    name: 'Shape Shuffle',
+    description: 'Remember where shapes were',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🔷',
+    type: 'memory',
+  },
+  {
+    id: 'mem-6',
+    category: 'memory',
+    name: 'Sound Memory',
+    description: 'Match sounds to pictures',
+    minAge: 3,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🔊',
+    type: 'match',
+  },
+  {
+    id: 'mem-7',
+    category: 'memory',
+    name: 'Story Recall',
+    description: 'Remember details from a story',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '📖',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'mem-8',
+    category: 'memory',
+    name: 'Simon Says',
+    description: 'Follow the pattern sequence',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🎮',
+    type: 'sequence',
+  },
+  {
+    id: 'mem-9',
+    category: 'memory',
+    name: "What's Missing?",
+    description: 'Find the missing item',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '❓',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'mem-10',
+    category: 'memory',
+    name: 'Face Match',
+    description: 'Match faces with names',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '😊',
+    type: 'match',
+  },
+  {
+    id: 'mem-11',
+    category: 'memory',
+    name: 'Word Memory',
+    description: 'Remember lists of words',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'hard',
+    xpReward: 30,
+    icon: '📝',
+    type: 'sequence',
+  },
+  {
+    id: 'mem-12',
+    category: 'memory',
+    name: 'Pattern Recall',
+    description: 'Remember complex patterns',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '🎯',
+    type: 'memory',
+  },
+  {
+    id: 'mem-13',
+    category: 'memory',
+    name: 'Emoji Match',
+    description: 'Match emoji pairs',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '😀',
+    type: 'memory',
+  },
+  {
+    id: 'mem-14',
+    category: 'memory',
+    name: 'Location Memory',
+    description: 'Remember item locations',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '📍',
+    type: 'memory',
+  },
+  {
+    id: 'mem-15',
+    category: 'memory',
+    name: 'Sequence Master',
+    description: 'Master long sequences',
+    minAge: 9,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 40,
+    icon: '🏆',
+    type: 'sequence',
+  },
 
   // Logic Puzzles (15 challenges)
-  { id: 'logic-1', category: 'logic', name: 'Odd One Out', description: 'Find what does not belong', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🤔', type: 'multiple-choice' },
-  { id: 'logic-2', category: 'logic', name: 'Simple Sudoku', description: 'Fill in the grid (4x4)', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 25, icon: '📊', type: 'fill-blank' },
-  { id: 'logic-3', category: 'logic', name: 'Sort It Out', description: 'Group items by category', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '📦', type: 'match' },
-  { id: 'logic-4', category: 'logic', name: 'If-Then Puzzles', description: 'Solve logical statements', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔀', type: 'multiple-choice' },
-  { id: 'logic-5', category: 'logic', name: 'Picture Puzzles', description: 'Complete the picture logic', minAge: 5, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🧩', type: 'multiple-choice' },
-  { id: 'logic-6', category: 'logic', name: 'Who Lives Where?', description: 'Solve simple logic grids', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🏠', type: 'fill-blank' },
-  { id: 'logic-7', category: 'logic', name: 'Balance Scale', description: 'Make both sides equal', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '⚖️', type: 'fill-blank' },
-  { id: 'logic-8', category: 'logic', name: 'Code Breaker', description: 'Crack the secret code', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 30, icon: '🔐', type: 'fill-blank' },
-  { id: 'logic-9', category: 'logic', name: 'Tower Builder', description: 'Stack blocks correctly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🗼', type: 'sequence' },
-  { id: 'logic-10', category: 'logic', name: 'Mirror Image', description: 'Find the correct reflection', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🪞', type: 'multiple-choice' },
-  { id: 'logic-11', category: 'logic', name: 'Maze Runner', description: 'Find the path through', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🏃', type: 'sequence' },
-  { id: 'logic-12', category: 'logic', name: 'True or False', description: 'Evaluate statements', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '✅', type: 'multiple-choice' },
-  { id: 'logic-13', category: 'logic', name: 'Riddle Time', description: 'Solve fun riddles', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🎭', type: 'multiple-choice' },
-  { id: 'logic-14', category: 'logic', name: 'Tangram Puzzle', description: 'Arrange shapes to match', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📐', type: 'match' },
-  { id: 'logic-15', category: 'logic', name: 'Brain Teaser', description: 'Advanced logic challenges', minAge: 10, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🧠', type: 'fill-blank' },
+  {
+    id: 'logic-1',
+    category: 'logic',
+    name: 'Odd One Out',
+    description: 'Find what does not belong',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🤔',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-2',
+    category: 'logic',
+    name: 'Simple Sudoku',
+    description: 'Fill in the grid (4x4)',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '📊',
+    type: 'fill-blank',
+  },
+  {
+    id: 'logic-3',
+    category: 'logic',
+    name: 'Sort It Out',
+    description: 'Group items by category',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '📦',
+    type: 'match',
+  },
+  {
+    id: 'logic-4',
+    category: 'logic',
+    name: 'If-Then Puzzles',
+    description: 'Solve logical statements',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔀',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-5',
+    category: 'logic',
+    name: 'Picture Puzzles',
+    description: 'Complete the picture logic',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🧩',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-6',
+    category: 'logic',
+    name: 'Who Lives Where?',
+    description: 'Solve simple logic grids',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '🏠',
+    type: 'fill-blank',
+  },
+  {
+    id: 'logic-7',
+    category: 'logic',
+    name: 'Balance Scale',
+    description: 'Make both sides equal',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '⚖️',
+    type: 'fill-blank',
+  },
+  {
+    id: 'logic-8',
+    category: 'logic',
+    name: 'Code Breaker',
+    description: 'Crack the secret code',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 30,
+    icon: '🔐',
+    type: 'fill-blank',
+  },
+  {
+    id: 'logic-9',
+    category: 'logic',
+    name: 'Tower Builder',
+    description: 'Stack blocks correctly',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🗼',
+    type: 'sequence',
+  },
+  {
+    id: 'logic-10',
+    category: 'logic',
+    name: 'Mirror Image',
+    description: 'Find the correct reflection',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🪞',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-11',
+    category: 'logic',
+    name: 'Maze Runner',
+    description: 'Find the path through',
+    minAge: 5,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🏃',
+    type: 'sequence',
+  },
+  {
+    id: 'logic-12',
+    category: 'logic',
+    name: 'True or False',
+    description: 'Evaluate statements',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '✅',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-13',
+    category: 'logic',
+    name: 'Riddle Time',
+    description: 'Solve fun riddles',
+    minAge: 6,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🎭',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'logic-14',
+    category: 'logic',
+    name: 'Tangram Puzzle',
+    description: 'Arrange shapes to match',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '📐',
+    type: 'match',
+  },
+  {
+    id: 'logic-15',
+    category: 'logic',
+    name: 'Brain Teaser',
+    description: 'Advanced logic challenges',
+    minAge: 10,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 40,
+    icon: '🧠',
+    type: 'fill-blank',
+  },
 
   // Word Games (15 challenges)
-  { id: 'word-1', category: 'words', name: 'Letter Hunt', description: 'Find hidden letters', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🔤', type: 'match' },
-  { id: 'word-2', category: 'words', name: 'Rhyme Time', description: 'Match words that rhyme', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎵', type: 'match' },
-  { id: 'word-3', category: 'words', name: 'Spell It Right', description: 'Choose correct spelling', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '✏️', type: 'multiple-choice' },
-  { id: 'word-4', category: 'words', name: 'Word Builder', description: 'Make words from letters', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🏗️', type: 'fill-blank' },
-  { id: 'word-5', category: 'words', name: 'Alphabet Order', description: 'Put letters in order', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '📝', type: 'sequence' },
-  { id: 'word-6', category: 'words', name: 'Picture Words', description: 'Match pictures to words', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🖼️', type: 'match' },
-  { id: 'word-7', category: 'words', name: 'Opposite Words', description: 'Find the opposites', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '↔️', type: 'match' },
-  { id: 'word-8', category: 'words', name: 'Word Search', description: 'Find words in the grid', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔍', type: 'match' },
-  { id: 'word-9', category: 'words', name: 'Fill the Gap', description: 'Complete the sentence', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📝', type: 'fill-blank' },
-  { id: 'word-10', category: 'words', name: 'Word Categories', description: 'Sort words into groups', minAge: 5, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '📂', type: 'match' },
-  { id: 'word-11', category: 'words', name: 'Synonym Match', description: 'Find words with same meaning', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔗', type: 'match' },
-  { id: 'word-12', category: 'words', name: 'Unscramble', description: 'Rearrange jumbled letters', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔀', type: 'fill-blank' },
-  { id: 'word-13', category: 'words', name: 'Story Words', description: 'Put story words in order', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📖', type: 'sequence' },
-  { id: 'word-14', category: 'words', name: 'Compound Words', description: 'Make compound words', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔧', type: 'match' },
-  { id: 'word-15', category: 'words', name: 'Crossword Kids', description: 'Simple crossword puzzles', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '📰', type: 'fill-blank' },
+  {
+    id: 'word-1',
+    category: 'words',
+    name: 'Letter Hunt',
+    description: 'Find hidden letters',
+    minAge: 4,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🔤',
+    type: 'match',
+  },
+  {
+    id: 'word-2',
+    category: 'words',
+    name: 'Rhyme Time',
+    description: 'Match words that rhyme',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎵',
+    type: 'match',
+  },
+  {
+    id: 'word-3',
+    category: 'words',
+    name: 'Spell It Right',
+    description: 'Choose correct spelling',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '✏️',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'word-4',
+    category: 'words',
+    name: 'Word Builder',
+    description: 'Make words from letters',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🏗️',
+    type: 'fill-blank',
+  },
+  {
+    id: 'word-5',
+    category: 'words',
+    name: 'Alphabet Order',
+    description: 'Put letters in order',
+    minAge: 4,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '📝',
+    type: 'sequence',
+  },
+  {
+    id: 'word-6',
+    category: 'words',
+    name: 'Picture Words',
+    description: 'Match pictures to words',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🖼️',
+    type: 'match',
+  },
+  {
+    id: 'word-7',
+    category: 'words',
+    name: 'Opposite Words',
+    description: 'Find the opposites',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '↔️',
+    type: 'match',
+  },
+  {
+    id: 'word-8',
+    category: 'words',
+    name: 'Word Search',
+    description: 'Find words in the grid',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔍',
+    type: 'match',
+  },
+  {
+    id: 'word-9',
+    category: 'words',
+    name: 'Fill the Gap',
+    description: 'Complete the sentence',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '📝',
+    type: 'fill-blank',
+  },
+  {
+    id: 'word-10',
+    category: 'words',
+    name: 'Word Categories',
+    description: 'Sort words into groups',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '📂',
+    type: 'match',
+  },
+  {
+    id: 'word-11',
+    category: 'words',
+    name: 'Synonym Match',
+    description: 'Find words with same meaning',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔗',
+    type: 'match',
+  },
+  {
+    id: 'word-12',
+    category: 'words',
+    name: 'Unscramble',
+    description: 'Rearrange jumbled letters',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔀',
+    type: 'fill-blank',
+  },
+  {
+    id: 'word-13',
+    category: 'words',
+    name: 'Story Words',
+    description: 'Put story words in order',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '📖',
+    type: 'sequence',
+  },
+  {
+    id: 'word-14',
+    category: 'words',
+    name: 'Compound Words',
+    description: 'Make compound words',
+    minAge: 7,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🔧',
+    type: 'match',
+  },
+  {
+    id: 'word-15',
+    category: 'words',
+    name: 'Crossword Kids',
+    description: 'Simple crossword puzzles',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '📰',
+    type: 'fill-blank',
+  },
 
   // Pattern Games (15 challenges)
-  { id: 'pat-1', category: 'pattern', name: 'Color Patterns', description: 'Complete the color sequence', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🌈', type: 'sequence' },
-  { id: 'pat-2', category: 'pattern', name: 'Shape Sequence', description: 'What comes next?', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔷', type: 'multiple-choice' },
-  { id: 'pat-3', category: 'pattern', name: 'Number Patterns', description: 'Find the number pattern', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🔢', type: 'fill-blank' },
-  { id: 'pat-4', category: 'pattern', name: 'Growing Patterns', description: 'Patterns that grow', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '📈', type: 'sequence' },
-  { id: 'pat-5', category: 'pattern', name: 'Repeating Beats', description: 'Complete the rhythm pattern', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🥁', type: 'sequence' },
-  { id: 'pat-6', category: 'pattern', name: 'Picture Pattern', description: 'What picture comes next?', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎨', type: 'multiple-choice' },
-  { id: 'pat-7', category: 'pattern', name: 'AB Patterns', description: 'Simple alternating patterns', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '🔄', type: 'sequence' },
-  { id: 'pat-8', category: 'pattern', name: 'ABC Patterns', description: 'Three-part patterns', minAge: 4, maxAge: 7, difficulty: 'medium', xpReward: 15, icon: '🔁', type: 'sequence' },
-  { id: 'pat-9', category: 'pattern', name: 'Tile Patterns', description: 'Complete the tile design', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🎴', type: 'match' },
-  { id: 'pat-10', category: 'pattern', name: 'Symmetry Finder', description: 'Find symmetrical patterns', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🦋', type: 'multiple-choice' },
-  { id: 'pat-11', category: 'pattern', name: 'Pattern Rules', description: 'Discover the rule', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '📏', type: 'fill-blank' },
-  { id: 'pat-12', category: 'pattern', name: 'Missing Piece', description: 'Find what fits', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🧩', type: 'multiple-choice' },
-  { id: 'pat-13', category: 'pattern', name: 'Pattern Matrix', description: 'Complex pattern grids', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '📊', type: 'multiple-choice' },
-  { id: 'pat-14', category: 'pattern', name: 'Rotation Pattern', description: 'Patterns that rotate', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '🔄', type: 'multiple-choice' },
-  { id: 'pat-15', category: 'pattern', name: 'Pattern Detective', description: 'Find hidden patterns', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🕵️', type: 'fill-blank' },
+  {
+    id: 'pat-1',
+    category: 'pattern',
+    name: 'Color Patterns',
+    description: 'Complete the color sequence',
+    minAge: 3,
+    maxAge: 6,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🌈',
+    type: 'sequence',
+  },
+  {
+    id: 'pat-2',
+    category: 'pattern',
+    name: 'Shape Sequence',
+    description: 'What comes next?',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🔷',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-3',
+    category: 'pattern',
+    name: 'Number Patterns',
+    description: 'Find the number pattern',
+    minAge: 6,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🔢',
+    type: 'fill-blank',
+  },
+  {
+    id: 'pat-4',
+    category: 'pattern',
+    name: 'Growing Patterns',
+    description: 'Patterns that grow',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '📈',
+    type: 'sequence',
+  },
+  {
+    id: 'pat-5',
+    category: 'pattern',
+    name: 'Repeating Beats',
+    description: 'Complete the rhythm pattern',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🥁',
+    type: 'sequence',
+  },
+  {
+    id: 'pat-6',
+    category: 'pattern',
+    name: 'Picture Pattern',
+    description: 'What picture comes next?',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎨',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-7',
+    category: 'pattern',
+    name: 'AB Patterns',
+    description: 'Simple alternating patterns',
+    minAge: 3,
+    maxAge: 5,
+    difficulty: 'easy',
+    xpReward: 10,
+    icon: '🔄',
+    type: 'sequence',
+  },
+  {
+    id: 'pat-8',
+    category: 'pattern',
+    name: 'ABC Patterns',
+    description: 'Three-part patterns',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'medium',
+    xpReward: 15,
+    icon: '🔁',
+    type: 'sequence',
+  },
+  {
+    id: 'pat-9',
+    category: 'pattern',
+    name: 'Tile Patterns',
+    description: 'Complete the tile design',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🎴',
+    type: 'match',
+  },
+  {
+    id: 'pat-10',
+    category: 'pattern',
+    name: 'Symmetry Finder',
+    description: 'Find symmetrical patterns',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🦋',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-11',
+    category: 'pattern',
+    name: 'Pattern Rules',
+    description: 'Discover the rule',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'hard',
+    xpReward: 30,
+    icon: '📏',
+    type: 'fill-blank',
+  },
+  {
+    id: 'pat-12',
+    category: 'pattern',
+    name: 'Missing Piece',
+    description: 'Find what fits',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🧩',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-13',
+    category: 'pattern',
+    name: 'Pattern Matrix',
+    description: 'Complex pattern grids',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '📊',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-14',
+    category: 'pattern',
+    name: 'Rotation Pattern',
+    description: 'Patterns that rotate',
+    minAge: 7,
+    maxAge: 11,
+    difficulty: 'hard',
+    xpReward: 30,
+    icon: '🔄',
+    type: 'multiple-choice',
+  },
+  {
+    id: 'pat-15',
+    category: 'pattern',
+    name: 'Pattern Detective',
+    description: 'Find hidden patterns',
+    minAge: 9,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 40,
+    icon: '🕵️',
+    type: 'fill-blank',
+  },
 
   // Speed Challenges (15 challenges)
-  { id: 'speed-1', category: 'speed', name: 'Quick Count', description: 'Count objects fast!', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '⏱️', type: 'speed' },
-  { id: 'speed-2', category: 'speed', name: 'Flash Cards', description: 'Quick math answers', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '⚡', type: 'speed' },
-  { id: 'speed-3', category: 'speed', name: 'Color Tap', description: 'Tap the right color fast', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🎯', type: 'speed' },
-  { id: 'speed-4', category: 'speed', name: 'Shape Race', description: 'Identify shapes quickly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🏁', type: 'speed' },
-  { id: 'speed-5', category: 'speed', name: 'Word Dash', description: 'Spell words against time', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '💨', type: 'speed' },
-  { id: 'speed-6', category: 'speed', name: 'Number Ninja', description: 'Quick number recognition', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🥷', type: 'speed' },
-  { id: 'speed-7', category: 'speed', name: 'Match Sprint', description: 'Find matches quickly', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🏃‍♂️', type: 'speed' },
-  { id: 'speed-8', category: 'speed', name: 'Reflex Test', description: 'Test your reaction time', minAge: 6, maxAge: 12, difficulty: 'medium', xpReward: 20, icon: '👆', type: 'speed' },
-  { id: 'speed-9', category: 'speed', name: 'Quick Sort', description: 'Sort items fast', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '📤', type: 'speed' },
-  { id: 'speed-10', category: 'speed', name: '60 Second Math', description: 'Solve max problems in a minute', minAge: 7, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '⏰', type: 'speed' },
-  { id: 'speed-11', category: 'speed', name: 'Letter Race', description: 'Find letters quickly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔠', type: 'speed' },
-  { id: 'speed-12', category: 'speed', name: 'Pattern Speed', description: 'Complete patterns fast', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '⚡', type: 'speed' },
-  { id: 'speed-13', category: 'speed', name: 'Memory Sprint', description: 'Quick memory challenges', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🧠', type: 'speed' },
-  { id: 'speed-14', category: 'speed', name: 'Tap Master', description: 'Tap targets accurately', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '👇', type: 'speed' },
-  { id: 'speed-15', category: 'speed', name: 'Ultimate Speed', description: 'Mixed speed challenges', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏆', type: 'speed' },
+  {
+    id: 'speed-1',
+    category: 'speed',
+    name: 'Quick Count',
+    description: 'Count objects fast!',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '⏱️',
+    type: 'speed',
+  },
+  {
+    id: 'speed-2',
+    category: 'speed',
+    name: 'Flash Cards',
+    description: 'Quick math answers',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '⚡',
+    type: 'speed',
+  },
+  {
+    id: 'speed-3',
+    category: 'speed',
+    name: 'Color Tap',
+    description: 'Tap the right color fast',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎯',
+    type: 'speed',
+  },
+  {
+    id: 'speed-4',
+    category: 'speed',
+    name: 'Shape Race',
+    description: 'Identify shapes quickly',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🏁',
+    type: 'speed',
+  },
+  {
+    id: 'speed-5',
+    category: 'speed',
+    name: 'Word Dash',
+    description: 'Spell words against time',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '💨',
+    type: 'speed',
+  },
+  {
+    id: 'speed-6',
+    category: 'speed',
+    name: 'Number Ninja',
+    description: 'Quick number recognition',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🥷',
+    type: 'speed',
+  },
+  {
+    id: 'speed-7',
+    category: 'speed',
+    name: 'Match Sprint',
+    description: 'Find matches quickly',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🏃‍♂️',
+    type: 'speed',
+  },
+  {
+    id: 'speed-8',
+    category: 'speed',
+    name: 'Reflex Test',
+    description: 'Test your reaction time',
+    minAge: 6,
+    maxAge: 12,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '👆',
+    type: 'speed',
+  },
+  {
+    id: 'speed-9',
+    category: 'speed',
+    name: 'Quick Sort',
+    description: 'Sort items fast',
+    minAge: 5,
+    maxAge: 8,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '📤',
+    type: 'speed',
+  },
+  {
+    id: 'speed-10',
+    category: 'speed',
+    name: '60 Second Math',
+    description: 'Solve max problems in a minute',
+    minAge: 7,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '⏰',
+    type: 'speed',
+  },
+  {
+    id: 'speed-11',
+    category: 'speed',
+    name: 'Letter Race',
+    description: 'Find letters quickly',
+    minAge: 4,
+    maxAge: 7,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🔠',
+    type: 'speed',
+  },
+  {
+    id: 'speed-12',
+    category: 'speed',
+    name: 'Pattern Speed',
+    description: 'Complete patterns fast',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '⚡',
+    type: 'speed',
+  },
+  {
+    id: 'speed-13',
+    category: 'speed',
+    name: 'Memory Sprint',
+    description: 'Quick memory challenges',
+    minAge: 6,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🧠',
+    type: 'speed',
+  },
+  {
+    id: 'speed-14',
+    category: 'speed',
+    name: 'Tap Master',
+    description: 'Tap targets accurately',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '👇',
+    type: 'speed',
+  },
+  {
+    id: 'speed-15',
+    category: 'speed',
+    name: 'Ultimate Speed',
+    description: 'Mixed speed challenges',
+    minAge: 8,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 40,
+    icon: '🏆',
+    type: 'speed',
+  },
 
   // Creativity Games (15 challenges)
-  { id: 'create-1', category: 'creativity', name: 'Color Mix', description: 'Create new colors', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🎨', type: 'match' },
-  { id: 'create-2', category: 'creativity', name: 'Shape Art', description: 'Make pictures with shapes', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🔶', type: 'draw' },
-  { id: 'create-3', category: 'creativity', name: 'Story Builder', description: 'Create your own story', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📚', type: 'sequence' },
-  { id: 'create-4', category: 'creativity', name: 'Pattern Creator', description: 'Design your own pattern', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '✨', type: 'draw' },
-  { id: 'create-5', category: 'creativity', name: 'Animal Mix-up', description: 'Create funny animals', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🦄', type: 'draw' },
-  { id: 'create-6', category: 'creativity', name: 'Emoji Story', description: 'Tell stories with emojis', minAge: 5, maxAge: 10, difficulty: 'easy', xpReward: 15, icon: '😊', type: 'sequence' },
-  { id: 'create-7', category: 'creativity', name: 'Music Maker', description: 'Create simple tunes', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🎵', type: 'sequence' },
-  { id: 'create-8', category: 'creativity', name: 'Dream House', description: 'Design your dream house', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🏠', type: 'draw' },
-  { id: 'create-9', category: 'creativity', name: 'Invention Time', description: 'Create a new invention', minAge: 6, maxAge: 12, difficulty: 'medium', xpReward: 25, icon: '💡', type: 'draw' },
-  { id: 'create-10', category: 'creativity', name: 'Comic Strip', description: 'Make a mini comic', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '📰', type: 'draw' },
-  { id: 'create-11', category: 'creativity', name: 'Recipe Creator', description: 'Invent a silly recipe', minAge: 5, maxAge: 9, difficulty: 'easy', xpReward: 15, icon: '🍳', type: 'sequence' },
-  { id: 'create-12', category: 'creativity', name: 'Monster Designer', description: 'Create friendly monsters', minAge: 4, maxAge: 9, difficulty: 'easy', xpReward: 15, icon: '👾', type: 'draw' },
-  { id: 'create-13', category: 'creativity', name: 'World Builder', description: 'Design your own world', minAge: 7, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🌍', type: 'draw' },
-  { id: 'create-14', category: 'creativity', name: 'Character Quest', description: 'Create a story character', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🦸', type: 'draw' },
-  { id: 'create-15', category: 'creativity', name: 'Art Challenge', description: 'Complete creative challenges', minAge: 5, maxAge: 12, difficulty: 'medium', xpReward: 25, icon: '🎭', type: 'draw' }
+  {
+    id: 'create-1',
+    category: 'creativity',
+    name: 'Color Mix',
+    description: 'Create new colors',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🎨',
+    type: 'match',
+  },
+  {
+    id: 'create-2',
+    category: 'creativity',
+    name: 'Shape Art',
+    description: 'Make pictures with shapes',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🔶',
+    type: 'draw',
+  },
+  {
+    id: 'create-3',
+    category: 'creativity',
+    name: 'Story Builder',
+    description: 'Create your own story',
+    minAge: 5,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '📚',
+    type: 'sequence',
+  },
+  {
+    id: 'create-4',
+    category: 'creativity',
+    name: 'Pattern Creator',
+    description: 'Design your own pattern',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '✨',
+    type: 'draw',
+  },
+  {
+    id: 'create-5',
+    category: 'creativity',
+    name: 'Animal Mix-up',
+    description: 'Create funny animals',
+    minAge: 4,
+    maxAge: 8,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🦄',
+    type: 'draw',
+  },
+  {
+    id: 'create-6',
+    category: 'creativity',
+    name: 'Emoji Story',
+    description: 'Tell stories with emojis',
+    minAge: 5,
+    maxAge: 10,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '😊',
+    type: 'sequence',
+  },
+  {
+    id: 'create-7',
+    category: 'creativity',
+    name: 'Music Maker',
+    description: 'Create simple tunes',
+    minAge: 5,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🎵',
+    type: 'sequence',
+  },
+  {
+    id: 'create-8',
+    category: 'creativity',
+    name: 'Dream House',
+    description: 'Design your dream house',
+    minAge: 5,
+    maxAge: 10,
+    difficulty: 'medium',
+    xpReward: 20,
+    icon: '🏠',
+    type: 'draw',
+  },
+  {
+    id: 'create-9',
+    category: 'creativity',
+    name: 'Invention Time',
+    description: 'Create a new invention',
+    minAge: 6,
+    maxAge: 12,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '💡',
+    type: 'draw',
+  },
+  {
+    id: 'create-10',
+    category: 'creativity',
+    name: 'Comic Strip',
+    description: 'Make a mini comic',
+    minAge: 6,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '📰',
+    type: 'draw',
+  },
+  {
+    id: 'create-11',
+    category: 'creativity',
+    name: 'Recipe Creator',
+    description: 'Invent a silly recipe',
+    minAge: 5,
+    maxAge: 9,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '🍳',
+    type: 'sequence',
+  },
+  {
+    id: 'create-12',
+    category: 'creativity',
+    name: 'Monster Designer',
+    description: 'Create friendly monsters',
+    minAge: 4,
+    maxAge: 9,
+    difficulty: 'easy',
+    xpReward: 15,
+    icon: '👾',
+    type: 'draw',
+  },
+  {
+    id: 'create-13',
+    category: 'creativity',
+    name: 'World Builder',
+    description: 'Design your own world',
+    minAge: 7,
+    maxAge: 12,
+    difficulty: 'hard',
+    xpReward: 35,
+    icon: '🌍',
+    type: 'draw',
+  },
+  {
+    id: 'create-14',
+    category: 'creativity',
+    name: 'Character Quest',
+    description: 'Create a story character',
+    minAge: 6,
+    maxAge: 11,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🦸',
+    type: 'draw',
+  },
+  {
+    id: 'create-15',
+    category: 'creativity',
+    name: 'Art Challenge',
+    description: 'Complete creative challenges',
+    minAge: 5,
+    maxAge: 12,
+    difficulty: 'medium',
+    xpReward: 25,
+    icon: '🎭',
+    type: 'draw',
+  },
 ]
 
 // ==========================================
@@ -475,7 +1807,7 @@ export function KidsLearningCenter() {
   const [credits, setCredits] = useKV<AICredits>(STORAGE_KEYS.CREDITS, {
     free: FREE_DAILY_CREDITS,
     purchased: 0,
-    lastReset: new Date().toISOString().split('T')[0]
+    lastReset: new Date().toISOString().split('T')[0],
   })
 
   // Game State
@@ -483,13 +1815,13 @@ export function KidsLearningCenter() {
   const [parentSettings, setParentSettings] = useKV<ParentSettings>(STORAGE_KEYS.PARENT_SETTINGS, {
     gamesEnabled: true,
     maxDailyGameMinutes: 60,
-    allowedCategories: ['math', 'memory', 'logic', 'words', 'pattern', 'speed', 'creativity']
+    allowedCategories: ['math', 'memory', 'logic', 'words', 'pattern', 'speed', 'creativity'],
   })
 
   // UI State
   const [selectedKid, setSelectedKid] = useState<KidProfile | null>(null)
   const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile' | 'games'>('home')
-  const [selectedSubject, setSelectedSubject] = useState<typeof SUBJECTS[0] | null>(null)
+  const [selectedSubject, setSelectedSubject] = useState<(typeof SUBJECTS)[0] | null>(null)
   const [showSetup, setShowSetup] = useState(false)
 
   // Learning Session State
@@ -531,13 +1863,26 @@ export function KidsLearningCenter() {
     answers: any[]
     isPlaying: boolean
     showResult: boolean
-  }>({ score: 0, timeLeft: 60, currentQuestion: 0, answers: [], isPlaying: false, showResult: false })
+  }>({
+    score: 0,
+    timeLeft: 60,
+    currentQuestion: 0,
+    answers: [],
+    isPlaying: false,
+    showResult: false,
+  })
   const [showParentSettings, setShowParentSettings] = useState(false)
   const gameTimerRef = useRef<number | null>(null)
 
   // Comprehensive Tutoring State
-  const [sessionAnalytics, setSessionAnalytics] = useKV<SessionAnalytics[]>(STORAGE_KEYS.SESSION_ANALYTICS, [])
-  const [weeklySummaries, setWeeklySummaries] = useKV<WeeklySummary[]>(STORAGE_KEYS.WEEKLY_SUMMARIES, [])
+  const [sessionAnalytics, setSessionAnalytics] = useKV<SessionAnalytics[]>(
+    STORAGE_KEYS.SESSION_ANALYTICS,
+    []
+  )
+  const [weeklySummaries, setWeeklySummaries] = useKV<WeeklySummary[]>(
+    STORAGE_KEYS.WEEKLY_SUMMARIES,
+    []
+  )
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>('greeting')
   const [sessionTimer, setSessionTimer] = useState<number>(0) // seconds elapsed
   const [greetingTimer, setGreetingTimer] = useState<number>(GREETING_PHASE_MINUTES * 60)
@@ -573,7 +1918,7 @@ export function KidsLearningCenter() {
         setCredits({
           ...credits,
           free: FREE_DAILY_CREDITS,
-          lastReset: today
+          lastReset: today,
         })
       }
     }
@@ -599,7 +1944,7 @@ export function KidsLearningCenter() {
 
   const hasCredits = (): boolean => {
     if (!credits) return false
-    return (credits.free + credits.purchased) >= CREDIT_COST_PER_MESSAGE
+    return credits.free + credits.purchased >= CREDIT_COST_PER_MESSAGE
   }
 
   const useCredit = () => {
@@ -630,9 +1975,7 @@ export function KidsLearningCenter() {
   // Get weak areas from recent sessions
   const getWeakAreas = useCallback(() => {
     if (!selectedKid || !sessionAnalytics) return []
-    const recent = sessionAnalytics
-      .filter(a => a.kidId === selectedKid.id)
-      .slice(-10)
+    const recent = sessionAnalytics.filter(a => a.kidId === selectedKid.id).slice(-10)
     const weakCounts: Record<string, number> = {}
     recent.forEach(a => {
       a.weakAreas.forEach(area => {
@@ -646,30 +1989,33 @@ export function KidsLearningCenter() {
   }, [selectedKid, sessionAnalytics])
 
   // Initialize session analytics
-  const initializeSessionAnalytics = useCallback((subject: string) => {
-    if (!selectedKid) return null
-    const analytics: SessionAnalytics = {
-      kidId: selectedKid.id,
-      date: new Date().toISOString().split('T')[0],
-      subject,
-      totalMinutes: 0,
-      greetingPhaseComplete: false,
-      mood: null,
-      moodNotes: '',
-      topicsConvered: [],
-      correctAnswers: 0,
-      incorrectAnswers: 0,
-      weakAreas: [],
-      strongAreas: [],
-      focusRecommendation: '',
-      confidenceLevel: 5,
-      engagementLevel: 5,
-      yesterdayRecap: '',
-      parentAlerts: []
-    }
-    setCurrentAnalytics(analytics)
-    return analytics
-  }, [selectedKid])
+  const initializeSessionAnalytics = useCallback(
+    (subject: string) => {
+      if (!selectedKid) return null
+      const analytics: SessionAnalytics = {
+        kidId: selectedKid.id,
+        date: new Date().toISOString().split('T')[0],
+        subject,
+        totalMinutes: 0,
+        greetingPhaseComplete: false,
+        mood: null,
+        moodNotes: '',
+        topicsConvered: [],
+        correctAnswers: 0,
+        incorrectAnswers: 0,
+        weakAreas: [],
+        strongAreas: [],
+        focusRecommendation: '',
+        confidenceLevel: 5,
+        engagementLevel: 5,
+        yesterdayRecap: '',
+        parentAlerts: [],
+      }
+      setCurrentAnalytics(analytics)
+      return analytics
+    },
+    [selectedKid]
+  )
 
   // Start session timer
   const startSessionTimer = useCallback(() => {
@@ -683,7 +2029,7 @@ export function KidsLearningCenter() {
         setGreetingTimer(prev => {
           if (prev <= 1) {
             setSessionPhase('learning')
-            toast.info('Great chat! Now let\'s start learning!')
+            toast.info("Great chat! Now let's start learning!")
             return 0
           }
           return prev - 1
@@ -718,9 +2064,10 @@ export function KidsLearningCenter() {
       ...currentAnalytics,
       totalMinutes: Math.round(sessionTimer / 60),
       weakAreas,
-      focusRecommendation: weakAreas.length > 0
-        ? `Focus ${FOCUS_WEAK_AREA_PERCENT}% on: ${weakAreas.slice(0, 2).join(', ')}`
-        : 'Continue with current topics'
+      focusRecommendation:
+        weakAreas.length > 0
+          ? `Focus ${FOCUS_WEAK_AREA_PERCENT}% on: ${weakAreas.slice(0, 2).join(', ')}`
+          : 'Continue with current topics',
     }
 
     setCurrentAnalytics(analytics)
@@ -730,9 +2077,15 @@ export function KidsLearningCenter() {
     if (hasCredits()) {
       useCredit()
       try {
-        const result = await smartCompletion([
-          { role: 'system', content: `You are analyzing a ${LEARNING_SESSION_MINUTES}-minute tutoring session. Provide a brief parent-friendly summary.` },
-          { role: 'user', content: `Session Summary for ${selectedKid.name}:
+        const result = await smartCompletion(
+          [
+            {
+              role: 'system',
+              content: `You are analyzing a ${LEARNING_SESSION_MINUTES}-minute tutoring session. Provide a brief parent-friendly summary.`,
+            },
+            {
+              role: 'user',
+              content: `Session Summary for ${selectedKid.name}:
 - Subject: ${selectedSubject.name}
 - Duration: ${analytics.totalMinutes} minutes
 - Mood: ${analytics.mood || 'Not assessed'}
@@ -741,11 +2094,14 @@ export function KidsLearningCenter() {
 - Incorrect answers: ${analytics.incorrectAnswers}
 - Weak areas identified: ${analytics.weakAreas.join(', ') || 'None'}
 
-Generate a 2-3 sentence summary for parents with one actionable suggestion.` }
-        ], { temperature: 0.5 })
+Generate a 2-3 sentence summary for parents with one actionable suggestion.`,
+            },
+          ],
+          { temperature: 0.5 }
+        )
 
         toast.success('Session analysis complete!', {
-          description: result.content.slice(0, 100) + '...'
+          description: result.content.slice(0, 100) + '...',
         })
       } catch (e) {
         console.error('Analysis failed:', e)
@@ -754,35 +2110,52 @@ Generate a 2-3 sentence summary for parents with one actionable suggestion.` }
   }, [selectedKid, selectedSubject, currentAnalytics, sessionTimer, getWeakAreas, hasCredits])
 
   // Detect mood from AI response
-  const detectMoodFromConversation = useCallback((content: string) => {
-    const lowerContent = content.toLowerCase()
-    const moodIndicators = {
-      sad: ['sad', 'upset', 'crying', 'unhappy', 'bad day', 'hurt', 'lonely', 'bullied', 'mean to me'],
-      anxious: ['worried', 'scared', 'nervous', 'anxious', 'afraid', 'stress'],
-      happy: ['happy', 'great', 'awesome', 'excited', 'fun', 'good day', 'love'],
-      excited: ['can\'t wait', 'so excited', 'yay', 'amazing']
-    }
-
-    for (const [mood, indicators] of Object.entries(moodIndicators)) {
-      if (indicators.some(i => lowerContent.includes(i))) {
-        setCurrentMood(mood as SessionAnalytics['mood'])
-
-        // Alert parents for concerning moods
-        if (mood === 'sad' || mood === 'anxious') {
-          const alerts = currentAnalytics?.parentAlerts || []
-          if (!alerts.includes(`${mood} mood detected`)) {
-            setCurrentAnalytics(prev => prev ? {
-              ...prev,
-              mood: mood as SessionAnalytics['mood'],
-              parentAlerts: [...alerts, `${mood} mood detected - may need attention`]
-            } : prev)
-          }
-        }
-        return mood
+  const detectMoodFromConversation = useCallback(
+    (content: string) => {
+      const lowerContent = content.toLowerCase()
+      const moodIndicators = {
+        sad: [
+          'sad',
+          'upset',
+          'crying',
+          'unhappy',
+          'bad day',
+          'hurt',
+          'lonely',
+          'bullied',
+          'mean to me',
+        ],
+        anxious: ['worried', 'scared', 'nervous', 'anxious', 'afraid', 'stress'],
+        happy: ['happy', 'great', 'awesome', 'excited', 'fun', 'good day', 'love'],
+        excited: ["can't wait", 'so excited', 'yay', 'amazing'],
       }
-    }
-    return null
-  }, [currentAnalytics])
+
+      for (const [mood, indicators] of Object.entries(moodIndicators)) {
+        if (indicators.some(i => lowerContent.includes(i))) {
+          setCurrentMood(mood as SessionAnalytics['mood'])
+
+          // Alert parents for concerning moods
+          if (mood === 'sad' || mood === 'anxious') {
+            const alerts = currentAnalytics?.parentAlerts || []
+            if (!alerts.includes(`${mood} mood detected`)) {
+              setCurrentAnalytics(prev =>
+                prev
+                  ? {
+                      ...prev,
+                      mood: mood as SessionAnalytics['mood'],
+                      parentAlerts: [...alerts, `${mood} mood detected - may need attention`],
+                    }
+                  : prev
+              )
+            }
+          }
+          return mood
+        }
+      }
+      return null
+    },
+    [currentAnalytics]
+  )
 
   // Generate topic suggestions based on uploaded content
   const generateTopicSuggestions = useCallback(async () => {
@@ -799,17 +2172,26 @@ Generate a 2-3 sentence summary for parents with one actionable suggestion.` }
         ? `\n\nUploaded learning material:\n${uploadedContent.slice(0, 2000)}`
         : ''
 
-      const result = await smartCompletion([
-        { role: 'system', content: `You are an educational curriculum expert. Generate 4 topic suggestions in JSON format.` },
-        { role: 'user', content: `Generate 4 topic suggestions for:
+      const result = await smartCompletion(
+        [
+          {
+            role: 'system',
+            content: `You are an educational curriculum expert. Generate 4 topic suggestions in JSON format.`,
+          },
+          {
+            role: 'user',
+            content: `Generate 4 topic suggestions for:
 - Student: ${selectedKid.name}, Age ${selectedKid.age}, ${gradeInfo?.label}
 - Subject: ${selectedSubject.name}
 - Weak areas to focus on: ${weakAreas.join(', ') || 'None identified'}
 ${uploadedContext}
 
 Return ONLY valid JSON array with format:
-[{"id":"topic-1","title":"Topic Name","description":"Brief description","difficulty":"easy|medium|hard","estimatedMinutes":10,"learningObjectives":["objective1","objective2"]}]` }
-      ], { temperature: 0.7 })
+[{"id":"topic-1","title":"Topic Name","description":"Brief description","difficulty":"easy|medium|hard","estimatedMinutes":10,"learningObjectives":["objective1","objective2"]}]`,
+          },
+        ],
+        { temperature: 0.7 }
+      )
 
       try {
         // Extract JSON from response
@@ -836,10 +2218,8 @@ Return ONLY valid JSON array with format:
     const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
     const weekEnd = new Date().toISOString().split('T')[0]
 
-    const weeklyData = sessionAnalytics.filter(a =>
-      a.kidId === selectedKid.id &&
-      a.date >= weekStart &&
-      a.date <= weekEnd
+    const weeklyData = sessionAnalytics.filter(
+      a => a.kidId === selectedKid.id && a.date >= weekStart && a.date <= weekEnd
     )
 
     if (weeklyData.length === 0) {
@@ -858,9 +2238,15 @@ Return ONLY valid JSON array with format:
       const totalIncorrect = weeklyData.reduce((sum, a) => sum + a.incorrectAnswers, 0)
       const parentAlerts = [...new Set(weeklyData.flatMap(a => a.parentAlerts))]
 
-      const result = await smartCompletion([
-        { role: 'system', content: `You are a caring educational advisor generating a weekly summary for parents. Be warm, encouraging, and actionable.` },
-        { role: 'user', content: `Generate weekly summary for ${selectedKid.name}:
+      const result = await smartCompletion(
+        [
+          {
+            role: 'system',
+            content: `You are a caring educational advisor generating a weekly summary for parents. Be warm, encouraging, and actionable.`,
+          },
+          {
+            role: 'user',
+            content: `Generate weekly summary for ${selectedKid.name}:
 - Total sessions: ${weeklyData.length}
 - Total study time: ${weeklyData.reduce((sum, a) => sum + a.totalMinutes, 0)} minutes
 - Mood trend: ${moodTrend.join(' -> ') || 'Stable'}
@@ -874,8 +2260,11 @@ Provide:
 2. Confidence assessment
 3. Top 3 focus recommendations
 4. Any concerns to address
-5. Encouragement for next week` }
-      ], { temperature: 0.6 })
+5. Encouragement for next week`,
+          },
+        ],
+        { temperature: 0.6 }
+      )
 
       const summary: WeeklySummary = {
         id: `weekly-${Date.now()}`,
@@ -892,7 +2281,7 @@ Provide:
         parentSuggestions: [],
         confidenceProgress: `${Math.round((totalCorrect / (totalCorrect + totalIncorrect || 1)) * 100)}% accuracy`,
         potentialConcerns: parentAlerts,
-        generatedAt: Date.now()
+        generatedAt: Date.now(),
       }
 
       setWeeklySummaries(prev => [...(prev || []), summary])
@@ -906,30 +2295,33 @@ Provide:
   }, [selectedKid, sessionAnalytics, hasCredits])
 
   // Parse uploaded file content for AI analysis
-  const parseUploadedContent = useCallback(async (attachment: Attachment) => {
-    if (!selectedKid || !selectedSubject) return
+  const parseUploadedContent = useCallback(
+    async (attachment: Attachment) => {
+      if (!selectedKid || !selectedSubject) return
 
-    setIsAnalyzingContent(true)
+      setIsAnalyzingContent(true)
 
-    // For now, handle text-based content description
-    // In production, use OCR for images, PDF parsing, etc.
-    let contentDescription = ''
+      // For now, handle text-based content description
+      // In production, use OCR for images, PDF parsing, etc.
+      let contentDescription = ''
 
-    if (attachment.type === 'image') {
-      contentDescription = `[Image uploaded: ${attachment.name}] - The student has shared an educational image/worksheet that needs to be analyzed and taught from.`
-    } else if (attachment.type === 'file') {
-      contentDescription = `[Document uploaded: ${attachment.name}] - Educational material to analyze and create lessons from.`
-    } else if (attachment.type === 'url') {
-      contentDescription = `[URL shared: ${attachment.url}] - Online resource to incorporate into teaching.`
-    }
+      if (attachment.type === 'image') {
+        contentDescription = `[Image uploaded: ${attachment.name}] - The student has shared an educational image/worksheet that needs to be analyzed and taught from.`
+      } else if (attachment.type === 'file') {
+        contentDescription = `[Document uploaded: ${attachment.name}] - Educational material to analyze and create lessons from.`
+      } else if (attachment.type === 'url') {
+        contentDescription = `[URL shared: ${attachment.url}] - Online resource to incorporate into teaching.`
+      }
 
-    setUploadedContent(prev => prev + '\n' + contentDescription)
-    setIsAnalyzingContent(false)
+      setUploadedContent(prev => prev + '\n' + contentDescription)
+      setIsAnalyzingContent(false)
 
-    toast.success('Content ready for teaching!', {
-      description: 'AI tutor will now teach based on your uploaded material'
-    })
-  }, [selectedKid, selectedSubject])
+      toast.success('Content ready for teaching!', {
+        description: 'AI tutor will now teach based on your uploaded material',
+      })
+    },
+    [selectedKid, selectedSubject]
+  )
 
   // Text-to-speech with stop functionality
   const stopSpeaking = useCallback(() => {
@@ -939,45 +2331,49 @@ Provide:
     }
   }, [])
 
-  const speak = useCallback((text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window && ttsEnabled) {
-      // Stop any current speech
-      window.speechSynthesis.cancel()
+  const speak = useCallback(
+    (text: string) => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && ttsEnabled) {
+        // Stop any current speech
+        window.speechSynthesis.cancel()
 
-      // Clean text from markdown artifacts
-      const cleanText = text
-        .replace(/<s>\[\/INST\]/g, '')
-        .replace(/\[\/INST\]/g, '')
-        .replace(/<\/s>/g, '')
-        .replace(/\[INST\]/g, '')
-        .replace(/<s>/g, '')
-        .replace(/\*\*/g, '')
-        .replace(/\*/g, '')
-        .replace(/#{1,6}\s/g, '')
-        .replace(/`/g, '')
-        .trim()
+        // Clean text from markdown artifacts
+        const cleanText = text
+          .replace(/<s>\[\/INST\]/g, '')
+          .replace(/\[\/INST\]/g, '')
+          .replace(/<\/s>/g, '')
+          .replace(/\[INST\]/g, '')
+          .replace(/<s>/g, '')
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/#{1,6}\s/g, '')
+          .replace(/`/g, '')
+          .trim()
 
-      const utterance = new SpeechSynthesisUtterance(cleanText)
-      utterance.rate = 0.9
-      utterance.pitch = 1.1
+        const utterance = new SpeechSynthesisUtterance(cleanText)
+        utterance.rate = 0.9
+        utterance.pitch = 1.1
 
-      // Get voices and prefer child-friendly ones
-      const voices = window.speechSynthesis.getVoices()
-      const preferredVoice = voices.find(v =>
-        v.name.includes('Samantha') ||
-        v.name.includes('Karen') ||
-        v.name.includes('Google') ||
-        v.lang.startsWith('en')
-      )
-      if (preferredVoice) utterance.voice = preferredVoice
+        // Get voices and prefer child-friendly ones
+        const voices = window.speechSynthesis.getVoices()
+        const preferredVoice = voices.find(
+          v =>
+            v.name.includes('Samantha') ||
+            v.name.includes('Karen') ||
+            v.name.includes('Google') ||
+            v.lang.startsWith('en')
+        )
+        if (preferredVoice) utterance.voice = preferredVoice
 
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
-      utterance.onerror = () => setIsSpeaking(false)
+        utterance.onstart = () => setIsSpeaking(true)
+        utterance.onend = () => setIsSpeaking(false)
+        utterance.onerror = () => setIsSpeaking(false)
 
-      window.speechSynthesis.speak(utterance)
-    }
-  }, [ttsEnabled])
+        window.speechSynthesis.speak(utterance)
+      }
+    },
+    [ttsEnabled]
+  )
 
   const toggleTTS = useCallback(() => {
     if (ttsEnabled) {
@@ -1003,7 +2399,7 @@ Provide:
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 320, height: 240 }
+        video: { facingMode: 'user', width: 320, height: 240 },
       })
       streamRef.current = stream
       if (videoRef.current) {
@@ -1041,20 +2437,28 @@ Provide:
 
       // Record to session if active
       if (currentSession) {
-        setCurrentSession(prev => prev ? {
-          ...prev,
-          focusScores: [...prev.focusScores, focusScore]
-        } : prev)
+        setCurrentSession(prev =>
+          prev
+            ? {
+                ...prev,
+                focusScores: [...prev.focusScores, focusScore],
+              }
+            : prev
+        )
       }
     }, 5000)
   }
 
   const recordBehaviorNote = (note: string) => {
     if (currentSession) {
-      setCurrentSession(prev => prev ? {
-        ...prev,
-        behaviorNotes: [...prev.behaviorNotes, `${new Date().toLocaleTimeString()}: ${note}`]
-      } : prev)
+      setCurrentSession(prev =>
+        prev
+          ? {
+              ...prev,
+              behaviorNotes: [...prev.behaviorNotes, `${new Date().toLocaleTimeString()}: ${note}`],
+            }
+          : prev
+      )
     }
   }
 
@@ -1062,7 +2466,7 @@ Provide:
   // Learning Session
   // ==========================================
 
-  const startLearningSession = (subject: typeof SUBJECTS[0]) => {
+  const startLearningSession = (subject: (typeof SUBJECTS)[0]) => {
     if (!selectedKid) return
 
     setSelectedSubject(subject)
@@ -1085,7 +2489,7 @@ Provide:
       focusScores: [],
       behaviorNotes: [],
       xpEarned: 0,
-      completed: false
+      completed: false,
     }
     setCurrentSession(session)
 
@@ -1107,7 +2511,7 @@ Provide:
       ...currentSession,
       endTime: Date.now(),
       xpEarned,
-      completed: true
+      completed: true,
     }
 
     setSessions(prev => [...(prev || []), completedSession])
@@ -1116,28 +2520,30 @@ Provide:
     if (currentAnalytics) {
       const finalAnalytics = {
         ...currentAnalytics,
-        totalMinutes: Math.round(sessionTimer / 60)
+        totalMinutes: Math.round(sessionTimer / 60),
       }
       setSessionAnalytics(prev => [...(prev || []), finalAnalytics])
     }
 
     // Update kid stats
     const duration = Math.round((Date.now() - currentSession.startTime) / 1000 / 60)
-    setProfiles(prev => (prev || []).map(p => {
-      if (p.id === selectedKid.id) {
-        const newXP = p.xp + xpEarned
-        return {
-          ...p,
-          xp: newXP,
-          level: Math.floor(newXP / 100) + 1,
-          totalSessions: p.totalSessions + 1,
-          totalStudyMinutes: p.totalStudyMinutes + duration,
-          lastActiveDate: new Date().toISOString().split('T')[0],
-          streak: updateStreak(p)
+    setProfiles(prev =>
+      (prev || []).map(p => {
+        if (p.id === selectedKid.id) {
+          const newXP = p.xp + xpEarned
+          return {
+            ...p,
+            xp: newXP,
+            level: Math.floor(newXP / 100) + 1,
+            totalSessions: p.totalSessions + 1,
+            totalStudyMinutes: p.totalStudyMinutes + duration,
+            lastActiveDate: new Date().toISOString().split('T')[0],
+            streak: updateStreak(p),
+          }
         }
-      }
-      return p
-    }))
+        return p
+      })
+    )
 
     // Generate behavior report if camera was active
     if (cameraActive && currentSession.focusScores.length > 0) {
@@ -1166,7 +2572,7 @@ Provide:
   // AI Functions
   // ==========================================
 
-  const generateWelcome = async (subject: typeof SUBJECTS[0]) => {
+  const generateWelcome = async (subject: (typeof SUBJECTS)[0]) => {
     if (!selectedKid || !hasCredits()) {
       if (!hasCredits()) {
         toast.error('No AI credits remaining. Purchase more or wait for daily reset.')
@@ -1175,7 +2581,7 @@ Provide:
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content: `Hi ${selectedKid?.name || 'there'}! ${subject.emoji} Ready to learn ${subject.name}? What topic would you like to explore today?`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       setMessages([fallback])
       return
@@ -1211,9 +2617,10 @@ Provide:
 - Areas to focus on: ${yesterdayData.weakAreas.join(', ') || 'None identified'}`
         : ''
 
-      const weakAreasContext = weakAreas.length > 0
-        ? `\n\nSTUDENT'S WEAK AREAS (need ${FOCUS_WEAK_AREA_PERCENT}% focus): ${weakAreas.join(', ')}`
-        : ''
+      const weakAreasContext =
+        weakAreas.length > 0
+          ? `\n\nSTUDENT'S WEAK AREAS (need ${FOCUS_WEAK_AREA_PERCENT}% focus): ${weakAreas.join(', ')}`
+          : ''
 
       const systemPrompt = `You are a warm, caring AI tutor named TutorBot - like a friendly teacher who genuinely cares about ${selectedKid.name}.
 
@@ -1256,17 +2663,20 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
         ? `Greet ${selectedKid.name} warmly, then notice they have uploaded learning material. Ask them what specific part they'd like to learn about, or offer to start from the beginning. Be friendly and let them guide the session.`
         : `Greet ${selectedKid.name} warmly and ask what they'd like to learn in ${subject.name} today. You can suggest some topics if they're not sure. Be friendly and conversational - let them tell you what they need help with.`
 
-      const result = await smartCompletion([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: greetingPrompt }
-      ], { temperature: 0.8 })
+      const result = await smartCompletion(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: greetingPrompt },
+        ],
+        { temperature: 0.8 }
+      )
 
       const msg: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content: result.content,
         timestamp: Date.now(),
-        provider: result.provider
+        provider: result.provider,
       }
       setMessages([msg])
 
@@ -1277,7 +2687,7 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content: `Hi ${selectedKid.name}! ${subject.emoji} I'm so happy to see you today! How's your day going? Once you tell me, we can start our ${subject.name} adventure together!`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       setMessages([fallback])
     } finally {
@@ -1286,11 +2696,17 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
   }
 
   const sendMessage = async () => {
-    if ((!inputMessage.trim() && attachments.length === 0) || !selectedKid || !selectedSubject || isLoading) return
+    if (
+      (!inputMessage.trim() && attachments.length === 0) ||
+      !selectedKid ||
+      !selectedSubject ||
+      isLoading
+    )
+      return
 
     if (!hasCredits()) {
       toast.error('No AI credits remaining', {
-        description: 'Purchase more credits or wait for daily reset'
+        description: 'Purchase more credits or wait for daily reset',
       })
       return
     }
@@ -1300,11 +2716,15 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
 
     // Process attachments and update uploaded content for teaching
     if (attachments.length > 0) {
-      const attachmentDescriptions = attachments.map(att => {
-        if (att.type === 'url') return `[Attached URL: ${att.url}] - Please teach me topics from this resource`
-        if (att.type === 'image') return `[Attached Image/Worksheet: ${att.name}] - Please analyze this and teach me the topics/problems shown`
-        return `[Attached Document: ${att.name}] - Please teach me from this material`
-      }).join('\n')
+      const attachmentDescriptions = attachments
+        .map(att => {
+          if (att.type === 'url')
+            return `[Attached URL: ${att.url}] - Please teach me topics from this resource`
+          if (att.type === 'image')
+            return `[Attached Image/Worksheet: ${att.name}] - Please analyze this and teach me the topics/problems shown`
+          return `[Attached Document: ${att.name}] - Please teach me from this material`
+        })
+        .join('\n')
       messageContent = messageContent
         ? `${messageContent}\n\n${attachmentDescriptions}`
         : attachmentDescriptions
@@ -1316,7 +2736,9 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
     // Detect mood from user message
     const detectedMood = detectMoodFromConversation(messageContent)
     if (detectedMood && currentAnalytics) {
-      setCurrentAnalytics(prev => prev ? { ...prev, mood: detectedMood as any, moodNotes: messageContent } : prev)
+      setCurrentAnalytics(prev =>
+        prev ? { ...prev, mood: detectedMood as any, moodNotes: messageContent } : prev
+      )
     }
 
     const userMsg: Message = {
@@ -1324,7 +2746,7 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
       role: 'user',
       content: messageContent,
       timestamp: Date.now(),
-      attachments: attachments.length > 0 ? [...attachments] : undefined
+      attachments: attachments.length > 0 ? [...attachments] : undefined,
     }
 
     setMessages(prev => [...prev, userMsg])
@@ -1346,15 +2768,17 @@ NEVER just describe uploads - ACTUALLY TEACH the topic!
         ? `\n\nLesson plan topics: ${currentLessonPlan.topics.join(', ')}`
         : ''
 
-      const weakAreasContext = weakAreas.length > 0
-        ? `\n\nFOCUS AREAS (student struggles with these - spend ${FOCUS_WEAK_AREA_PERCENT}% time here): ${weakAreas.join(', ')}`
-        : ''
+      const weakAreasContext =
+        weakAreas.length > 0
+          ? `\n\nFOCUS AREAS (student struggles with these - spend ${FOCUS_WEAK_AREA_PERCENT}% time here): ${weakAreas.join(', ')}`
+          : ''
 
-      const phaseContext = sessionPhase === 'greeting'
-        ? `\n\nCURRENT PHASE: GREETING (${Math.ceil(greetingTimer / 60)} min left) - Focus on building rapport, checking mood, and discussing their day. Transition to learning naturally.`
-        : sessionPhase === 'learning'
-        ? `\n\nCURRENT PHASE: LEARNING (${Math.ceil(learningTimer / 60)} min left) - Actively teach, ask questions, check understanding. Award XP for correct answers!`
-        : ''
+      const phaseContext =
+        sessionPhase === 'greeting'
+          ? `\n\nCURRENT PHASE: GREETING (${Math.ceil(greetingTimer / 60)} min left) - Focus on building rapport, checking mood, and discussing their day. Transition to learning naturally.`
+          : sessionPhase === 'learning'
+            ? `\n\nCURRENT PHASE: LEARNING (${Math.ceil(learningTimer / 60)} min left) - Actively teach, ask questions, check understanding. Award XP for correct answers!`
+            : ''
 
       const systemPrompt = `You are TutorBot, a warm, caring, REAL AI tutor for ${selectedKid.name}, age ${selectedKid.age}, in ${gradeInfo?.label || selectedKid.grade}.
 Subject: ${selectedSubject.name}
@@ -1407,21 +2831,24 @@ MOOD DETECTION:
 
       const history = messages.slice(-12).map(m => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content
+        content: m.content,
       }))
 
-      const result = await smartCompletion([
-        { role: 'system', content: systemPrompt },
-        ...history,
-        { role: 'user', content: messageContent }
-      ], { temperature: 0.7 })
+      const result = await smartCompletion(
+        [
+          { role: 'system', content: systemPrompt },
+          ...history,
+          { role: 'user', content: messageContent },
+        ],
+        { temperature: 0.7 }
+      )
 
       const assistantMsg: Message = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
         content: result.content,
         timestamp: Date.now(),
-        provider: result.provider
+        provider: result.provider,
       }
 
       setMessages(prev => [...prev, assistantMsg])
@@ -1430,19 +2857,34 @@ MOOD DETECTION:
       const responseContent = result.content.toLowerCase()
 
       // Check for correct answer (XP award)
-      if (result.content.includes('+10 XP') || responseContent.includes('correct') || responseContent.includes('great job') || responseContent.includes('well done') || responseContent.includes('excellent')) {
+      if (
+        result.content.includes('+10 XP') ||
+        responseContent.includes('correct') ||
+        responseContent.includes('great job') ||
+        responseContent.includes('well done') ||
+        responseContent.includes('excellent')
+      ) {
         if (currentSession) {
-          setCurrentSession(prev => prev ? { ...prev, xpEarned: prev.xpEarned + 10 } : prev)
+          setCurrentSession(prev => (prev ? { ...prev, xpEarned: prev.xpEarned + 10 } : prev))
         }
         if (currentAnalytics) {
-          setCurrentAnalytics(prev => prev ? { ...prev, correctAnswers: prev.correctAnswers + 1 } : prev)
+          setCurrentAnalytics(prev =>
+            prev ? { ...prev, correctAnswers: prev.correctAnswers + 1 } : prev
+          )
         }
       }
 
       // Check for incorrect answer
-      if (responseContent.includes('not quite') || responseContent.includes('try again') || responseContent.includes('almost') || responseContent.includes('let\'s think')) {
+      if (
+        responseContent.includes('not quite') ||
+        responseContent.includes('try again') ||
+        responseContent.includes('almost') ||
+        responseContent.includes("let's think")
+      ) {
         if (currentAnalytics) {
-          setCurrentAnalytics(prev => prev ? { ...prev, incorrectAnswers: prev.incorrectAnswers + 1 } : prev)
+          setCurrentAnalytics(prev =>
+            prev ? { ...prev, incorrectAnswers: prev.incorrectAnswers + 1 } : prev
+          )
         }
       }
 
@@ -1453,12 +2895,19 @@ MOOD DETECTION:
         for (const pattern of topicPatterns) {
           if (responseContent.includes(pattern)) {
             const startIdx = responseContent.indexOf(pattern) + pattern.length
-            const topic = responseContent.slice(startIdx, startIdx + 30).split(/[.!?,]/)[0].trim()
+            const topic = responseContent
+              .slice(startIdx, startIdx + 30)
+              .split(/[.!?,]/)[0]
+              .trim()
             if (topic && topic.length > 3) {
-              setCurrentAnalytics(prev => prev ? {
-                ...prev,
-                topicsConvered: [...new Set([...prev.topicsConvered, topic])]
-              } : prev)
+              setCurrentAnalytics(prev =>
+                prev
+                  ? {
+                      ...prev,
+                      topicsConvered: [...new Set([...prev.topicsConvered, topic])],
+                    }
+                  : prev
+              )
             }
             break
           }
@@ -1466,9 +2915,14 @@ MOOD DETECTION:
       }
 
       // Mark greeting phase complete if AI transitions to teaching
-      if (sessionPhase === 'greeting' && (responseContent.includes('let\'s start') || responseContent.includes('shall we begin') || responseContent.includes('ready to learn'))) {
+      if (
+        sessionPhase === 'greeting' &&
+        (responseContent.includes("let's start") ||
+          responseContent.includes('shall we begin') ||
+          responseContent.includes('ready to learn'))
+      ) {
         if (currentAnalytics) {
-          setCurrentAnalytics(prev => prev ? { ...prev, greetingPhaseComplete: true } : prev)
+          setCurrentAnalytics(prev => (prev ? { ...prev, greetingPhaseComplete: true } : prev))
         }
       }
 
@@ -1494,7 +2948,8 @@ MOOD DETECTION:
         return
       }
 
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
         toast.error('File too large (max 10MB)')
         return
       }
@@ -1506,7 +2961,7 @@ MOOD DETECTION:
           type: type,
           name: file.name,
           data: reader.result as string,
-          mimeType: file.type
+          mimeType: file.type,
         }
         setAttachments(prev => [...prev, newAttachment])
         toast.success(`${file.name} attached`)
@@ -1533,7 +2988,7 @@ MOOD DETECTION:
         id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'url',
         name: url.length > 50 ? url.substring(0, 47) + '...' : url,
-        url: url
+        url: url,
       }
       setAttachments(prev => [...prev, newAttachment])
       setUrlInput('')
@@ -1593,22 +3048,29 @@ MOOD DETECTION:
   const getAvailableGames = useCallback(() => {
     if (!selectedKid || !parentSettings.gamesEnabled) return []
 
-    return GAME_CHALLENGES.filter(game =>
-      selectedKid.age >= game.minAge &&
-      selectedKid.age <= game.maxAge &&
-      parentSettings.allowedCategories.includes(game.category)
+    return GAME_CHALLENGES.filter(
+      game =>
+        selectedKid.age >= game.minAge &&
+        selectedKid.age <= game.maxAge &&
+        parentSettings.allowedCategories.includes(game.category)
     )
   }, [selectedKid, parentSettings])
 
   // Get games by category
-  const getGamesByCategory = useCallback((category: string) => {
-    return getAvailableGames().filter(game => game.category === category)
-  }, [getAvailableGames])
+  const getGamesByCategory = useCallback(
+    (category: string) => {
+      return getAvailableGames().filter(game => game.category === category)
+    },
+    [getAvailableGames]
+  )
 
   // Get game progress for a specific game
-  const getGameProgressById = useCallback((gameId: string) => {
-    return gameProgress.find(p => p.challengeId === gameId)
-  }, [gameProgress])
+  const getGameProgressById = useCallback(
+    (gameId: string) => {
+      return gameProgress.find(p => p.challengeId === gameId)
+    },
+    [gameProgress]
+  )
 
   // Calculate total games completed
   const getTotalGamesCompleted = useCallback(() => {
@@ -1624,7 +3086,7 @@ MOOD DETECTION:
       currentQuestion: 0,
       answers: [],
       isPlaying: true,
-      showResult: false
+      showResult: false,
     })
 
     // Start timer for speed games
@@ -1655,10 +3117,10 @@ MOOD DETECTION:
       const newProgress: GameProgress = {
         challengeId: activeGame.id,
         completed: finalScore >= 50, // 50% to complete
-        score: isHighScore ? finalScore : (existingProgress?.score || 0),
+        score: isHighScore ? finalScore : existingProgress?.score || 0,
         bestTime: gameState.timeLeft,
         attempts: (existingProgress?.attempts || 0) + 1,
-        lastPlayed: new Date().toISOString()
+        lastPlayed: new Date().toISOString(),
       }
 
       setGameProgress(prev => {
@@ -1672,11 +3134,13 @@ MOOD DETECTION:
         toast.success(`+${xpToAward} XP!`, { description: `Great job on ${activeGame.name}!` })
 
         // Update kid's XP
-        setProfiles(prev => prev.map(p =>
-          p.id === selectedKid.id
-            ? { ...p, xp: p.xp + xpToAward, level: Math.floor((p.xp + xpToAward) / 100) + 1 }
-            : p
-        ))
+        setProfiles(prev =>
+          prev.map(p =>
+            p.id === selectedKid.id
+              ? { ...p, xp: p.xp + xpToAward, level: Math.floor((p.xp + xpToAward) / 100) + 1 }
+              : p
+          )
+        )
       }
     }
 
@@ -1690,7 +3154,14 @@ MOOD DETECTION:
       gameTimerRef.current = null
     }
     setActiveGame(null)
-    setGameState({ score: 0, timeLeft: 60, currentQuestion: 0, answers: [], isPlaying: false, showResult: false })
+    setGameState({
+      score: 0,
+      timeLeft: 60,
+      currentQuestion: 0,
+      answers: [],
+      isPlaying: false,
+      showResult: false,
+    })
   }
 
   // Toggle parent settings
@@ -1699,7 +3170,7 @@ MOOD DETECTION:
       ...prev,
       allowedCategories: prev.allowedCategories.includes(categoryId)
         ? prev.allowedCategories.filter(c => c !== categoryId)
-        : [...prev.allowedCategories, categoryId]
+        : [...prev.allowedCategories, categoryId],
     }))
   }
 
@@ -1714,19 +3185,23 @@ MOOD DETECTION:
     useCredit()
 
     try {
-      const result = await smartCompletion([
-        {
-          role: 'system',
-          content: `You are an educational curriculum analyzer. Extract key topics and create a learning outline for a ${selectedKid.age}-year-old in ${selectedKid.grade} grade. Be specific about what can be taught.`
-        },
-        {
-          role: 'user',
-          content: `Analyze this lesson material and extract 5-10 key topics suitable for my grade level:\n\n${lessonPlanText.slice(0, 3000)}`
-        }
-      ], { temperature: 0.5 })
+      const result = await smartCompletion(
+        [
+          {
+            role: 'system',
+            content: `You are an educational curriculum analyzer. Extract key topics and create a learning outline for a ${selectedKid.age}-year-old in ${selectedKid.grade} grade. Be specific about what can be taught.`,
+          },
+          {
+            role: 'user',
+            content: `Analyze this lesson material and extract 5-10 key topics suitable for my grade level:\n\n${lessonPlanText.slice(0, 3000)}`,
+          },
+        ],
+        { temperature: 0.5 }
+      )
 
       // Extract topics from AI response
-      const topics = result.content.split('\n')
+      const topics = result.content
+        .split('\n')
         .filter(line => line.match(/^\d+\.|^-|^\*/))
         .map(line => line.replace(/^\d+\.|^-|^\*/, '').trim())
         .slice(0, 10)
@@ -1739,7 +3214,7 @@ MOOD DETECTION:
         content: lessonPlanText,
         aiAnalysis: result.content,
         topics: topics.length > 0 ? topics : ['General topics from uploaded material'],
-        createdAt: Date.now()
+        createdAt: Date.now(),
       }
 
       setLessons(prev => [...(prev || []), lessonPlan])
@@ -1760,9 +3235,10 @@ MOOD DETECTION:
   const generateBehaviorReport = async (session: StudySession) => {
     if (!selectedKid) return
 
-    const avgFocus = session.focusScores.length > 0
-      ? Math.round(session.focusScores.reduce((a, b) => a + b, 0) / session.focusScores.length)
-      : 80
+    const avgFocus =
+      session.focusScores.length > 0
+        ? Math.round(session.focusScores.reduce((a, b) => a + b, 0) / session.focusScores.length)
+        : 80
 
     const report: BehaviorReport = {
       id: `report-${Date.now()}`,
@@ -1775,7 +3251,7 @@ MOOD DETECTION:
       distractions: session.focusScores.filter(s => s < 50).length,
       totalMinutes: Math.round((Date.now() - session.startTime) / 1000 / 60),
       notes: session.behaviorNotes,
-      aiInsights: `${selectedKid.name} maintained ${avgFocus}% focus during this ${SUBJECTS.find(s => s.id === session.subject)?.name} session.`
+      aiInsights: `${selectedKid.name} maintained ${avgFocus}% focus during this ${SUBJECTS.find(s => s.id === session.subject)?.name} session.`,
     }
 
     setReports(prev => [...(prev || []), report])
@@ -1806,19 +3282,23 @@ MOOD DETECTION:
       subject,
       topic,
       reason,
-      completed: false
+      completed: false,
     }
 
     setSuggestions(prev => [...(prev || []), suggestion])
     toast.success('Study suggestion added!')
   }
 
-
   // ==========================================
   // Profile Management
   // ==========================================
 
-  const createProfile = (data: Omit<KidProfile, 'id' | 'xp' | 'level' | 'streak' | 'totalSessions' | 'totalStudyMinutes' | 'lastActiveDate'>) => {
+  const createProfile = (
+    data: Omit<
+      KidProfile,
+      'id' | 'xp' | 'level' | 'streak' | 'totalSessions' | 'totalStudyMinutes' | 'lastActiveDate'
+    >
+  ) => {
     const profile: KidProfile = {
       ...data,
       id: `kid-${Date.now()}`,
@@ -1827,7 +3307,7 @@ MOOD DETECTION:
       streak: 0,
       totalSessions: 0,
       totalStudyMinutes: 0,
-      lastActiveDate: ''
+      lastActiveDate: '',
     }
     setProfiles(prev => [...(prev || []), profile])
     setSelectedKid(profile)
@@ -1882,11 +3362,15 @@ MOOD DETECTION:
                     Level {selectedKid.level}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{selectedKid.grade} • Age {selectedKid.age}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedKid.grade} • Age {selectedKid.age}
+                </p>
                 <div className="mt-2">
                   <div className="flex justify-between text-xs mb-1">
                     <span>{selectedKid.xp % 100} XP</span>
-                    <span>{xpToNext} to Level {selectedKid.level + 1}</span>
+                    <span>
+                      {xpToNext} to Level {selectedKid.level + 1}
+                    </span>
                   </div>
                   <Progress value={selectedKid.xp % 100} className="h-1.5" />
                 </div>
@@ -1943,7 +3427,10 @@ MOOD DETECTION:
               <div className="mt-2 pt-2 border-t border-emerald-500/20">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
-                    Last report: {new Date(weeklySummaries[weeklySummaries.length - 1].generatedAt).toLocaleDateString()}
+                    Last report:{' '}
+                    {new Date(
+                      weeklySummaries[weeklySummaries.length - 1].generatedAt
+                    ).toLocaleDateString()}
                   </span>
                   <Button
                     variant="ghost"
@@ -1973,7 +3460,7 @@ MOOD DETECTION:
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
                 className="bg-background rounded-xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
               >
                 <Card className="border-0">
@@ -1983,27 +3470,38 @@ MOOD DETECTION:
                         <ChartLine className="w-5 h-5 text-emerald-500" />
                         Weekly Progress Report
                       </CardTitle>
-                      <Button variant="ghost" size="icon" onClick={() => setShowWeeklySummary(false)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowWeeklySummary(false)}
+                      >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {weeklySummaries[weeklySummaries.length - 1].weekStart} to {weeklySummaries[weeklySummaries.length - 1].weekEnd}
+                      {weeklySummaries[weeklySummaries.length - 1].weekStart} to{' '}
+                      {weeklySummaries[weeklySummaries.length - 1].weekEnd}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-blue-500/10 rounded-lg p-2 text-center">
-                        <p className="text-xl font-bold text-blue-500">{weeklySummaries[weeklySummaries.length - 1].totalSessions}</p>
+                        <p className="text-xl font-bold text-blue-500">
+                          {weeklySummaries[weeklySummaries.length - 1].totalSessions}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">Sessions</p>
                       </div>
                       <div className="bg-green-500/10 rounded-lg p-2 text-center">
-                        <p className="text-xl font-bold text-green-500">{weeklySummaries[weeklySummaries.length - 1].totalMinutes}</p>
+                        <p className="text-xl font-bold text-green-500">
+                          {weeklySummaries[weeklySummaries.length - 1].totalMinutes}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">Minutes</p>
                       </div>
                       <div className="bg-violet-500/10 rounded-lg p-2 text-center">
-                        <p className="text-xl font-bold text-violet-500">{weeklySummaries[weeklySummaries.length - 1].confidenceProgress}</p>
+                        <p className="text-xl font-bold text-violet-500">
+                          {weeklySummaries[weeklySummaries.length - 1].confidenceProgress}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">Accuracy</p>
                       </div>
                     </div>
@@ -2015,7 +3513,16 @@ MOOD DETECTION:
                         <div className="flex gap-1 flex-wrap">
                           {weeklySummaries[weeklySummaries.length - 1].moodTrend.map((mood, i) => (
                             <Badge key={i} variant="secondary" className="text-xs">
-                              {mood === 'happy' ? '😊' : mood === 'excited' ? '🤩' : mood === 'sad' ? '😢' : mood === 'anxious' ? '😟' : '😐'} {mood}
+                              {mood === 'happy'
+                                ? '😊'
+                                : mood === 'excited'
+                                  ? '🤩'
+                                  : mood === 'sad'
+                                    ? '😢'
+                                    : mood === 'anxious'
+                                      ? '😟'
+                                      : '😐'}{' '}
+                              {mood}
                             </Badge>
                           ))}
                         </div>
@@ -2025,13 +3532,21 @@ MOOD DETECTION:
                     {/* Focus Areas */}
                     {weeklySummaries[weeklySummaries.length - 1].weakAreasOverall.length > 0 && (
                       <div className="bg-orange-500/10 rounded-lg p-3">
-                        <p className="text-xs font-medium text-orange-600 mb-2">Areas to Focus On</p>
+                        <p className="text-xs font-medium text-orange-600 mb-2">
+                          Areas to Focus On
+                        </p>
                         <div className="flex gap-1 flex-wrap">
-                          {weeklySummaries[weeklySummaries.length - 1].weakAreasOverall.map((area, i) => (
-                            <Badge key={i} variant="outline" className="text-xs border-orange-500/50">
-                              {area}
-                            </Badge>
-                          ))}
+                          {weeklySummaries[weeklySummaries.length - 1].weakAreasOverall.map(
+                            (area, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="text-xs border-orange-500/50"
+                              >
+                                {area}
+                              </Badge>
+                            )
+                          )}
                         </div>
                       </div>
                     )}
@@ -2043,17 +3558,25 @@ MOOD DETECTION:
                           <Warning className="w-3 h-3" /> Attention Needed
                         </p>
                         <ul className="text-xs space-y-1">
-                          {weeklySummaries[weeklySummaries.length - 1].potentialConcerns.map((concern, i) => (
-                            <li key={i} className="text-muted-foreground">{concern}</li>
-                          ))}
+                          {weeklySummaries[weeklySummaries.length - 1].potentialConcerns.map(
+                            (concern, i) => (
+                              <li key={i} className="text-muted-foreground">
+                                {concern}
+                              </li>
+                            )
+                          )}
                         </ul>
                       </div>
                     )}
 
                     {/* AI Summary */}
                     <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-lg p-3">
-                      <p className="text-xs font-medium text-emerald-600 mb-2">AI Summary & Recommendations</p>
-                      <p className="text-sm whitespace-pre-wrap">{weeklySummaries[weeklySummaries.length - 1].progressNotes}</p>
+                      <p className="text-xs font-medium text-emerald-600 mb-2">
+                        AI Summary & Recommendations
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {weeklySummaries[weeklySummaries.length - 1].progressNotes}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -2091,15 +3614,15 @@ MOOD DETECTION:
         <div>
           <h3 className="font-semibold mb-3">Choose a Subject</h3>
           <div className="grid grid-cols-2 gap-3">
-            {SUBJECTS.map((subject) => {
+            {SUBJECTS.map(subject => {
               const Icon = subject.icon
               return (
                 <button
                   key={subject.id}
                   onClick={() => startLearningSession(subject)}
                   className={cn(
-                    "p-4 rounded-xl text-left text-white shadow-lg transition-transform hover:scale-105",
-                    "bg-gradient-to-br",
+                    'p-4 rounded-xl text-left text-white shadow-lg transition-transform hover:scale-105',
+                    'bg-gradient-to-br',
                     subject.color
                   )}
                 >
@@ -2147,10 +3670,19 @@ MOOD DETECTION:
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b mb-3">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => endLearningSession(currentSession?.xpEarned || 10)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => endLearningSession(currentSession?.xpEarned || 10)}
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className={cn("w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center text-white", selectedSubject.color)}>
+            <div
+              className={cn(
+                'w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center text-white',
+                selectedSubject.color
+              )}
+            >
               <SubjectIcon className="w-4 h-4" weight="fill" />
             </div>
             <div>
@@ -2164,7 +3696,13 @@ MOOD DETECTION:
             <div className="relative">
               {cameraActive ? (
                 <div className="w-16 h-12 rounded-lg overflow-hidden border-2 border-green-500 bg-black">
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2187,13 +3725,16 @@ MOOD DETECTION:
               variant="ghost"
               size="icon"
               onClick={toggleTTS}
-              className={cn(
-                ttsEnabled && "text-green-500",
-                isSpeaking && "animate-pulse"
-              )}
-              title={ttsEnabled ? (isSpeaking ? "Speaking... (click to mute)" : "Voice On") : "Voice Off"}
+              className={cn(ttsEnabled && 'text-green-500', isSpeaking && 'animate-pulse')}
+              title={
+                ttsEnabled ? (isSpeaking ? 'Speaking... (click to mute)' : 'Voice On') : 'Voice Off'
+              }
             >
-              {ttsEnabled ? <SpeakerHigh className="w-4 h-4" weight={isSpeaking ? "fill" : "regular"} /> : <SpeakerSlash className="w-4 h-4" />}
+              {ttsEnabled ? (
+                <SpeakerHigh className="w-4 h-4" weight={isSpeaking ? 'fill' : 'regular'} />
+              ) : (
+                <SpeakerSlash className="w-4 h-4" />
+              )}
             </Button>
 
             {/* Credits */}
@@ -2227,7 +3768,12 @@ MOOD DETECTION:
                 <Lightbulb className="w-4 h-4 text-violet-500" />
                 Suggested Topics
               </span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTopicSuggestions(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setShowTopicSuggestions(false)}
+              >
                 <X className="w-3 h-3" />
               </Button>
             </div>
@@ -2244,7 +3790,9 @@ MOOD DETECTION:
                   }}
                 >
                   <span className="text-xs font-medium truncate w-full">{topic.title}</span>
-                  <span className="text-[10px] text-muted-foreground truncate w-full">{topic.description}</span>
+                  <span className="text-[10px] text-muted-foreground truncate w-full">
+                    {topic.description}
+                  </span>
                   <Badge variant="secondary" className="text-[9px] mt-1">
                     {topic.difficulty} • {topic.estimatedMinutes}min
                   </Badge>
@@ -2261,10 +3809,16 @@ MOOD DETECTION:
             <div className="flex-1">
               <div className="flex justify-between text-xs mb-1">
                 <span>Focus Score</span>
-                <span className={cn(
-                  "font-bold",
-                  focusScore >= 70 ? "text-green-500" : focusScore >= 40 ? "text-yellow-500" : "text-red-500"
-                )}>
+                <span
+                  className={cn(
+                    'font-bold',
+                    focusScore >= 70
+                      ? 'text-green-500'
+                      : focusScore >= 40
+                        ? 'text-yellow-500'
+                        : 'text-red-500'
+                  )}
+                >
                   {Math.round(focusScore)}%
                 </span>
               </div>
@@ -2273,39 +3827,57 @@ MOOD DETECTION:
           </div>
         )}
 
-
         {/* Current Lesson Plan */}
         {currentLessonPlan && (
           <div className="mb-3 p-2 bg-blue-500/10 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-blue-500">Lesson Plan Active</span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setCurrentLessonPlan(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                onClick={() => setCurrentLessonPlan(null)}
+              >
                 Clear
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground truncate">Topics: {currentLessonPlan.topics.slice(0, 3).map(t => t.replace(/\*\*/g, '')).join(', ')}...</p>
+            <p className="text-xs text-muted-foreground truncate">
+              Topics:{' '}
+              {currentLessonPlan.topics
+                .slice(0, 3)
+                .map(t => t.replace(/\*\*/g, ''))
+                .join(', ')}
+              ...
+            </p>
           </div>
         )}
 
         {/* Messages */}
         <ScrollArea className="flex-1 min-h-0 pr-2" ref={scrollRef}>
           <div className="space-y-3 pb-4">
-            {messages.map((msg) => (
+            {messages.map(msg => (
               <div
                 key={msg.id}
-                className={cn("flex gap-2", msg.role === 'user' ? 'justify-end' : 'justify-start')}
+                className={cn('flex gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {msg.role === 'assistant' && (
-                  <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0", selectedSubject.color)}>
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0',
+                      selectedSubject.color
+                    )}
+                  >
                     <Robot className="w-4 h-4 text-white" />
                   </div>
                 )}
-                <div className={cn(
-                  "max-w-[80%] rounded-2xl px-3 py-2",
-                  msg.role === 'user'
-                    ? "bg-violet-500 text-white rounded-br-sm"
-                    : "bg-muted rounded-bl-sm"
-                )}>
+                <div
+                  className={cn(
+                    'max-w-[80%] rounded-2xl px-3 py-2',
+                    msg.role === 'user'
+                      ? 'bg-violet-500 text-white rounded-br-sm'
+                      : 'bg-muted rounded-bl-sm'
+                  )}
+                >
                   {/* Show attachment previews */}
                   {msg.attachments && msg.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
@@ -2313,8 +3885,8 @@ MOOD DETECTION:
                         <div
                           key={att.id}
                           className={cn(
-                            "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs",
-                            msg.role === 'user' ? "bg-white/20" : "bg-muted-foreground/10"
+                            'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs',
+                            msg.role === 'user' ? 'bg-white/20' : 'bg-muted-foreground/10'
                           )}
                         >
                           {att.type === 'image' && <Image className="w-3 h-3" />}
@@ -2328,9 +3900,7 @@ MOOD DETECTION:
                   <div className="text-sm">
                     {msg.role === 'assistant' ? formatAIResponse(msg.content) : msg.content}
                   </div>
-                  {msg.provider && (
-                    <p className="text-[9px] opacity-50 mt-1">{msg.provider}</p>
-                  )}
+                  {msg.provider && <p className="text-[9px] opacity-50 mt-1">{msg.provider}</p>}
                 </div>
                 {msg.role === 'user' && (
                   <div className="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
@@ -2342,14 +3912,25 @@ MOOD DETECTION:
 
             {isLoading && (
               <div className="flex gap-2">
-                <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", selectedSubject.color)}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center',
+                    selectedSubject.color
+                  )}
+                >
                   <Robot className="w-4 h-4 text-white" />
                 </div>
                 <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
-                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <span
+                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }}
+                    />
                   </div>
                 </div>
               </div>
@@ -2388,15 +3969,22 @@ MOOD DETECTION:
               <Input
                 placeholder="Enter URL (website, video, etc.)"
                 value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
+                onChange={e => setUrlInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleUrlAdd()}
                 autoFocus
                 className="text-sm"
               />
               <Button size="sm" onClick={handleUrlAdd} disabled={!urlInput.trim()}>
                 Add
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setShowUrlInput(false); setUrlInput('') }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowUrlInput(false)
+                  setUrlInput('')
+                }}
+              >
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -2439,7 +4027,10 @@ MOOD DETECTION:
                       <span>Upload File</span>
                     </button>
                     <button
-                      onClick={() => { setShowUrlInput(true); setShowAttachmentMenu(false) }}
+                      onClick={() => {
+                        setShowUrlInput(true)
+                        setShowAttachmentMenu(false)
+                      }}
                       className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
                     >
                       <Link className="w-4 h-4 text-blue-500" />
@@ -2453,12 +4044,15 @@ MOOD DETECTION:
             <Input
               placeholder="Ask your tutor..."
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              onChange={e => setInputMessage(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               disabled={isLoading}
               className="flex-1"
             />
-            <Button onClick={sendMessage} disabled={isLoading || (!inputMessage.trim() && attachments.length === 0)}>
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || (!inputMessage.trim() && attachments.length === 0)}
+            >
               <PaperPlaneTilt className="w-5 h-5" weight="fill" />
             </Button>
           </div>
@@ -2469,7 +4063,7 @@ MOOD DETECTION:
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) => handleFileUpload(e, 'image')}
+            onChange={e => handleFileUpload(e, 'image')}
             className="hidden"
           />
           <input
@@ -2477,7 +4071,7 @@ MOOD DETECTION:
             type="file"
             accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx"
             multiple
-            onChange={(e) => handleFileUpload(e, 'file')}
+            onChange={e => handleFileUpload(e, 'file')}
             className="hidden"
           />
         </div>
@@ -2503,12 +4097,12 @@ MOOD DETECTION:
 
         {/* Profile Cards */}
         <div className="space-y-2">
-          {(profiles || []).map((kid) => (
+          {(profiles || []).map(kid => (
             <Card
               key={kid.id}
               className={cn(
-                "cursor-pointer transition-all",
-                selectedKid?.id === kid.id && "ring-2 ring-violet-500"
+                'cursor-pointer transition-all',
+                selectedKid?.id === kid.id && 'ring-2 ring-violet-500'
               )}
               onClick={() => setSelectedKid(kid)}
             >
@@ -2518,18 +4112,19 @@ MOOD DETECTION:
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium">{kid.name}</h4>
-                  <p className="text-xs text-muted-foreground">{kid.grade} • {kid.age} years</p>
+                  <p className="text-xs text-muted-foreground">
+                    {kid.grade} • {kid.age} years
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">
-                    <Star className="w-3 h-3 mr-1" weight="fill" />
-                    L{kid.level}
+                    <Star className="w-3 h-3 mr-1" weight="fill" />L{kid.level}
                   </Badge>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="w-8 h-8"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       deleteProfile(kid.id)
                     }}
@@ -2557,11 +4152,14 @@ MOOD DETECTION:
                 {(suggestions || [])
                   .filter(s => s.kidId === selectedKid.id)
                   .slice(-3)
-                  .map((sug) => (
+                  .map(sug => (
                     <div key={sug.id} className="p-2 bg-muted rounded-lg text-sm">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{sug.topic}</span>
-                        <Badge variant={sug.completed ? "default" : "secondary"} className="text-[10px]">
+                        <Badge
+                          variant={sug.completed ? 'default' : 'secondary'}
+                          className="text-[10px]"
+                        >
                           {sug.completed ? 'Done' : sug.date}
                         </Badge>
                       </div>
@@ -2584,12 +4182,18 @@ MOOD DETECTION:
                   .filter(r => r.kidId === selectedKid.id)
                   .slice(-5)
                   .reverse()
-                  .map((report) => (
+                  .map(report => (
                     <div key={report.id} className="p-2 border-b last:border-0">
                       <div className="flex items-center justify-between text-sm">
                         <span>{report.date}</span>
                         <Badge
-                          variant={report.focusScore >= 70 ? "default" : report.focusScore >= 40 ? "secondary" : "destructive"}
+                          variant={
+                            report.focusScore >= 70
+                              ? 'default'
+                              : report.focusScore >= 40
+                                ? 'secondary'
+                                : 'destructive'
+                          }
                           className="text-xs"
                         >
                           {report.focusScore}% Focus
@@ -2619,9 +4223,14 @@ MOOD DETECTION:
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Free Daily</span>
-                  <span className="font-medium">{credits?.free || 0} / {FREE_DAILY_CREDITS}</span>
+                  <span className="font-medium">
+                    {credits?.free || 0} / {FREE_DAILY_CREDITS}
+                  </span>
                 </div>
-                <Progress value={(credits?.free || 0) / FREE_DAILY_CREDITS * 100} className="h-2" />
+                <Progress
+                  value={((credits?.free || 0) / FREE_DAILY_CREDITS) * 100}
+                  className="h-2"
+                />
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Purchased Credits</span>
                   <span>{credits?.purchased || 0}</span>
@@ -2683,11 +4292,16 @@ MOOD DETECTION:
                   {gameState.score >= 80 ? '🏆' : gameState.score >= 50 ? '⭐' : '💪'}
                 </div>
                 <h2 className="text-2xl font-bold">
-                  {gameState.score >= 80 ? 'Amazing!' : gameState.score >= 50 ? 'Good Job!' : 'Keep Practicing!'}
+                  {gameState.score >= 80
+                    ? 'Amazing!'
+                    : gameState.score >= 50
+                      ? 'Good Job!'
+                      : 'Keep Practicing!'}
                 </h2>
                 <div className="text-4xl font-bold text-violet-500">{gameState.score}%</div>
                 <p className="text-muted-foreground">
-                  {gameState.score >= 50 && `+${Math.round((activeGame.xpReward * gameState.score) / 100)} XP earned!`}
+                  {gameState.score >= 50 &&
+                    `+${Math.round((activeGame.xpReward * gameState.score) / 100)} XP earned!`}
                 </p>
                 <div className="flex gap-2 justify-center pt-4">
                   <Button onClick={() => startGame(activeGame)}>
@@ -2708,7 +4322,7 @@ MOOD DETECTION:
                     {/* Sample game interaction - Math type */}
                     {activeGame.category === 'math' && (
                       <>
-                        {[1, 2, 3, 4].map((option) => {
+                        {[1, 2, 3, 4].map(option => {
                           const num1 = Math.floor(Math.random() * 10) + 1
                           const num2 = Math.floor(Math.random() * 10) + 1
                           return (
@@ -2719,7 +4333,11 @@ MOOD DETECTION:
                               className="h-16 text-xl"
                               onClick={() => {
                                 const newScore = Math.min(100, gameState.score + 25)
-                                setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                                setGameState(prev => ({
+                                  ...prev,
+                                  score: newScore,
+                                  currentQuestion: prev.currentQuestion + 1,
+                                }))
                                 if (newScore >= 100 || gameState.currentQuestion >= 3) {
                                   endGame(newScore)
                                 }
@@ -2743,7 +4361,11 @@ MOOD DETECTION:
                             className="h-16 text-3xl"
                             onClick={() => {
                               const newScore = Math.min(100, gameState.score + 17)
-                              setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                              setGameState(prev => ({
+                                ...prev,
+                                score: newScore,
+                                currentQuestion: prev.currentQuestion + 1,
+                              }))
                               if (newScore >= 100 || gameState.currentQuestion >= 5) {
                                 endGame(newScore)
                               }
@@ -2758,7 +4380,7 @@ MOOD DETECTION:
                     {/* Generic for other types */}
                     {!['math', 'memory'].includes(activeGame.category) && (
                       <>
-                        {['A', 'B', 'C', 'D'].map((option) => (
+                        {['A', 'B', 'C', 'D'].map(option => (
                           <Button
                             key={option}
                             variant="outline"
@@ -2766,7 +4388,11 @@ MOOD DETECTION:
                             className="h-16 text-xl"
                             onClick={() => {
                               const newScore = Math.min(100, gameState.score + 25)
-                              setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                              setGameState(prev => ({
+                                ...prev,
+                                score: newScore,
+                                currentQuestion: prev.currentQuestion + 1,
+                              }))
                               if (newScore >= 100 || gameState.currentQuestion >= 3) {
                                 endGame(newScore)
                               }
@@ -2781,7 +4407,9 @@ MOOD DETECTION:
                 </div>
                 <div className="pt-4">
                   <Progress value={gameState.score} className="h-2" />
-                  <p className="text-center text-xs text-muted-foreground mt-1">Progress: {gameState.score}%</p>
+                  <p className="text-center text-xs text-muted-foreground mt-1">
+                    Progress: {gameState.score}%
+                  </p>
                 </div>
               </div>
             )}
@@ -2812,7 +4440,9 @@ MOOD DETECTION:
                 <Button
                   variant={parentSettings.gamesEnabled ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setParentSettings(prev => ({ ...prev, gamesEnabled: !prev.gamesEnabled }))}
+                  onClick={() =>
+                    setParentSettings(prev => ({ ...prev, gamesEnabled: !prev.gamesEnabled }))
+                  }
                 >
                   {parentSettings.gamesEnabled ? 'On' : 'Off'}
                 </Button>
@@ -2820,14 +4450,18 @@ MOOD DETECTION:
 
               {/* Daily Time Limit */}
               <div>
-                <p className="font-medium mb-2">Daily Game Time: {parentSettings.maxDailyGameMinutes} minutes</p>
+                <p className="font-medium mb-2">
+                  Daily Game Time: {parentSettings.maxDailyGameMinutes} minutes
+                </p>
                 <div className="flex gap-2">
                   {[15, 30, 60, 90, 120].map(mins => (
                     <Button
                       key={mins}
                       variant={parentSettings.maxDailyGameMinutes === mins ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setParentSettings(prev => ({ ...prev, maxDailyGameMinutes: mins }))}
+                      onClick={() =>
+                        setParentSettings(prev => ({ ...prev, maxDailyGameMinutes: mins }))
+                      }
                     >
                       {mins}m
                     </Button>
@@ -2842,7 +4476,9 @@ MOOD DETECTION:
                   {GAME_CATEGORIES.map(cat => (
                     <Button
                       key={cat.id}
-                      variant={parentSettings.allowedCategories.includes(cat.id) ? 'default' : 'outline'}
+                      variant={
+                        parentSettings.allowedCategories.includes(cat.id) ? 'default' : 'outline'
+                      }
                       size="sm"
                       className="justify-start"
                       onClick={() => toggleGameCategory(cat.id)}
@@ -2881,8 +4517,8 @@ MOOD DETECTION:
                 <Card
                   key={game.id}
                   className={cn(
-                    "p-4 cursor-pointer transition-all hover:shadow-md",
-                    progress?.completed && "border-green-500/50 bg-green-500/5"
+                    'p-4 cursor-pointer transition-all hover:shadow-md',
+                    progress?.completed && 'border-green-500/50 bg-green-500/5'
                   )}
                   onClick={() => startGame(game)}
                 >
@@ -2891,7 +4527,9 @@ MOOD DETECTION:
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium">{game.name}</h3>
-                        {progress?.completed && <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />}
+                        {progress?.completed && (
+                          <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">{game.description}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -2947,41 +4585,54 @@ MOOD DETECTION:
             <Card className="p-4 bg-gradient-to-br from-violet-500/10 to-purple-500/10">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Overall Progress</span>
-                <span className="text-sm text-muted-foreground">{completedCount}/{availableGames.length}</span>
+                <span className="text-sm text-muted-foreground">
+                  {completedCount}/{availableGames.length}
+                </span>
               </div>
-              <Progress value={(completedCount / Math.max(1, availableGames.length)) * 100} className="h-2" />
+              <Progress
+                value={(completedCount / Math.max(1, availableGames.length)) * 100}
+                className="h-2"
+              />
             </Card>
 
             {/* Game Categories Grid */}
             <div className="grid grid-cols-2 gap-3">
-              {GAME_CATEGORIES.filter(cat => parentSettings.allowedCategories.includes(cat.id)).map(category => {
-                const categoryGames = getGamesByCategory(category.id)
-                const categoryCompleted = categoryGames.filter(g => getGameProgressById(g.id)?.completed).length
+              {GAME_CATEGORIES.filter(cat => parentSettings.allowedCategories.includes(cat.id)).map(
+                category => {
+                  const categoryGames = getGamesByCategory(category.id)
+                  const categoryCompleted = categoryGames.filter(
+                    g => getGameProgressById(g.id)?.completed
+                  ).length
 
-                return (
-                  <Card
-                    key={category.id}
-                    className={cn(
-                      "p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
-                      `bg-gradient-to-br ${category.color} text-white`
-                    )}
-                    onClick={() => setSelectedGameCategory(category.id)}
-                  >
-                    <div className="text-3xl mb-2">{category.icon}</div>
-                    <h3 className="font-semibold text-sm">{category.name}</h3>
-                    <p className="text-[10px] opacity-80">{category.description}</p>
-                    <div className="mt-2 flex items-center gap-1">
-                      <div className="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-white rounded-full transition-all"
-                          style={{ width: `${(categoryCompleted / Math.max(1, categoryGames.length)) * 100}%` }}
-                        />
+                  return (
+                    <Card
+                      key={category.id}
+                      className={cn(
+                        'p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
+                        `bg-gradient-to-br ${category.color} text-white`
+                      )}
+                      onClick={() => setSelectedGameCategory(category.id)}
+                    >
+                      <div className="text-3xl mb-2">{category.icon}</div>
+                      <h3 className="font-semibold text-sm">{category.name}</h3>
+                      <p className="text-[10px] opacity-80">{category.description}</p>
+                      <div className="mt-2 flex items-center gap-1">
+                        <div className="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-white rounded-full transition-all"
+                            style={{
+                              width: `${(categoryCompleted / Math.max(1, categoryGames.length)) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-[10px]">
+                          {categoryCompleted}/{categoryGames.length}
+                        </span>
                       </div>
-                      <span className="text-[10px]">{categoryCompleted}/{categoryGames.length}</span>
-                    </div>
-                  </Card>
-                )
-              })}
+                    </Card>
+                  )
+                }
+              )}
             </div>
 
             {/* Quick Play - Random Game */}
@@ -2989,7 +4640,8 @@ MOOD DETECTION:
               <Button
                 className="w-full h-12"
                 onClick={() => {
-                  const randomGame = availableGames[Math.floor(Math.random() * availableGames.length)]
+                  const randomGame =
+                    availableGames[Math.floor(Math.random() * availableGames.length)]
                   if (randomGame) startGame(randomGame)
                 }}
               >
@@ -3008,7 +4660,7 @@ MOOD DETECTION:
   // ==========================================
 
   return (
-    <div className={cn("space-y-4", isMobile && "space-y-3")}>
+    <div className={cn('space-y-4', isMobile && 'space-y-3')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/20">
         <CardContent className="p-4 flex items-center gap-3">
@@ -3017,7 +4669,9 @@ MOOD DETECTION:
           </div>
           <div className="flex-1">
             <h1 className="font-bold text-lg">Kids Learning Center</h1>
-            <p className="text-xs text-muted-foreground">AI-powered tutoring with behavior monitoring</p>
+            <p className="text-xs text-muted-foreground">
+              AI-powered tutoring with behavior monitoring
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -3073,10 +4727,7 @@ MOOD DETECTION:
       {/* Setup Modal */}
       <AnimatePresence>
         {showSetup && (
-          <ProfileSetupModal
-            onClose={() => setShowSetup(false)}
-            onSave={createProfile}
-          />
+          <ProfileSetupModal onClose={() => setShowSetup(false)} onSave={createProfile} />
         )}
       </AnimatePresence>
     </div>
@@ -3087,7 +4738,11 @@ MOOD DETECTION:
 // Parent Suggestion Form
 // ==========================================
 
-function ParentSuggestionForm({ onAdd }: { onAdd: (subject: string, topic: string, reason: string) => void }) {
+function ParentSuggestionForm({
+  onAdd,
+}: {
+  onAdd: (subject: string, topic: string, reason: string) => void
+}) {
   const [subject, setSubject] = useState('')
   const [topic, setTopic] = useState('')
   const [reason, setReason] = useState('')
@@ -3122,25 +4777,31 @@ function ParentSuggestionForm({ onAdd }: { onAdd: (subject: string, topic: strin
         </SelectTrigger>
         <SelectContent>
           {SUBJECTS.map(s => (
-            <SelectItem key={s.id} value={s.id}>{s.emoji} {s.name}</SelectItem>
+            <SelectItem key={s.id} value={s.id}>
+              {s.emoji} {s.name}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <Input
         placeholder="Topic to study"
         value={topic}
-        onChange={(e) => setTopic(e.target.value)}
+        onChange={e => setTopic(e.target.value)}
         className="h-9"
       />
       <Input
         placeholder="Reason (optional)"
         value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        onChange={e => setReason(e.target.value)}
         className="h-9"
       />
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="flex-1">Cancel</Button>
-        <Button size="sm" onClick={handleSubmit} className="flex-1">Add</Button>
+        <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="flex-1">
+          Cancel
+        </Button>
+        <Button size="sm" onClick={handleSubmit} className="flex-1">
+          Add
+        </Button>
       </div>
     </div>
   )
@@ -3152,7 +4813,7 @@ function ParentSuggestionForm({ onAdd }: { onAdd: (subject: string, topic: strin
 
 function ProfileSetupModal({
   onClose,
-  onSave
+  onSave,
 }: {
   onClose: () => void
   onSave: (data: any) => void
@@ -3177,7 +4838,7 @@ function ProfileSetupModal({
       avatar,
       language,
       parentEmail: parentEmail || undefined,
-      dailyGoalMinutes: parseInt(dailyGoal) || 30
+      dailyGoalMinutes: parseInt(dailyGoal) || 30,
     })
   }
 
@@ -3208,10 +4869,10 @@ function ProfileSetupModal({
                     key={key}
                     onClick={() => setAvatar(key)}
                     className={cn(
-                      "w-10 h-10 rounded-full text-xl transition-all",
+                      'w-10 h-10 rounded-full text-xl transition-all',
                       avatar === key
-                        ? "bg-violet-500 ring-2 ring-violet-500 ring-offset-2"
-                        : "bg-muted hover:bg-muted/80"
+                        ? 'bg-violet-500 ring-2 ring-violet-500 ring-offset-2'
+                        : 'bg-muted hover:bg-muted/80'
                     )}
                   >
                     {emoji}
@@ -3226,7 +4887,7 @@ function ProfileSetupModal({
               <Input
                 placeholder="Child's name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={e => setName(e.target.value)}
               />
             </div>
 
@@ -3240,7 +4901,9 @@ function ProfileSetupModal({
                   </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 15 }, (_, i) => i + 4).map(a => (
-                      <SelectItem key={a} value={String(a)}>{a} years</SelectItem>
+                      <SelectItem key={a} value={String(a)}>
+                        {a} years
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -3253,7 +4916,9 @@ function ProfileSetupModal({
                   </SelectTrigger>
                   <SelectContent>
                     {GRADES.map(g => (
-                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                      <SelectItem key={g.value} value={g.value}>
+                        {g.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -3269,7 +4934,9 @@ function ProfileSetupModal({
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map(l => (
-                    <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                    <SelectItem key={l.code} value={l.code}>
+                      {l.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -3282,7 +4949,7 @@ function ProfileSetupModal({
                 type="email"
                 placeholder="parent@email.com"
                 value={parentEmail}
-                onChange={(e) => setParentEmail(e.target.value)}
+                onChange={e => setParentEmail(e.target.value)}
               />
             </div>
 
@@ -3292,7 +4959,7 @@ function ProfileSetupModal({
               <Input
                 type="number"
                 value={dailyGoal}
-                onChange={(e) => setDailyGoal(e.target.value)}
+                onChange={e => setDailyGoal(e.target.value)}
                 min="10"
                 max="120"
               />
@@ -3300,8 +4967,12 @@ function ProfileSetupModal({
 
             {/* Actions */}
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-              <Button onClick={handleSubmit} className="flex-1">Create Profile</Button>
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} className="flex-1">
+                Create Profile
+              </Button>
             </div>
           </CardContent>
         </Card>

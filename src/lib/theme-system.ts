@@ -78,7 +78,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#FF8555',
@@ -102,8 +102,8 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
   },
   blue: {
     light: {
@@ -128,7 +128,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#4DABF7',
@@ -152,8 +152,8 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
   },
   green: {
     light: {
@@ -178,7 +178,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#51CF66',
@@ -202,8 +202,8 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
   },
   purple: {
     light: {
@@ -228,7 +228,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#9775FA',
@@ -252,8 +252,8 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
   },
   pink: {
     light: {
@@ -278,7 +278,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#F783AC',
@@ -302,8 +302,8 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
   },
   teal: {
     light: {
@@ -328,7 +328,7 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#DC3545',
       info: '#17A2B8',
       shadow: 'rgba(0, 0, 0, 0.1)',
-      shadowLight: 'rgba(0, 0, 0, 0.05)'
+      shadowLight: 'rgba(0, 0, 0, 0.05)',
     },
     dark: {
       primary: '#38D9A9',
@@ -352,9 +352,9 @@ const THEME_PALETTES: Record<ThemeColor, { light: ColorPalette; dark: ColorPalet
       error: '#FF6B6B',
       info: '#4DABF7',
       shadow: 'rgba(0, 0, 0, 0.3)',
-      shadowLight: 'rgba(0, 0, 0, 0.15)'
-    }
-  }
+      shadowLight: 'rgba(0, 0, 0, 0.15)',
+    },
+  },
 }
 
 /**
@@ -386,7 +386,7 @@ export class ThemeManager {
     return {
       color: 'orange',
       mode: 'auto',
-      systemPreference: this.getSystemPreference()
+      systemPreference: this.getSystemPreference(),
     }
   }
 
@@ -563,7 +563,7 @@ export class ThemeManager {
       }
       // Legacy browsers
       else if ((this.mediaQuery as any).addListener) {
-        (this.mediaQuery as any).addListener(this.handleSystemPreferenceChange)
+        ;(this.mediaQuery as any).addListener(this.handleSystemPreferenceChange)
       }
     }
   }
@@ -614,7 +614,7 @@ export class ThemeManager {
       if (this.mediaQuery.removeEventListener) {
         this.mediaQuery.removeEventListener('change', this.handleSystemPreferenceChange)
       } else if ((this.mediaQuery as any).removeListener) {
-        (this.mediaQuery as any).removeListener(this.handleSystemPreferenceChange)
+        ;(this.mediaQuery as any).removeListener(this.handleSystemPreferenceChange)
       }
     }
   }
@@ -646,6 +646,6 @@ export function useTheme() {
       manager.subscribe(callback),
     availableColors: manager.getAvailableColors(),
     getPreviewPalette: (color: ThemeColor, mode: 'light' | 'dark') =>
-      manager.getPreviewPalette(color, mode)
+      manager.getPreviewPalette(color, mode),
   }
 }

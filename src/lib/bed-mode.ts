@@ -100,13 +100,13 @@ export function detectEmergencyCallPattern(
   // Check each caller's pattern
   Object.entries(callsByNumber).forEach(([from, callerCalls]) => {
     // Get calls within time window
-    const recentCalls = callerCalls.filter(call =>
-      now - new Date(call.timestamp).getTime() <= windowMs
+    const recentCalls = callerCalls.filter(
+      call => now - new Date(call.timestamp).getTime() <= windowMs
     )
 
     if (recentCalls.length >= settings.emergencyCallThreshold) {
-      const sortedCalls = recentCalls.sort((a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      const sortedCalls = recentCalls.sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       )
 
       alerts.push({
@@ -118,7 +118,7 @@ export function detectEmergencyCallPattern(
         firstCall: sortedCalls[0].timestamp,
         lastCall: sortedCalls[sortedCalls.length - 1].timestamp,
         shouldAlert: true,
-        message: `${recentCalls[0].fromName || from} called ${recentCalls.length} times in ${settings.emergencyCallWindow} hour(s). This may be an emergency!`
+        message: `${recentCalls[0].fromName || from} called ${recentCalls.length} times in ${settings.emergencyCallWindow} hour(s). This may be an emergency!`,
       })
     }
   })
@@ -141,7 +141,7 @@ export function filterNotifications(
     return {
       allowed: notifications,
       blocked: [],
-      emergencies: []
+      emergencies: [],
     }
   }
 
@@ -151,8 +151,8 @@ export function filterNotifications(
 
   notifications.forEach(notification => {
     // Check if from allowed contact
-    const isAllowedContact = settings.allowedContacts.some(contact =>
-      notification.title.includes(contact) || notification.message.includes(contact)
+    const isAllowedContact = settings.allowedContacts.some(
+      contact => notification.title.includes(contact) || notification.message.includes(contact)
     )
 
     if (isAllowedContact) {
@@ -219,7 +219,7 @@ export function generateMorningBedModeDigest(
       title: '☀️ Good Morning!',
       sections: [],
       summary: 'Morning digest will be available after prayer time.',
-      readFullConsent: settings.contentPreferences.readFullConsent
+      readFullConsent: settings.contentPreferences.readFullConsent,
     }
   }
 
@@ -227,9 +227,7 @@ export function generateMorningBedModeDigest(
   const { important: importantEmails } = filterImportantEmails(emails.filter(e => !e.read))
 
   // Get notifications from overnight
-  const overnightNotifications = notifications.filter(n =>
-    !n.read && n.priority !== 'low'
-  )
+  const overnightNotifications = notifications.filter(n => !n.read && n.priority !== 'low')
 
   // Get missed calls
   const missedCalls = calls.filter(c => c.type === 'missed')
@@ -261,8 +259,8 @@ export function generateMorningBedModeDigest(
             ? email.bodyPreview
             : undefined,
         timestamp: email.timestamp,
-        important: true
-      }))
+        important: true,
+      })),
     })
   }
 
@@ -275,8 +273,8 @@ export function generateMorningBedModeDigest(
         from: notif.title,
         subject: notif.message,
         timestamp: notif.timestamp || notif.time || new Date().toISOString(),
-        important: notif.priority === 'high'
-      }))
+        important: notif.priority === 'high',
+      })),
     })
   }
 
@@ -288,8 +286,8 @@ export function generateMorningBedModeDigest(
         type: 'call' as const,
         from: call.fromName || call.from,
         timestamp: call.timestamp,
-        important: true
-      }))
+        important: true,
+      })),
     })
   }
 
@@ -301,15 +299,17 @@ export function generateMorningBedModeDigest(
     summary = '✨ Nothing urgent overnight. Have a great day!'
   } else {
     summary = `You have ${totalItems} item${totalItems > 1 ? 's' : ''} that need attention. `
-    if (importantEmails.length > 0) summary += `${importantEmails.length} important email${importantEmails.length > 1 ? 's' : ''}. `
-    if (missedCalls.length > 0) summary += `${missedCalls.length} missed call${missedCalls.length > 1 ? 's' : ''}. `
+    if (importantEmails.length > 0)
+      summary += `${importantEmails.length} important email${importantEmails.length > 1 ? 's' : ''}. `
+    if (missedCalls.length > 0)
+      summary += `${missedCalls.length} missed call${missedCalls.length > 1 ? 's' : ''}. `
   }
 
   return {
     title: `☀️ Good Morning! Here's your overnight summary`,
     sections,
     summary,
-    readFullConsent: settings.contentPreferences.readFullConsent
+    readFullConsent: settings.contentPreferences.readFullConsent,
   }
 }
 
@@ -322,46 +322,41 @@ export function requestFullBodyConsent(): {
   importance: 'high'
 } {
   return {
-    message: 'FlowSphere AI can read your full email messages to provide better insights. However, we respect your privacy.',
+    message:
+      'FlowSphere AI can read your full email messages to provide better insights. However, we respect your privacy.',
     options: [
       {
         label: 'Yes, read full messages',
         value: true,
-        description: 'AI will analyze full email content for better categorization and insights'
+        description: 'AI will analyze full email content for better categorization and insights',
       },
       {
         label: 'No, titles/previews only',
         value: false,
-        description: 'AI will only see email subjects and first 200 characters (more private)'
-      }
+        description: 'AI will only see email subjects and first 200 characters (more private)',
+      },
     ],
-    importance: 'high' as const
+    importance: 'high' as const,
   }
 }
 
 /**
  * Check if contact is in allowed list
  */
-export function isAllowedContact(
-  contact: string,
-  settings: BedModeSettings
-): boolean {
-  return settings.allowedContacts.some(allowed =>
-    contact.includes(allowed) || allowed.includes(contact)
+export function isAllowedContact(contact: string, settings: BedModeSettings): boolean {
+  return settings.allowedContacts.some(
+    allowed => contact.includes(allowed) || allowed.includes(contact)
   )
 }
 
 /**
  * Add contact to allowed list
  */
-export function addAllowedContact(
-  contact: string,
-  settings: BedModeSettings
-): BedModeSettings {
+export function addAllowedContact(contact: string, settings: BedModeSettings): BedModeSettings {
   if (!settings.allowedContacts.includes(contact)) {
     return {
       ...settings,
-      allowedContacts: [...settings.allowedContacts, contact]
+      allowedContacts: [...settings.allowedContacts, contact],
     }
   }
   return settings
@@ -370,13 +365,10 @@ export function addAllowedContact(
 /**
  * Remove contact from allowed list
  */
-export function removeAllowedContact(
-  contact: string,
-  settings: BedModeSettings
-): BedModeSettings {
+export function removeAllowedContact(contact: string, settings: BedModeSettings): BedModeSettings {
   return {
     ...settings,
-    allowedContacts: settings.allowedContacts.filter(c => c !== contact)
+    allowedContacts: settings.allowedContacts.filter(c => c !== contact),
   }
 }
 
@@ -397,14 +389,14 @@ export function getDefaultBedModeSettings(): BedModeSettings {
     notificationMethods: {
       important: true,
       calls: true,
-      sms: true
+      sms: true,
     },
     contentPreferences: {
       titleOnly: false,
       bodyPreview: true,
       fullBody: false,
-      readFullConsent: false // Must be explicitly enabled
-    }
+      readFullConsent: false, // Must be explicitly enabled
+    },
   }
 }
 
@@ -422,7 +414,7 @@ export function generateMockCallRecords(): CallRecord[] {
       fromName: 'Mom',
       timestamp: new Date(now - 30 * 60 * 1000).toISOString(), // 30 min ago
       type: 'incoming',
-      duration: 120
+      duration: 120,
     },
     {
       id: 'call-2',
@@ -430,7 +422,7 @@ export function generateMockCallRecords(): CallRecord[] {
       fromName: 'Mom',
       timestamp: new Date(now - 15 * 60 * 1000).toISOString(), // 15 min ago
       type: 'incoming',
-      duration: 0 // Missed
+      duration: 0, // Missed
     },
     {
       id: 'call-3',
@@ -438,7 +430,7 @@ export function generateMockCallRecords(): CallRecord[] {
       fromName: 'Mom',
       timestamp: new Date(now - 5 * 60 * 1000).toISOString(), // 5 min ago
       type: 'incoming',
-      duration: 0 // Missed
+      duration: 0, // Missed
     },
     {
       id: 'call-4',
@@ -446,7 +438,7 @@ export function generateMockCallRecords(): CallRecord[] {
       fromName: 'Work',
       timestamp: new Date(now - 2 * hour).toISOString(),
       type: 'incoming',
-      duration: 300
-    }
+      duration: 300,
+    },
   ]
 }

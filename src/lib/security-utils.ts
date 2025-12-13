@@ -45,11 +45,33 @@ export function setDemoMode(_enabled: boolean): void {
  */
 export function sanitizeHTML(dirty: string): string {
   return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
+    ALLOWED_TAGS: [
+      'b',
+      'i',
+      'em',
+      'strong',
+      'a',
+      'p',
+      'br',
+      'ul',
+      'ol',
+      'li',
+      'span',
+      'div',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'blockquote',
+      'code',
+      'pre',
+    ],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'id', 'style'],
     ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
   })
 }
 
@@ -106,7 +128,10 @@ export function sanitizeInput(input: string): string {
  * Sanitize email input
  */
 export function sanitizeEmail(email: string): string {
-  return email.trim().toLowerCase().replace(/[^a-z0-9@._+-]/g, '')
+  return email
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9@._+-]/g, '')
 }
 
 /**
@@ -120,7 +145,10 @@ export function sanitizePhone(phone: string): string {
  * Sanitize username (alphanumeric and underscore only)
  */
 export function sanitizeUsername(username: string): string {
-  return username.trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50)
+  return username
+    .trim()
+    .replace(/[^a-zA-Z0-9_]/g, '')
+    .slice(0, 50)
 }
 
 /**
@@ -148,7 +176,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
   warn: 2,
-  error: 3
+  error: 3,
 }
 
 // Only log warn and above in production
@@ -179,7 +207,7 @@ export const logger = {
       // TODO: Send to Sentry/LogRocket/etc
       // sendToErrorTracking({ level: 'error', message, data, component })
     }
-  }
+  },
 }
 
 function logMessage(level: LogLevel, message: string, data?: unknown, component?: string) {
@@ -192,7 +220,7 @@ function logMessage(level: LogLevel, message: string, data?: unknown, component?
     message,
     data,
     timestamp: new Date().toISOString(),
-    component
+    component,
   }
 
   const prefix = component ? `[${component}]` : '[FlowSphere]'
@@ -256,7 +284,10 @@ const rateLimitCache = new Map<string, { count: number; resetAt: number }>()
 /**
  * Client-side rate limiting helper
  */
-export function checkRateLimit(key: string, config: RateLimitConfig): { allowed: boolean; remaining: number; resetIn: number } {
+export function checkRateLimit(
+  key: string,
+  config: RateLimitConfig
+): { allowed: boolean; remaining: number; resetIn: number } {
   const now = Date.now()
   const cached = rateLimitCache.get(key)
 
@@ -270,7 +301,11 @@ export function checkRateLimit(key: string, config: RateLimitConfig): { allowed:
   }
 
   cached.count++
-  return { allowed: true, remaining: config.maxRequests - cached.count, resetIn: cached.resetAt - now }
+  return {
+    allowed: true,
+    remaining: config.maxRequests - cached.count,
+    resetIn: cached.resetAt - now,
+  }
 }
 
 // ============================================
@@ -288,7 +323,7 @@ export function checkAPIKeySecurity(): string[] {
   const sensitiveEnvVars = [
     'VITE_GOOGLE_CLIENT_SECRET',
     'VITE_OUTLOOK_CLIENT_SECRET',
-    'VITE_APPLE_CLIENT_SECRET'
+    'VITE_APPLE_CLIENT_SECRET',
   ]
 
   sensitiveEnvVars.forEach(varName => {
@@ -320,7 +355,7 @@ export function secureStore(key: string, value: unknown): void {
     const data = JSON.stringify({
       value,
       timestamp: Date.now(),
-      version: appVersion
+      version: appVersion,
     })
     localStorage.setItem(`flowsphere_secure_${key}`, btoa(data))
   } catch (error) {
@@ -363,11 +398,15 @@ export function initializeSecurity(): void {
   const warnings = checkAPIKeySecurity()
 
   // Log app start
-  logger.info(`FlowSphere v${appVersion} starting`, {
-    mode: isDevelopment ? 'development' : 'production',
-    demoMode: isDemoMode(),
-    securityWarnings: warnings.length
-  }, 'Security')
+  logger.info(
+    `FlowSphere v${appVersion} starting`,
+    {
+      mode: isDevelopment ? 'development' : 'production',
+      demoMode: isDemoMode(),
+      securityWarnings: warnings.length,
+    },
+    'Security'
+  )
 }
 
 export default {
@@ -405,5 +444,5 @@ export default {
   secureRemove,
 
   // Init
-  initializeSecurity
+  initializeSecurity,
 }

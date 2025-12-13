@@ -32,19 +32,19 @@ export const GROQ_VOICES = [
   'Mikail-PlayAI',
   'Mitch-PlayAI',
   'Quinn-PlayAI',
-  'Thunder-PlayAI'
+  'Thunder-PlayAI',
 ] as const
 
-export type GroqVoice = typeof GROQ_VOICES[number]
+export type GroqVoice = (typeof GROQ_VOICES)[number]
 
 // Voice aliases for compatibility (map old names to new PlayAI voices)
 const VOICE_MAP: Record<string, GroqVoice> = {
-  'nova': 'Celeste-PlayAI',
-  'alloy': 'Fritz-PlayAI',
-  'echo': 'Atlas-PlayAI',
-  'fable': 'Quinn-PlayAI',
-  'onyx': 'Thunder-PlayAI',
-  'shimmer': 'Arista-PlayAI'
+  nova: 'Celeste-PlayAI',
+  alloy: 'Fritz-PlayAI',
+  echo: 'Atlas-PlayAI',
+  fable: 'Quinn-PlayAI',
+  onyx: 'Thunder-PlayAI',
+  shimmer: 'Arista-PlayAI',
 }
 
 /**
@@ -53,19 +53,15 @@ const VOICE_MAP: Record<string, GroqVoice> = {
  * @param language Optional language code (e.g., 'en', 'es')
  * @returns Transcribed text
  */
-export async function groqSpeechToText(
-  audioBlob: Blob,
-  language?: string
-): Promise<string> {
+export async function groqSpeechToText(audioBlob: Blob, language?: string): Promise<string> {
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured')
   }
 
   try {
     // Determine filename based on mime type
-    const filename = audioBlob.type.includes('m4a') || audioBlob.type.includes('mp4')
-      ? 'audio.m4a'
-      : 'audio.webm'
+    const filename =
+      audioBlob.type.includes('m4a') || audioBlob.type.includes('mp4') ? 'audio.m4a' : 'audio.webm'
 
     const formData = new FormData()
     formData.append('file', audioBlob, filename)
@@ -81,9 +77,9 @@ export async function groqSpeechToText(
     const response = await fetch(GROQ_STT_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`
+        Authorization: `Bearer ${GROQ_API_KEY}`,
       },
-      body: formData
+      body: formData,
     })
 
     if (!response.ok) {
@@ -115,22 +111,22 @@ export async function groqTextToSpeech(
   }
 
   // Map old voice names to new PlayAI voices for compatibility
-  const mappedVoice = VOICE_MAP[voice as string] || voice as GroqVoice
+  const mappedVoice = VOICE_MAP[voice as string] || (voice as GroqVoice)
 
   try {
     const response = await fetch(GROQ_TTS_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: 'playai-tts',
         input: text,
         voice: mappedVoice,
         response_format: 'mp3',
-        speed: 1.0
-      })
+        speed: 1.0,
+      }),
     })
 
     if (!response.ok) {
@@ -166,7 +162,7 @@ export async function speakWithGroq(
         URL.revokeObjectURL(audioUrl)
         resolve()
       }
-      audio.onerror = (error) => {
+      audio.onerror = error => {
         URL.revokeObjectURL(audioUrl)
         reject(error)
       }
@@ -196,12 +192,14 @@ export function speakWithBrowser(text: string): Promise<void> {
 
     // Try to find a nice voice
     const voices = window.speechSynthesis.getVoices()
-    const preferredVoice = voices.find(v =>
-      v.name.includes('Samantha') ||
-      v.name.includes('Google') ||
-      v.name.includes('Female') ||
-      v.lang.startsWith('en')
-    ) || voices[0]
+    const preferredVoice =
+      voices.find(
+        v =>
+          v.name.includes('Samantha') ||
+          v.name.includes('Google') ||
+          v.name.includes('Female') ||
+          v.lang.startsWith('en')
+      ) || voices[0]
 
     if (preferredVoice) {
       utterance.voice = preferredVoice
@@ -212,7 +210,7 @@ export function speakWithBrowser(text: string): Promise<void> {
     utterance.volume = 1.0
 
     utterance.onend = () => resolve()
-    utterance.onerror = (event) => reject(new Error(event.error))
+    utterance.onerror = event => reject(new Error(event.error))
 
     window.speechSynthesis.speak(utterance)
   })
@@ -270,20 +268,25 @@ export class GroqAudioRecorder {
 
     if (this.useNativeRecorder) {
       // Load native recorder immediately
-      this.nativeRecorderPromise = import('./native-voice-recorder').then(module => {
-        if (!module.default) {
-          console.warn('[GroqAudioRecorder] Native plugin not available, using MediaRecorder')
+      this.nativeRecorderPromise = import('./native-voice-recorder')
+        .then(module => {
+          if (!module.default) {
+            console.warn('[GroqAudioRecorder] Native plugin not available, using MediaRecorder')
+            this.useNativeRecorder = false
+            return null
+          }
+          this.nativeRecorder = module.default
+          logger.info('[GroqAudioRecorder] Native voice recorder loaded successfully')
+          return module.default
+        })
+        .catch(err => {
+          console.warn(
+            '[GroqAudioRecorder] Failed to load native recorder, falling back to MediaRecorder:',
+            err
+          )
           this.useNativeRecorder = false
           return null
-        }
-        this.nativeRecorder = module.default
-        logger.info('[GroqAudioRecorder] Native voice recorder loaded successfully')
-        return module.default
-      }).catch(err => {
-        console.warn('[GroqAudioRecorder] Failed to load native recorder, falling back to MediaRecorder:', err)
-        this.useNativeRecorder = false
-        return null
-      })
+        })
     }
   }
 
@@ -407,7 +410,7 @@ export class GroqAudioRecorder {
           'audio/webm;codecs=opus',
           'audio/webm',
           'audio/ogg;codecs=opus',
-          'audio/mp4'
+          'audio/mp4',
         ]
 
         let mimeType = mimeTypes[0]
@@ -421,7 +424,7 @@ export class GroqAudioRecorder {
         this.mediaRecorder = new MediaRecorder(this.stream, { mimeType })
         this.audioChunks = []
 
-        this.mediaRecorder.ondataavailable = (event) => {
+        this.mediaRecorder.ondataavailable = event => {
           if (event.data.size > 0) {
             this.audioChunks.push(event.data)
           }

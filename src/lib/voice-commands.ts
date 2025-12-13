@@ -7,11 +7,22 @@
  * Exit phrases that users can say to stop continuous voice listening
  */
 export const EXIT_PHRASES = [
-  'that\'s it', 'thats it', 'that is it',
-  'ok turn off', 'turn off now', 'turn off',
-  'thanks', 'thank you', 'done', 'stop listening',
-  'goodbye', 'bye', 'bye bye',
-  'stop', 'quit', 'exit'
+  "that's it",
+  'thats it',
+  'that is it',
+  'ok turn off',
+  'turn off now',
+  'turn off',
+  'thanks',
+  'thank you',
+  'done',
+  'stop listening',
+  'goodbye',
+  'bye',
+  'bye bye',
+  'stop',
+  'quit',
+  'exit',
 ]
 
 /**

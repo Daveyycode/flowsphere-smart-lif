@@ -1,21 +1,52 @@
 import { useState, useRef, useEffect } from 'react'
 import { sanitizeHTML } from '@/lib/security-utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Microphone, Stop, Trash, Copy, Download, Check, X, CaretDown, Envelope, ShareNetwork, PencilSimple, Translate } from '@phosphor-icons/react'
+import {
+  Microphone,
+  Stop,
+  Trash,
+  Copy,
+  Download,
+  Check,
+  X,
+  CaretDown,
+  Envelope,
+  ShareNetwork,
+  PencilSimple,
+  Translate,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { AudioRecorder, transcribeAudio, supportsSpeechRecognition, supportsAudioRecording } from '@/lib/audio-recorder'
+import {
+  AudioRecorder,
+  transcribeAudio,
+  supportsSpeechRecognition,
+  supportsAudioRecording,
+} from '@/lib/audio-recorder'
 import { groqChat, isGroqConfigured } from '@/lib/groq-ai'
 import { sendMeetingNotesEmail, isResendConfigured } from '@/lib/resend-email'
 
@@ -38,53 +69,124 @@ interface MeetingNote {
 const SUPPORTED_LANGUAGES = [
   { code: 'auto', name: 'Auto Detect' },
   // Major World Languages
-  { code: 'en', name: 'English' }, { code: 'zh', name: 'Chinese (Mandarin)' }, { code: 'es', name: 'Spanish' },
-  { code: 'hi', name: 'Hindi' }, { code: 'ar', name: 'Arabic' }, { code: 'bn', name: 'Bengali' },
-  { code: 'pt', name: 'Portuguese' }, { code: 'ru', name: 'Russian' }, { code: 'ja', name: 'Japanese' },
-  { code: 'pa', name: 'Punjabi' }, { code: 'de', name: 'German' }, { code: 'jv', name: 'Javanese' },
+  { code: 'en', name: 'English' },
+  { code: 'zh', name: 'Chinese (Mandarin)' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'ar', name: 'Arabic' },
+  { code: 'bn', name: 'Bengali' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'pa', name: 'Punjabi' },
+  { code: 'de', name: 'German' },
+  { code: 'jv', name: 'Javanese' },
   // European Languages
-  { code: 'fr', name: 'French' }, { code: 'it', name: 'Italian' }, { code: 'tr', name: 'Turkish' },
-  { code: 'ko', name: 'Korean' }, { code: 'vi', name: 'Vietnamese' }, { code: 'ta', name: 'Tamil' },
-  { code: 'ur', name: 'Urdu' }, { code: 'te', name: 'Telugu' }, { code: 'mr', name: 'Marathi' },
-  { code: 'fa', name: 'Persian/Farsi' }, { code: 'nl', name: 'Dutch' }, { code: 'pl', name: 'Polish' },
-  { code: 'uk', name: 'Ukrainian' }, { code: 'ro', name: 'Romanian' }, { code: 'el', name: 'Greek' },
-  { code: 'cs', name: 'Czech' }, { code: 'sv', name: 'Swedish' }, { code: 'hu', name: 'Hungarian' },
-  { code: 'da', name: 'Danish' }, { code: 'fi', name: 'Finnish' }, { code: 'no', name: 'Norwegian' },
-  { code: 'sk', name: 'Slovak' }, { code: 'bg', name: 'Bulgarian' }, { code: 'hr', name: 'Croatian' },
-  { code: 'sr', name: 'Serbian' }, { code: 'lt', name: 'Lithuanian' }, { code: 'lv', name: 'Latvian' },
-  { code: 'et', name: 'Estonian' }, { code: 'sl', name: 'Slovenian' }, { code: 'is', name: 'Icelandic' },
+  { code: 'fr', name: 'French' },
+  { code: 'it', name: 'Italian' },
+  { code: 'tr', name: 'Turkish' },
+  { code: 'ko', name: 'Korean' },
+  { code: 'vi', name: 'Vietnamese' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'ur', name: 'Urdu' },
+  { code: 'te', name: 'Telugu' },
+  { code: 'mr', name: 'Marathi' },
+  { code: 'fa', name: 'Persian/Farsi' },
+  { code: 'nl', name: 'Dutch' },
+  { code: 'pl', name: 'Polish' },
+  { code: 'uk', name: 'Ukrainian' },
+  { code: 'ro', name: 'Romanian' },
+  { code: 'el', name: 'Greek' },
+  { code: 'cs', name: 'Czech' },
+  { code: 'sv', name: 'Swedish' },
+  { code: 'hu', name: 'Hungarian' },
+  { code: 'da', name: 'Danish' },
+  { code: 'fi', name: 'Finnish' },
+  { code: 'no', name: 'Norwegian' },
+  { code: 'sk', name: 'Slovak' },
+  { code: 'bg', name: 'Bulgarian' },
+  { code: 'hr', name: 'Croatian' },
+  { code: 'sr', name: 'Serbian' },
+  { code: 'lt', name: 'Lithuanian' },
+  { code: 'lv', name: 'Latvian' },
+  { code: 'et', name: 'Estonian' },
+  { code: 'sl', name: 'Slovenian' },
+  { code: 'is', name: 'Icelandic' },
   // Asian & Southeast Asian
-  { code: 'th', name: 'Thai' }, { code: 'id', name: 'Indonesian' }, { code: 'ms', name: 'Malay' },
-  { code: 'tl', name: 'Filipino/Tagalog' }, { code: 'km', name: 'Khmer/Cambodian' },
-  { code: 'lo', name: 'Lao' }, { code: 'my', name: 'Burmese' }, { code: 'ne', name: 'Nepali' },
-  { code: 'si', name: 'Sinhala' }, { code: 'kn', name: 'Kannada' }, { code: 'ml', name: 'Malayalam' },
-  { code: 'gu', name: 'Gujarati' }, { code: 'or', name: 'Odia' }, { code: 'as', name: 'Assamese' },
+  { code: 'th', name: 'Thai' },
+  { code: 'id', name: 'Indonesian' },
+  { code: 'ms', name: 'Malay' },
+  { code: 'tl', name: 'Filipino/Tagalog' },
+  { code: 'km', name: 'Khmer/Cambodian' },
+  { code: 'lo', name: 'Lao' },
+  { code: 'my', name: 'Burmese' },
+  { code: 'ne', name: 'Nepali' },
+  { code: 'si', name: 'Sinhala' },
+  { code: 'kn', name: 'Kannada' },
+  { code: 'ml', name: 'Malayalam' },
+  { code: 'gu', name: 'Gujarati' },
+  { code: 'or', name: 'Odia' },
+  { code: 'as', name: 'Assamese' },
   // Middle Eastern & African
-  { code: 'he', name: 'Hebrew' }, { code: 'am', name: 'Amharic' }, { code: 'ti', name: 'Tigrinya' },
-  { code: 'so', name: 'Somali' }, { code: 'sw', name: 'Swahili' }, { code: 'yo', name: 'Yoruba' },
-  { code: 'ig', name: 'Igbo' }, { code: 'ha', name: 'Hausa' }, { code: 'zu', name: 'Zulu' },
-  { code: 'xh', name: 'Xhosa' }, { code: 'af', name: 'Afrikaans' },
+  { code: 'he', name: 'Hebrew' },
+  { code: 'am', name: 'Amharic' },
+  { code: 'ti', name: 'Tigrinya' },
+  { code: 'so', name: 'Somali' },
+  { code: 'sw', name: 'Swahili' },
+  { code: 'yo', name: 'Yoruba' },
+  { code: 'ig', name: 'Igbo' },
+  { code: 'ha', name: 'Hausa' },
+  { code: 'zu', name: 'Zulu' },
+  { code: 'xh', name: 'Xhosa' },
+  { code: 'af', name: 'Afrikaans' },
   // Central & South Asian
-  { code: 'ps', name: 'Pashto' }, { code: 'sd', name: 'Sindhi' }, { code: 'ug', name: 'Uyghur' },
-  { code: 'uz', name: 'Uzbek' }, { code: 'kk', name: 'Kazakh' }, { code: 'ky', name: 'Kyrgyz' },
-  { code: 'tg', name: 'Tajik' }, { code: 'tk', name: 'Turkmen' }, { code: 'az', name: 'Azerbaijani' },
-  { code: 'hy', name: 'Armenian' }, { code: 'ka', name: 'Georgian' },
+  { code: 'ps', name: 'Pashto' },
+  { code: 'sd', name: 'Sindhi' },
+  { code: 'ug', name: 'Uyghur' },
+  { code: 'uz', name: 'Uzbek' },
+  { code: 'kk', name: 'Kazakh' },
+  { code: 'ky', name: 'Kyrgyz' },
+  { code: 'tg', name: 'Tajik' },
+  { code: 'tk', name: 'Turkmen' },
+  { code: 'az', name: 'Azerbaijani' },
+  { code: 'hy', name: 'Armenian' },
+  { code: 'ka', name: 'Georgian' },
   // East Asian
-  { code: 'yue', name: 'Cantonese' }, { code: 'mn', name: 'Mongolian' }, { code: 'bo', name: 'Tibetan' },
+  { code: 'yue', name: 'Cantonese' },
+  { code: 'mn', name: 'Mongolian' },
+  { code: 'bo', name: 'Tibetan' },
   // Americas
-  { code: 'qu', name: 'Quechua' }, { code: 'gn', name: 'Guarani' }, { code: 'ay', name: 'Aymara' },
+  { code: 'qu', name: 'Quechua' },
+  { code: 'gn', name: 'Guarani' },
+  { code: 'ay', name: 'Aymara' },
   // European Regional
-  { code: 'ca', name: 'Catalan' }, { code: 'gl', name: 'Galician' }, { code: 'eu', name: 'Basque' },
-  { code: 'cy', name: 'Welsh' }, { code: 'ga', name: 'Irish' }, { code: 'gd', name: 'Scottish Gaelic' },
-  { code: 'mt', name: 'Maltese' }, { code: 'sq', name: 'Albanian' }, { code: 'mk', name: 'Macedonian' },
-  { code: 'bs', name: 'Bosnian' }, { code: 'be', name: 'Belarusian' },
+  { code: 'ca', name: 'Catalan' },
+  { code: 'gl', name: 'Galician' },
+  { code: 'eu', name: 'Basque' },
+  { code: 'cy', name: 'Welsh' },
+  { code: 'ga', name: 'Irish' },
+  { code: 'gd', name: 'Scottish Gaelic' },
+  { code: 'mt', name: 'Maltese' },
+  { code: 'sq', name: 'Albanian' },
+  { code: 'mk', name: 'Macedonian' },
+  { code: 'bs', name: 'Bosnian' },
+  { code: 'be', name: 'Belarusian' },
   // Pacific & Others
-  { code: 'mi', name: 'Maori' }, { code: 'sm', name: 'Samoan' }, { code: 'to', name: 'Tongan' },
-  { code: 'haw', name: 'Hawaiian' }, { code: 'fj', name: 'Fijian' },
+  { code: 'mi', name: 'Maori' },
+  { code: 'sm', name: 'Samoan' },
+  { code: 'to', name: 'Tongan' },
+  { code: 'haw', name: 'Hawaiian' },
+  { code: 'fj', name: 'Fijian' },
   // Additional Languages
-  { code: 'la', name: 'Latin' }, { code: 'eo', name: 'Esperanto' }, { code: 'jw', name: 'Javanese (Alt)' },
-  { code: 'su', name: 'Sundanese' }, { code: 'ceb', name: 'Cebuano' }, { code: 'hmn', name: 'Hmong' },
-  { code: 'ku', name: 'Kurdish' }, { code: 'lb', name: 'Luxembourgish' }, { code: 'yi', name: 'Yiddish' },
+  { code: 'la', name: 'Latin' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'jw', name: 'Javanese (Alt)' },
+  { code: 'su', name: 'Sundanese' },
+  { code: 'ceb', name: 'Cebuano' },
+  { code: 'hmn', name: 'Hmong' },
+  { code: 'ku', name: 'Kurdish' },
+  { code: 'lb', name: 'Luxembourgish' },
+  { code: 'yi', name: 'Yiddish' },
 ]
 
 export function MeetingNotes() {
@@ -98,17 +200,38 @@ export function MeetingNotes() {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set())
   const [generatingSummary, setGeneratingSummary] = useState<string | null>(null)
   const [generatingScripts, setGeneratingScripts] = useState<string | null>(null)
-  const [selectedScript, setSelectedScript] = useState<{noteId: string, type: 'formal' | 'casual' | 'report' | 'meeting'} | null>(null)
-  const [selectedView, setSelectedView] = useState<{noteId: string, view: 'summary' | 'formats'} | null>(null)
-  const [translationLanguage, setTranslationLanguage] = useState<{noteId: string, language: string}>({noteId: '', language: 'original'})
-  const [translatedSummaries, setTranslatedSummaries] = useState<{[key: string]: {[lang: string]: string}}>({})
+  const [selectedScript, setSelectedScript] = useState<{
+    noteId: string
+    type: 'formal' | 'casual' | 'report' | 'meeting'
+  } | null>(null)
+  const [selectedView, setSelectedView] = useState<{
+    noteId: string
+    view: 'summary' | 'formats'
+  } | null>(null)
+  const [translationLanguage, setTranslationLanguage] = useState<{
+    noteId: string
+    language: string
+  }>({ noteId: '', language: 'original' })
+  const [translatedSummaries, setTranslatedSummaries] = useState<{
+    [key: string]: { [lang: string]: string }
+  }>({})
   const [translatingLanguage, setTranslatingLanguage] = useState<string | null>(null)
-  const [translatedScripts, setTranslatedScripts] = useState<{[key: string]: {[scriptType: string]: {[lang: string]: string}}}>({})
-  const [editingContent, setEditingContent] = useState<{noteId: string, type: 'summary' | 'script', scriptType?: string} | null>(null)
+  const [translatedScripts, setTranslatedScripts] = useState<{
+    [key: string]: { [scriptType: string]: { [lang: string]: string } }
+  }>({})
+  const [editingContent, setEditingContent] = useState<{
+    noteId: string
+    type: 'summary' | 'script'
+    scriptType?: string
+  } | null>(null)
   const [editInstructions, setEditInstructions] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
-  const [emailData, setEmailData] = useState<{script: string, type: string, note: MeetingNote | null}>({script: '', type: '', note: null})
+  const [emailData, setEmailData] = useState<{
+    script: string
+    type: string
+    note: MeetingNote | null
+  }>({ script: '', type: '', note: null })
   const [emailTo, setEmailTo] = useState('')
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
@@ -130,30 +253,34 @@ export function MeetingNotes() {
     // 1. No Web Speech API available (mobile devices) AND has audio recording
     // 2. OR "Auto Detect" is selected - Whisper has TRUE language auto-detection
     //    that supports mixed languages like Taglish, Spanglish, etc.
-    const shouldUseWhisper = (!hasSpeechRecognition || targetLanguage === 'auto') && hasAudioRecording
+    const shouldUseWhisper =
+      (!hasSpeechRecognition || targetLanguage === 'auto') && hasAudioRecording
 
     if (shouldUseWhisper) {
       setUseMobileRecording(true)
       if (!audioRecorderRef.current) {
         audioRecorderRef.current = new AudioRecorder()
       }
-      console.log(targetLanguage === 'auto'
-        ? 'Using Whisper for TRUE auto-language detection (supports mixed languages like Taglish, Spanglish)'
-        : 'Using mobile recording (Web Audio + Whisper)')
+      console.log(
+        targetLanguage === 'auto'
+          ? 'Using Whisper for TRUE auto-language detection (supports mixed languages like Taglish, Spanglish)'
+          : 'Using mobile recording (Web Audio + Whisper)'
+      )
       return
     }
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+      const SpeechRecognition =
+        (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true
-      recognitionRef.current.maxAlternatives = 3  // Better accuracy with multiple alternatives
+      recognitionRef.current.maxAlternatives = 3 // Better accuracy with multiple alternatives
 
       if (targetLanguage !== 'auto') {
         recognitionRef.current.lang = targetLanguage
       } else {
-        recognitionRef.current.lang = 'en-US'  // Default to English if auto
+        recognitionRef.current.lang = 'en-US' // Default to English if auto
       }
 
       recognitionRef.current.onresult = (event: any) => {
@@ -167,7 +294,7 @@ export function MeetingNotes() {
           const transcript = event.results[i][0].transcript
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' '
-            lastResultIndexRef.current = i + 1  // Update to next unprocessed index
+            lastResultIndexRef.current = i + 1 // Update to next unprocessed index
           } else {
             interimTranscript += transcript
           }
@@ -195,10 +322,14 @@ export function MeetingNotes() {
         }
 
         if (event.error === 'audio-capture') {
-          toast.error('⚠️ Microphone not detected. Please:\n• Connect a microphone\n• Enable microphone in Settings\n• Reload the page')
+          toast.error(
+            '⚠️ Microphone not detected. Please:\n• Connect a microphone\n• Enable microphone in Settings\n• Reload the page'
+          )
           stopRecording()
         } else if (event.error === 'not-allowed') {
-          toast.error('⚠️ Microphone access blocked. Please:\n• Tap Safari settings (AA icon)\n• Enable Microphone permissions\n• Reload the page')
+          toast.error(
+            '⚠️ Microphone access blocked. Please:\n• Tap Safari settings (AA icon)\n• Enable Microphone permissions\n• Reload the page'
+          )
           stopRecording()
         } else if (event.error === 'network') {
           // Network error, show warning but continue
@@ -246,7 +377,9 @@ export function MeetingNotes() {
       } catch (error) {
         console.error('Mobile recording error:', error)
         setIsRecording(false)
-        toast.error('⚠️ Microphone access denied. Please enable microphone permissions in your browser settings.')
+        toast.error(
+          '⚠️ Microphone access denied. Please enable microphone permissions in your browser settings.'
+        )
       }
       return
     }
@@ -263,14 +396,14 @@ export function MeetingNotes() {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
-        }
+          autoGainControl: true,
+        },
       })
       // Stop the stream immediately - we just needed to check permission
       stream.getTracks().forEach(track => track.stop())
 
       interimTranscriptRef.current = ''
-      lastResultIndexRef.current = 0  // Reset result index for new recording
+      lastResultIndexRef.current = 0 // Reset result index for new recording
 
       try {
         recognitionRef.current.start()
@@ -283,7 +416,9 @@ export function MeetingNotes() {
     } catch (error) {
       console.error('Microphone permission error:', error)
       setIsRecording(false)
-      toast.error('⚠️ Microphone access denied. Please enable microphone permissions in your browser settings.')
+      toast.error(
+        '⚠️ Microphone access denied. Please enable microphone permissions in your browser settings.'
+      )
       return
     }
   }
@@ -315,7 +450,7 @@ export function MeetingNotes() {
             date: new Date().toLocaleString(),
             transcript: result.text,
             detectedLanguage: result.detectedLanguage || 'English',
-            duration: durationStr
+            duration: durationStr,
           }
 
           setSavedNotes(prev => [newNote, ...(prev || [])])
@@ -330,7 +465,9 @@ export function MeetingNotes() {
       } catch (error: any) {
         console.error('Transcription error:', error)
         if (error.message?.includes('API key')) {
-          toast.error('⚠️ OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to enable mobile recording.')
+          toast.error(
+            '⚠️ OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to enable mobile recording.'
+          )
         } else {
           toast.error('Failed to transcribe audio. Please try again.')
         }
@@ -351,9 +488,7 @@ export function MeetingNotes() {
     const finalTranscript = currentTranscript.trim() || interimTranscriptRef.current.trim()
 
     if (finalTranscript) {
-      const duration = recordingStartTime
-        ? Math.floor((Date.now() - recordingStartTime) / 1000)
-        : 0
+      const duration = recordingStartTime ? Math.floor((Date.now() - recordingStartTime) / 1000) : 0
 
       const minutes = Math.floor(duration / 60)
       const seconds = duration % 60
@@ -364,8 +499,11 @@ export function MeetingNotes() {
         title: `Meeting ${new Date().toLocaleDateString()}`,
         date: new Date().toLocaleString(),
         transcript: finalTranscript,
-        detectedLanguage: targetLanguage === 'auto' ? 'English' : SUPPORTED_LANGUAGES.find(l => l.code === targetLanguage)?.name || 'English',
-        duration: durationStr
+        detectedLanguage:
+          targetLanguage === 'auto'
+            ? 'English'
+            : SUPPORTED_LANGUAGES.find(l => l.code === targetLanguage)?.name || 'English',
+        duration: durationStr,
       }
 
       setSavedNotes(prev => [newNote, ...(prev || [])])
@@ -382,7 +520,9 @@ export function MeetingNotes() {
         toast.info('💡 Speak for at least 2 seconds before stopping')
       } else {
         // Longer recording with no speech - might be a real issue
-        toast.error('⚠️ No speech detected. Please check:\n• Microphone permissions are enabled\n• You spoke clearly near the microphone\n• Browser supports speech recognition')
+        toast.error(
+          '⚠️ No speech detected. Please check:\n• Microphone permissions are enabled\n• You spoke clearly near the microphone\n• Browser supports speech recognition'
+        )
       }
       setCurrentTranscript('')
       interimTranscriptRef.current = ''
@@ -470,11 +610,7 @@ Provide only the summary in markdown format with bullet points. Keep it concise 
         throw new Error('No summary returned from AI')
       }
 
-      setSavedNotes(prev =>
-        (prev || []).map(n =>
-          n.id === noteId ? { ...n, summary } : n
-        )
-      )
+      setSavedNotes(prev => (prev || []).map(n => (n.id === noteId ? { ...n, summary } : n)))
       toast.success('Summary generated')
     } catch (error) {
       console.error('Summary generation error:', error)
@@ -485,7 +621,11 @@ Provide only the summary in markdown format with bullet points. Keep it concise 
     }
   }
 
-  const translateScript = async (noteId: string, scriptType: 'formal' | 'casual' | 'report' | 'meeting', targetLang: string) => {
+  const translateScript = async (
+    noteId: string,
+    scriptType: 'formal' | 'casual' | 'report' | 'meeting',
+    targetLang: string
+  ) => {
     const note = (savedNotes || []).find(n => n.id === noteId)
     if (!note || !note.scripts) return
 
@@ -526,9 +666,9 @@ Provide ONLY the translated version.`
           ...(prev[noteId] || {}),
           [scriptType]: {
             ...(prev[noteId]?.[scriptType] || {}),
-            [targetLang]: translatedText
-          }
-        }
+            [targetLang]: translatedText,
+          },
+        },
       }))
 
       toast.success(`Translated to ${languageName}!`)
@@ -540,7 +680,12 @@ Provide ONLY the translated version.`
     }
   }
 
-  const editContent = async (noteId: string, type: 'summary' | 'script', instructions: string, scriptType?: 'formal' | 'casual' | 'report' | 'meeting') => {
+  const editContent = async (
+    noteId: string,
+    type: 'summary' | 'script',
+    instructions: string,
+    scriptType?: 'formal' | 'casual' | 'report' | 'meeting'
+  ) => {
     const note = (savedNotes || []).find(n => n.id === noteId)
     if (!note) return
 
@@ -581,20 +726,20 @@ Provide the edited version. Keep the same format/structure.`
       // Update the content
       if (type === 'summary') {
         setSavedNotes(prev =>
-          (prev || []).map(n =>
-            n.id === noteId ? { ...n, summary: editedContent } : n
-          )
+          (prev || []).map(n => (n.id === noteId ? { ...n, summary: editedContent } : n))
         )
       } else if (type === 'script' && scriptType && note.scripts) {
         setSavedNotes(prev =>
           (prev || []).map(n =>
-            n.id === noteId ? {
-              ...n,
-              scripts: {
-                ...n.scripts!,
-                [scriptType]: editedContent
-              }
-            } : n
+            n.id === noteId
+              ? {
+                  ...n,
+                  scripts: {
+                    ...n.scripts!,
+                    [scriptType]: editedContent,
+                  },
+                }
+              : n
           )
         )
       }
@@ -655,8 +800,8 @@ Provide ONLY the translated version with the same formatting.`
         ...prev,
         [noteId]: {
           ...(prev[noteId] || {}),
-          [targetLang]: translatedText
-        }
+          [targetLang]: translatedText,
+        },
       }))
 
       toast.success(`Translated to ${languageName}!`)
@@ -696,10 +841,26 @@ ${note.summary || 'N/A'}
 Generate a `
 
         ;[formal, casual, report, meeting] = await Promise.all([
-          groqChat(promptBase + `FORMAL style transcript with professional language, proper structure, complete sentences, and business-appropriate tone. Make it sound like official documentation with clear sections and formal greetings/closings.`, { max_tokens: 2048 }),
-          groqChat(promptBase + `CASUAL style transcript with friendly, conversational tone like you're talking to a colleague over coffee. Use relaxed language, contractions, and keep it approachable while staying organized.`, { max_tokens: 2048 }),
-          groqChat(promptBase + `REPORT style transcript formatted as a detailed meeting report with executive summary, key discussion points, decisions made, action items with owners, next steps, and conclusions. Use bullet points and clear sections.`, { max_tokens: 2048 }),
-          groqChat(promptBase + `MEETING MINUTES style transcript with standard meeting format including attendees section, agenda items discussed, key decisions, action items, and next meeting date. Format like official meeting minutes.`, { max_tokens: 2048 })
+          groqChat(
+            promptBase +
+              `FORMAL style transcript with professional language, proper structure, complete sentences, and business-appropriate tone. Make it sound like official documentation with clear sections and formal greetings/closings.`,
+            { max_tokens: 2048 }
+          ),
+          groqChat(
+            promptBase +
+              `CASUAL style transcript with friendly, conversational tone like you're talking to a colleague over coffee. Use relaxed language, contractions, and keep it approachable while staying organized.`,
+            { max_tokens: 2048 }
+          ),
+          groqChat(
+            promptBase +
+              `REPORT style transcript formatted as a detailed meeting report with executive summary, key discussion points, decisions made, action items with owners, next steps, and conclusions. Use bullet points and clear sections.`,
+            { max_tokens: 2048 }
+          ),
+          groqChat(
+            promptBase +
+              `MEETING MINUTES style transcript with standard meeting format including attendees section, agenda items discussed, key decisions, action items, and next meeting date. Format like official meeting minutes.`,
+            { max_tokens: 2048 }
+          ),
         ])
       } catch (apiError: any) {
         // Fallback for any API error (401, 404, etc.)
@@ -859,12 +1020,13 @@ ${script}
 Generated by FlowSphere Meeting Notes`
 
     if (navigator.share) {
-      navigator.share({
-        title: `Meeting Transcript - ${formatName}`,
-        text: text
-      })
+      navigator
+        .share({
+          title: `Meeting Transcript - ${formatName}`,
+          text: text,
+        })
         .then(() => toast.success('📤 Shared successfully!'))
-        .catch((error) => {
+        .catch(error => {
           if (error.name !== 'AbortError') {
             console.error('Share error:', error)
             // Fallback to copying to clipboard
@@ -898,7 +1060,8 @@ Generated by FlowSphere Meeting Notes`
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-4">
             <p className="text-sm text-destructive">
-              Recording is not supported in your browser. Please use a modern browser with microphone support.
+              Recording is not supported in your browser. Please use a modern browser with
+              microphone support.
             </p>
           </CardContent>
         </Card>
@@ -908,7 +1071,9 @@ Generated by FlowSphere Meeting Notes`
         <Card className="border-accent/50 bg-accent/5">
           <CardContent className="p-4">
             <p className="text-sm text-accent-foreground">
-              📱 <strong>Mobile Recording Mode:</strong> Using Web Audio API with OpenAI Whisper transcription. Recording will be processed after you stop (not real-time). Requires OpenAI API key.
+              📱 <strong>Mobile Recording Mode:</strong> Using Web Audio API with OpenAI Whisper
+              transcription. Recording will be processed after you stop (not real-time). Requires
+              OpenAI API key.
             </p>
           </CardContent>
         </Card>
@@ -923,7 +1088,10 @@ Generated by FlowSphere Meeting Notes`
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>New Recording</span>
-              <Badge variant={isRecording ? 'destructive' : isTranscribing ? 'default' : 'secondary'} className={isRecording || isTranscribing ? 'animate-pulse' : ''}>
+              <Badge
+                variant={isRecording ? 'destructive' : isTranscribing ? 'default' : 'secondary'}
+                className={isRecording || isTranscribing ? 'animate-pulse' : ''}
+              >
                 {isTranscribing ? 'Transcribing...' : isRecording ? 'Recording...' : 'Ready'}
               </Badge>
             </CardTitle>
@@ -931,7 +1099,11 @@ Generated by FlowSphere Meeting Notes`
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="language-select">Target Language</Label>
-              <Select value={targetLanguage} onValueChange={setTargetLanguage} disabled={isRecording}>
+              <Select
+                value={targetLanguage}
+                onValueChange={setTargetLanguage}
+                disabled={isRecording}
+              >
                 <SelectTrigger id="language-select">
                   <SelectValue />
                 </SelectTrigger>
@@ -944,7 +1116,8 @@ Generated by FlowSphere Meeting Notes`
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Auto-detect uses AI transcription to recognize ANY language including mixed languages (Taglish, Spanglish, etc.)
+                Auto-detect uses AI transcription to recognize ANY language including mixed
+                languages (Taglish, Spanglish, etc.)
               </p>
             </div>
 
@@ -988,11 +1161,14 @@ Generated by FlowSphere Meeting Notes`
 
       <div>
         <h2 className="text-2xl font-semibold mb-4">Saved Notes ({(savedNotes || []).length})</h2>
-        
+
         {(savedNotes || []).length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <Microphone className="w-16 h-16 mx-auto mb-4 text-muted-foreground" weight="duotone" />
+              <Microphone
+                className="w-16 h-16 mx-auto mb-4 text-muted-foreground"
+                weight="duotone"
+              />
               <h3 className="text-xl font-semibold mb-2">No meeting notes yet</h3>
               <p className="text-muted-foreground">
                 Start your first recording to capture meeting discussions
@@ -1037,29 +1213,26 @@ Generated by FlowSphere Meeting Notes`
                             <Copy className="w-5 h-5" />
                           )}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => downloadNote(note)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => downloadNote(note)}>
                           <Download className="w-5 h-5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteNote(note.id)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => deleteNote(note.id)}>
                           <Trash className="w-5 h-5 text-destructive" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Collapsible open={expandedNotes.has(note.id)} onOpenChange={() => toggleNoteExpansion(note.id)}>
+                    <Collapsible
+                      open={expandedNotes.has(note.id)}
+                      onOpenChange={() => toggleNoteExpansion(note.id)}
+                    >
                       <CollapsibleTrigger asChild>
                         <Button variant="outline" className="w-full justify-between">
                           <span className="font-medium">Transcript</span>
-                          <CaretDown className={`w-4 h-4 transition-transform ${expandedNotes.has(note.id) ? 'rotate-180' : ''}`} />
+                          <CaretDown
+                            className={`w-4 h-4 transition-transform ${expandedNotes.has(note.id) ? 'rotate-180' : ''}`}
+                          />
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
@@ -1079,14 +1252,22 @@ Generated by FlowSphere Meeting Notes`
                           {/* Two main buttons */}
                           <div className="flex gap-2">
                             <Button
-                              variant={selectedView?.noteId === note.id && selectedView?.view === 'summary' ? 'default' : 'outline'}
+                              variant={
+                                selectedView?.noteId === note.id && selectedView?.view === 'summary'
+                                  ? 'default'
+                                  : 'outline'
+                              }
                               onClick={() => setSelectedView({ noteId: note.id, view: 'summary' })}
                               className="flex-1"
                             >
                               ✅ Approved Summary
                             </Button>
                             <Button
-                              variant={selectedView?.noteId === note.id && selectedView?.view === 'formats' ? 'default' : 'outline'}
+                              variant={
+                                selectedView?.noteId === note.id && selectedView?.view === 'formats'
+                                  ? 'default'
+                                  : 'outline'
+                              }
                               onClick={() => {
                                 setSelectedView({ noteId: note.id, view: 'formats' })
                                 // Auto-select first format when opening 4 Formats
@@ -1111,16 +1292,25 @@ Generated by FlowSphere Meeting Notes`
                                 <div className="flex items-center justify-between border-b border-border pb-2 min-w-0">
                                   <h4 className="font-semibold text-sm flex items-center gap-2 flex-shrink-0">
                                     AI-Generated Summary
-                                    <Badge variant="secondary" className="text-xs">Generated</Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      Generated
+                                    </Badge>
                                   </h4>
                                   <div className="flex gap-2 flex-shrink-0 ml-2">
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => {
-                                        const currentSummary = translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                          ? translatedSummaries[note.id][translationLanguage.language]
-                                          : note.summary!
+                                        const currentSummary =
+                                          translationLanguage.noteId === note.id &&
+                                          translationLanguage.language !== 'original' &&
+                                          translatedSummaries[note.id]?.[
+                                            translationLanguage.language
+                                          ]
+                                            ? translatedSummaries[note.id][
+                                                translationLanguage.language
+                                              ]
+                                            : note.summary!
                                         navigator.clipboard.writeText(currentSummary)
                                         toast.success('Summary copied!')
                                       }}
@@ -1132,9 +1322,16 @@ Generated by FlowSphere Meeting Notes`
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => {
-                                        const currentSummary = translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                          ? translatedSummaries[note.id][translationLanguage.language]
-                                          : note.summary!
+                                        const currentSummary =
+                                          translationLanguage.noteId === note.id &&
+                                          translationLanguage.language !== 'original' &&
+                                          translatedSummaries[note.id]?.[
+                                            translationLanguage.language
+                                          ]
+                                            ? translatedSummaries[note.id][
+                                                translationLanguage.language
+                                              ]
+                                            : note.summary!
                                         const content = `AI Summary - ${note.title}\n\n${currentSummary}`
                                         const blob = new Blob([content], { type: 'text/plain' })
                                         const url = URL.createObjectURL(blob)
@@ -1153,12 +1350,20 @@ Generated by FlowSphere Meeting Notes`
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => {
-                                        const currentSummary = translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                          ? translatedSummaries[note.id][translationLanguage.language]
-                                          : note.summary!
+                                        const currentSummary =
+                                          translationLanguage.noteId === note.id &&
+                                          translationLanguage.language !== 'original' &&
+                                          translatedSummaries[note.id]?.[
+                                            translationLanguage.language
+                                          ]
+                                            ? translatedSummaries[note.id][
+                                                translationLanguage.language
+                                              ]
+                                            : note.summary!
                                         const text = `AI Summary - ${note.title}\n\n${currentSummary}`
                                         if (navigator.share) {
-                                          navigator.share({ title: `Summary - ${note.title}`, text })
+                                          navigator
+                                            .share({ title: `Summary - ${note.title}`, text })
                                             .catch(() => navigator.clipboard.writeText(text))
                                         } else {
                                           navigator.clipboard.writeText(text)
@@ -1172,9 +1377,16 @@ Generated by FlowSphere Meeting Notes`
                                     <Button
                                       size="sm"
                                       onClick={() => {
-                                        const currentSummary = translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                          ? translatedSummaries[note.id][translationLanguage.language]
-                                          : note.summary!
+                                        const currentSummary =
+                                          translationLanguage.noteId === note.id &&
+                                          translationLanguage.language !== 'original' &&
+                                          translatedSummaries[note.id]?.[
+                                            translationLanguage.language
+                                          ]
+                                            ? translatedSummaries[note.id][
+                                                translationLanguage.language
+                                              ]
+                                            : note.summary!
                                         openEmailDialog(currentSummary, 'summary', note)
                                       }}
                                       className="bg-gradient-to-r from-accent to-primary"
@@ -1187,10 +1399,16 @@ Generated by FlowSphere Meeting Notes`
 
                                 {/* Language Selector */}
                                 <div className="flex items-center gap-2 pt-2">
-                                  <Label className="text-xs font-medium whitespace-nowrap">Translate to:</Label>
+                                  <Label className="text-xs font-medium whitespace-nowrap">
+                                    Translate to:
+                                  </Label>
                                   <Select
-                                    value={translationLanguage.noteId === note.id ? translationLanguage.language : 'original'}
-                                    onValueChange={async (value) => {
+                                    value={
+                                      translationLanguage.noteId === note.id
+                                        ? translationLanguage.language
+                                        : 'original'
+                                    }
+                                    onValueChange={async value => {
                                       setTranslationLanguage({ noteId: note.id, language: value })
                                       if (value !== 'original') {
                                         await translateSummary(note.id, value)
@@ -1202,14 +1420,17 @@ Generated by FlowSphere Meeting Notes`
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="original">Original Language</SelectItem>
-                                      {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(lang => (
-                                        <SelectItem key={lang.code} value={lang.code}>
-                                          {lang.name}
-                                        </SelectItem>
-                                      ))}
+                                      {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(
+                                        lang => (
+                                          <SelectItem key={lang.code} value={lang.code}>
+                                            {lang.name}
+                                          </SelectItem>
+                                        )
+                                      )}
                                     </SelectContent>
                                   </Select>
-                                  {translatingLanguage === `${note.id}-${translationLanguage.language}` && (
+                                  {translatingLanguage ===
+                                    `${note.id}-${translationLanguage.language}` && (
                                     <motion.div
                                       className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
                                       animate={{ rotate: 360 }}
@@ -1223,10 +1444,16 @@ Generated by FlowSphere Meeting Notes`
                                   <div
                                     className="text-sm prose prose-sm max-w-none break-words overflow-wrap-anywhere"
                                     dangerouslySetInnerHTML={{
-                                      __html: sanitizeHTML((translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                        ? translatedSummaries[note.id][translationLanguage.language]
-                                        : note.summary
-                                      ).replace(/\n/g, '<br/>'))
+                                      __html: sanitizeHTML(
+                                        (translationLanguage.noteId === note.id &&
+                                        translationLanguage.language !== 'original' &&
+                                        translatedSummaries[note.id]?.[translationLanguage.language]
+                                          ? translatedSummaries[note.id][
+                                              translationLanguage.language
+                                            ]
+                                          : note.summary
+                                        ).replace(/\n/g, '<br/>')
+                                      ),
                                     }}
                                   />
                                 </div>
@@ -1244,29 +1471,57 @@ Generated by FlowSphere Meeting Notes`
                               {/* Horizontal button row */}
                               <div className="flex gap-2 overflow-x-auto pb-2">
                                 <Button
-                                  variant={selectedScript?.noteId === note.id && selectedScript?.type === 'formal' ? 'default' : 'outline'}
-                                  onClick={() => setSelectedScript({ noteId: note.id, type: 'formal' })}
+                                  variant={
+                                    selectedScript?.noteId === note.id &&
+                                    selectedScript?.type === 'formal'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  onClick={() =>
+                                    setSelectedScript({ noteId: note.id, type: 'formal' })
+                                  }
                                   className="whitespace-nowrap"
                                 >
                                   📋 Formal
                                 </Button>
                                 <Button
-                                  variant={selectedScript?.noteId === note.id && selectedScript?.type === 'casual' ? 'default' : 'outline'}
-                                  onClick={() => setSelectedScript({ noteId: note.id, type: 'casual' })}
+                                  variant={
+                                    selectedScript?.noteId === note.id &&
+                                    selectedScript?.type === 'casual'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  onClick={() =>
+                                    setSelectedScript({ noteId: note.id, type: 'casual' })
+                                  }
                                   className="whitespace-nowrap"
                                 >
                                   💬 Casual
                                 </Button>
                                 <Button
-                                  variant={selectedScript?.noteId === note.id && selectedScript?.type === 'report' ? 'default' : 'outline'}
-                                  onClick={() => setSelectedScript({ noteId: note.id, type: 'report' })}
+                                  variant={
+                                    selectedScript?.noteId === note.id &&
+                                    selectedScript?.type === 'report'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  onClick={() =>
+                                    setSelectedScript({ noteId: note.id, type: 'report' })
+                                  }
                                   className="whitespace-nowrap"
                                 >
                                   📊 Report
                                 </Button>
                                 <Button
-                                  variant={selectedScript?.noteId === note.id && selectedScript?.type === 'meeting' ? 'default' : 'outline'}
-                                  onClick={() => setSelectedScript({ noteId: note.id, type: 'meeting' })}
+                                  variant={
+                                    selectedScript?.noteId === note.id &&
+                                    selectedScript?.type === 'meeting'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  onClick={() =>
+                                    setSelectedScript({ noteId: note.id, type: 'meeting' })
+                                  }
                                   className="whitespace-nowrap"
                                 >
                                   📝 Meeting
@@ -1284,7 +1539,13 @@ Generated by FlowSphere Meeting Notes`
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => setEditingContent({ noteId: note.id, type: 'script', scriptType: selectedScript.type })}
+                                        onClick={() =>
+                                          setEditingContent({
+                                            noteId: note.id,
+                                            type: 'script',
+                                            scriptType: selectedScript.type,
+                                          })
+                                        }
                                       >
                                         <PencilSimple className="w-4 h-4" />
                                       </Button>
@@ -1292,8 +1553,10 @@ Generated by FlowSphere Meeting Notes`
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => {
-                                          const currentScript = translatedScripts[note.id]?.[selectedScript.type]?.[translationLanguage.language]
-                                            || note.scripts![selectedScript.type]
+                                          const currentScript =
+                                            translatedScripts[note.id]?.[selectedScript.type]?.[
+                                              translationLanguage.language
+                                            ] || note.scripts![selectedScript.type]
                                           navigator.clipboard.writeText(currentScript)
                                           toast.success('Script copied!')
                                         }}
@@ -1305,8 +1568,10 @@ Generated by FlowSphere Meeting Notes`
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => {
-                                          const currentScript = translatedScripts[note.id]?.[selectedScript.type]?.[translationLanguage.language]
-                                            || note.scripts![selectedScript.type]
+                                          const currentScript =
+                                            translatedScripts[note.id]?.[selectedScript.type]?.[
+                                              translationLanguage.language
+                                            ] || note.scripts![selectedScript.type]
                                           downloadScript(currentScript, selectedScript.type, note)
                                         }}
                                         title="Download as text file"
@@ -1317,8 +1582,10 @@ Generated by FlowSphere Meeting Notes`
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => {
-                                          const currentScript = translatedScripts[note.id]?.[selectedScript.type]?.[translationLanguage.language]
-                                            || note.scripts![selectedScript.type]
+                                          const currentScript =
+                                            translatedScripts[note.id]?.[selectedScript.type]?.[
+                                              translationLanguage.language
+                                            ] || note.scripts![selectedScript.type]
                                           shareToContacts(currentScript, selectedScript.type, note)
                                         }}
                                         title="Share to contacts"
@@ -1328,8 +1595,10 @@ Generated by FlowSphere Meeting Notes`
                                       <Button
                                         size="sm"
                                         onClick={() => {
-                                          const currentScript = translatedScripts[note.id]?.[selectedScript.type]?.[translationLanguage.language]
-                                            || note.scripts![selectedScript.type]
+                                          const currentScript =
+                                            translatedScripts[note.id]?.[selectedScript.type]?.[
+                                              translationLanguage.language
+                                            ] || note.scripts![selectedScript.type]
                                           openEmailDialog(currentScript, selectedScript.type, note)
                                         }}
                                         className="bg-gradient-to-r from-accent to-primary"
@@ -1344,8 +1613,12 @@ Generated by FlowSphere Meeting Notes`
                                   <div className="flex items-center gap-2">
                                     <Translate className="w-4 h-4 flex-shrink-0" />
                                     <Select
-                                      value={translationLanguage.noteId === note.id ? translationLanguage.language : 'original'}
-                                      onValueChange={async (value) => {
+                                      value={
+                                        translationLanguage.noteId === note.id
+                                          ? translationLanguage.language
+                                          : 'original'
+                                      }
+                                      onValueChange={async value => {
                                         setTranslationLanguage({ noteId: note.id, language: value })
                                         if (value !== 'original') {
                                           await translateScript(note.id, selectedScript.type, value)
@@ -1357,64 +1630,93 @@ Generated by FlowSphere Meeting Notes`
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="original">Original</SelectItem>
-                                        {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(lang => (
-                                          <SelectItem key={lang.code} value={lang.code}>
-                                            {lang.name}
-                                          </SelectItem>
-                                        ))}
+                                        {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(
+                                          lang => (
+                                            <SelectItem key={lang.code} value={lang.code}>
+                                              {lang.name}
+                                            </SelectItem>
+                                          )
+                                        )}
                                       </SelectContent>
                                     </Select>
-                                    {translatingLanguage === `${note.id}-${selectedScript.type}-${translationLanguage.language}` && (
+                                    {translatingLanguage ===
+                                      `${note.id}-${selectedScript.type}-${translationLanguage.language}` && (
                                       <motion.div
                                         className="w-4 h-4 border-2 border-current border-t-transparent rounded-full flex-shrink-0"
                                         animate={{ rotate: 360 }}
-                                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                        transition={{
+                                          duration: 1,
+                                          repeat: Infinity,
+                                          ease: 'linear',
+                                        }}
                                       />
                                     )}
                                   </div>
 
                                   {/* Edit Instructions */}
-                                  {editingContent?.noteId === note.id && editingContent?.type === 'script' && editingContent?.scriptType === selectedScript.type && (
-                                    <div className="flex gap-2">
-                                      <Input
-                                        placeholder="Tell AI what to change..."
-                                        value={editInstructions}
-                                        onChange={(e) => setEditInstructions(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' && editInstructions.trim()) {
-                                            editContent(note.id, 'script', editInstructions, selectedScript.type)
+                                  {editingContent?.noteId === note.id &&
+                                    editingContent?.type === 'script' &&
+                                    editingContent?.scriptType === selectedScript.type && (
+                                      <div className="flex gap-2">
+                                        <Input
+                                          placeholder="Tell AI what to change..."
+                                          value={editInstructions}
+                                          onChange={e => setEditInstructions(e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter' && editInstructions.trim()) {
+                                              editContent(
+                                                note.id,
+                                                'script',
+                                                editInstructions,
+                                                selectedScript.type
+                                              )
+                                            }
+                                          }}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          onClick={() =>
+                                            editContent(
+                                              note.id,
+                                              'script',
+                                              editInstructions,
+                                              selectedScript.type
+                                            )
                                           }
-                                        }}
-                                      />
-                                      <Button
-                                        size="sm"
-                                        onClick={() => editContent(note.id, 'script', editInstructions, selectedScript.type)}
-                                        disabled={!editInstructions.trim() || isEditing}
-                                      >
-                                        {isEditing ? '...' : 'Edit'}
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => {
-                                          setEditingContent(null)
-                                          setEditInstructions('')
-                                        }}
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  )}
+                                          disabled={!editInstructions.trim() || isEditing}
+                                        >
+                                          {isEditing ? '...' : 'Edit'}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setEditingContent(null)
+                                            setEditInstructions('')
+                                          }}
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    )}
 
                                   <ScrollArea className="h-80 w-full">
                                     <div className="pr-4 max-w-full overflow-hidden">
                                       <div
                                         className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere"
                                         dangerouslySetInnerHTML={{
-                                          __html: sanitizeHTML((translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedScripts[note.id]?.[selectedScript.type]?.[translationLanguage.language]
-                                            ? translatedScripts[note.id][selectedScript.type][translationLanguage.language]
-                                            : note.scripts[selectedScript.type]
-                                          ).replace(/\n/g, '<br/>'))
+                                          __html: sanitizeHTML(
+                                            (translationLanguage.noteId === note.id &&
+                                            translationLanguage.language !== 'original' &&
+                                            translatedScripts[note.id]?.[selectedScript.type]?.[
+                                              translationLanguage.language
+                                            ]
+                                              ? translatedScripts[note.id][selectedScript.type][
+                                                  translationLanguage.language
+                                                ]
+                                              : note.scripts[selectedScript.type]
+                                            ).replace(/\n/g, '<br/>')
+                                          ),
                                         }}
                                       />
                                     </div>
@@ -1429,13 +1731,17 @@ Generated by FlowSphere Meeting Notes`
                           <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm flex items-center gap-2">
                               AI Summary
-                              <Badge variant="secondary" className="text-xs">Generated</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                Generated
+                              </Badge>
                             </h4>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => setEditingContent({ noteId: note.id, type: 'summary' })}
+                                onClick={() =>
+                                  setEditingContent({ noteId: note.id, type: 'summary' })
+                                }
                               >
                                 <PencilSimple className="w-4 h-4" />
                               </Button>
@@ -1446,8 +1752,12 @@ Generated by FlowSphere Meeting Notes`
                           <div className="flex items-center gap-2">
                             <Translate className="w-4 h-4 flex-shrink-0" />
                             <Select
-                              value={translationLanguage.noteId === note.id ? translationLanguage.language : 'original'}
-                              onValueChange={async (value) => {
+                              value={
+                                translationLanguage.noteId === note.id
+                                  ? translationLanguage.language
+                                  : 'original'
+                              }
+                              onValueChange={async value => {
                                 setTranslationLanguage({ noteId: note.id, language: value })
                                 if (value !== 'original') {
                                   await translateSummary(note.id, value)
@@ -1466,7 +1776,8 @@ Generated by FlowSphere Meeting Notes`
                                 ))}
                               </SelectContent>
                             </Select>
-                            {translatingLanguage === `${note.id}-${translationLanguage.language}` && (
+                            {translatingLanguage ===
+                              `${note.id}-${translationLanguage.language}` && (
                               <motion.div
                                 className="w-4 h-4 border-2 border-current border-t-transparent rounded-full flex-shrink-0"
                                 animate={{ rotate: 360 }}
@@ -1476,46 +1787,51 @@ Generated by FlowSphere Meeting Notes`
                           </div>
 
                           {/* Edit Instructions */}
-                          {editingContent?.noteId === note.id && editingContent?.type === 'summary' && (
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder="Tell AI what to change..."
-                                value={editInstructions}
-                                onChange={(e) => setEditInstructions(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && editInstructions.trim()) {
-                                    editContent(note.id, 'summary', editInstructions)
-                                  }
-                                }}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => editContent(note.id, 'summary', editInstructions)}
-                                disabled={!editInstructions.trim() || isEditing}
-                              >
-                                {isEditing ? '...' : 'Edit'}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingContent(null)
-                                  setEditInstructions('')
-                                }}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
+                          {editingContent?.noteId === note.id &&
+                            editingContent?.type === 'summary' && (
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Tell AI what to change..."
+                                  value={editInstructions}
+                                  onChange={e => setEditInstructions(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter' && editInstructions.trim()) {
+                                      editContent(note.id, 'summary', editInstructions)
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => editContent(note.id, 'summary', editInstructions)}
+                                  disabled={!editInstructions.trim() || isEditing}
+                                >
+                                  {isEditing ? '...' : 'Edit'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingContent(null)
+                                    setEditInstructions('')
+                                  }}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
 
                           <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                             <div
                               className="text-sm prose prose-sm max-w-none"
                               dangerouslySetInnerHTML={{
-                                __html: sanitizeHTML((translationLanguage.noteId === note.id && translationLanguage.language !== 'original' && translatedSummaries[note.id]?.[translationLanguage.language]
-                                  ? translatedSummaries[note.id][translationLanguage.language]
-                                  : note.summary
-                                ).replace(/\n/g, '<br/>'))
+                                __html: sanitizeHTML(
+                                  (translationLanguage.noteId === note.id &&
+                                  translationLanguage.language !== 'original' &&
+                                  translatedSummaries[note.id]?.[translationLanguage.language]
+                                    ? translatedSummaries[note.id][translationLanguage.language]
+                                    : note.summary
+                                  ).replace(/\n/g, '<br/>')
+                                ),
                               }}
                             />
                           </div>
@@ -1591,7 +1907,7 @@ Generated by FlowSphere Meeting Notes`
                   type="email"
                   placeholder="recipient@example.com"
                   value={emailTo}
-                  onChange={(e) => setEmailTo(e.target.value)}
+                  onChange={e => setEmailTo(e.target.value)}
                   required
                 />
               </div>
@@ -1601,7 +1917,7 @@ Generated by FlowSphere Meeting Notes`
                 <Input
                   id="email-subject"
                   value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
+                  onChange={e => setEmailSubject(e.target.value)}
                 />
               </div>
 
@@ -1610,7 +1926,7 @@ Generated by FlowSphere Meeting Notes`
                 <Textarea
                   id="email-body"
                   value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
+                  onChange={e => setEmailBody(e.target.value)}
                   rows={12}
                   className="font-mono text-xs"
                 />

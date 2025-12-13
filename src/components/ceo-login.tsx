@@ -34,7 +34,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
     username: '', // Verified server-side only
     password: '', // Never stored client-side
     lastRotation: new Date().toISOString(),
-    deviceId: 'device-' + Math.random().toString(36).substring(7)
+    deviceId: 'device-' + Math.random().toString(36).substring(7),
   })
 
   const [loginAttempts, setLoginAttempts] = useKV<any[]>('flowsphere-ceo-login-attempts', [])
@@ -59,11 +59,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
         setLoginAttempts([...(loginAttempts || []), attempt])
 
         const sessionsMonitor = new ActiveSessionsMonitor()
-        await sessionsMonitor.recordSuccessfulLogin(
-          username,
-          'CEO',
-          'CEO Executive'
-        )
+        await sessionsMonitor.recordSuccessfulLogin(username, 'CEO', 'CEO Executive')
 
         toast.success('Welcome, CEO! Secure session established.')
 
@@ -85,14 +81,11 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
         // Capture face silently (NO sounds, vibrations, or alerts)
         await faceCapture.captureOnFailedLogin(username || 'Unknown', {
           username: username,
-          ipAddress: await getIPAddress()
+          ipAddress: await getIPAddress(),
         })
 
         // Record failed attempt
-        await sessionsMonitor.recordFailedLogin(
-          username || 'Unknown',
-          failureReason
-        )
+        await sessionsMonitor.recordFailedLogin(username || 'Unknown', failureReason)
 
         setAttempts(prev => prev + 1)
 
@@ -155,7 +148,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
                     type="text"
                     placeholder="Enter CEO username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={e => setUsername(e.target.value)}
                     onKeyPress={handleKeyPress}
                     disabled={isLoading}
                     className="pl-10"
@@ -173,7 +166,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter CEO password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     onKeyPress={handleKeyPress}
                     disabled={isLoading}
                     className="pl-10 pr-10"
@@ -184,11 +177,7 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? (
-                      <EyeClosed className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showPassword ? <EyeClosed className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -241,11 +230,15 @@ export function CEOLogin({ onSuccess }: CEOLoginProps) {
             <div className="text-center text-xs text-muted-foreground pt-4 border-t space-y-2">
               <div className="flex items-center justify-center gap-2 text-accent">
                 <QrCode className="w-4 h-4" weight="fill" />
-                <span className="font-medium">Use QR code from your phone for current username</span>
+                <span className="font-medium">
+                  Use QR code from your phone for current username
+                </span>
               </div>
               <p>⚠️ Unauthorized access attempts are logged and monitored</p>
               <p>All login attempts are recorded with security cameras</p>
-              <p className="text-[10px] mt-2">Username rotates automatically after each login/logout</p>
+              <p className="text-[10px] mt-2">
+                Username rotates automatically after each login/logout
+              </p>
             </div>
           </CardContent>
         </Card>

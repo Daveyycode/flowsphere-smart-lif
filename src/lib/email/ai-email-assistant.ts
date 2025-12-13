@@ -14,40 +14,115 @@ import { logger } from '@/lib/security-utils'
  */
 const URGENT_TRIGGER_WORDS = [
   // Emergency keywords
-  'urgent', 'asap', 'immediate', 'immediately', 'now', 'emergency', 'emergencies',
-  'critical', 'action required', 'help needed', 'help me', 'need help',
+  'urgent',
+  'asap',
+  'immediate',
+  'immediately',
+  'now',
+  'emergency',
+  'emergencies',
+  'critical',
+  'action required',
+  'help needed',
+  'help me',
+  'need help',
 
   // Family/Personal emergency
-  'family emergency', 'family matter', 'family issue', 'mom', 'dad', 'parent',
-  'child', 'kids', 'son', 'daughter', 'wife', 'husband', 'spouse',
-  'accident', 'injured', 'hurt', 'sick', 'ill', 'passed away', 'death',
+  'family emergency',
+  'family matter',
+  'family issue',
+  'mom',
+  'dad',
+  'parent',
+  'child',
+  'kids',
+  'son',
+  'daughter',
+  'wife',
+  'husband',
+  'spouse',
+  'accident',
+  'injured',
+  'hurt',
+  'sick',
+  'ill',
+  'passed away',
+  'death',
 
   // Hospital/Medical
-  'hospital', 'hospitalized', 'medical', 'doctor', 'clinic', 'er ', 'emergency room',
-  'ambulance', 'surgery', 'operation', 'diagnosis', 'test results', 'lab results',
-  'prescription', 'medication', 'health alert', 'medical emergency',
+  'hospital',
+  'hospitalized',
+  'medical',
+  'doctor',
+  'clinic',
+  'er ',
+  'emergency room',
+  'ambulance',
+  'surgery',
+  'operation',
+  'diagnosis',
+  'test results',
+  'lab results',
+  'prescription',
+  'medication',
+  'health alert',
+  'medical emergency',
 
   // Work emergencies
-  'outage', 'down', 'crash', 'server down', 'system down', 'production issue',
-  'fix now', 'call me', 'call asap', 'important', 'high priority', 'p0', 'p1',
-  'reply by eod', 'due today', 'deadline today', 'due tomorrow',
+  'outage',
+  'down',
+  'crash',
+  'server down',
+  'system down',
+  'production issue',
+  'fix now',
+  'call me',
+  'call asap',
+  'important',
+  'high priority',
+  'p0',
+  'p1',
+  'reply by eod',
+  'due today',
+  'deadline today',
+  'due tomorrow',
 
   // Security/Account
-  'account compromised', 'unauthorized access', 'security alert', 'breach',
-  'suspicious activity', 'verify now', 'action needed immediately',
+  'account compromised',
+  'unauthorized access',
+  'security alert',
+  'breach',
+  'suspicious activity',
+  'verify now',
+  'action needed immediately',
 
   // Final notices
-  'final notice', 'last notice', 'expiring today', 'expires soon', 'last chance',
-  'account suspended', 'service termination', 'payment overdue'
+  'final notice',
+  'last notice',
+  'expiring today',
+  'expires soon',
+  'last chance',
+  'account suspended',
+  'service termination',
+  'payment overdue',
 ]
 
 /**
  * URGENT SENDER PATTERNS - Senders that indicate urgency
  */
 const URGENT_SENDER_PATTERNS = [
-  'hospital', 'clinic', 'medical', 'health', 'emergency',
-  'police', 'fire', 'ambulance', '911',
-  'security', 'fraud', 'alert'
+  'hospital',
+  'clinic',
+  'medical',
+  'health',
+  'emergency',
+  'police',
+  'fire',
+  'ambulance',
+  '911',
+  'security',
+  'fraud',
+  'alert',
 ]
 
 /**
@@ -56,40 +131,114 @@ const URGENT_SENDER_PATTERNS = [
  */
 const SUBSCRIPTION_TRIGGER_WORDS = [
   // Subscription billing keywords (CRITICAL - core feature)
-  'subscription', 'subscribed', 'subscriber', 'membership',
-  'billing', 'billed', 'invoice', 'payment', 'charge', 'charged',
-  'renewal', 'renew', 'auto-renew', 'recurring', 'monthly', 'annually', 'yearly',
+  'subscription',
+  'subscribed',
+  'subscriber',
+  'membership',
+  'billing',
+  'billed',
+  'invoice',
+  'payment',
+  'charge',
+  'charged',
+  'renewal',
+  'renew',
+  'auto-renew',
+  'recurring',
+  'monthly',
+  'annually',
+  'yearly',
 
   // Payment status
-  'payment successful', 'payment failed', 'payment declined', 'payment unsuccessful',
-  'payment due', 'payment received', 'payment processed', 'transaction',
-  'card declined', 'update payment', 'payment method',
+  'payment successful',
+  'payment failed',
+  'payment declined',
+  'payment unsuccessful',
+  'payment due',
+  'payment received',
+  'payment processed',
+  'transaction',
+  'card declined',
+  'update payment',
+  'payment method',
 
   // Subscription status
-  'trial started', 'trial ending', 'trial expired', 'free trial',
-  'subscription activated', 'subscription cancelled', 'subscription canceled',
-  'subscription expired', 'subscription renewed', 'subscription ending',
-  'plan upgraded', 'plan downgraded', 'plan changed',
+  'trial started',
+  'trial ending',
+  'trial expired',
+  'free trial',
+  'subscription activated',
+  'subscription cancelled',
+  'subscription canceled',
+  'subscription expired',
+  'subscription renewed',
+  'subscription ending',
+  'plan upgraded',
+  'plan downgraded',
+  'plan changed',
 
   // Known subscription services
-  'netflix', 'spotify', 'apple music', 'youtube premium', 'disney+', 'hbo max',
-  'amazon prime', 'hulu', 'paramount+', 'peacock', 'crunchyroll',
-  'adobe', 'microsoft 365', 'office 365', 'google one', 'icloud+', 'dropbox',
-  'notion', 'slack', 'zoom', 'canva', 'figma', 'github',
+  'netflix',
+  'spotify',
+  'apple music',
+  'youtube premium',
+  'disney+',
+  'hbo max',
+  'amazon prime',
+  'hulu',
+  'paramount+',
+  'peacock',
+  'crunchyroll',
+  'adobe',
+  'microsoft 365',
+  'office 365',
+  'google one',
+  'icloud+',
+  'dropbox',
+  'notion',
+  'slack',
+  'zoom',
+  'canva',
+  'figma',
+  'github',
 
   // Receipt/Invoice patterns
-  'receipt', 'invoice', 'statement', 'your order', 'purchase confirmation',
-  'amount:', 'total:', 'charged to', 'paid:', 'usd', 'php', '$'
+  'receipt',
+  'invoice',
+  'statement',
+  'your order',
+  'purchase confirmation',
+  'amount:',
+  'total:',
+  'charged to',
+  'paid:',
+  'usd',
+  'php',
+  '$',
 ]
 
 /**
  * PROMOTIONAL WORDS - NOT subscriptions, just marketing
  */
 const PROMOTIONAL_WORDS = [
-  'newsletter', 'digest', 'weekly', 'tips', 'best practices',
-  'get the most', 'promotion', 'deal', 'discount', 'flash sale',
-  'exclusive offer', 'limited time', 'sale', 'voucher', 'coupon',
-  'shop now', 'buy now', '% off'
+  'newsletter',
+  'digest',
+  'weekly',
+  'tips',
+  'best practices',
+  'get the most',
+  'promotion',
+  'deal',
+  'discount',
+  'flash sale',
+  'exclusive offer',
+  'limited time',
+  'sale',
+  'voucher',
+  'coupon',
+  'shop now',
+  'buy now',
+  '% off',
 ]
 
 /**
@@ -106,24 +255,50 @@ function hasUrgentFlag(email: Email): boolean {
   // AUTH/LOGIN EMAILS ARE NEVER URGENT - check this FIRST
   // These are "important" but NOT urgent
   const authKeywords = [
-    'sign in', 'log in', 'login', 'signin', 'secure link', 'magic link',
-    'verification', 'verify your', 'verify email', 'confirm your email',
-    'password reset', 'reset password', 'forgot password',
-    'two-factor', '2fa', 'authentication code', 'verification code',
-    'one-time password', 'otp', 'security code',
-    'let\'s get you signed in', 'sign in to', 'log in to'
+    'sign in',
+    'log in',
+    'login',
+    'signin',
+    'secure link',
+    'magic link',
+    'verification',
+    'verify your',
+    'verify email',
+    'confirm your email',
+    'password reset',
+    'reset password',
+    'forgot password',
+    'two-factor',
+    '2fa',
+    'authentication code',
+    'verification code',
+    'one-time password',
+    'otp',
+    'security code',
+    "let's get you signed in",
+    'sign in to',
+    'log in to',
   ]
   const isAuthEmail = authKeywords.some(keyword => text.includes(keyword))
 
   // Known auth service senders that should NEVER be marked urgent
   const authSenders = [
-    'noreply', 'no-reply', 'mail.anthropic.com', 'accounts.google.com',
-    'account.google.com', 'auth0', 'okta', 'microsoft.com', 'apple.com',
-    'github.com', 'gitlab.com', 'facebook.com', 'twitter.com', 'x.com'
+    'noreply',
+    'no-reply',
+    'mail.anthropic.com',
+    'accounts.google.com',
+    'account.google.com',
+    'auth0',
+    'okta',
+    'microsoft.com',
+    'apple.com',
+    'github.com',
+    'gitlab.com',
+    'facebook.com',
+    'twitter.com',
+    'x.com',
   ]
-  const isFromAuthSender = authSenders.some(sender =>
-    senderEmail.includes(sender)
-  )
+  const isFromAuthSender = authSenders.some(sender => senderEmail.includes(sender))
 
   // If it's an auth/login email, it's NEVER urgent
   if (isAuthEmail || isFromAuthSender) return false
@@ -131,21 +306,22 @@ function hasUrgentFlag(email: Email): boolean {
   // Promotional/retail - these are NEVER urgent
   const isPromo = PROMOTIONAL_WORDS.some(word => text.includes(word))
   const retailStores = ['lazada', 'shopee', 'amazon', 'zalora', 'alibaba', 'aliexpress', 'shein']
-  const isFromRetail = retailStores.some(store =>
-    senderEmail.includes(store) || senderName.includes(store)
+  const isFromRetail = retailStores.some(
+    store => senderEmail.includes(store) || senderName.includes(store)
   )
   if (isPromo || isFromRetail) return false
 
   // Check if sender matches urgent sender patterns (hospital, clinic, emergency services)
-  const isFromUrgentSender = URGENT_SENDER_PATTERNS.some(pattern =>
-    senderEmail.includes(pattern) || senderName.includes(pattern)
+  const isFromUrgentSender = URGENT_SENDER_PATTERNS.some(
+    pattern => senderEmail.includes(pattern) || senderName.includes(pattern)
   )
 
   // Check for urgent trigger words in content
   const hasUrgentWord = URGENT_TRIGGER_WORDS.some(trigger => text.includes(trigger.toLowerCase()))
 
   // Check for ALL CAPS subject (but not short subjects like "RE:" or "FWD:")
-  const hasAllCapsSubject = email.subject.length > 10 && email.subject === email.subject.toUpperCase()
+  const hasAllCapsSubject =
+    email.subject.length > 10 && email.subject === email.subject.toUpperCase()
 
   // Check for multiple exclamation marks
   const hasMultipleExclamations = (email.subject.match(/!/g) || []).length >= 2
@@ -182,7 +358,16 @@ export interface AssistantResponse {
   summary: string
   emails: Email[]
   suggestions: string[]
-  queryType: 'search' | 'summary' | 'action' | 'question' | 'draft' | 'compose' | 'analyze' | 'compare' | 'handoff'
+  queryType:
+    | 'search'
+    | 'summary'
+    | 'action'
+    | 'question'
+    | 'draft'
+    | 'compose'
+    | 'analyze'
+    | 'compare'
+    | 'handoff'
   draftEmail?: DraftEmail
   needsConfirmation?: boolean // For "search other categories?" flow
   confirmationType?: 'search_other_categories' | 'search_archive'
@@ -195,12 +380,28 @@ export interface AssistantResponse {
  * Quick action templates for common queries
  */
 export const QUICK_ACTIONS = [
-  { label: "What's urgent?", query: "Summarize my urgent emails - what do they say and what action is needed?", icon: "warning" },
-  { label: "Today's summary", query: "Give me a detailed summary of all emails I received today", icon: "briefcase" },
-  { label: "Unread overview", query: "Read and summarize all my unread emails", icon: "envelope" },
-  { label: "Meeting requests", query: "Do I have any meeting requests? What are the details?", icon: "calendar" },
-  { label: "Action items", query: "What emails need me to take action? Be specific about what's needed.", icon: "check" },
-  { label: "Work updates", query: "Summarize my work-related emails from this week", icon: "user" },
+  {
+    label: "What's urgent?",
+    query: 'Summarize my urgent emails - what do they say and what action is needed?',
+    icon: 'warning',
+  },
+  {
+    label: "Today's summary",
+    query: 'Give me a detailed summary of all emails I received today',
+    icon: 'briefcase',
+  },
+  { label: 'Unread overview', query: 'Read and summarize all my unread emails', icon: 'envelope' },
+  {
+    label: 'Meeting requests',
+    query: 'Do I have any meeting requests? What are the details?',
+    icon: 'calendar',
+  },
+  {
+    label: 'Action items',
+    query: "What emails need me to take action? Be specific about what's needed.",
+    icon: 'check',
+  },
+  { label: 'Work updates', query: 'Summarize my work-related emails from this week', icon: 'user' },
 ]
 
 /**
@@ -212,11 +413,40 @@ function detectNonEmailQuery(query: string): string | null {
 
   // Email-related keywords - if ANY of these are present, it's an email query
   const emailKeywords = [
-    'email', 'emails', 'mail', 'inbox', 'unread', 'read', 'reply', 'forward', 'draft', 'compose',
-    'send', 'sent', 'received', 'from', 'subject', 'attachment', 'urgent', 'important',
-    'meeting', 'calendar invite', 'newsletter', 'subscription', 'billing', 'receipt',
-    'notification', 'alert', 'message', 'messages', 'correspondence',
-    'work email', 'personal email', 'spam', 'promotions', 'updates'
+    'email',
+    'emails',
+    'mail',
+    'inbox',
+    'unread',
+    'read',
+    'reply',
+    'forward',
+    'draft',
+    'compose',
+    'send',
+    'sent',
+    'received',
+    'from',
+    'subject',
+    'attachment',
+    'urgent',
+    'important',
+    'meeting',
+    'calendar invite',
+    'newsletter',
+    'subscription',
+    'billing',
+    'receipt',
+    'notification',
+    'alert',
+    'message',
+    'messages',
+    'correspondence',
+    'work email',
+    'personal email',
+    'spam',
+    'promotions',
+    'updates',
   ]
 
   // If the query mentions email-related terms, it's an email query
@@ -243,7 +473,7 @@ function detectNonEmailQuery(query: string): string | null {
     // Conversational
     /(hello|hi|hey|thanks|thank you|goodbye|bye|how are you)/i,
     // Creative
-    /(write a (poem|story|song|joke)|generate|create (a|an) (image|picture|logo))/i
+    /(write a (poem|story|song|joke)|generate|create (a|an) (image|picture|logo))/i,
   ]
 
   // Check if it matches non-email patterns
@@ -275,7 +505,15 @@ async function analyzeQueryIntent(query: string): Promise<{
   searchTerms: string[]
   timeFilter: 'today' | 'week' | 'month' | 'all'
   categoryFilter: string | null
-  queryType: 'search' | 'summary' | 'action' | 'question' | 'draft' | 'compose' | 'analyze' | 'compare'
+  queryType:
+    | 'search'
+    | 'summary'
+    | 'action'
+    | 'question'
+    | 'draft'
+    | 'compose'
+    | 'analyze'
+    | 'compare'
   shouldSearchWorkFirst: boolean
   specificKeywords: string[] // e.g., "DOLE" from user query
 }> {
@@ -283,11 +521,23 @@ async function analyzeQueryIntent(query: string): Promise<{
 
   // Time filter detection
   let timeFilter: 'today' | 'week' | 'month' | 'all' = 'all'
-  if (lowerQuery.includes('today') || lowerQuery.includes('this morning') || lowerQuery.includes('tonight')) {
+  if (
+    lowerQuery.includes('today') ||
+    lowerQuery.includes('this morning') ||
+    lowerQuery.includes('tonight')
+  ) {
     timeFilter = 'today'
-  } else if (lowerQuery.includes('this week') || lowerQuery.includes('week') || lowerQuery.includes('past few days')) {
+  } else if (
+    lowerQuery.includes('this week') ||
+    lowerQuery.includes('week') ||
+    lowerQuery.includes('past few days')
+  ) {
     timeFilter = 'week'
-  } else if (lowerQuery.includes('this month') || lowerQuery.includes('month') || lowerQuery.includes('recently')) {
+  } else if (
+    lowerQuery.includes('this month') ||
+    lowerQuery.includes('month') ||
+    lowerQuery.includes('recently')
+  ) {
     timeFilter = 'month'
   }
 
@@ -297,77 +547,211 @@ async function analyzeQueryIntent(query: string): Promise<{
   let categoryFilter: string | null = null
   let shouldSearchWorkFirst = false
 
-  if (lowerQuery.includes('urgent') || lowerQuery.includes('important') || lowerQuery.includes('critical')) {
+  if (
+    lowerQuery.includes('urgent') ||
+    lowerQuery.includes('important') ||
+    lowerQuery.includes('critical')
+  ) {
     categoryFilter = 'urgent_flag' // Special flag - will filter by hasUrgentFlag() not category
-  } else if (lowerQuery.includes('meeting') || lowerQuery.includes('calendar') || lowerQuery.includes('invite') || lowerQuery.includes('schedule')) {
+  } else if (
+    lowerQuery.includes('meeting') ||
+    lowerQuery.includes('calendar') ||
+    lowerQuery.includes('invite') ||
+    lowerQuery.includes('schedule')
+  ) {
     categoryFilter = 'meeting_search' // Special: search for meeting keywords in content
-  } else if (lowerQuery.includes('emergency') || lowerQuery.includes('alarm') || lowerQuery.includes('security alert')) {
+  } else if (
+    lowerQuery.includes('emergency') ||
+    lowerQuery.includes('alarm') ||
+    lowerQuery.includes('security alert')
+  ) {
     categoryFilter = 'emergency' // True emergencies only (security alerts, alarms)
-  } else if (lowerQuery.includes('work email') || lowerQuery.includes('work emails') ||
-             lowerQuery.includes('from work') || lowerQuery.includes('office email')) {
+  } else if (
+    lowerQuery.includes('work email') ||
+    lowerQuery.includes('work emails') ||
+    lowerQuery.includes('from work') ||
+    lowerQuery.includes('office email')
+  ) {
     // User specifically asking for work emails - search work category first
     categoryFilter = 'work'
     shouldSearchWorkFirst = true
-  } else if (lowerQuery.includes('work') || lowerQuery.includes('project') || lowerQuery.includes('office') || lowerQuery.includes('team')) {
+  } else if (
+    lowerQuery.includes('work') ||
+    lowerQuery.includes('project') ||
+    lowerQuery.includes('office') ||
+    lowerQuery.includes('team')
+  ) {
     categoryFilter = 'work'
-  } else if (lowerQuery.includes('personal') || lowerQuery.includes('family') || lowerQuery.includes('friend')) {
+  } else if (
+    lowerQuery.includes('personal') ||
+    lowerQuery.includes('family') ||
+    lowerQuery.includes('friend')
+  ) {
     categoryFilter = 'personal'
-  } else if (lowerQuery.includes('subscription') || lowerQuery.includes('bill') || lowerQuery.includes('newsletter') || lowerQuery.includes('promo')) {
+  } else if (
+    lowerQuery.includes('subscription') ||
+    lowerQuery.includes('bill') ||
+    lowerQuery.includes('newsletter') ||
+    lowerQuery.includes('promo')
+  ) {
     categoryFilter = 'subscription'
   }
 
   // Query type detection - enhanced with analyze, compare, and more actions
-  let queryType: 'search' | 'summary' | 'action' | 'question' | 'draft' | 'compose' | 'analyze' | 'compare' = 'search'
+  let queryType:
+    | 'search'
+    | 'summary'
+    | 'action'
+    | 'question'
+    | 'draft'
+    | 'compose'
+    | 'analyze'
+    | 'compare' = 'search'
 
   // Draft/Reply actions
-  if (lowerQuery.includes('draft') || lowerQuery.includes('reply') || lowerQuery.includes('respond to') || lowerQuery.includes('respond/reply')) {
+  if (
+    lowerQuery.includes('draft') ||
+    lowerQuery.includes('reply') ||
+    lowerQuery.includes('respond to') ||
+    lowerQuery.includes('respond/reply')
+  ) {
     queryType = 'draft'
   }
   // Compose actions
-  else if (lowerQuery.includes('compose') || lowerQuery.includes('write') || lowerQuery.includes('create email') ||
-           lowerQuery.includes('new email') || lowerQuery.includes('create a draft')) {
+  else if (
+    lowerQuery.includes('compose') ||
+    lowerQuery.includes('write') ||
+    lowerQuery.includes('create email') ||
+    lowerQuery.includes('new email') ||
+    lowerQuery.includes('create a draft')
+  ) {
     queryType = 'compose'
   }
   // Compare actions
-  else if (lowerQuery.includes('compare') || lowerQuery.includes('which one') || lowerQuery.includes('difference between') ||
-           lowerQuery.includes('vs') || lowerQuery.includes('versus')) {
+  else if (
+    lowerQuery.includes('compare') ||
+    lowerQuery.includes('which one') ||
+    lowerQuery.includes('difference between') ||
+    lowerQuery.includes('vs') ||
+    lowerQuery.includes('versus')
+  ) {
     queryType = 'compare'
   }
   // Analyze actions
-  else if (lowerQuery.includes('analyze') || lowerQuery.includes('what is it about') || lowerQuery.includes('check sender') ||
-           lowerQuery.includes('check raw') || lowerQuery.includes('give comment') || lowerQuery.includes('is it urgent') ||
-           lowerQuery.includes('is this') || lowerQuery.includes('tell me about')) {
+  else if (
+    lowerQuery.includes('analyze') ||
+    lowerQuery.includes('what is it about') ||
+    lowerQuery.includes('check sender') ||
+    lowerQuery.includes('check raw') ||
+    lowerQuery.includes('give comment') ||
+    lowerQuery.includes('is it urgent') ||
+    lowerQuery.includes('is this') ||
+    lowerQuery.includes('tell me about')
+  ) {
     queryType = 'analyze'
   }
   // Summary actions
-  else if (lowerQuery.includes('summary') || lowerQuery.includes('summarize') || lowerQuery.includes('overview') ||
-           lowerQuery.includes('what do') || lowerQuery.includes('what are')) {
+  else if (
+    lowerQuery.includes('summary') ||
+    lowerQuery.includes('summarize') ||
+    lowerQuery.includes('overview') ||
+    lowerQuery.includes('what do') ||
+    lowerQuery.includes('what are')
+  ) {
     queryType = 'summary'
   }
   // Action/To-do items
-  else if (lowerQuery.includes('action') || lowerQuery.includes('need to') || lowerQuery.includes('should i') ||
-           lowerQuery.includes('to-do') || lowerQuery.includes('todo') || lowerQuery.includes('help me')) {
+  else if (
+    lowerQuery.includes('action') ||
+    lowerQuery.includes('need to') ||
+    lowerQuery.includes('should i') ||
+    lowerQuery.includes('to-do') ||
+    lowerQuery.includes('todo') ||
+    lowerQuery.includes('help me')
+  ) {
     queryType = 'action'
   }
   // Search actions
-  else if (lowerQuery.includes('search') || lowerQuery.includes('look for') || lowerQuery.includes('find') ||
-           lowerQuery.includes('show me') || lowerQuery.includes('pull')) {
+  else if (
+    lowerQuery.includes('search') ||
+    lowerQuery.includes('look for') ||
+    lowerQuery.includes('find') ||
+    lowerQuery.includes('show me') ||
+    lowerQuery.includes('pull')
+  ) {
     queryType = 'search'
   }
   // Questions
-  else if (lowerQuery.startsWith('what') || lowerQuery.startsWith('who') || lowerQuery.startsWith('when') ||
-           lowerQuery.startsWith('how') || lowerQuery.startsWith('do i') || lowerQuery.startsWith('did i') ||
-           lowerQuery.startsWith('have i') || lowerQuery.includes('?')) {
+  else if (
+    lowerQuery.startsWith('what') ||
+    lowerQuery.startsWith('who') ||
+    lowerQuery.startsWith('when') ||
+    lowerQuery.startsWith('how') ||
+    lowerQuery.startsWith('do i') ||
+    lowerQuery.startsWith('did i') ||
+    lowerQuery.startsWith('have i') ||
+    lowerQuery.includes('?')
+  ) {
     queryType = 'question'
   }
 
   // Extract meaningful search terms
-  const stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her',
-    'was', 'one', 'our', 'out', 'has', 'have', 'been', 'from', 'this', 'that',
-    'what', 'give', 'summary', 'show', 'find', 'search', 'get', 'any', 'some',
-    'emails', 'email', 'inbox', 'messages', 'message', 'please', 'could', 'would',
-    'about', 'with', 'read', 'tell', 'summarize', 'today', 'week', 'month',
-    'work', 'personal', 'urgent', 'yes', 'search', 'other', 'categories', 'instead']
+  const stopWords = [
+    'the',
+    'and',
+    'for',
+    'are',
+    'but',
+    'not',
+    'you',
+    'all',
+    'can',
+    'had',
+    'her',
+    'was',
+    'one',
+    'our',
+    'out',
+    'has',
+    'have',
+    'been',
+    'from',
+    'this',
+    'that',
+    'what',
+    'give',
+    'summary',
+    'show',
+    'find',
+    'search',
+    'get',
+    'any',
+    'some',
+    'emails',
+    'email',
+    'inbox',
+    'messages',
+    'message',
+    'please',
+    'could',
+    'would',
+    'about',
+    'with',
+    'read',
+    'tell',
+    'summarize',
+    'today',
+    'week',
+    'month',
+    'work',
+    'personal',
+    'urgent',
+    'yes',
+    'search',
+    'other',
+    'categories',
+    'instead',
+  ]
 
   const searchTerms = query
     .toLowerCase()
@@ -378,12 +762,16 @@ async function analyzeQueryIntent(query: string): Promise<{
   // Extract specific keywords in quotes or CAPS (like "DOLE")
   const quotedMatch = query.match(/"([^"]+)"/g) || []
   const capsMatch = query.match(/\b[A-Z]{2,}\b/g) || []
-  const specificKeywords = [
-    ...quotedMatch.map(m => m.replace(/"/g, '')),
-    ...capsMatch
-  ]
+  const specificKeywords = [...quotedMatch.map(m => m.replace(/"/g, '')), ...capsMatch]
 
-  return { searchTerms, timeFilter, categoryFilter, queryType, shouldSearchWorkFirst, specificKeywords }
+  return {
+    searchTerms,
+    timeFilter,
+    categoryFilter,
+    queryType,
+    shouldSearchWorkFirst,
+    specificKeywords,
+  }
 }
 
 /**
@@ -398,10 +786,28 @@ async function searchEmailsForQuery(
 
   // Meeting-related keywords to search for
   const MEETING_KEYWORDS = [
-    'meeting', 'calendar', 'invite', 'invitation', 'schedule', 'scheduled',
-    'zoom', 'google meet', 'teams', 'webex', 'conference', 'call',
-    'join us', 'join meeting', 'rsvp', 'accept', 'decline',
-    'agenda', 'appointment', 'sync', 'standup', 'check-in'
+    'meeting',
+    'calendar',
+    'invite',
+    'invitation',
+    'schedule',
+    'scheduled',
+    'zoom',
+    'google meet',
+    'teams',
+    'webex',
+    'conference',
+    'call',
+    'join us',
+    'join meeting',
+    'rsvp',
+    'accept',
+    'decline',
+    'agenda',
+    'appointment',
+    'sync',
+    'standup',
+    'check-in',
   ]
 
   try {
@@ -425,10 +831,11 @@ async function searchEmailsForQuery(
         // Check for meeting keywords in content
         const hasMeetingKeyword = MEETING_KEYWORDS.some(kw => text.includes(kw))
         // Check for calendar/meeting service senders
-        const isFromCalendar = senderEmail.includes('calendar') ||
-                               senderEmail.includes('meet') ||
-                               senderEmail.includes('zoom') ||
-                               senderEmail.includes('teams')
+        const isFromCalendar =
+          senderEmail.includes('calendar') ||
+          senderEmail.includes('meet') ||
+          senderEmail.includes('zoom') ||
+          senderEmail.includes('teams')
 
         // Only include if it has meeting indicators
         if (!hasMeetingKeyword && !isFromCalendar) return false
@@ -443,7 +850,7 @@ async function searchEmailsForQuery(
         const datePatterns = [
           /\b(today|tomorrow|this week|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
           /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{1,2}/i,
-          /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/
+          /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/,
         ]
         const hasFutureDateMention = datePatterns.some(pattern => pattern.test(text))
 
@@ -473,7 +880,8 @@ async function searchEmailsForQuery(
     // Apply search term filter if any meaningful terms exist
     if (searchTerms.length > 0) {
       const filteredByTerms = emails.filter(email => {
-        const searchText = `${email.subject} ${email.body || ''} ${email.snippet || ''} ${email.from.name} ${email.from.email}`.toLowerCase()
+        const searchText =
+          `${email.subject} ${email.body || ''} ${email.snippet || ''} ${email.from.name} ${email.from.email}`.toLowerCase()
         return searchTerms.some(term => searchText.includes(term))
       })
       // Only use filtered results if we found matches, otherwise return all (for summary queries)
@@ -497,25 +905,28 @@ async function searchEmailsForQuery(
  * This is the key function that gives AI the actual email content to read
  */
 function prepareEmailContentForAI(emails: Email[], maxEmails: number = 15): string {
-  if (emails.length === 0) return "No emails found."
+  if (emails.length === 0) return 'No emails found.'
 
-  return emails.slice(0, maxEmails).map((email, i) => {
-    const date = new Date(email.timestamp).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-    const category = email.category || 'uncategorized'
-    const readStatus = email.read ? '' : '[UNREAD] '
+  return emails
+    .slice(0, maxEmails)
+    .map((email, i) => {
+      const date = new Date(email.timestamp).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const category = email.category || 'uncategorized'
+      const readStatus = email.read ? '' : '[UNREAD] '
 
-    // Get full email body content - this is what makes the AI actually read emails
-    const fullContent = email.body || email.snippet || 'No content available'
-    // Limit individual email content but keep enough for meaningful summary
-    const content = fullContent.length > 1500 ? fullContent.substring(0, 1500) + '...' : fullContent
+      // Get full email body content - this is what makes the AI actually read emails
+      const fullContent = email.body || email.snippet || 'No content available'
+      // Limit individual email content but keep enough for meaningful summary
+      const content =
+        fullContent.length > 1500 ? fullContent.substring(0, 1500) + '...' : fullContent
 
-    return `
+      return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EMAIL #${i + 1} ${readStatus}[${category.toUpperCase()}]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -526,7 +937,8 @@ Subject: ${email.subject}
 CONTENT:
 ${content}
 `
-  }).join('\n')
+    })
+    .join('\n')
 }
 
 /**
@@ -545,7 +957,8 @@ async function generateAIResponse(
 
   if (emails.length === 0) {
     return {
-      summary: "I searched through your inbox but couldn't find any emails matching your request. This could mean:\n\n• No emails exist in that category/timeframe\n• Your email accounts may not be synced yet\n• Try a broader search or different time range\n\nWould you like me to show all your recent emails instead?"
+      summary:
+        "I searched through your inbox but couldn't find any emails matching your request. This could mean:\n\n• No emails exist in that category/timeframe\n• Your email accounts may not be synced yet\n• Try a broader search or different time range\n\nWould you like me to show all your recent emails instead?",
     }
   }
 
@@ -665,13 +1078,13 @@ Provide a helpful overview of what was found. Be specific about the content - me
   try {
     const messages: GroqMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
+      { role: 'user', content: userPrompt },
     ]
 
     const response = await groqChatWithHistory(messages, {
       model: 'llama-3.3-70b-versatile',
       temperature: 0.6,
-      max_tokens: 2048
+      max_tokens: 2048,
     })
 
     // Parse draft email if applicable
@@ -685,7 +1098,7 @@ Provide a helpful overview of what was found. Be specific about the content - me
         draftEmail = {
           to: toMatch?.[1]?.trim() || '',
           subject: subjectMatch[1].trim(),
-          body: bodyMatch[1].trim()
+          body: bodyMatch[1].trim(),
         }
       }
     }
@@ -719,7 +1132,8 @@ function generateLocalFallbackResponse(
   // Helper to format email preview
   const formatEmail = (email: Email, index: number): string => {
     const date = new Date(email.timestamp).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric'
+      month: 'short',
+      day: 'numeric',
     })
     const sender = email.from.name || email.from.email.split('@')[0]
     const unreadMarker = !email.read ? ' [UNREAD]' : ''
@@ -730,9 +1144,27 @@ function generateLocalFallbackResponse(
   // Helper to extract key words/topics from emails
   const extractTopics = (emailList: Email[]): string[] => {
     const keywords: Record<string, number> = {}
-    const importantWords = ['meeting', 'deadline', 'urgent', 'important', 'asap', 'payment',
-      'invoice', 'project', 'report', 'review', 'approval', 'confirm', 'schedule',
-      'update', 'reminder', 'action', 'required', 'please', 'request']
+    const importantWords = [
+      'meeting',
+      'deadline',
+      'urgent',
+      'important',
+      'asap',
+      'payment',
+      'invoice',
+      'project',
+      'report',
+      'review',
+      'approval',
+      'confirm',
+      'schedule',
+      'update',
+      'reminder',
+      'action',
+      'required',
+      'please',
+      'request',
+    ]
 
     emailList.forEach(email => {
       const text = `${email.subject} ${email.snippet || ''}`.toLowerCase()
@@ -787,9 +1219,17 @@ function generateLocalFallbackResponse(
       // Look for action-related keywords
       const actionEmails = emails.filter(e => {
         const text = `${e.subject} ${e.snippet || ''}`.toLowerCase()
-        return text.includes('action') || text.includes('please') || text.includes('required') ||
-               text.includes('deadline') || text.includes('asap') || text.includes('urgent') ||
-               text.includes('review') || text.includes('approve') || text.includes('confirm')
+        return (
+          text.includes('action') ||
+          text.includes('please') ||
+          text.includes('required') ||
+          text.includes('deadline') ||
+          text.includes('asap') ||
+          text.includes('urgent') ||
+          text.includes('review') ||
+          text.includes('approve') ||
+          text.includes('confirm')
+        )
       })
 
       if (actionEmails.length > 0) {
@@ -832,8 +1272,8 @@ function generateLocalFallbackResponse(
           draftEmail: {
             to: targetEmail.from.email,
             subject: `Re: ${targetEmail.subject}`,
-            body: `Hi ${sender},\n\nThank you for your email regarding "${targetEmail.subject}".\n\n[Your response here]\n\nBest regards`
-          }
+            body: `Hi ${sender},\n\nThank you for your email regarding "${targetEmail.subject}".\n\n[Your response here]\n\nBest regards`,
+          },
         }
       } else {
         summary = `📝 **New Email Draft**\n\n`
@@ -869,11 +1309,7 @@ function generateLocalFallbackResponse(
 /**
  * Generate contextual follow-up suggestions
  */
-function generateSuggestions(
-  query: string,
-  emails: Email[],
-  queryType: string
-): string[] {
+function generateSuggestions(query: string, emails: Email[], queryType: string): string[] {
   const suggestions: string[] = []
   const lowerQuery = query.toLowerCase()
 
@@ -885,18 +1321,18 @@ function generateSuggestions(
 
     // Contextual suggestions based on results
     if (hasUnread && !lowerQuery.includes('unread')) {
-      suggestions.push("Summarize my unread emails")
+      suggestions.push('Summarize my unread emails')
     }
     if (hasUrgent && !lowerQuery.includes('urgent')) {
-      suggestions.push("What urgent items need attention?")
+      suggestions.push('What urgent items need attention?')
     }
     if (hasWork && !lowerQuery.includes('work')) {
-      suggestions.push("Summarize work emails this week")
+      suggestions.push('Summarize work emails this week')
     }
 
     // Reply/compose suggestions
     if (emails.length > 0 && queryType !== 'draft') {
-      suggestions.push("Draft a reply to the first email")
+      suggestions.push('Draft a reply to the first email')
     }
 
     // Sender-based suggestions
@@ -908,9 +1344,9 @@ function generateSuggestions(
 
   // Fallback suggestions
   if (suggestions.length === 0) {
-    suggestions.push("What needs my attention today?")
+    suggestions.push('What needs my attention today?')
     suggestions.push("Summarize this week's emails")
-    suggestions.push("Any upcoming deadlines?")
+    suggestions.push('Any upcoming deadlines?')
   }
 
   return suggestions.slice(0, 4)
@@ -919,7 +1355,10 @@ function generateSuggestions(
 /**
  * Search work emails in archive (5-year history)
  */
-async function searchWorkArchive(searchTerms: string[], specificKeywords: string[]): Promise<Email[]> {
+async function searchWorkArchive(
+  searchTerms: string[],
+  specificKeywords: string[]
+): Promise<Email[]> {
   try {
     // Combine search terms and specific keywords
     const allTerms = [...searchTerms, ...specificKeywords]
@@ -955,35 +1394,49 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
     return {
       summary: `This looks like a general question rather than an email-related request. I'm the Email Assistant, so I specialize in managing your inbox.\n\nWould you like me to hand this off to the General AI Assistant? They can help with:\n• General knowledge questions\n• Smart home controls\n• Tasks and reminders\n• And much more!\n\nClick the button below to continue with the General Assistant.`,
       emails: [],
-      suggestions: ['Show my unread emails', 'What emails need action?', 'Summarize today\'s emails'],
+      suggestions: [
+        'Show my unread emails',
+        'What emails need action?',
+        "Summarize today's emails",
+      ],
       queryType: 'handoff',
       handoffToGeneral: true,
-      handoffQuery: query
+      handoffQuery: query,
     }
   }
 
   // Check for user confirmation responses
   const lowerQuery = query.toLowerCase()
-  const isYesResponse = lowerQuery === 'yes' || lowerQuery === 'yeah' || lowerQuery === 'sure' ||
-                        lowerQuery === 'ok' || lowerQuery === 'yes please' || lowerQuery.includes('yes')
+  const isYesResponse =
+    lowerQuery === 'yes' ||
+    lowerQuery === 'yeah' ||
+    lowerQuery === 'sure' ||
+    lowerQuery === 'ok' ||
+    lowerQuery === 'yes please' ||
+    lowerQuery.includes('yes')
   const isNoResponse = lowerQuery === 'no' || lowerQuery === 'nope' || lowerQuery === 'no thanks'
 
   // Check if this is a follow-up to "search other categories?" question
   const lastAssistantMsg = conversationHistory?.filter(m => m.role === 'assistant').slice(-1)[0]
-  const wasAskingToSearchOthers = lastAssistantMsg?.content.includes('shall i search on other categories')
+  const wasAskingToSearchOthers = lastAssistantMsg?.content.includes(
+    'shall i search on other categories'
+  )
 
   if (wasAskingToSearchOthers && isYesResponse) {
     // User said yes to searching other categories - search ALL emails
     logger.info('User confirmed: Searching all categories')
     const allEmails = await emailDatabase.getAllEmails()
-    const lastUserQuery = conversationHistory?.filter(m => m.role === 'user').slice(-2)[0]?.content || ''
+    const lastUserQuery =
+      conversationHistory?.filter(m => m.role === 'user').slice(-2)[0]?.content || ''
     const intent = await analyzeQueryIntent(lastUserQuery)
 
     // Filter by specific keywords
     const filteredEmails = allEmails.filter(email => {
       const text = `${email.subject} ${email.body || ''} ${email.snippet || ''}`.toLowerCase()
-      return intent.specificKeywords.some(kw => text.includes(kw.toLowerCase())) ||
-             intent.searchTerms.some(term => text.includes(term))
+      return (
+        intent.specificKeywords.some(kw => text.includes(kw.toLowerCase())) ||
+        intent.searchTerms.some(term => text.includes(term))
+      )
     })
 
     const { summary } = await generateAIResponse(lastUserQuery, filteredEmails, intent.queryType)
@@ -993,7 +1446,7 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
       emails: filteredEmails.slice(0, 10),
       suggestions: ['Summarize these', 'Which one is most relevant?', 'Help me draft a response'],
       queryType: intent.queryType,
-      searchedCategory: 'all'
+      searchedCategory: 'all',
     }
   }
 
@@ -1020,8 +1473,10 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
     const workEmails = await emailDatabase.getEmailsByCategory('work')
     emails = workEmails.filter(email => {
       const text = `${email.subject} ${email.body || ''} ${email.snippet || ''}`.toLowerCase()
-      return intent.specificKeywords.some(kw => text.includes(kw.toLowerCase())) ||
-             intent.searchTerms.some(term => text.includes(term))
+      return (
+        intent.specificKeywords.some(kw => text.includes(kw.toLowerCase())) ||
+        intent.searchTerms.some(term => text.includes(term))
+      )
     })
 
     searchedCategory = 'work'
@@ -1052,18 +1507,19 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
 
   // If no results and we should ask about other categories
   if (needsConfirmation && confirmationType === 'search_other_categories') {
-    const keywordStr = intent.specificKeywords.length > 0
-      ? intent.specificKeywords.join(', ')
-      : intent.searchTerms.join(' ')
+    const keywordStr =
+      intent.specificKeywords.length > 0
+        ? intent.specificKeywords.join(', ')
+        : intent.searchTerms.join(' ')
 
     return {
       summary: `No such email found in your work category emails for "${keywordStr}".\n\nShall I search on other categories instead?`,
       emails: [],
-      suggestions: ['Yes, search all categories', 'No, that\'s fine', 'Search archive (5 years)'],
+      suggestions: ['Yes, search all categories', "No, that's fine", 'Search archive (5 years)'],
       queryType: intent.queryType,
       needsConfirmation: true,
       confirmationType: 'search_other_categories',
-      searchedCategory: 'work'
+      searchedCategory: 'work',
     }
   }
 
@@ -1080,7 +1536,7 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
       'Help me reply to this',
       'What should I do?',
       'Is this urgent?',
-      'Compare these emails'
+      'Compare these emails',
     ]
     suggestions = [...suggestions.slice(0, 2), ...actionSuggestions.slice(0, 2)]
   }
@@ -1091,7 +1547,7 @@ export async function askEmailAssistant(input: AssistantQuery): Promise<Assistan
     suggestions,
     queryType: intent.queryType,
     draftEmail,
-    searchedCategory
+    searchedCategory,
   }
 }
 
@@ -1138,7 +1594,7 @@ export async function draftReplyToEmail(email: Email, instructions?: string): Pr
 
   const response = await askEmailAssistant({
     query,
-    emailContext: email
+    emailContext: email,
   })
 
   if (response.draftEmail) {
@@ -1146,7 +1602,7 @@ export async function draftReplyToEmail(email: Email, instructions?: string): Pr
       ...response.draftEmail,
       to: email.from.email,
       subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
-      replyTo: email
+      replyTo: email,
     }
   }
 
@@ -1155,7 +1611,7 @@ export async function draftReplyToEmail(email: Email, instructions?: string): Pr
     to: email.from.email,
     subject: `Re: ${email.subject}`,
     body: response.summary,
-    replyTo: email
+    replyTo: email,
   }
 }
 
@@ -1164,14 +1620,22 @@ export async function draftReplyToEmail(email: Email, instructions?: string): Pr
  */
 export async function composeEmail(instructions: string): Promise<DraftEmail> {
   const response = await askEmailAssistant({
-    query: `Compose a new email: ${instructions}`
+    query: `Compose a new email: ${instructions}`,
   })
 
-  return response.draftEmail || {
-    to: '',
-    subject: '',
-    body: response.summary
-  }
+  return (
+    response.draftEmail || {
+      to: '',
+      subject: '',
+      body: response.summary,
+    }
+  )
 }
 
-export default { askEmailAssistant, getEmailOverview, draftReplyToEmail, composeEmail, QUICK_ACTIONS }
+export default {
+  askEmailAssistant,
+  getEmailOverview,
+  draftReplyToEmail,
+  composeEmail,
+  QUICK_ACTIONS,
+}

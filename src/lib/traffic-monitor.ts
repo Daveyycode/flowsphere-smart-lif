@@ -62,10 +62,12 @@ export interface ProactiveAlert {
 /**
  * Learn user's daily routine from their location data
  */
-export function learnDailyRoutine(locationHistory: Array<{
-  timestamp: string
-  location: 'home' | 'work' | 'other'
-}>): DailyRoutine[] {
+export function learnDailyRoutine(
+  locationHistory: Array<{
+    timestamp: string
+    location: 'home' | 'work' | 'other'
+  }>
+): DailyRoutine[] {
   const routines: DailyRoutine[] = []
   const weekDayPatterns: Record<number, Array<{ time: string; route: string }>> = {}
 
@@ -102,7 +104,7 @@ export function learnDailyRoutine(locationHistory: Array<{
         dayOfWeek: parseInt(day),
         departureTime: avgTime,
         route: 'home-to-work',
-        typicalDuration: 25 // Will be calculated from actual data
+        typicalDuration: 25, // Will be calculated from actual data
       })
     }
 
@@ -112,7 +114,7 @@ export function learnDailyRoutine(locationHistory: Array<{
         dayOfWeek: parseInt(day),
         departureTime: avgTime,
         route: 'work-to-home',
-        typicalDuration: 25
+        typicalDuration: 25,
       })
     }
   })
@@ -146,7 +148,6 @@ export async function startProactiveMonitoring(
   routines: DailyRoutine[],
   onAlert: (alert: ProactiveAlert) => void
 ): Promise<() => void> {
-
   if (!preferences.monitoringEnabled) {
     logger.info('Proactive monitoring disabled', null, 'TrafficMonitor')
     return () => {}
@@ -221,7 +222,7 @@ async function checkAndAlert(
         actions: [
           { label: 'View Route', type: 'view-route' },
           { label: 'Leave Now', type: 'leave-now' },
-          { label: 'Dismiss', type: 'dismiss' }
+          { label: 'Dismiss', type: 'dismiss' },
         ],
         routeInfo: {
           from,
@@ -230,12 +231,14 @@ async function checkAndAlert(
           normalTime: traffic.normalTravelTime,
           delay: traffic.delay,
           trafficLevel: traffic.trafficLevel,
-          bestAlternative: traffic.alternativeRoutes[0] ? {
-            name: traffic.alternativeRoutes[0].name,
-            time: traffic.alternativeRoutes[0].time,
-            savings: traffic.alternativeRoutes[0].savings
-          } : undefined
-        }
+          bestAlternative: traffic.alternativeRoutes[0]
+            ? {
+                name: traffic.alternativeRoutes[0].name,
+                time: traffic.alternativeRoutes[0].time,
+                savings: traffic.alternativeRoutes[0].savings,
+              }
+            : undefined,
+        },
       })
 
       // Send best route suggestion if available
@@ -250,8 +253,8 @@ async function checkAndAlert(
           actionable: true,
           actions: [
             { label: 'View Route', type: 'view-route' },
-            { label: 'Dismiss', type: 'dismiss' }
-          ]
+            { label: 'Dismiss', type: 'dismiss' },
+          ],
         })
       }
     }
@@ -270,17 +273,22 @@ async function checkAndAlert(
             actionable: true,
             actions: [
               { label: 'View Alternative Route', type: 'view-route' },
-              { label: 'Dismiss', type: 'dismiss' }
-            ]
+              { label: 'Dismiss', type: 'dismiss' },
+            ],
           })
         }
       })
     }
 
     // Routine reminder with traffic info
-    const trafficEmoji = traffic.trafficLevel === 'low' ? '🟢' :
-                        traffic.trafficLevel === 'medium' ? '🟡' :
-                        traffic.trafficLevel === 'high' ? '🟠' : '🔴'
+    const trafficEmoji =
+      traffic.trafficLevel === 'low'
+        ? '🟢'
+        : traffic.trafficLevel === 'medium'
+          ? '🟡'
+          : traffic.trafficLevel === 'high'
+            ? '🟠'
+            : '🔴'
 
     onAlert({
       id: `routine-${Date.now()}`,
@@ -292,7 +300,7 @@ async function checkAndAlert(
       actionable: true,
       actions: [
         { label: 'View Traffic', type: 'view-route' },
-        { label: 'Dismiss', type: 'dismiss' }
+        { label: 'Dismiss', type: 'dismiss' },
       ],
       routeInfo: {
         from,
@@ -300,10 +308,9 @@ async function checkAndAlert(
         currentTime: traffic.currentTravelTime,
         normalTime: traffic.normalTravelTime,
         delay: traffic.delay,
-        trafficLevel: traffic.trafficLevel
-      }
+        trafficLevel: traffic.trafficLevel,
+      },
     })
-
   } catch (error) {
     logger.error('Error checking traffic for alert:', error, 'TrafficMonitor')
   }
@@ -332,7 +339,7 @@ async function monitorIncidents(
           title: `🚨 ${incident.type.toUpperCase()} Near You`,
           message: `${incident.description} at ${incident.location}. Delay: ${incident.delay} minutes.`,
           actionable: false,
-          actions: [{ label: 'Dismiss', type: 'dismiss' }]
+          actions: [{ label: 'Dismiss', type: 'dismiss' }],
         })
       }
     })
@@ -365,16 +372,27 @@ export async function getNextTripTraffic(
   if (todayRoutines.length === 0) return null
 
   const nextRoutine = todayRoutines[0]
-  const from = nextRoutine.route === 'home-to-work' ? preferences.homeLocation.address : preferences.workLocation.address
-  const to = nextRoutine.route === 'home-to-work' ? preferences.workLocation.address : preferences.homeLocation.address
+  const from =
+    nextRoutine.route === 'home-to-work'
+      ? preferences.homeLocation.address
+      : preferences.workLocation.address
+  const to =
+    nextRoutine.route === 'home-to-work'
+      ? preferences.workLocation.address
+      : preferences.homeLocation.address
 
   try {
     const { getRouteTraffic } = await import('./traffic-service')
     const traffic = await getRouteTraffic(from, to)
 
-    const trafficEmoji = traffic.trafficLevel === 'low' ? '🟢' :
-                        traffic.trafficLevel === 'medium' ? '🟡' :
-                        traffic.trafficLevel === 'high' ? '🟠' : '🔴'
+    const trafficEmoji =
+      traffic.trafficLevel === 'low'
+        ? '🟢'
+        : traffic.trafficLevel === 'medium'
+          ? '🟡'
+          : traffic.trafficLevel === 'high'
+            ? '🟠'
+            : '🔴'
 
     return {
       id: `next-trip-${Date.now()}`,
@@ -386,7 +404,7 @@ export async function getNextTripTraffic(
       actionable: true,
       actions: [
         { label: 'View Details', type: 'view-route' },
-        { label: 'Dismiss', type: 'dismiss' }
+        { label: 'Dismiss', type: 'dismiss' },
       ],
       routeInfo: {
         from,
@@ -395,12 +413,14 @@ export async function getNextTripTraffic(
         normalTime: traffic.normalTravelTime,
         delay: traffic.delay,
         trafficLevel: traffic.trafficLevel,
-        bestAlternative: traffic.alternativeRoutes[0] ? {
-          name: traffic.alternativeRoutes[0].name,
-          time: traffic.alternativeRoutes[0].time,
-          savings: traffic.alternativeRoutes[0].savings
-        } : undefined
-      }
+        bestAlternative: traffic.alternativeRoutes[0]
+          ? {
+              name: traffic.alternativeRoutes[0].name,
+              time: traffic.alternativeRoutes[0].time,
+              savings: traffic.alternativeRoutes[0].savings,
+            }
+          : undefined,
+      },
     }
   } catch (error) {
     logger.error('Error getting next trip traffic:', error, 'TrafficMonitor')
@@ -419,15 +439,9 @@ export function detectCurrentLocation(
     return 'other'
   }
 
-  const distanceToHome = calculateDistance(
-    userCoords,
-    preferences.homeLocation.coordinates
-  )
+  const distanceToHome = calculateDistance(userCoords, preferences.homeLocation.coordinates)
 
-  const distanceToWork = calculateDistance(
-    userCoords,
-    preferences.workLocation.coordinates
-  )
+  const distanceToWork = calculateDistance(userCoords, preferences.workLocation.coordinates)
 
   const threshold = 0.5 // km
 

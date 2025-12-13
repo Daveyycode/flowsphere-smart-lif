@@ -21,11 +21,11 @@ import { logger } from '@/lib/security-utils'
 // ============================================
 
 export interface EncryptionResult {
-  encryptedData: string      // Base64 encoded encrypted data
-  iv: string                 // Initialization vector (Base64)
-  salt: string               // Salt for key derivation (Base64)
-  algorithm: string          // Algorithm identifier
-  version: string            // Encryption version for migration
+  encryptedData: string // Base64 encoded encrypted data
+  iv: string // Initialization vector (Base64)
+  salt: string // Salt for key derivation (Base64)
+  algorithm: string // Algorithm identifier
+  version: string // Encryption version for migration
 }
 
 export interface DecryptionInput {
@@ -41,12 +41,12 @@ export interface DecryptionInput {
 // ============================================
 
 const ENCRYPTION_CONFIG = {
-  algorithm: 'AES-256-GCM',      // Current: AES-256-GCM
-  version: '1.0.0',              // Version for future migrations
-  keyLength: 256,                // Key length in bits
-  ivLength: 12,                  // IV length in bytes (96 bits for GCM)
-  saltLength: 16,                // Salt length in bytes
-  iterations: 310000,            // PBKDF2 iterations (OWASP 2023 recommendation)
+  algorithm: 'AES-256-GCM', // Current: AES-256-GCM
+  version: '1.0.0', // Version for future migrations
+  keyLength: 256, // Key length in bits
+  ivLength: 12, // IV length in bytes (96 bits for GCM)
+  saltLength: 16, // Salt length in bytes
+  iterations: 310000, // PBKDF2 iterations (OWASP 2023 recommendation)
 
   // FUTURE: Custom algorithm placeholder
   // customAlgorithm: 'FLOWSPHERE-CUSTOM-V1',
@@ -91,10 +91,7 @@ function generateRandomBytes(length: number): Uint8Array {
 /**
  * Derive encryption key from user's PIN/password using PBKDF2
  */
-async function deriveKey(
-  password: string,
-  salt: Uint8Array
-): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   // Import password as key material
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -110,12 +107,12 @@ async function deriveKey(
       name: 'PBKDF2',
       salt: salt,
       iterations: ENCRYPTION_CONFIG.iterations,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     {
       name: 'AES-GCM',
-      length: ENCRYPTION_CONFIG.keyLength
+      length: ENCRYPTION_CONFIG.keyLength,
     },
     false,
     ['encrypt', 'decrypt']
@@ -146,15 +143,14 @@ export async function encryptData(
     const key = await deriveKey(userPin, salt)
 
     // Convert data to ArrayBuffer if string
-    const dataBuffer = typeof data === 'string'
-      ? new TextEncoder().encode(data)
-      : new Uint8Array(data)
+    const dataBuffer =
+      typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data)
 
     // Encrypt using AES-256-GCM
     const encryptedBuffer = await crypto.subtle.encrypt(
       {
         name: 'AES-GCM',
-        iv: iv
+        iv: iv,
       },
       key,
       dataBuffer
@@ -165,7 +161,7 @@ export async function encryptData(
       iv: arrayBufferToBase64(iv.buffer),
       salt: arrayBufferToBase64(salt.buffer),
       algorithm: ENCRYPTION_CONFIG.algorithm,
-      version: ENCRYPTION_CONFIG.version
+      version: ENCRYPTION_CONFIG.version,
     }
   } catch (error) {
     logger.error('Encryption failed', error, 'Encryption')
@@ -180,14 +176,13 @@ export async function encryptData(
  * @param userPin - User's PIN or password
  * @returns Decrypted data as string
  */
-export async function decryptData(
-  encrypted: DecryptionInput,
-  userPin: string
-): Promise<string> {
+export async function decryptData(encrypted: DecryptionInput, userPin: string): Promise<string> {
   try {
     // Check version compatibility
     if (encrypted.version !== ENCRYPTION_CONFIG.version) {
-      logger.debug(`Decrypting data from version ${encrypted.version}, current is ${ENCRYPTION_CONFIG.version}`)
+      logger.debug(
+        `Decrypting data from version ${encrypted.version}, current is ${ENCRYPTION_CONFIG.version}`
+      )
       // FUTURE: Add migration logic here when upgrading encryption
     }
 
@@ -203,7 +198,7 @@ export async function decryptData(
     const decryptedBuffer = await crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv: iv
+        iv: iv,
       },
       key,
       encryptedBuffer
@@ -241,7 +236,7 @@ export async function encryptFile(
     const encryptedBuffer = await crypto.subtle.encrypt(
       {
         name: 'AES-GCM',
-        iv: iv
+        iv: iv,
       },
       key,
       arrayBuffer
@@ -252,12 +247,12 @@ export async function encryptFile(
       iv: arrayBufferToBase64(iv.buffer),
       salt: arrayBufferToBase64(salt.buffer),
       algorithm: ENCRYPTION_CONFIG.algorithm,
-      version: ENCRYPTION_CONFIG.version
+      version: ENCRYPTION_CONFIG.version,
     }
 
     return {
       blob: new Blob([encryptedBuffer], { type: 'application/octet-stream' }),
-      metadata
+      metadata,
     }
   } catch (error) {
     logger.error('File encryption failed', error, 'Encryption')
@@ -292,7 +287,7 @@ export async function decryptFile(
     const decryptedBuffer = await crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv: iv
+        iv: iv,
       },
       key,
       encryptedBuffer
@@ -314,9 +309,7 @@ export async function decryptFile(
  * Used to verify PIN without storing it
  */
 export async function hashPin(pin: string, salt?: string): Promise<{ hash: string; salt: string }> {
-  const saltBytes = salt
-    ? new Uint8Array(base64ToArrayBuffer(salt))
-    : generateRandomBytes(16)
+  const saltBytes = salt ? new Uint8Array(base64ToArrayBuffer(salt)) : generateRandomBytes(16)
 
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -331,7 +324,7 @@ export async function hashPin(pin: string, salt?: string): Promise<{ hash: strin
       name: 'PBKDF2',
       salt: saltBytes,
       iterations: ENCRYPTION_CONFIG.iterations,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     256
@@ -339,7 +332,7 @@ export async function hashPin(pin: string, salt?: string): Promise<{ hash: strin
 
   return {
     hash: arrayBufferToBase64(hashBuffer),
-    salt: arrayBufferToBase64(saltBytes.buffer)
+    salt: arrayBufferToBase64(saltBytes.buffer),
   }
 }
 
@@ -358,7 +351,7 @@ export function getEncryptionInfo(): { algorithm: string; version: string; stren
   return {
     algorithm: ENCRYPTION_CONFIG.algorithm,
     version: ENCRYPTION_CONFIG.version,
-    strength: 'Military-grade (256-bit)'
+    strength: 'Military-grade (256-bit)',
   }
 }
 
@@ -400,10 +393,7 @@ import { getDeviceFingerprintId } from './device-fingerprint'
  * Derive key with device binding
  * Key = PBKDF2(password + deviceFingerprint)
  */
-async function deriveDeviceBoundKey(
-  password: string,
-  salt: Uint8Array
-): Promise<CryptoKey> {
+async function deriveDeviceBoundKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   // Get device fingerprint
   const deviceId = await getDeviceFingerprintId()
 
@@ -423,12 +413,12 @@ async function deriveDeviceBoundKey(
       name: 'PBKDF2',
       salt: salt,
       iterations: 310000, // OWASP 2023 recommendation
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     {
       name: 'AES-GCM',
-      length: 256
+      length: 256,
     },
     false,
     ['encrypt', 'decrypt']
@@ -449,9 +439,8 @@ export async function encryptDataDeviceBound(
 
     const key = await deriveDeviceBoundKey(userPin, salt)
 
-    const dataBuffer = typeof data === 'string'
-      ? new TextEncoder().encode(data)
-      : new Uint8Array(data)
+    const dataBuffer =
+      typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data)
 
     const encryptedBuffer = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: iv },
@@ -465,7 +454,7 @@ export async function encryptDataDeviceBound(
       salt: arrayBufferToBase64(salt.buffer),
       algorithm: 'AES-256-GCM-DEVICE-BOUND',
       version: '2.0.0',
-      deviceBound: true
+      deviceBound: true,
     }
   } catch (error) {
     logger.error('Device-bound encryption failed', error, 'Encryption')
@@ -529,8 +518,8 @@ export async function encryptFileDeviceBound(
         salt: arrayBufferToBase64(salt.buffer),
         algorithm: 'AES-256-GCM-DEVICE-BOUND',
         version: '2.0.0',
-        deviceBound: true
-      }
+        deviceBound: true,
+      },
     }
   } catch (error) {
     logger.error('Device-bound file encryption failed', error, 'Encryption')
@@ -569,13 +558,14 @@ export async function decryptFileDeviceBound(
 /**
  * Hash PIN with device binding for storage verification
  */
-export async function hashPinDeviceBound(pin: string, salt?: string): Promise<{ hash: string; salt: string; deviceBound: boolean }> {
+export async function hashPinDeviceBound(
+  pin: string,
+  salt?: string
+): Promise<{ hash: string; salt: string; deviceBound: boolean }> {
   const deviceId = await getDeviceFingerprintId()
   const combinedPin = `${pin}::${deviceId}`
 
-  const saltBytes = salt
-    ? new Uint8Array(base64ToArrayBuffer(salt))
-    : generateRandomBytes(16)
+  const saltBytes = salt ? new Uint8Array(base64ToArrayBuffer(salt)) : generateRandomBytes(16)
 
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -590,7 +580,7 @@ export async function hashPinDeviceBound(pin: string, salt?: string): Promise<{ 
       name: 'PBKDF2',
       salt: saltBytes,
       iterations: 310000,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     256
@@ -599,14 +589,18 @@ export async function hashPinDeviceBound(pin: string, salt?: string): Promise<{ 
   return {
     hash: arrayBufferToBase64(hashBuffer),
     salt: arrayBufferToBase64(saltBytes.buffer),
-    deviceBound: true
+    deviceBound: true,
   }
 }
 
 /**
  * Verify device-bound PIN
  */
-export async function verifyPinDeviceBound(pin: string, storedHash: string, salt: string): Promise<boolean> {
+export async function verifyPinDeviceBound(
+  pin: string,
+  storedHash: string,
+  salt: string
+): Promise<boolean> {
   try {
     const { hash } = await hashPinDeviceBound(pin, salt)
     // Use timing-safe comparison

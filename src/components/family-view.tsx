@@ -1,5 +1,28 @@
 import { motion } from 'framer-motion'
-import { MapPin, Phone, Clock, Plus, Shield, Crosshair, Bell, EnvelopeSimple, Microphone, SpeakerHigh, PencilSimple, X, Copy, Check, DownloadSimple, QrCode as QrCodeIcon, NavigationArrow, Spinner, Warning, MapTrifold, GraduationCap, Users } from '@phosphor-icons/react'
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Plus,
+  Shield,
+  Crosshair,
+  Bell,
+  EnvelopeSimple,
+  Microphone,
+  SpeakerHigh,
+  PencilSimple,
+  X,
+  Copy,
+  Check,
+  DownloadSimple,
+  QrCode as QrCodeIcon,
+  NavigationArrow,
+  Spinner,
+  Warning,
+  MapTrifold,
+  GraduationCap,
+  Users,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -7,8 +30,21 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { useDeviceType } from '@/hooks/use-mobile'
@@ -59,10 +95,15 @@ type FamilyTab = 'safety' | 'learning'
 
 export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
   const [activeTab, setActiveTab] = useState<FamilyTab>('safety')
-  const [gpsMonitoringEnabled, setGpsMonitoringEnabled] = useKV<boolean>('flowsphere-gps-monitoring', true)
+  const [gpsMonitoringEnabled, setGpsMonitoringEnabled] = useKV<boolean>(
+    'flowsphere-gps-monitoring',
+    true
+  )
   const [lastGpsCheck] = useKV<string>('flowsphere-last-gps-check', '')
   const [recordingSOS, setRecordingSOS] = useState<string | null>(null)
-  const [sosMessages] = useKV<Record<string, { audioUrl: string; timestamp: string; openedBy: string[] }>>('flowsphere-sos-messages', {})
+  const [sosMessages] = useKV<
+    Record<string, { audioUrl: string; timestamp: string; openedBy: string[] }>
+  >('flowsphere-sos-messages', {})
 
   // Real GPS tracking
   const gps = useGPSTracking()
@@ -77,7 +118,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
     workAddress: '',
     schoolAddress: '',
     status: 'home' as FamilyMember['status'],
-    emailNotificationsEnabled: true
+    emailNotificationsEnabled: true,
   })
 
   // Invite member dialog state
@@ -91,23 +132,28 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
     safeZoneEndTime: '17:00',
     sosTriggerWord: '',
     gpsTrackingEnabled: true,
-    realTimeLocationEnabled: true
+    realTimeLocationEnabled: true,
   })
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'home': return 'mint'
-      case 'work': return 'accent'
-      case 'school': return 'coral'
-      case 'traveling': return 'primary'
-      default: return 'muted'
+      case 'home':
+        return 'mint'
+      case 'work':
+        return 'accent'
+      case 'school':
+        return 'coral'
+      case 'traveling':
+        return 'primary'
+      default:
+        return 'muted'
     }
   }
 
   const getStatusLabel = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1)
   }
-  
+
   const handleGpsToggle = (enabled: boolean) => {
     setGpsMonitoringEnabled(enabled)
     if (enabled) {
@@ -144,7 +190,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       const qrData = JSON.stringify({
         type: 'flowsphere-family-invite',
         code: generatedInviteCode,
-        url: `${window.location.origin}?invite=${generatedInviteCode}`
+        url: `${window.location.origin}?invite=${generatedInviteCode}`,
       })
 
       QRCode.toDataURL(qrData, {
@@ -152,9 +198,11 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
         margin: 2,
         color: {
           dark: '#000000',
-          light: '#FFFFFF'
-        }
-      }).then(setQrCodeDataUrl).catch(console.error)
+          light: '#FFFFFF',
+        },
+      })
+        .then(setQrCodeDataUrl)
+        .catch(console.error)
     } else {
       setQrCodeDataUrl(null)
     }
@@ -177,18 +225,21 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       gpsTracking: inviteForm.gpsTrackingEnabled,
       realTimeLocation: inviteForm.realTimeLocationEnabled,
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
     }
 
     // Save to localStorage for now (in production, would be backend)
     const existingInvites = JSON.parse(localStorage.getItem('flowsphere-family-invites') || '[]')
-    localStorage.setItem('flowsphere-family-invites', JSON.stringify([...existingInvites, inviteData]))
+    localStorage.setItem(
+      'flowsphere-family-invites',
+      JSON.stringify([...existingInvites, inviteData])
+    )
 
     setGeneratedInviteCode(inviteCode)
 
     toast.success('Invite code generated!', {
       description: `Share code ${inviteCode} with ${inviteForm.name}`,
-      duration: 8000
+      duration: 8000,
     })
 
     // Reset form
@@ -201,7 +252,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       safeZoneEndTime: '17:00',
       sosTriggerWord: '',
       gpsTrackingEnabled: true,
-      realTimeLocationEnabled: true
+      realTimeLocationEnabled: true,
     })
     setShowInviteDialog(false)
   }
@@ -229,7 +280,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       setRecordingSOS(null)
       toast.success('SOS message sent!', {
         description: `Emergency voice message sent to all family members, bypassing DND mode`,
-        duration: 5000
+        duration: 5000,
       })
       // In a real app, this would:
       // 1. Stop audio recording
@@ -242,7 +293,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       setRecordingSOS(memberId)
       toast.error('🚨 SOS Recording Started', {
         description: `Recording emergency message from ${memberName}. Press again to send to all family members.`,
-        duration: 5000
+        duration: 5000,
       })
       // In a real app, start audio recording here
     }
@@ -258,7 +309,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       workAddress: member.workAddress || '',
       schoolAddress: member.schoolAddress || '',
       status: member.status,
-      emailNotificationsEnabled: member.emailNotificationsEnabled ?? true
+      emailNotificationsEnabled: member.emailNotificationsEnabled ?? true,
     })
   }
 
@@ -272,7 +323,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       workAddress: '',
       schoolAddress: '',
       status: 'home',
-      emailNotificationsEnabled: true
+      emailNotificationsEnabled: true,
     })
   }
 
@@ -292,11 +343,11 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       workAddress: editForm.workAddress.trim() || undefined,
       schoolAddress: editForm.schoolAddress.trim() || undefined,
       status: editForm.status,
-      emailNotificationsEnabled: editForm.emailNotificationsEnabled
+      emailNotificationsEnabled: editForm.emailNotificationsEnabled,
     })
 
     toast.success('Family member updated!', {
-      description: `${editForm.name}'s details have been saved`
+      description: `${editForm.name}'s details have been saved`,
     })
 
     handleCloseEdit()
@@ -363,7 +414,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className={cn("font-bold mb-2", isMobile ? "text-2xl" : "text-4xl")}>Family Safety</h1>
+          <h1 className={cn('font-bold mb-2', isMobile ? 'text-2xl' : 'text-4xl')}>
+            Family Safety
+          </h1>
           <p className="text-muted-foreground text-sm">
             Keep track of your loved ones' locations and safety
           </p>
@@ -435,24 +488,25 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <div className="flex-1">
                 <p className="text-sm font-medium mb-1">Automatic Email Notifications</p>
                 <p className="text-xs text-muted-foreground">
-                  Receive instant email alerts when any family member's GPS location moves more than 1 kilometer away from their registered home IP address.
+                  Receive instant email alerts when any family member's GPS location moves more than
+                  1 kilometer away from their registered home IP address.
                 </p>
               </div>
             </div>
-            
+
             {lastGpsCheck && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span>Last GPS check: {new Date(lastGpsCheck).toLocaleString()}</span>
               </div>
             )}
-            
+
             <div className="flex items-center gap-2 text-xs">
               <Bell className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">
                 {gpsMonitoringEnabled
-                  ? "Active monitoring - Checks every 5 minutes"
-                  : "GPS monitoring is currently disabled"}
+                  ? 'Active monitoring - Checks every 5 minutes'
+                  : 'GPS monitoring is currently disabled'}
               </span>
             </div>
           </CardContent>
@@ -465,23 +519,27 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
-        <Card className={cn(
-          "border-2 transition-all duration-300",
-          gps.isTracking
-            ? "border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/5"
-            : "border-muted bg-gradient-to-br from-muted/10 to-transparent"
-        )}>
+        <Card
+          className={cn(
+            'border-2 transition-all duration-300',
+            gps.isTracking
+              ? 'border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/5'
+              : 'border-muted bg-gradient-to-br from-muted/10 to-transparent'
+          )}
+        >
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center",
-                  gps.isTracking ? "bg-green-500/20" : "bg-muted/20"
-                )}>
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full flex items-center justify-center',
+                    gps.isTracking ? 'bg-green-500/20' : 'bg-muted/20'
+                  )}
+                >
                   <NavigationArrow
                     className={cn(
-                      "w-5 h-5",
-                      gps.isTracking ? "text-green-500 animate-pulse" : "text-muted-foreground"
+                      'w-5 h-5',
+                      gps.isTracking ? 'text-green-500 animate-pulse' : 'text-muted-foreground'
                     )}
                     weight="bold"
                   />
@@ -490,20 +548,25 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   <CardTitle className="text-lg flex items-center gap-2">
                     Your Live Location
                     {gps.isTracking && (
-                      <Badge variant="outline" className="text-green-500 border-green-500/50 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="text-green-500 border-green-500/50 text-xs"
+                      >
                         LIVE
                       </Badge>
                     )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {gps.isTracking ? "Real-time GPS tracking active" : "Enable tracking to share your location"}
+                    {gps.isTracking
+                      ? 'Real-time GPS tracking active'
+                      : 'Enable tracking to share your location'}
                   </p>
                 </div>
               </div>
               <Button
-                variant={gps.isTracking ? "destructive" : "default"}
+                variant={gps.isTracking ? 'destructive' : 'default'}
                 size="sm"
-                onClick={() => gps.isTracking ? gps.stopTracking() : gps.startTracking()}
+                onClick={() => (gps.isTracking ? gps.stopTracking() : gps.startTracking())}
                 disabled={gps.isLoading}
               >
                 {gps.isLoading ? (
@@ -513,7 +576,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 ) : (
                   <NavigationArrow className="w-4 h-4 mr-2" />
                 )}
-                {gps.isTracking ? "Stop Tracking" : "Start Tracking"}
+                {gps.isTracking ? 'Stop Tracking' : 'Start Tracking'}
               </Button>
             </div>
           </CardHeader>
@@ -544,7 +607,8 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   <MapPin className="w-5 h-5 text-green-500 mt-0.5" weight="fill" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">
-                      {gps.currentLocation.address || `${gps.currentLocation.lat.toFixed(6)}, ${gps.currentLocation.lng.toFixed(6)}`}
+                      {gps.currentLocation.address ||
+                        `${gps.currentLocation.lat.toFixed(6)}, ${gps.currentLocation.lng.toFixed(6)}`}
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                       <span>Accuracy: {Math.round(gps.currentLocation.accuracy)}m</span>
@@ -554,7 +618,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => openInMaps(gps.currentLocation!.lat, gps.currentLocation!.lng, 'My Location')}
+                    onClick={() =>
+                      openInMaps(gps.currentLocation!.lat, gps.currentLocation!.lng, 'My Location')
+                    }
                   >
                     <MapTrifold className="w-4 h-4 mr-1" />
                     Open Map
@@ -565,11 +631,15 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 rounded-lg bg-muted/30 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Latitude</p>
-                    <p className="font-mono text-sm font-medium">{gps.currentLocation.lat.toFixed(6)}</p>
+                    <p className="font-mono text-sm font-medium">
+                      {gps.currentLocation.lat.toFixed(6)}
+                    </p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/30 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Longitude</p>
-                    <p className="font-mono text-sm font-medium">{gps.currentLocation.lng.toFixed(6)}</p>
+                    <p className="font-mono text-sm font-medium">
+                      {gps.currentLocation.lng.toFixed(6)}
+                    </p>
                   </div>
                 </div>
 
@@ -587,7 +657,10 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               </div>
             ) : (
               <div className="text-center py-6">
-                <NavigationArrow className="w-12 h-12 text-muted-foreground mx-auto mb-3" weight="duotone" />
+                <NavigationArrow
+                  className="w-12 h-12 text-muted-foreground mx-auto mb-3"
+                  weight="duotone"
+                />
                 <p className="text-muted-foreground mb-3">
                   Click "Start Tracking" to enable live GPS location sharing
                 </p>
@@ -640,7 +713,10 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                     <Avatar className="w-12 h-12">
                       <AvatarImage src={member.avatar} />
                       <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                        {member.name.split(' ').map(n => n[0]).join('')}
+                        {member.name
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -669,12 +745,12 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                         if (member.phoneNumber) {
                           toast.success(`Calling ${member.name}...`, {
                             description: 'Connecting your call now',
-                            duration: 3000
+                            duration: 3000,
                           })
                           window.location.href = `tel:${member.phoneNumber}`
                         } else {
                           toast.error('No phone number', {
-                            description: 'Please add a phone number to call this family member'
+                            description: 'Please add a phone number to call this family member',
                           })
                         }
                       }}
@@ -706,11 +782,11 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                           animate={{ width: `${member.battery}%` }}
                           transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
                           className={`h-full ${
-                            member.battery > 50 
-                              ? 'bg-mint' 
-                              : member.battery > 20 
-                              ? 'bg-coral' 
-                              : 'bg-destructive'
+                            member.battery > 50
+                              ? 'bg-mint'
+                              : member.battery > 20
+                                ? 'bg-coral'
+                                : 'bg-destructive'
                           }`}
                         />
                       </div>
@@ -722,11 +798,8 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 {/* Emergency SOS Button */}
                 <div className="pt-3 border-t border-border/50">
                   <Button
-                    variant={recordingSOS === member.id ? "destructive" : "outline"}
-                    className={cn(
-                      "w-full",
-                      recordingSOS === member.id && "animate-pulse"
-                    )}
+                    variant={recordingSOS === member.id ? 'destructive' : 'outline'}
+                    className={cn('w-full', recordingSOS === member.id && 'animate-pulse')}
                     onClick={() => handleSOSRecord(member.id, member.name)}
                   >
                     {recordingSOS === member.id ? (
@@ -775,7 +848,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
       )}
 
       {/* Edit Member Dialog */}
-      <Dialog open={!!editingMember} onOpenChange={(open) => !open && handleCloseEdit()}>
+      <Dialog open={!!editingMember} onOpenChange={open => !open && handleCloseEdit()}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -783,7 +856,8 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               Edit Family Member
             </DialogTitle>
             <DialogDescription>
-              Update the details for this family member. Name, phone, location, and status are required. Addresses are optional.
+              Update the details for this family member. Name, phone, location, and status are
+              required. Addresses are optional.
             </DialogDescription>
           </DialogHeader>
 
@@ -793,7 +867,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 id="edit-name"
                 value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                 placeholder="Enter name"
                 className="w-full"
               />
@@ -805,7 +879,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 id="edit-phone"
                 type="tel"
                 value={editForm.phoneNumber}
-                onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, phoneNumber: e.target.value })}
                 placeholder="+1 (555) 123-4567"
                 className="w-full"
               />
@@ -816,7 +890,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 id="edit-location"
                 value={editForm.location}
-                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, location: e.target.value })}
                 placeholder="e.g., Home, Work, School"
                 className="w-full"
               />
@@ -827,7 +901,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 id="edit-home"
                 value={editForm.homeAddress}
-                onChange={(e) => setEditForm({ ...editForm, homeAddress: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, homeAddress: e.target.value })}
                 placeholder="123 Home St, City, State"
                 className="w-full"
               />
@@ -838,7 +912,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 id="edit-work"
                 value={editForm.workAddress}
-                onChange={(e) => setEditForm({ ...editForm, workAddress: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, workAddress: e.target.value })}
                 placeholder="123 Work St, City, State"
                 className="w-full"
               />
@@ -849,7 +923,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 id="edit-school"
                 value={editForm.schoolAddress}
-                onChange={(e) => setEditForm({ ...editForm, schoolAddress: e.target.value })}
+                onChange={e => setEditForm({ ...editForm, schoolAddress: e.target.value })}
                 placeholder="123 School St, City, State"
                 className="w-full"
               />
@@ -907,7 +981,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Switch
                 id="edit-gps"
                 checked={editForm.emailNotificationsEnabled}
-                onCheckedChange={(checked) =>
+                onCheckedChange={checked =>
                   setEditForm({ ...editForm, emailNotificationsEnabled: checked })
                 }
                 className="data-[state=checked]:bg-primary"
@@ -916,18 +990,10 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseEdit}
-            >
+            <Button type="button" variant="outline" onClick={handleCloseEdit}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={handleSaveEdit}
-              className="bg-accent hover:bg-accent/90"
-            >
+            <Button type="button" onClick={handleSaveEdit} className="bg-accent hover:bg-accent/90">
               Save Changes
             </Button>
           </DialogFooter>
@@ -939,9 +1005,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Invite Family Member</DialogTitle>
-            <DialogDescription>
-              Send an invite to join your family safety network
-            </DialogDescription>
+            <DialogDescription>Send an invite to join your family safety network</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -951,7 +1015,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 id="invite-name"
                 placeholder="Enter family member's name"
                 value={inviteForm.name}
-                onChange={(e) => setInviteForm({...inviteForm, name: e.target.value})}
+                onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })}
               />
             </div>
 
@@ -962,7 +1026,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 type="tel"
                 placeholder="+1 (555) 123-4567"
                 value={inviteForm.phoneNumber}
-                onChange={(e) => setInviteForm({...inviteForm, phoneNumber: e.target.value})}
+                onChange={e => setInviteForm({ ...inviteForm, phoneNumber: e.target.value })}
               />
               <p className="text-xs text-muted-foreground">
                 An SMS invitation will be sent to this number
@@ -974,7 +1038,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 placeholder="e.g., Work, School, Home"
                 value={inviteForm.safeZone}
-                onChange={(e) => setInviteForm({...inviteForm, safeZone: e.target.value})}
+                onChange={e => setInviteForm({ ...inviteForm, safeZone: e.target.value })}
               />
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <div>
@@ -982,7 +1046,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   <Input
                     type="time"
                     value={inviteForm.safeZoneStartTime}
-                    onChange={(e) => setInviteForm({...inviteForm, safeZoneStartTime: e.target.value})}
+                    onChange={e =>
+                      setInviteForm({ ...inviteForm, safeZoneStartTime: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -990,7 +1056,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   <Input
                     type="time"
                     value={inviteForm.safeZoneEndTime}
-                    onChange={(e) => setInviteForm({...inviteForm, safeZoneEndTime: e.target.value})}
+                    onChange={e =>
+                      setInviteForm({ ...inviteForm, safeZoneEndTime: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -1004,11 +1072,9 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
               <Input
                 placeholder="e.g., HELP, EMERGENCY, etc."
                 value={inviteForm.sosTriggerWord}
-                onChange={(e) => setInviteForm({...inviteForm, sosTriggerWord: e.target.value})}
+                onChange={e => setInviteForm({ ...inviteForm, sosTriggerWord: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                Keyword to trigger emergency alert
-              </p>
+              <p className="text-xs text-muted-foreground">Keyword to trigger emergency alert</p>
             </div>
 
             <div className="space-y-3 pt-2 border-t">
@@ -1022,8 +1088,8 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 <Switch
                   id="gps-tracking"
                   checked={inviteForm.gpsTrackingEnabled}
-                  onCheckedChange={(checked) =>
-                    setInviteForm({...inviteForm, gpsTrackingEnabled: checked})
+                  onCheckedChange={checked =>
+                    setInviteForm({ ...inviteForm, gpsTrackingEnabled: checked })
                   }
                 />
               </div>
@@ -1038,8 +1104,8 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                 <Switch
                   id="realtime-location"
                   checked={inviteForm.realTimeLocationEnabled}
-                  onCheckedChange={(checked) =>
-                    setInviteForm({...inviteForm, realTimeLocationEnabled: checked})
+                  onCheckedChange={checked =>
+                    setInviteForm({ ...inviteForm, realTimeLocationEnabled: checked })
                   }
                 />
               </div>
@@ -1061,7 +1127,7 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
                   safeZoneEndTime: '17:00',
                   sosTriggerWord: '',
                   gpsTrackingEnabled: true,
-                  realTimeLocationEnabled: true
+                  realTimeLocationEnabled: true,
                 })
               }}
             >
@@ -1124,21 +1190,11 @@ export function FamilyView({ members, onUpdateMember }: FamilyViewProps) {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={downloadQRCode}
-              className="gap-2"
-            >
+            <Button type="button" variant="outline" onClick={downloadQRCode} className="gap-2">
               <DownloadSimple className="w-4 h-4" />
               Download QR
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={copyInviteCode}
-              className="gap-2"
-            >
+            <Button type="button" variant="outline" onClick={copyInviteCode} className="gap-2">
               <Copy className="w-4 h-4" />
               Copy Code
             </Button>

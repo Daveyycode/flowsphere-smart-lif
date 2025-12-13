@@ -29,7 +29,10 @@ export class YahooProvider extends EmailProvider {
    */
   getAuthUrl(): string {
     // Debug: Log client ID to verify it's being loaded
-    console.log('[Yahoo OAuth] Client ID:', this.clientId ? `${this.clientId.substring(0, 10)}...` : 'MISSING')
+    console.log(
+      '[Yahoo OAuth] Client ID:',
+      this.clientId ? `${this.clientId.substring(0, 10)}...` : 'MISSING'
+    )
     console.log('[Yahoo OAuth] Redirect URI:', this.redirectUri)
 
     if (!this.clientId) {
@@ -51,7 +54,7 @@ export class YahooProvider extends EmailProvider {
       // Yahoo standard OAuth scopes - openid for auth, sdps-r for profile info
       scope: 'openid sdps-r',
       // Add state for CSRF protection
-      state: Math.random().toString(36).substring(2, 15)
+      state: Math.random().toString(36).substring(2, 15),
     })
 
     return `https://api.login.yahoo.com/oauth2/request_auth?${params.toString()}`
@@ -70,7 +73,7 @@ export class YahooProvider extends EmailProvider {
       const response = await fetch(OAUTH_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -90,7 +93,7 @@ export class YahooProvider extends EmailProvider {
       return {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        expiresIn: data.expiresIn
+        expiresIn: data.expiresIn,
       }
     }
 
@@ -103,8 +106,8 @@ export class YahooProvider extends EmailProvider {
   async getUserInfo(accessToken: string): Promise<{ email: string; name: string }> {
     const response = await fetch('https://api.login.yahoo.com/openid/v1/userinfo', {
       headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
+        Authorization: `Bearer ${accessToken}`,
+      },
     })
 
     if (!response.ok) {
@@ -114,7 +117,7 @@ export class YahooProvider extends EmailProvider {
     const data = await response.json()
     return {
       email: data.email,
-      name: data.name || data.email
+      name: data.name || data.email,
     }
   }
 
@@ -130,8 +133,8 @@ export class YahooProvider extends EmailProvider {
       {
         headers: {
           Authorization: `Bearer ${account.accessToken}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     )
 
@@ -156,7 +159,7 @@ export class YahooProvider extends EmailProvider {
     return {
       emails,
       nextPageToken: data.nextPageToken,
-      totalResults: data.total || 0
+      totalResults: data.total || 0,
     }
   }
 
@@ -185,7 +188,7 @@ export class YahooProvider extends EmailProvider {
         provider: 'yahoo',
         from: {
           name: yahooMsg.from?.name || yahooMsg.from?.email || '',
-          email: yahooMsg.from?.email || ''
+          email: yahooMsg.from?.email || '',
         },
         to: yahooMsg.to ? yahooMsg.to.map((t: any) => ({ email: t.email, name: t.name })) : [],
         subject: yahooMsg.subject || '',
@@ -194,7 +197,7 @@ export class YahooProvider extends EmailProvider {
         snippet: yahooMsg.snippet || '',
         timestamp: new Date(yahooMsg.receivedDate).toISOString(),
         read: !yahooMsg.flags?.includes('\\Unseen'),
-        labels: yahooMsg.folderIds || []
+        labels: yahooMsg.folderIds || [],
       }
     } catch (error) {
       console.error('Failed to parse Yahoo message:', error)
@@ -214,17 +217,17 @@ export class YahooProvider extends EmailProvider {
       subject: email.subject,
       body: {
         text: email.body,
-        html: email.html || email.body
-      }
+        html: email.html || email.body,
+      },
     }
 
     const response = await fetch('https://api.mail.yahoo.com/ws/v3/mailboxes/@/messages', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${account.accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(message)
+      body: JSON.stringify(message),
     })
 
     if (!response.ok) {
@@ -245,7 +248,7 @@ export class YahooProvider extends EmailProvider {
       const response = await fetch(OAUTH_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -267,7 +270,7 @@ export class YahooProvider extends EmailProvider {
       return {
         ...account,
         accessToken: data.accessToken,
-        expiresAt: Date.now() + data.expiresIn * 1000
+        expiresAt: Date.now() + data.expiresIn * 1000,
       }
     }
 
@@ -278,11 +281,12 @@ export class YahooProvider extends EmailProvider {
    * Get new emails since timestamp
    */
   async getNewEmails(account: EmailAccount, since?: string): Promise<Email[]> {
-    const afterDate = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const afterDate =
+      since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     const result = await this.searchEmails(account, {
       after: afterDate,
-      maxResults: 100
+      maxResults: 100,
     })
 
     return result.emails

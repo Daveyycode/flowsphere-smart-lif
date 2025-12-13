@@ -18,24 +18,11 @@ import {
   Fire,
   ChartBar,
   Target,
-  Warning
+  Warning,
 } from '@phosphor-icons/react'
-import {
-  getFocusTracker,
-  FocusSession,
-  FocusStats,
-  formatDuration
-} from '@/lib/focus-tracking'
+import { getFocusTracker, FocusSession, FocusStats, formatDuration } from '@/lib/focus-tracking'
 import { toast } from 'sonner'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 export function FocusReportView() {
   const deviceType = useDeviceType()
@@ -49,7 +36,7 @@ export function FocusReportView() {
 
   useEffect(() => {
     // Subscribe to session updates
-    const unsubscribe = tracker.subscribe((session) => {
+    const unsubscribe = tracker.subscribe(session => {
       setCurrentSession(session)
     })
 
@@ -71,12 +58,9 @@ export function FocusReportView() {
   const handleEndSession = () => {
     const session = tracker.endSession()
     if (session) {
-      toast.success(
-        `Session complete! Focus score: ${session.focusScore}%`,
-        {
-          description: `You focused for ${formatDuration(session.focusedDuration)}`
-        }
-      )
+      toast.success(`Session complete! Focus score: ${session.focusScore}%`, {
+        description: `You focused for ${formatDuration(session.focusedDuration)}`,
+      })
     }
     setCurrentSession(null)
     setStats(tracker.getStats())
@@ -113,16 +97,16 @@ export function FocusReportView() {
   }
 
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn('space-y-6', isMobile && 'space-y-4')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
               <Eye className="w-6 h-6 text-purple-500" weight="fill" />
             </div>
             <div>
-              <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
+              <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>
                 Focus & Attention Report
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -133,10 +117,10 @@ export function FocusReportView() {
         </CardHeader>
       </Card>
 
-      <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+      <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
         {/* Current Session / Start Session */}
-        <Card className={cn("col-span-1", !isMobile && "col-span-2")}>
-          <CardContent className={cn("p-6", isMobile && "p-4")}>
+        <Card className={cn('col-span-1', !isMobile && 'col-span-2')}>
+          <CardContent className={cn('p-6', isMobile && 'p-4')}>
             {!isActive ? (
               /* Start Session UI */
               <div className="text-center space-y-6">
@@ -145,7 +129,7 @@ export function FocusReportView() {
                 </div>
 
                 <div>
-                  <h2 className={cn("font-bold mb-2", isMobile ? "text-xl" : "text-2xl")}>
+                  <h2 className={cn('font-bold mb-2', isMobile ? 'text-xl' : 'text-2xl')}>
                     Ready to Focus?
                   </h2>
                   <p className="text-muted-foreground">
@@ -160,15 +144,11 @@ export function FocusReportView() {
                       id="session-label"
                       placeholder="e.g., Study Math, Work on Project"
                       value={sessionLabel}
-                      onChange={(e) => setSessionLabel(e.target.value)}
+                      onChange={e => setSessionLabel(e.target.value)}
                     />
                   </div>
 
-                  <Button
-                    size="lg"
-                    onClick={handleStartSession}
-                    className="w-full gap-2"
-                  >
+                  <Button size="lg" onClick={handleStartSession} className="w-full gap-2">
                     <Play weight="fill" className="w-5 h-5" />
                     Start Focus Session
                   </Button>
@@ -179,7 +159,7 @@ export function FocusReportView() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className={cn("font-bold", isMobile ? "text-lg" : "text-xl")}>
+                    <h2 className={cn('font-bold', isMobile ? 'text-lg' : 'text-xl')}>
                       {currentSession?.label || 'Focus Session'}
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -219,9 +199,24 @@ export function FocusReportView() {
                     <p className="text-xs text-muted-foreground">Distractions</p>
                   </div>
 
-                  <div className={cn("text-center p-4 rounded-lg", getScoreBgColor(currentSession?.focusScore || 0))}>
-                    <Target className={cn("w-6 h-6 mx-auto mb-2", getScoreColor(currentSession?.focusScore || 0))} />
-                    <p className={cn("text-2xl font-mono font-bold", getScoreColor(currentSession?.focusScore || 0))}>
+                  <div
+                    className={cn(
+                      'text-center p-4 rounded-lg',
+                      getScoreBgColor(currentSession?.focusScore || 0)
+                    )}
+                  >
+                    <Target
+                      className={cn(
+                        'w-6 h-6 mx-auto mb-2',
+                        getScoreColor(currentSession?.focusScore || 0)
+                      )}
+                    />
+                    <p
+                      className={cn(
+                        'text-2xl font-mono font-bold',
+                        getScoreColor(currentSession?.focusScore || 0)
+                      )}
+                    >
                       {currentSession?.focusScore || 0}%
                     </p>
                     <p className="text-xs text-muted-foreground">Focus Score</p>
@@ -243,28 +238,17 @@ export function FocusReportView() {
                 <div className="flex items-center justify-center gap-4">
                   {!isOnBreak ? (
                     <>
-                      <Button
-                        variant="outline"
-                        onClick={handleStartBreak}
-                        className="gap-2"
-                      >
+                      <Button variant="outline" onClick={handleStartBreak} className="gap-2">
                         <Coffee className="w-5 h-5" />
                         Take Break
                       </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleEndSession}
-                        className="gap-2"
-                      >
+                      <Button variant="destructive" onClick={handleEndSession} className="gap-2">
                         <Stop weight="fill" className="w-5 h-5" />
                         End Session
                       </Button>
                     </>
                   ) : (
-                    <Button
-                      onClick={handleEndBreak}
-                      className="gap-2"
-                    >
+                    <Button onClick={handleEndBreak} className="gap-2">
                       <Play weight="fill" className="w-5 h-5" />
                       Resume Focus
                     </Button>
@@ -297,7 +281,7 @@ export function FocusReportView() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Avg Focus Score</span>
-                    <span className={cn("font-bold", getScoreColor(stats.averageFocusScore))}>
+                    <span className={cn('font-bold', getScoreColor(stats.averageFocusScore))}>
                       {stats.averageFocusScore}%
                     </span>
                   </div>
@@ -339,7 +323,7 @@ export function FocusReportView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("h-64", isMobile && "h-48")}>
+            <div className={cn('h-64', isMobile && 'h-48')}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.weeklyData}>
                   <XAxis
@@ -352,7 +336,7 @@ export function FocusReportView() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: 'currentColor', fontSize: 12 }}
-                    tickFormatter={(value) => `${Math.round(value / 60000)}m`}
+                    tickFormatter={value => `${Math.round(value / 60000)}m`}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
@@ -395,7 +379,7 @@ export function FocusReportView() {
       <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">Focus Tips</h3>
-          <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+          <div className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-blue-500" />

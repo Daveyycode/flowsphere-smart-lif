@@ -49,7 +49,7 @@ import {
   initialDevices,
   initialFamilyMembers,
   initialNotifications,
-  initialAutomations
+  initialAutomations,
 } from '@/lib/initial-data'
 import { getEffectiveTier, getRemainingTrialDays } from '@/lib/subscription-utils'
 import { EmailMonitorService } from '@/components/email-monitor-service'
@@ -89,7 +89,11 @@ function App() {
         const roomCode = timerMatch[1].toUpperCase()
         const isController = !!timerMatch[2]
         const isFloating = searchParams.get('floating') === 'true'
-        setTimerRoute({ roomCode, mode: isController ? 'controller' : 'presenter', floating: isFloating })
+        setTimerRoute({
+          roomCode,
+          mode: isController ? 'controller' : 'presenter',
+          floating: isFloating,
+        })
         return
       }
 
@@ -109,9 +113,13 @@ function App() {
       }
 
       // Check for calendar OAuth callbacks (/auth/{provider}-calendar/callback?code=xxx)
-      const calendarOAuthMatch = path.match(/^\/auth\/(google-calendar|outlook-calendar)\/callback$/i)
+      const calendarOAuthMatch = path.match(
+        /^\/auth\/(google-calendar|outlook-calendar)\/callback$/i
+      )
       if (calendarOAuthMatch) {
-        const provider = calendarOAuthMatch[1].toLowerCase() as 'google-calendar' | 'outlook-calendar'
+        const provider = calendarOAuthMatch[1].toLowerCase() as
+          | 'google-calendar'
+          | 'outlook-calendar'
         const code = searchParams.get('code')
         if (code) {
           setCalendarOAuthCallback({ provider, code })
@@ -134,20 +142,66 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useKV<boolean>('flowsphere-authenticated', false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null)
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'devices' | 'family' | 'notifications' | 'resources' | 'prayer' | 'settings' | 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'meeting-notes' | 'permissions' | 'traffic' | 'ai-voice' | 'vault' | 'weather' | 'smart-timer' | 'tutor-ai' | 'focus-report' | 'study-monitor' | 'scheduler' | 'smart-devices' | 'ai-settings' | 'remote-timer' | 'kids-learning' | 'hash-fl'>('dashboard')
-  
+  const [currentTab, setCurrentTab] = useState<
+    | 'dashboard'
+    | 'devices'
+    | 'family'
+    | 'notifications'
+    | 'resources'
+    | 'prayer'
+    | 'settings'
+    | 'subscription'
+    | 'subscription-monitoring'
+    | 'terms'
+    | 'privacy'
+    | 'meeting-notes'
+    | 'permissions'
+    | 'traffic'
+    | 'ai-voice'
+    | 'vault'
+    | 'weather'
+    | 'smart-timer'
+    | 'tutor-ai'
+    | 'focus-report'
+    | 'study-monitor'
+    | 'scheduler'
+    | 'smart-devices'
+    | 'ai-settings'
+    | 'remote-timer'
+    | 'kids-learning'
+    | 'hash-fl'
+  >('dashboard')
+
   const [devices, setDevices] = useKV<Device[]>('flowsphere-devices', initialDevices)
-  const [familyMembers, setFamilyMembers] = useKV<FamilyMember[]>('flowsphere-family', initialFamilyMembers)
-  const [notificationsList, setNotificationsList] = useKV<Notification[]>('flowsphere-notifications-list', initialNotifications)
-  const [automations, setAutomations] = useKV<Automation[]>('flowsphere-automations', initialAutomations)
-  
+  const [familyMembers, setFamilyMembers] = useKV<FamilyMember[]>(
+    'flowsphere-family',
+    initialFamilyMembers
+  )
+  const [notificationsList, setNotificationsList] = useKV<Notification[]>(
+    'flowsphere-notifications-list',
+    initialNotifications
+  )
+  const [automations, setAutomations] = useKV<Automation[]>(
+    'flowsphere-automations',
+    initialAutomations
+  )
+
   const [userName, setUserName] = useKV<string>('flowsphere-user-name', '')
   const [userEmail, setUserEmail] = useKV<string>('flowsphere-user-email', '')
-  const [subscription, setSubscription] = useKV<'basic' | 'pro' | 'gold' | 'family'>('flowsphere-subscription', 'pro')
+  const [subscription, setSubscription] = useKV<'basic' | 'pro' | 'gold' | 'family'>(
+    'flowsphere-subscription',
+    'pro'
+  )
   const [trialStartDate, setTrialStartDate] = useKV<string | null>('flowsphere-trial-start', null)
   const [dndEnabled, setDndEnabled] = useKV<boolean>('flowsphere-dnd-enabled', false)
-  const [emergencyOverride, setEmergencyOverride] = useKV<number>('flowsphere-emergency-override', 3)
-  const [showMorningBrief, setShowMorningBrief] = useKV<boolean>('flowsphere-show-morning-brief', true)
+  const [emergencyOverride, setEmergencyOverride] = useKV<number>(
+    'flowsphere-emergency-override',
+    3
+  )
+  const [showMorningBrief, setShowMorningBrief] = useKV<boolean>(
+    'flowsphere-show-morning-brief',
+    true
+  )
   const [lastBriefDate, setLastBriefDate] = useKV<string>('flowsphere-last-brief-date', '')
   const [notificationSettings, setNotificationSettings] = useKV<{
     email: boolean
@@ -156,7 +210,7 @@ function App() {
   }>('flowsphere-notification-settings', {
     email: true,
     push: true,
-    sms: false
+    sms: false,
   })
 
   const effectiveTier = getEffectiveTier(subscription || 'basic', trialStartDate || null)
@@ -164,15 +218,18 @@ function App() {
 
   // Check for existing Supabase session on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // PRODUCTION: Always require email verification
-      if (session && session.user?.email_confirmed_at) {
-        setIsAuthenticated(true)
-      }
-    }).catch((error) => {
-      // Handle session fetch error gracefully
-      console.error('Failed to get session:', error)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        // PRODUCTION: Always require email verification
+        if (session && session.user?.email_confirmed_at) {
+          setIsAuthenticated(true)
+        }
+      })
+      .catch(error => {
+        // Handle session fetch error gracefully
+        console.error('Failed to get session:', error)
+      })
 
     // Listen for auth state changes
     const {
@@ -191,7 +248,10 @@ function App() {
     return () => authSubscription.unsubscribe()
   }, [setIsAuthenticated])
 
-  const [hasSeenPermissionsPrompt, setHasSeenPermissionsPrompt] = useKV<boolean>('flowsphere-permissions-prompted', false)
+  const [hasSeenPermissionsPrompt, setHasSeenPermissionsPrompt] = useKV<boolean>(
+    'flowsphere-permissions-prompted',
+    false
+  )
 
   useEffect(() => {
     if (isAuthenticated && !trialStartDate) {
@@ -249,22 +309,26 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    const unsubscribe = NotificationSyncStore.subscribe((notification) => {
+    const unsubscribe = NotificationSyncStore.subscribe(notification => {
       // Add email notification to the notifications list
       const newNotification: Notification = {
         id: notification.id,
-        type: notification.category === 'emergency' ? 'urgent' :
-              notification.category === 'important' ? 'important' : 'email',
+        type:
+          notification.category === 'emergency'
+            ? 'urgent'
+            : notification.category === 'important'
+              ? 'important'
+              : 'email',
         title: notification.title,
         message: notification.message,
         time: new Date(notification.timestamp).toLocaleTimeString('en-US', {
           hour: 'numeric',
-          minute: '2-digit'
+          minute: '2-digit',
         }),
-        isRead: false
+        isRead: false,
       }
 
-      setNotificationsList((current) => {
+      setNotificationsList(current => {
         // Avoid duplicates
         const exists = (current || []).some(n => n.id === notification.id)
         if (exists) return current
@@ -282,11 +346,13 @@ function App() {
     activeDevices: devices?.filter(d => d.isOn).length || 0,
     totalDevices: devices?.length || 0,
     familyMembers: familyMembers?.length || 0,
-    automations: automations?.length || 0
+    automations: automations?.length || 0,
   }
 
   // Recent activity tracked from actual device, family, and automation events
-  const [recentActivity, setRecentActivity] = useKV<Array<{id: string, type: string, message: string, time: string}>>('flowsphere-recent-activity', [])
+  const [recentActivity, setRecentActivity] = useKV<
+    Array<{ id: string; type: string; message: string; time: string }>
+  >('flowsphere-recent-activity', [])
 
   // Helper function to add activity
   const addActivity = (type: string, message: string) => {
@@ -294,13 +360,13 @@ function App() {
       id: Date.now().toString(),
       type,
       message,
-      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     }
-    setRecentActivity((current) => [newActivity, ...(current || [])].slice(0, 10)) // Keep last 10 activities
+    setRecentActivity(current => [newActivity, ...(current || [])].slice(0, 10)) // Keep last 10 activities
   }
 
   const handleDeviceUpdate = (id: string, updates: Partial<Device>) => {
-    setDevices((currentDevices) => {
+    setDevices(currentDevices => {
       const device = (currentDevices || []).find(d => d.id === id)
       if (device && updates.isOn !== undefined) {
         addActivity('device', `${device.name} turned ${updates.isOn ? 'on' : 'off'}`)
@@ -319,9 +385,9 @@ function App() {
 
   const handleAddDevice = (newDevice: Omit<Device, 'id'>) => {
     addActivity('device', `New device added: ${newDevice.name}`)
-    setDevices((currentDevices) => [
+    setDevices(currentDevices => [
       ...(currentDevices || []),
-      { ...newDevice, id: Date.now().toString() }
+      { ...newDevice, id: Date.now().toString() },
     ])
   }
 
@@ -330,9 +396,7 @@ function App() {
     if (device) {
       addActivity('device', `Device removed: ${device.name}`)
     }
-    setDevices((currentDevices) =>
-      (currentDevices || []).filter(device => device.id !== id)
-    )
+    setDevices(currentDevices => (currentDevices || []).filter(device => device.id !== id))
   }
 
   const handleUpdateFamilyMember = (id: string, updates: Partial<FamilyMember>) => {
@@ -342,32 +406,26 @@ function App() {
     } else if (member && updates.status) {
       addActivity('family', `${member.name} status: ${updates.status}`)
     }
-    setFamilyMembers((currentMembers) =>
-      (currentMembers || []).map(member =>
-        member.id === id ? { ...member, ...updates } : member
-      )
+    setFamilyMembers(currentMembers =>
+      (currentMembers || []).map(member => (member.id === id ? { ...member, ...updates } : member))
     )
   }
 
   const handleNotificationChange = (type: 'email' | 'push' | 'sms', value: boolean) => {
-    setNotificationSettings((current) => ({
+    setNotificationSettings(current => ({
       ...(current || { email: true, push: true, sms: false }),
-      [type]: value
+      [type]: value,
     }))
   }
 
   const handleMarkNotificationRead = (id: string) => {
-    setNotificationsList((current) =>
-      (current || []).map(notif =>
-        notif.id === id ? { ...notif, isRead: true } : notif
-      )
+    setNotificationsList(current =>
+      (current || []).map(notif => (notif.id === id ? { ...notif, isRead: true } : notif))
     )
   }
 
   const handleDeleteNotification = (id: string) => {
-    setNotificationsList((current) =>
-      (current || []).filter(notif => notif.id !== id)
-    )
+    setNotificationsList(current => (current || []).filter(notif => notif.id !== id))
   }
 
   const handleToggleAutomation = (id: string, isActive: boolean) => {
@@ -375,7 +433,7 @@ function App() {
     if (automation) {
       addActivity('automation', `${automation.name} ${isActive ? 'activated' : 'deactivated'}`)
     }
-    setAutomations((current) =>
+    setAutomations(current =>
       (current || []).map(automation =>
         automation.id === id ? { ...automation, isActive } : automation
       )
@@ -387,17 +445,12 @@ function App() {
     if (automation) {
       addActivity('automation', `Automation removed: ${automation.name}`)
     }
-    setAutomations((current) =>
-      (current || []).filter(automation => automation.id !== id)
-    )
+    setAutomations(current => (current || []).filter(automation => automation.id !== id))
   }
 
   const handleAddAutomation = (newAutomation: Omit<Automation, 'id'>) => {
     addActivity('automation', `New automation created: ${newAutomation.name}`)
-    setAutomations((current) => [
-      ...(current || []),
-      { ...newAutomation, id: Date.now().toString() }
-    ])
+    setAutomations(current => [...(current || []), { ...newAutomation, id: Date.now().toString() }])
   }
 
   const handleSubscriptionChange = (plan: 'basic' | 'pro' | 'gold' | 'family') => {
@@ -416,7 +469,16 @@ function App() {
     localStorage.removeItem('flowsphere_ceo_email')
   }
 
-  const handleNavigateFromSettings = (destination: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice' | 'vault') => {
+  const handleNavigateFromSettings = (
+    destination:
+      | 'subscription'
+      | 'subscription-monitoring'
+      | 'terms'
+      | 'privacy'
+      | 'permissions'
+      | 'ai-voice'
+      | 'vault'
+  ) => {
     setCurrentTab(destination)
   }
 
@@ -496,7 +558,7 @@ function App() {
             onTabChange={handleTabChange}
           />
         )}
-        
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
@@ -533,26 +595,27 @@ function App() {
                     </div>
                     <h2 className="text-2xl font-bold">Available Soon</h2>
                     <p className="text-muted-foreground">
-                      Device management features are currently under development.
-                      We're working hard to bring you smart device integration and automation controls.
+                      Device management features are currently under development. We're working hard
+                      to bring you smart device integration and automation controls.
                     </p>
                   </CardContent>
                 </Card>
               </div>
             )}
             {currentTab === 'family' && (
-              <FamilyView
-                members={familyMembers || []}
-                onUpdateMember={handleUpdateFamilyMember}
-              />
+              <FamilyView members={familyMembers || []} onUpdateMember={handleUpdateFamilyMember} />
             )}
             {currentTab === 'meeting-notes' && <MeetingNotes />}
             {currentTab === 'permissions' && <PermissionsSettings />}
             {currentTab === 'traffic' && <TrafficUpdate deviceInfo={deviceInfo} />}
             {currentTab === 'weather' && <WeatherView deviceInfo={deviceInfo} />}
             {currentTab === 'ai-voice' && <AIVoiceSettings />}
-            {currentTab === 'smart-timer' && <SmartTimerView userId={userEmail || 'default-user'} onTabChange={handleTabChange} />}
-            {currentTab === 'remote-timer' && <RemoteTimerRoom onBack={() => handleTabChange('smart-timer')} />}
+            {currentTab === 'smart-timer' && (
+              <SmartTimerView userId={userEmail || 'default-user'} onTabChange={handleTabChange} />
+            )}
+            {currentTab === 'remote-timer' && (
+              <RemoteTimerRoom onBack={() => handleTabChange('smart-timer')} />
+            )}
             {currentTab === 'focus-report' && <FocusReportView />}
             {currentTab === 'tutor-ai' && <TutorAIView />}
             {currentTab === 'study-monitor' && <StudyMonitorView />}
@@ -575,11 +638,11 @@ function App() {
               />
             )}
             {currentTab === 'vault' && (
-              <Vault onNavigate={(view) => setCurrentTab(view as typeof currentTab)} />
+              <Vault onNavigate={view => setCurrentTab(view as typeof currentTab)} />
             )}
             {currentTab === 'subscription' && (
-              <SubscriptionManagement 
-                currentPlan={subscription || 'basic'} 
+              <SubscriptionManagement
+                currentPlan={subscription || 'basic'}
                 onPlanChange={handleSubscriptionChange}
               />
             )}
@@ -590,7 +653,7 @@ function App() {
                 featureName="Subscription Monitoring"
                 onUpgrade={() => setCurrentTab('subscription')}
               >
-                <SubscriptionMonitoring 
+                <SubscriptionMonitoring
                   currentFlowSpherePlan={subscription || 'basic'}
                   isOnTrial={effectiveTier === 'trial'}
                   trialDaysRemaining={remainingTrialDays}
@@ -602,8 +665,8 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </Layout>
-      
-      <AIAssistant 
+
+      <AIAssistant
         onTabChange={handleTabChange}
         onDeviceUpdate={handleDeviceUpdate}
         onDndToggle={setDndEnabled}

@@ -48,7 +48,9 @@ export function useSupabaseStorage<T>(
       setIsLoading(true)
 
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
       if (!user) {
         // No user logged in, use localStorage
@@ -80,9 +82,8 @@ export function useSupabaseStorage<T>(
           }
 
           if (data && data[column]) {
-            const parsedData = typeof data[column] === 'string'
-              ? JSON.parse(data[column])
-              : data[column]
+            const parsedData =
+              typeof data[column] === 'string' ? JSON.parse(data[column]) : data[column]
             setStoredValue(parsedData)
             // Also save to localStorage as cache
             window.localStorage.setItem(key, JSON.stringify(parsedData))
@@ -135,14 +136,15 @@ export function useSupabaseStorage<T>(
           event: '*',
           schema: 'public',
           table: table,
-          filter: `key=eq.${key}`
+          filter: `key=eq.${key}`,
         },
-        (payload) => {
+        payload => {
           if (payload.new && payload.new[column]) {
             try {
-              const parsedData = typeof payload.new[column] === 'string'
-                ? JSON.parse(payload.new[column])
-                : payload.new[column]
+              const parsedData =
+                typeof payload.new[column] === 'string'
+                  ? JSON.parse(payload.new[column])
+                  : payload.new[column]
               setStoredValue(parsedData)
               window.localStorage.setItem(key, JSON.stringify(parsedData))
             } catch (error) {
@@ -172,7 +174,9 @@ export function useSupabaseStorage<T>(
         window.localStorage.setItem(key, JSON.stringify(valueToStore))
 
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
         if (!user) {
           // Not logged in, only use localStorage
@@ -182,19 +186,17 @@ export function useSupabaseStorage<T>(
         // Save to Supabase if online
         if (isOnline) {
           try {
-            const { error } = await supabase
-              .from(table)
-              .upsert(
-                {
-                  user_id: user.id,
-                  key: key,
-                  [column]: JSON.stringify(valueToStore),
-                  updated_at: new Date().toISOString()
-                },
-                {
-                  onConflict: 'user_id,key'
-                }
-              )
+            const { error } = await supabase.from(table).upsert(
+              {
+                user_id: user.id,
+                key: key,
+                [column]: JSON.stringify(valueToStore),
+                updated_at: new Date().toISOString(),
+              },
+              {
+                onConflict: 'user_id,key',
+              }
+            )
 
             if (error) {
               console.error(`Error saving to Supabase:`, error)
@@ -207,7 +209,7 @@ export function useSupabaseStorage<T>(
         // Dispatch custom event for cross-tab sync
         window.dispatchEvent(
           new CustomEvent('local-storage', {
-            detail: { key, value: valueToStore }
+            detail: { key, value: valueToStore },
           })
         )
       } catch (error) {

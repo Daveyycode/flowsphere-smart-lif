@@ -53,7 +53,7 @@ export async function getCurrentLocation(): Promise<GPSLocation> {
 
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      async position => {
         const location: GPSLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -61,7 +61,7 @@ export async function getCurrentLocation(): Promise<GPSLocation> {
           timestamp: Date.now(),
           speed: position.coords.speed,
           heading: position.coords.heading,
-          altitude: position.coords.altitude
+          altitude: position.coords.altitude,
         }
 
         // Try to get address via reverse geocoding
@@ -76,11 +76,12 @@ export async function getCurrentLocation(): Promise<GPSLocation> {
 
         resolve(location)
       },
-      (error) => {
+      error => {
         let errorMessage = 'Failed to get location'
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied. Please enable location access in your browser settings.'
+            errorMessage =
+              'Location permission denied. Please enable location access in your browser settings.'
             break
           case error.POSITION_UNAVAILABLE:
             errorMessage = 'Location information is unavailable.'
@@ -94,7 +95,7 @@ export async function getCurrentLocation(): Promise<GPSLocation> {
       {
         enableHighAccuracy: true,
         timeout: 15000,
-        maximumAge: 0
+        maximumAge: 0,
       }
     )
   })
@@ -113,7 +114,7 @@ export function startContinuousTracking(
   }
 
   const watchId = navigator.geolocation.watchPosition(
-    async (position) => {
+    async position => {
       const location: GPSLocation = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
@@ -121,7 +122,7 @@ export function startContinuousTracking(
         timestamp: Date.now(),
         speed: position.coords.speed,
         heading: position.coords.heading,
-        altitude: position.coords.altitude
+        altitude: position.coords.altitude,
       }
 
       // Try to get address
@@ -139,14 +140,14 @@ export function startContinuousTracking(
 
       onLocationUpdate(location)
     },
-    (error) => {
+    error => {
       logger.error('GPS tracking error:', error)
       onError?.(error)
     },
     {
       enableHighAccuracy: true,
       timeout: 30000,
-      maximumAge: 5000 // Allow cached position up to 5 seconds old
+      maximumAge: 5000, // Allow cached position up to 5 seconds old
     }
   )
 
@@ -198,7 +199,7 @@ function addToLocationHistory(memberId: string, location: GPSLocation): void {
     allHistory[memberId] = {
       memberId,
       locations: [],
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     }
   }
 
@@ -227,19 +228,13 @@ export function getLocationHistory(memberId: string): GPSLocation[] {
  * Calculate distance between two GPS coordinates (Haversine formula)
  * Returns distance in meters
  */
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+export function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000 // Earth's radius in meters
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
 }
@@ -251,10 +246,7 @@ function toRad(deg: number): number {
 /**
  * Check if a location is inside a geofence zone
  */
-export function isInsideGeofence(
-  location: GPSLocation,
-  zone: GeofenceZone
-): boolean {
+export function isInsideGeofence(location: GPSLocation, zone: GeofenceZone): boolean {
   const distance = calculateDistance(location.lat, location.lng, zone.lat, zone.lng)
   return distance <= zone.radius
 }
@@ -290,8 +282,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`,
       {
         headers: {
-          'User-Agent': 'FlowSphere Family Safety App'
-        }
+          'User-Agent': 'FlowSphere Family Safety App',
+        },
       }
     )
 
@@ -374,7 +366,7 @@ export function createSOSAlert(
     memberName,
     message,
     audioData,
-    acknowledged: []
+    acknowledged: [],
   }
 
   // Store SOS alerts

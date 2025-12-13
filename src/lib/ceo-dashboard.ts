@@ -188,7 +188,7 @@ export class CEODashboardManager {
     password: '', // Never stored client-side - verified server-side
     biometricEnabled: false,
     sessionTimeout: 30,
-    maxFailedAttempts: 3
+    maxFailedAttempts: 3,
   }
 
   /**
@@ -213,7 +213,7 @@ export class CEODashboardManager {
       if (this.isLockedOut()) {
         return {
           success: false,
-          error: 'Account temporarily locked due to failed attempts'
+          error: 'Account temporarily locked due to failed attempts',
         }
       }
 
@@ -223,7 +223,7 @@ export class CEODashboardManager {
         this.recordFailedAttempt()
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'Invalid credentials',
         }
       }
 
@@ -231,7 +231,7 @@ export class CEODashboardManager {
       if (credentials.biometricEnabled && !options?.biometric) {
         return {
           success: false,
-          requiresBiometric: true
+          requiresBiometric: true,
         }
       }
 
@@ -241,7 +241,7 @@ export class CEODashboardManager {
         if (!biometricResult.success) {
           return {
             success: false,
-            error: 'Biometric authentication failed'
+            error: 'Biometric authentication failed',
           }
         }
       }
@@ -250,7 +250,7 @@ export class CEODashboardManager {
       if (credentials.totpSecret && !options?.totpCode) {
         return {
           success: false,
-          requires2FA: true
+          requires2FA: true,
         }
       }
 
@@ -260,7 +260,7 @@ export class CEODashboardManager {
         if (!valid) {
           return {
             success: false,
-            error: '2FA code invalid'
+            error: '2FA code invalid',
           }
         }
       }
@@ -280,20 +280,20 @@ export class CEODashboardManager {
         ipAddress: session.ipAddress,
         location: `${session.location.city}, ${session.location.country}`,
         resolved: true,
-        actions: []
+        actions: [],
       })
 
       this.resetFailedAttempts()
 
       return {
         success: true,
-        session
+        session,
       }
     } catch (error) {
       console.error('CEO authentication error:', error)
       return {
         success: false,
-        error: 'Authentication failed'
+        error: 'Authentication failed',
       }
     }
   }
@@ -314,11 +314,11 @@ export class CEODashboardManager {
       location: {
         city: location.city,
         country: location.country,
-        coordinates: location.coordinates
+        coordinates: location.coordinates,
       },
       authenticated: true,
       biometricVerified: false,
-      twoFactorVerified: false
+      twoFactorVerified: false,
     }
 
     localStorage.setItem(this.sessionKey, JSON.stringify(session))
@@ -403,7 +403,7 @@ export class CEODashboardManager {
 
     return {
       secret,
-      qrCode: this.generateTOTPQRCode(secret, credentials.username)
+      qrCode: this.generateTOTPQRCode(secret, credentials.username),
     }
   }
 
@@ -432,22 +432,22 @@ export class CEODashboardManager {
         growth: 15.7,
         byRegion: {
           'North America': 5234,
-          'Europe': 3891,
-          'Asia': 2456,
-          'Other': 1266
+          Europe: 3891,
+          Asia: 2456,
+          Other: 1266,
         },
         byDevice: {
-          'iOS': 6423,
-          'Android': 4891,
-          'Web': 1533
-        }
+          iOS: 6423,
+          Android: 4891,
+          Web: 1533,
+        },
       },
       engagement: {
         dailyActiveUsers: 6234,
         monthlyActiveUsers: 11456,
         avgSessionDuration: 847, // seconds
         avgDailyUsage: 3.2, // hours
-        retentionRate: 87.4
+        retentionRate: 87.4,
       },
       features: {
         mostUsed: [
@@ -455,31 +455,31 @@ export class CEODashboardManager {
           { feature: 'AI Assistant', usage: 7645 },
           { feature: 'Family Safety', usage: 5432 },
           { feature: 'Email Scanner', usage: 4321 },
-          { feature: 'Vault', usage: 3210 }
+          { feature: 'Vault', usage: 3210 },
         ],
         leastUsed: [
           { feature: 'CCTV Integration', usage: 234 },
           { feature: 'Meeting Notes', usage: 456 },
-          { feature: 'Bed Mode', usage: 789 }
+          { feature: 'Bed Mode', usage: 789 },
         ],
         aiInteractions: 45678,
         vaultAccess: 3210,
         messengerActivity: 89234,
-        callsMade: 2345
+        callsMade: 2345,
       },
       performance: {
         avgLoadTime: 1.2, // seconds
         errorRate: 0.3, // percentage
         apiResponseTime: 245, // milliseconds
-        uptime: 99.97
+        uptime: 99.97,
       },
       financial: {
         revenue: 128934,
         subscriptions: 8934,
         arpu: 14.44,
         mrr: 42780,
-        churn: 2.3
-      }
+        churn: 2.3,
+      },
     }
   }
 
@@ -542,12 +542,7 @@ export class CEODashboardManager {
   /**
    * Create new API key
    */
-  createAPIKey(
-    name: string,
-    service: string,
-    scope: string[],
-    expiresInDays?: number
-  ): APIKey {
+  createAPIKey(name: string, service: string, scope: string[], expiresInDays?: number): APIKey {
     const apiKey: APIKey = {
       id: `key-${Date.now()}`,
       name,
@@ -562,8 +557,8 @@ export class CEODashboardManager {
       usage: {
         calls: 0,
         quota: 10000,
-        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      }
+        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      },
     }
 
     const keys = this.getAPIKeys()
@@ -707,10 +702,12 @@ export class CEODashboardManager {
   }
 
   private generateAPIKey(): string {
-    return `fs_${Array.from({ length: 40 }, () =>
-      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[
-        Math.floor(Math.random() * 62)
-      ]
+    return `fs_${Array.from(
+      { length: 40 },
+      () =>
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[
+          Math.floor(Math.random() * 62)
+        ]
     ).join('')}`
   }
 
@@ -725,7 +722,7 @@ export class CEODashboardManager {
       ip: '127.0.0.1',
       city: 'San Francisco',
       country: 'United States',
-      coordinates: { lat: 37.7749, lon: -122.4194 }
+      coordinates: { lat: 37.7749, lon: -122.4194 },
     }
   }
 
@@ -752,7 +749,7 @@ export class CEODashboardManager {
         status: 'new',
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         sentiment: 'negative',
-        tags: ['android', 'performance', 'loading']
+        tags: ['android', 'performance', 'loading'],
       },
       {
         id: 'fb-002',
@@ -766,7 +763,7 @@ export class CEODashboardManager {
         status: 'in-progress',
         timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
         sentiment: 'neutral',
-        tags: ['dark-mode', 'messenger', 'ui']
+        tags: ['dark-mode', 'messenger', 'ui'],
       },
       {
         id: 'fb-003',
@@ -775,13 +772,14 @@ export class CEODashboardManager {
         type: 'bug-report',
         category: 'Family Safety',
         subject: 'Location not updating',
-        message: 'My family members location is not updating in real-time. Last update was 2 hours ago.',
+        message:
+          'My family members location is not updating in real-time. Last update was 2 hours ago.',
         priority: 'critical',
         status: 'new',
         timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
         sentiment: 'very-negative',
-        tags: ['location', 'family-safety', 'real-time']
-      }
+        tags: ['location', 'family-safety', 'real-time'],
+      },
     ]
   }
 
@@ -799,8 +797,8 @@ export class CEODashboardManager {
         usage: {
           calls: 8543,
           quota: 10000,
-          resetDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
-        }
+          resetDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+        },
       },
       {
         id: 'key-002',
@@ -814,9 +812,9 @@ export class CEODashboardManager {
         usage: {
           calls: 2341,
           quota: 5000,
-          resetDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      }
+          resetDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      },
     ]
   }
 }

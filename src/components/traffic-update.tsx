@@ -1,13 +1,30 @@
 import { useState, useEffect, lazy, Suspense, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, NavigationArrow, Clock, Car, Alarm, MapTrifold, CaretRight, MagnifyingGlass, X, Crosshair } from '@phosphor-icons/react'
+import {
+  MapPin,
+  NavigationArrow,
+  Clock,
+  Car,
+  Alarm,
+  MapTrifold,
+  CaretRight,
+  MagnifyingGlass,
+  X,
+  Crosshair,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
@@ -48,20 +65,80 @@ interface Location {
   address: string
   category: 'home' | 'work' | 'school' | 'shopping' | 'restaurant' | 'other'
   coordinates?: { lat: number; lng: number }
-  placeId?: string  // Google Places ID for getting details
+  placeId?: string // Google Places ID for getting details
 }
 
 const popularLocations: Location[] = [
-  { id: '1', name: 'Home', address: '123 Main Street, Downtown', category: 'home', coordinates: { lat: 14.5995, lng: 120.9842 } },
-  { id: '2', name: 'Office - Tech Hub', address: '456 Business Park, Tech District', category: 'work', coordinates: { lat: 14.5547, lng: 121.0244 } },
-  { id: '3', name: 'City Mall', address: '789 Shopping Center, Central', category: 'shopping', coordinates: { lat: 14.5833, lng: 121.0500 } },
-  { id: '4', name: 'Kids School', address: '321 Education Ave, Northside', category: 'school', coordinates: { lat: 14.6200, lng: 120.9890 } },
-  { id: '5', name: 'Gym & Fitness', address: '654 Wellness Blvd, Eastside', category: 'other', coordinates: { lat: 14.5700, lng: 121.0600 } },
-  { id: '6', name: 'Airport', address: 'International Airport Terminal', category: 'other', coordinates: { lat: 14.5086, lng: 121.0194 } },
-  { id: '7', name: 'Downtown Center', address: 'Main Plaza, City Center', category: 'other', coordinates: { lat: 14.5965, lng: 120.9845 } },
-  { id: '8', name: 'Beach Park', address: '987 Coastal Drive, Beachfront', category: 'other', coordinates: { lat: 14.5200, lng: 120.9500 } },
-  { id: '9', name: 'Hospital', address: '147 Medical Center Dr, Healthcare District', category: 'other', coordinates: { lat: 14.5650, lng: 121.0300 } },
-  { id: '10', name: 'Train Station', address: 'Central Station, Transit Hub', category: 'other', coordinates: { lat: 14.6037, lng: 120.9822 } },
+  {
+    id: '1',
+    name: 'Home',
+    address: '123 Main Street, Downtown',
+    category: 'home',
+    coordinates: { lat: 14.5995, lng: 120.9842 },
+  },
+  {
+    id: '2',
+    name: 'Office - Tech Hub',
+    address: '456 Business Park, Tech District',
+    category: 'work',
+    coordinates: { lat: 14.5547, lng: 121.0244 },
+  },
+  {
+    id: '3',
+    name: 'City Mall',
+    address: '789 Shopping Center, Central',
+    category: 'shopping',
+    coordinates: { lat: 14.5833, lng: 121.05 },
+  },
+  {
+    id: '4',
+    name: 'Kids School',
+    address: '321 Education Ave, Northside',
+    category: 'school',
+    coordinates: { lat: 14.62, lng: 120.989 },
+  },
+  {
+    id: '5',
+    name: 'Gym & Fitness',
+    address: '654 Wellness Blvd, Eastside',
+    category: 'other',
+    coordinates: { lat: 14.57, lng: 121.06 },
+  },
+  {
+    id: '6',
+    name: 'Airport',
+    address: 'International Airport Terminal',
+    category: 'other',
+    coordinates: { lat: 14.5086, lng: 121.0194 },
+  },
+  {
+    id: '7',
+    name: 'Downtown Center',
+    address: 'Main Plaza, City Center',
+    category: 'other',
+    coordinates: { lat: 14.5965, lng: 120.9845 },
+  },
+  {
+    id: '8',
+    name: 'Beach Park',
+    address: '987 Coastal Drive, Beachfront',
+    category: 'other',
+    coordinates: { lat: 14.52, lng: 120.95 },
+  },
+  {
+    id: '9',
+    name: 'Hospital',
+    address: '147 Medical Center Dr, Healthcare District',
+    category: 'other',
+    coordinates: { lat: 14.565, lng: 121.03 },
+  },
+  {
+    id: '10',
+    name: 'Train Station',
+    address: 'Central Station, Transit Hub',
+    category: 'other',
+    coordinates: { lat: 14.6037, lng: 120.9822 },
+  },
 ]
 
 interface TrafficUpdateProps {
@@ -93,10 +170,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
       toCoords: { lat: 14.5547, lng: 121.0244 },
       preferredArrivalTime: '09:00',
       mapProvider: 'google',
-      trafficCondition: 'moderate'
-    }
+      trafficCondition: 'moderate',
+    },
   ])
-  
+
   const [isAddingRoute, setIsAddingRoute] = useState(false)
   const [newRouteName, setNewRouteName] = useState('')
   const [newRouteFrom, setNewRouteFrom] = useState('')
@@ -110,8 +187,12 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
   const [toSearchQuery, setToSearchQuery] = useState('')
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null)
   const [showMapPreview, setShowMapPreview] = useState(false)
-  const [newRouteFromCoords, setNewRouteFromCoords] = useState<{ lat: number; lng: number } | undefined>()
-  const [newRouteToCoords, setNewRouteToCoords] = useState<{ lat: number; lng: number } | undefined>()
+  const [newRouteFromCoords, setNewRouteFromCoords] = useState<
+    { lat: number; lng: number } | undefined
+  >()
+  const [newRouteToCoords, setNewRouteToCoords] = useState<
+    { lat: number; lng: number } | undefined
+  >()
   const [selectedRouteData, setSelectedRouteData] = useState<RouteResult | null>(null)
   const [isLoadingRouteData, setIsLoadingRouteData] = useState(false)
 
@@ -142,7 +223,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
         address: prediction.address,
         category: 'other' as const,
         coordinates: prediction.coordinates,
-        placeId: prediction.placeId
+        placeId: prediction.placeId,
       }))
 
       if (type === 'from') setFromGeoResults(results)
@@ -159,14 +240,16 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
   const fromDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const toDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const filteredFromLocations = popularLocations.filter(loc =>
-    loc.name.toLowerCase().includes(fromSearchQuery.toLowerCase()) ||
-    loc.address.toLowerCase().includes(fromSearchQuery.toLowerCase())
+  const filteredFromLocations = popularLocations.filter(
+    loc =>
+      loc.name.toLowerCase().includes(fromSearchQuery.toLowerCase()) ||
+      loc.address.toLowerCase().includes(fromSearchQuery.toLowerCase())
   )
 
-  const filteredToLocations = popularLocations.filter(loc =>
-    loc.name.toLowerCase().includes(toSearchQuery.toLowerCase()) ||
-    loc.address.toLowerCase().includes(toSearchQuery.toLowerCase())
+  const filteredToLocations = popularLocations.filter(
+    loc =>
+      loc.name.toLowerCase().includes(toSearchQuery.toLowerCase()) ||
+      loc.address.toLowerCase().includes(toSearchQuery.toLowerCase())
   )
 
   // Close dropdowns when clicking outside
@@ -206,7 +289,9 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
           const delayMinutes = Math.round(durationMinutes - normalDuration)
 
           TrafficStore.set({
-            status: selectedRoute.trafficCondition || (delayMinutes > 20 ? 'heavy' : delayMinutes > 10 ? 'moderate' : 'light'),
+            status:
+              selectedRoute.trafficCondition ||
+              (delayMinutes > 20 ? 'heavy' : delayMinutes > 10 ? 'moderate' : 'light'),
             duration: result.durationText || `${Math.round(durationMinutes)} min`,
             delay: delayMinutes > 0 ? `+${delayMinutes} min` : 'No delay',
             delayMinutes: delayMinutes,
@@ -215,8 +300,8 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
             alternativeRoutes: result.alternativeRoutes?.map(alt => ({
               name: alt.name || 'Alternative route',
               duration: alt.durationText || `${Math.round(alt.durationSeconds / 60)} min`,
-              savings: Math.round((durationMinutes - (alt.durationSeconds / 60)))
-            }))
+              savings: Math.round(durationMinutes - alt.durationSeconds / 60),
+            })),
           })
         }
       } catch (error) {
@@ -240,8 +325,8 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
       normalTime: '20 min',
       delay: '+5 min',
       severity: 'moderate',
-      incidents: 1
-    }
+      incidents: 1,
+    },
   ]
 
   const getGreeting = () => {
@@ -253,10 +338,14 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'light': return 'mint'
-      case 'moderate': return 'coral'
-      case 'heavy': return 'destructive'
-      default: return 'muted'
+      case 'light':
+        return 'mint'
+      case 'moderate':
+        return 'coral'
+      case 'heavy':
+        return 'destructive'
+      default:
+        return 'muted'
     }
   }
 
@@ -264,21 +353,21 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
     const [hours, minutes] = arrivalTime.split(':').map(Number)
     const arrivalDate = new Date()
     arrivalDate.setHours(hours, minutes, 0, 0)
-    
+
     const leaveDate = new Date(arrivalDate.getTime() - travelMinutes * 60000)
-    
+
     const leaveHours = leaveDate.getHours()
     const leaveMinutes = leaveDate.getMinutes()
     const ampm = leaveHours >= 12 ? 'PM' : 'AM'
     const displayHours = leaveHours % 12 || 12
-    
+
     return `${displayHours}:${leaveMinutes.toString().padStart(2, '0')} ${ampm}`
   }
 
   const openInMap = (route: SavedRoute) => {
     const encodedFrom = encodeURIComponent(route.from)
     const encodedTo = encodeURIComponent(route.to)
-    
+
     let url = ''
     switch (route.mapProvider) {
       case 'google':
@@ -291,9 +380,11 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
         url = `http://maps.apple.com/?saddr=${encodedFrom}&daddr=${encodedTo}`
         break
     }
-    
+
     window.open(url, '_blank')
-    toast.success(`Opening in ${route.mapProvider === 'google' ? 'Google Maps' : route.mapProvider === 'waze' ? 'Waze' : 'Apple Maps'}`)
+    toast.success(
+      `Opening in ${route.mapProvider === 'google' ? 'Google Maps' : route.mapProvider === 'waze' ? 'Waze' : 'Apple Maps'}`
+    )
   }
 
   const addRoute = () => {
@@ -315,10 +406,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
       toCoords: newRouteToCoords,
       preferredArrivalTime: newRouteTime,
       mapProvider: newRouteProvider,
-      trafficCondition: 'light'
+      trafficCondition: 'light',
     }
 
-    setSavedRoutes((current) => [...(current || []), newRoute])
+    setSavedRoutes(current => [...(current || []), newRoute])
 
     setNewRouteName('')
     setNewRouteFrom('')
@@ -347,7 +438,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
     toast.info('Getting your location...')
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      async position => {
         const { latitude, longitude } = position.coords
         const coords = { lat: latitude, lng: longitude }
 
@@ -385,7 +476,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
           toast.success('Location found!')
         }
       },
-      (error) => {
+      error => {
         console.error('Geolocation error:', error)
         toast.error('Could not get your location. Please check permissions.')
       },
@@ -394,7 +485,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
   }
 
   const deleteRoute = (id: string) => {
-    setSavedRoutes((current) => (current || []).filter(route => route.id !== id))
+    setSavedRoutes(current => (current || []).filter(route => route.id !== id))
     toast.success('Route deleted')
   }
 
@@ -420,12 +511,18 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
 
   const getCategoryIcon = (category: Location['category']) => {
     switch (category) {
-      case 'home': return '🏠'
-      case 'work': return '💼'
-      case 'school': return '🎓'
-      case 'shopping': return '🛍️'
-      case 'restaurant': return '🍽️'
-      default: return '📍'
+      case 'home':
+        return '🏠'
+      case 'work':
+        return '💼'
+      case 'school':
+        return '🎓'
+      case 'shopping':
+        return '🛍️'
+      case 'restaurant':
+        return '🍽️'
+      default:
+        return '📍'
     }
   }
 
@@ -467,51 +564,58 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
             </CardHeader>
             <CardContent className="p-0">
               {selectedRoute.fromCoords && selectedRoute.toCoords ? (
-                <Suspense fallback={
-                  <div className="w-full h-80 bg-muted flex items-center justify-center">
-                    <div className="text-center space-y-2">
-                      <MapTrifold className="w-12 h-12 mx-auto text-accent animate-pulse" weight="duotone" />
-                      <p className="text-sm text-muted-foreground">Loading map...</p>
+                <Suspense
+                  fallback={
+                    <div className="w-full h-80 bg-muted flex items-center justify-center">
+                      <div className="text-center space-y-2">
+                        <MapTrifold
+                          className="w-12 h-12 mx-auto text-accent animate-pulse"
+                          weight="duotone"
+                        />
+                        <p className="text-sm text-muted-foreground">Loading map...</p>
+                      </div>
                     </div>
-                  </div>
-                }>
+                  }
+                >
                   <FlowSphereMap
                     height="320px"
-                    routes={[{
-                      id: selectedRoute.id,
-                      name: selectedRoute.name,
-                      from: {
-                        lat: selectedRoute.fromCoords.lat,
-                        lng: selectedRoute.fromCoords.lng,
-                        address: selectedRoute.from
+                    routes={[
+                      {
+                        id: selectedRoute.id,
+                        name: selectedRoute.name,
+                        from: {
+                          lat: selectedRoute.fromCoords.lat,
+                          lng: selectedRoute.fromCoords.lng,
+                          address: selectedRoute.from,
+                        },
+                        to: {
+                          lat: selectedRoute.toCoords.lat,
+                          lng: selectedRoute.toCoords.lng,
+                          address: selectedRoute.to,
+                        },
+                        arrivalTime: selectedRoute.preferredArrivalTime,
+                        distance: selectedRouteData?.distanceText,
+                        duration: selectedRouteData?.durationText,
+                        trafficCondition: selectedRoute.trafficCondition,
                       },
-                      to: {
-                        lat: selectedRoute.toCoords.lat,
-                        lng: selectedRoute.toCoords.lng,
-                        address: selectedRoute.to
-                      },
-                      arrivalTime: selectedRoute.preferredArrivalTime,
-                      distance: selectedRouteData?.distanceText,
-                      duration: selectedRouteData?.durationText,
-                      trafficCondition: selectedRoute.trafficCondition
-                    }]}
+                    ]}
                     selectedRoute={{
                       id: selectedRoute.id,
                       name: selectedRoute.name,
                       from: {
                         lat: selectedRoute.fromCoords.lat,
                         lng: selectedRoute.fromCoords.lng,
-                        address: selectedRoute.from
+                        address: selectedRoute.from,
                       },
                       to: {
                         lat: selectedRoute.toCoords.lat,
                         lng: selectedRoute.toCoords.lng,
-                        address: selectedRoute.to
+                        address: selectedRoute.to,
                       },
                       arrivalTime: selectedRoute.preferredArrivalTime,
                       distance: selectedRouteData?.distanceText,
                       duration: selectedRouteData?.durationText,
-                      trafficCondition: selectedRoute.trafficCondition
+                      trafficCondition: selectedRoute.trafficCondition,
                     }}
                     showTraffic={true}
                   />
@@ -519,18 +623,18 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
               ) : (
                 <div className="w-full h-64 bg-muted/50 flex items-center justify-center">
                   <div className="text-center space-y-3 p-6">
-                    <MapTrifold className="w-12 h-12 mx-auto text-muted-foreground" weight="duotone" />
+                    <MapTrifold
+                      className="w-12 h-12 mx-auto text-muted-foreground"
+                      weight="duotone"
+                    />
                     <p className="text-sm text-muted-foreground">
                       This route was created before map support was added.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Delete this route and create a new one using the location picker to enable map view.
+                      Delete this route and create a new one using the location picker to enable map
+                      view.
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openInMap(selectedRoute)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => openInMap(selectedRoute)}>
                       <MapTrifold className="w-4 h-4 mr-2" />
                       Open in External Maps
                     </Button>
@@ -558,21 +662,19 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                   <Badge
                     variant="secondary"
                     className={cn(
-                      "text-xs",
-                      selectedRoute.trafficCondition === 'light' && "bg-green-500/20 text-green-600",
-                      selectedRoute.trafficCondition === 'moderate' && "bg-coral/20 text-coral",
-                      selectedRoute.trafficCondition === 'heavy' && "bg-red-500/20 text-red-600",
-                      selectedRoute.trafficCondition === 'severe' && "bg-purple-500/20 text-purple-600"
+                      'text-xs',
+                      selectedRoute.trafficCondition === 'light' &&
+                        'bg-green-500/20 text-green-600',
+                      selectedRoute.trafficCondition === 'moderate' && 'bg-coral/20 text-coral',
+                      selectedRoute.trafficCondition === 'heavy' && 'bg-red-500/20 text-red-600',
+                      selectedRoute.trafficCondition === 'severe' &&
+                        'bg-purple-500/20 text-purple-600'
                     )}
                   >
                     {selectedRoute.trafficCondition || 'Unknown'} Traffic
                   </Badge>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => openInMap(selectedRoute)}
-                  className="gap-2"
-                >
+                <Button size="sm" onClick={() => openInMap(selectedRoute)} className="gap-2">
                   <MapTrifold className="w-4 h-4" />
                   Open in App
                 </Button>
@@ -597,8 +699,8 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold mb-2">Morning Commute Reminder</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    To arrive at work by 9:00 AM with current traffic conditions, 
-                    you should leave by <span className="font-bold text-accent">{getLeaveTime('09:00', 25)}</span>
+                    To arrive at work by 9:00 AM with current traffic conditions, you should leave
+                    by <span className="font-bold text-accent">{getLeaveTime('09:00', 25)}</span>
                   </p>
                   <div className="flex gap-2">
                     <Badge variant="secondary" className="text-xs">
@@ -640,30 +742,30 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                       <span className="font-medium text-foreground">Now {traffic.currentTime}</span>
                     </div>
                   </div>
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className={`bg-${getSeverityColor(traffic.severity)}/20 text-${getSeverityColor(traffic.severity)}`}
                   >
                     {traffic.severity} traffic
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
                   <div className="flex items-center gap-2 text-sm">
-                    <div className={`w-2 h-2 rounded-full bg-${getSeverityColor(traffic.severity)}`} />
+                    <div
+                      className={`w-2 h-2 rounded-full bg-${getSeverityColor(traffic.severity)}`}
+                    />
                     <span>{traffic.delay} delay</span>
                     {traffic.incidents > 0 && (
                       <>
                         <span className="text-muted-foreground">•</span>
-                        <span>{traffic.incidents} {traffic.incidents === 1 ? 'incident' : 'incidents'}</span>
+                        <span>
+                          {traffic.incidents} {traffic.incidents === 1 ? 'incident' : 'incidents'}
+                        </span>
                       </>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                  >
+                  <Button variant="ghost" size="sm" className="h-8">
                     View Details
                   </Button>
                 </div>
@@ -685,11 +787,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                 <MapPin className="w-5 h-5" weight="duotone" />
                 <span>Saved Routes</span>
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddingRoute(!isAddingRoute)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setIsAddingRoute(!isAddingRoute)}>
                 {isAddingRoute ? 'Cancel' : 'Add Route'}
               </Button>
             </div>
@@ -708,10 +806,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                     id="route-name"
                     placeholder="e.g., Home to Work"
                     value={newRouteName}
-                    onChange={(e) => setNewRouteName(e.target.value)}
+                    onChange={e => setNewRouteName(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="route-from">From</Label>
@@ -733,7 +831,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                         id="route-from"
                         placeholder="Type any address (e.g. SM Mall, Ayala Ave)"
                         value={fromSearchQuery}
-                        onChange={(e) => {
+                        onChange={e => {
                           const value = e.target.value
                           setFromSearchQuery(value)
                           setShowFromDropdown(true)
@@ -742,7 +840,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                           setNewRouteFromCoords(undefined)
                           // Debounced geocoding
                           if (fromDebounceRef.current) clearTimeout(fromDebounceRef.current)
-                          fromDebounceRef.current = setTimeout(() => searchGeocode(value, 'from'), 200)
+                          fromDebounceRef.current = setTimeout(
+                            () => searchGeocode(value, 'from'),
+                            200
+                          )
                         }}
                         onFocus={() => setShowFromDropdown(true)}
                         className="pl-10 pr-10"
@@ -783,8 +884,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                             {/* Geocoding results - show first when available */}
                             {fromGeoResults.length > 0 && (
                               <>
-                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Search Results</p>
-                                {fromGeoResults.map((location) => (
+                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
+                                  Search Results
+                                </p>
+                                {fromGeoResults.map(location => (
                                   <button
                                     key={location.id}
                                     onClick={() => selectFromLocation(location)}
@@ -793,7 +896,9 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                                     <MapPin className="w-5 h-5 text-accent mt-0.5" weight="fill" />
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground line-clamp-2">{location.address}</p>
+                                      <p className="text-xs text-muted-foreground line-clamp-2">
+                                        {location.address}
+                                      </p>
                                     </div>
                                   </button>
                                 ))}
@@ -807,51 +912,67 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                               </div>
                             )}
                             {/* No results message */}
-                            {!isSearchingFrom && fromGeoResults.length === 0 && fromSearchQuery.length >= 2 && (
-                              <div className="px-4 py-3 text-sm text-muted-foreground">
-                                No addresses found for "{fromSearchQuery}"
-                              </div>
-                            )}
+                            {!isSearchingFrom &&
+                              fromGeoResults.length === 0 &&
+                              fromSearchQuery.length >= 2 && (
+                                <div className="px-4 py-3 text-sm text-muted-foreground">
+                                  No addresses found for "{fromSearchQuery}"
+                                </div>
+                              )}
                             {/* Saved locations as suggestions */}
                             {filteredFromLocations.length > 0 && (
                               <>
                                 <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
-                                  {fromGeoResults.length > 0 ? 'Or select from Saved Places' : 'Saved Places'}
+                                  {fromGeoResults.length > 0
+                                    ? 'Or select from Saved Places'
+                                    : 'Saved Places'}
                                 </p>
-                                {filteredFromLocations.slice(0, 5).map((location) => (
+                                {filteredFromLocations.slice(0, 5).map(location => (
                                   <button
                                     key={location.id}
                                     onClick={() => selectFromLocation(location)}
                                     className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
                                   >
-                                    <span className="text-xl">{getCategoryIcon(location.category)}</span>
+                                    <span className="text-xl">
+                                      {getCategoryIcon(location.category)}
+                                    </span>
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{location.address}</p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {location.address}
+                                      </p>
                                     </div>
                                   </button>
                                 ))}
                               </>
                             )}
                             {/* Show popular locations if nothing matches */}
-                            {filteredFromLocations.length === 0 && fromGeoResults.length === 0 && !isSearchingFrom && (
-                              <>
-                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Quick Suggestions</p>
-                                {popularLocations.slice(0, 5).map((location) => (
-                                  <button
-                                    key={location.id}
-                                    onClick={() => selectFromLocation(location)}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
-                                  >
-                                    <span className="text-xl">{getCategoryIcon(location.category)}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{location.address}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </>
-                            )}
+                            {filteredFromLocations.length === 0 &&
+                              fromGeoResults.length === 0 &&
+                              !isSearchingFrom && (
+                                <>
+                                  <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
+                                    Quick Suggestions
+                                  </p>
+                                  {popularLocations.slice(0, 5).map(location => (
+                                    <button
+                                      key={location.id}
+                                      onClick={() => selectFromLocation(location)}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
+                                    >
+                                      <span className="text-xl">
+                                        {getCategoryIcon(location.category)}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm">{location.name}</p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {location.address}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
                           </ScrollArea>
                         </motion.div>
                       )}
@@ -880,7 +1001,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                         id="route-to"
                         placeholder="Type any address (e.g. Makati CBD, NAIA)"
                         value={toSearchQuery}
-                        onChange={(e) => {
+                        onChange={e => {
                           const value = e.target.value
                           setToSearchQuery(value)
                           setShowToDropdown(true)
@@ -930,8 +1051,10 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                             {/* Geocoding results - show first when available */}
                             {toGeoResults.length > 0 && (
                               <>
-                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Search Results</p>
-                                {toGeoResults.map((location) => (
+                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
+                                  Search Results
+                                </p>
+                                {toGeoResults.map(location => (
                                   <button
                                     key={location.id}
                                     onClick={() => selectToLocation(location)}
@@ -940,7 +1063,9 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                                     <MapPin className="w-5 h-5 text-accent mt-0.5" weight="fill" />
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground line-clamp-2">{location.address}</p>
+                                      <p className="text-xs text-muted-foreground line-clamp-2">
+                                        {location.address}
+                                      </p>
                                     </div>
                                   </button>
                                 ))}
@@ -954,68 +1079,84 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                               </div>
                             )}
                             {/* No results message */}
-                            {!isSearchingTo && toGeoResults.length === 0 && toSearchQuery.length >= 2 && (
-                              <div className="px-4 py-3 text-sm text-muted-foreground">
-                                No addresses found for "{toSearchQuery}"
-                              </div>
-                            )}
+                            {!isSearchingTo &&
+                              toGeoResults.length === 0 &&
+                              toSearchQuery.length >= 2 && (
+                                <div className="px-4 py-3 text-sm text-muted-foreground">
+                                  No addresses found for "{toSearchQuery}"
+                                </div>
+                              )}
                             {/* Saved locations as suggestions */}
                             {filteredToLocations.length > 0 && (
                               <>
                                 <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
-                                  {toGeoResults.length > 0 ? 'Or select from Saved Places' : 'Saved Places'}
+                                  {toGeoResults.length > 0
+                                    ? 'Or select from Saved Places'
+                                    : 'Saved Places'}
                                 </p>
-                                {filteredToLocations.slice(0, 5).map((location) => (
+                                {filteredToLocations.slice(0, 5).map(location => (
                                   <button
                                     key={location.id}
                                     onClick={() => selectToLocation(location)}
                                     className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
                                   >
-                                    <span className="text-xl">{getCategoryIcon(location.category)}</span>
+                                    <span className="text-xl">
+                                      {getCategoryIcon(location.category)}
+                                    </span>
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{location.address}</p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {location.address}
+                                      </p>
                                     </div>
                                   </button>
                                 ))}
                               </>
                             )}
                             {/* Show popular locations if nothing matches */}
-                            {filteredToLocations.length === 0 && toGeoResults.length === 0 && !isSearchingTo && (
-                              <>
-                                <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">Quick Suggestions</p>
-                                {popularLocations.slice(0, 5).map((location) => (
-                                  <button
-                                    key={location.id}
-                                    onClick={() => selectToLocation(location)}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
-                                  >
-                                    <span className="text-xl">{getCategoryIcon(location.category)}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-sm">{location.name}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{location.address}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </>
-                            )}
+                            {filteredToLocations.length === 0 &&
+                              toGeoResults.length === 0 &&
+                              !isSearchingTo && (
+                                <>
+                                  <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50">
+                                    Quick Suggestions
+                                  </p>
+                                  {popularLocations.slice(0, 5).map(location => (
+                                    <button
+                                      key={location.id}
+                                      onClick={() => selectToLocation(location)}
+                                      className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-start gap-3 border-b border-border/50 last:border-0"
+                                    >
+                                      <span className="text-xl">
+                                        {getCategoryIcon(location.category)}
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm">{location.name}</p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {location.address}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              )}
                           </ScrollArea>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="arrival-time">Preferred Arrival Time</Label>
                   <Input
                     id="arrival-time"
                     type="time"
                     value={newRouteTime}
-                    onChange={(e) => setNewRouteTime(e.target.value)}
+                    onChange={e => setNewRouteTime(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Preferred Map Provider</Label>
                   <div className="flex gap-2">
@@ -1045,7 +1186,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                     </Button>
                   </div>
                 </div>
-                
+
                 <Button onClick={addRoute} className="w-full bg-accent hover:bg-accent/90">
                   Save Route
                 </Button>
@@ -1090,7 +1231,7 @@ export function TrafficUpdate({ deviceInfo }: TrafficUpdateProps) {
                       Delete
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="text-xs">
                       Arrive by {route.preferredArrivalTime}

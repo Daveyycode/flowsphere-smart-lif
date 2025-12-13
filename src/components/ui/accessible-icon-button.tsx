@@ -14,8 +14,7 @@ import { cn } from '@/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 
 interface IconButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   /** The icon to display */
   icon: ReactNode
   /** Accessible label for screen readers (required!) */
@@ -32,7 +31,10 @@ interface IconButtonProps
  * Icon-only button with required accessibility label
  */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ icon, label, showTooltip, loading, className, variant = 'ghost', size = 'icon', ...props }, ref) => {
+  (
+    { icon, label, showTooltip, loading, className, variant = 'ghost', size = 'icon', ...props },
+    ref
+  ) => {
     return (
       <Button
         ref={ref}
@@ -47,8 +49,19 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         {loading ? (
           <span className="animate-spin" aria-hidden="true">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
           </span>
         ) : (
@@ -67,18 +80,20 @@ IconButton.displayName = 'IconButton'
  * Use for content that should only be read by screen readers
  */
 export function ScreenReaderOnly({ children }: { children: ReactNode }) {
-  return (
-    <span className="sr-only">
-      {children}
-    </span>
-  )
+  return <span className="sr-only">{children}</span>
 }
 
 /**
  * Visually hidden but focusable skip link
  * For keyboard navigation to skip to main content
  */
-export function SkipLink({ href = '#main-content', children = 'Skip to main content' }: { href?: string; children?: ReactNode }) {
+export function SkipLink({
+  href = '#main-content',
+  children = 'Skip to main content',
+}: {
+  href?: string
+  children?: ReactNode
+}) {
   return (
     <a
       href={href}
@@ -96,18 +111,14 @@ export function SkipLink({ href = '#main-content', children = 'Skip to main cont
 export function LiveRegion({
   children,
   mode = 'polite',
-  atomic = true
+  atomic = true,
 }: {
   children: ReactNode
   mode?: 'polite' | 'assertive'
   atomic?: boolean
 }) {
   return (
-    <div
-      aria-live={mode}
-      aria-atomic={atomic}
-      className="sr-only"
-    >
+    <div aria-live={mode} aria-atomic={atomic} className="sr-only">
       {children}
     </div>
   )
@@ -151,7 +162,7 @@ export function LoadingIndicator({ label = 'Loading' }: { label?: string }) {
 export function AccessibleProgress({
   value,
   max = 100,
-  label
+  label,
 }: {
   value: number
   max?: number
@@ -172,7 +183,9 @@ export function AccessibleProgress({
         className="bg-primary h-full transition-all duration-300"
         style={{ width: `${percentage}%` }}
       />
-      <span className="sr-only">{label}: {percentage}%</span>
+      <span className="sr-only">
+        {label}: {percentage}%
+      </span>
     </div>
   )
 }

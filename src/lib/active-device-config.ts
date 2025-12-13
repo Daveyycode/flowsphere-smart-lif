@@ -113,7 +113,7 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '🏠',
-        guidanceText: 'Click to add smart lights, thermostats, locks, and more'
+        guidanceText: 'Click to add smart lights, thermostats, locks, and more',
       },
       {
         id: 'family',
@@ -122,7 +122,7 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '👨‍👩‍👧‍👦',
-        guidanceText: 'Click to add family members with phone numbers and locations'
+        guidanceText: 'Click to add family members with phone numbers and locations',
       },
       {
         id: 'automation',
@@ -131,7 +131,7 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '⚡',
-        guidanceText: 'Click to create automation rules based on time, location, or events'
+        guidanceText: 'Click to create automation rules based on time, location, or events',
       },
       {
         id: 'energy',
@@ -140,7 +140,7 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '🔋',
-        guidanceText: 'Click to connect your energy provider API'
+        guidanceText: 'Click to connect your energy provider API',
       },
       {
         id: 'cameras',
@@ -149,7 +149,7 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '📹',
-        guidanceText: 'Click to add CCTV cameras and configure recording'
+        guidanceText: 'Click to add CCTV cameras and configure recording',
       },
       {
         id: 'hidden-cameras',
@@ -158,8 +158,8 @@ export class ActiveDeviceConfigManager {
         configured: false,
         items: 0,
         icon: '🔒',
-        guidanceText: 'Click to add hidden cameras (stored in secure vault)'
-      }
+        guidanceText: 'Click to add hidden cameras (stored in secure vault)',
+      },
     ]
 
     localStorage.setItem(this.sectionsKey, JSON.stringify(defaultSections))
@@ -232,7 +232,7 @@ export class ActiveDeviceConfigManager {
     const newDevice: DeviceConfig = {
       ...device,
       id: `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      configured: true
+      configured: true,
     }
 
     const devices = this.getAllDevices()
@@ -291,7 +291,11 @@ export class ActiveDeviceConfigManager {
   /**
    * Control device
    */
-  controlDevice(deviceId: string, action: string, parameters?: Record<string, any>): {
+  controlDevice(
+    deviceId: string,
+    action: string,
+    parameters?: Record<string, any>
+  ): {
     success: boolean
     message: string
   } {
@@ -324,7 +328,7 @@ export class ActiveDeviceConfigManager {
     const newRule: AutomationRule = {
       ...rule,
       id: `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      configured: true
+      configured: true,
     }
 
     const rules = this.getAllAutomationRules()
@@ -405,7 +409,7 @@ export class ActiveDeviceConfigManager {
 
     return {
       success: allSucceeded,
-      message: allSucceeded ? 'All actions executed successfully' : 'Some actions failed'
+      message: allSucceeded ? 'All actions executed successfully' : 'Some actions failed',
     }
   }
 
@@ -417,7 +421,7 @@ export class ActiveDeviceConfigManager {
   configureEnergy(config: Omit<EnergyConfig, 'id'>): EnergyConfig {
     const energyConfig: EnergyConfig = {
       ...config,
-      id: 'energy-main'
+      id: 'energy-main',
     }
 
     localStorage.setItem(this.energyKey, JSON.stringify(energyConfig))
@@ -459,7 +463,7 @@ export class ActiveDeviceConfigManager {
     const newCamera: CameraConfig = {
       ...camera,
       id: `camera-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      configured: true
+      configured: true,
     }
 
     const cameras = this.getAllCameras()
@@ -574,7 +578,7 @@ export class ActiveDeviceConfigManager {
       totalDevices: this.getAllDevices().length,
       totalAutomation: this.getAllAutomationRules().length,
       totalCameras: this.getAllCameras().length,
-      energyConfigured: this.getEnergyConfig()?.configured || false
+      energyConfigured: this.getEnergyConfig()?.configured || false,
     }
   }
 
@@ -582,12 +586,16 @@ export class ActiveDeviceConfigManager {
    * Export all configurations
    */
   exportConfigurations(): string {
-    return JSON.stringify({
-      devices: this.getAllDevices(),
-      automation: this.getAllAutomationRules(),
-      energy: this.getEnergyConfig(),
-      cameras: this.getAllCameras()
-    }, null, 2)
+    return JSON.stringify(
+      {
+        devices: this.getAllDevices(),
+        automation: this.getAllAutomationRules(),
+        energy: this.getEnergyConfig(),
+        cameras: this.getAllCameras(),
+      },
+      null,
+      2
+    )
   }
 
   /**

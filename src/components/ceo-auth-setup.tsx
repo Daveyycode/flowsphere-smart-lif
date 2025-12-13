@@ -30,7 +30,10 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
   const [newUsername, setNewUsername] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const [isSettingUp, setIsSettingUp] = useState(false)
-  const [hasCompletedSetup, setHasCompletedSetup] = useKV<boolean>('flowsphere-ceo-auth-setup-complete', false)
+  const [hasCompletedSetup, setHasCompletedSetup] = useKV<boolean>(
+    'flowsphere-ceo-auth-setup-complete',
+    false
+  )
   const [ceoUsername, setCeoUsername] = useKV<string>('flowsphere-ceo-username', '19780111')
 
   // Generate secret key and QR code on mount
@@ -61,8 +64,8 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
         margin: 2,
         color: {
           dark: '#000000',
-          light: '#FFFFFF'
-        }
+          light: '#FFFFFF',
+        },
       })
       setQrCodeUrl(qrUrl)
     } catch (error) {
@@ -90,13 +93,13 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
-        secret: OTPAuth.Secret.fromBase32(secret)
+        secret: OTPAuth.Secret.fromBase32(secret),
       })
 
       // Validate with a time window of ±1 period (30 seconds)
       const delta = totp.validate({
         token: verificationCode.trim(),
-        window: 1
+        window: 1,
       })
 
       if (delta !== null) {
@@ -188,7 +191,11 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
             <Card className="bg-muted/50 p-6">
               <div className="flex flex-col items-center gap-4">
                 {qrCodeUrl ? (
-                  <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64 border-4 border-background rounded-lg" />
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code"
+                    className="w-64 h-64 border-4 border-background rounded-lg"
+                  />
                 ) : (
                   <div className="w-64 h-64 bg-background/50 rounded-lg flex items-center justify-center">
                     <QrCode className="w-12 h-12 text-muted-foreground animate-pulse" />
@@ -229,7 +236,7 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
                   placeholder="000000"
                   maxLength={6}
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                  onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                   className="font-mono text-lg text-center tracking-widest"
                   disabled={isVerified}
                 />
@@ -271,7 +278,7 @@ export function CEOAuthSetup({ onSetupComplete }: CEOAuthSetupProps) {
                       type="text"
                       placeholder="Enter new username"
                       value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value)}
+                      onChange={e => setNewUsername(e.target.value)}
                       className="pl-10"
                     />
                   </div>

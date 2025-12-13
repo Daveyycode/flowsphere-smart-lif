@@ -70,8 +70,9 @@ function extractBillInfo(email: EmailMessage): BillAlert | null {
   if (!isBill) return null
 
   // Extract amount
-  const amountMatch = email.body.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/) ||
-                     email.subject.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/)
+  const amountMatch =
+    email.body.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/) ||
+    email.subject.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/)
   const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0
 
   // Extract due date
@@ -99,7 +100,7 @@ function extractBillInfo(email: EmailMessage): BillAlert | null {
     emailId: email.id,
     accountNumber: extractAccountNumber(body),
     paymentLink: extractPaymentLink(body),
-    createdAt: email.timestamp
+    createdAt: email.timestamp,
   }
 }
 
@@ -114,7 +115,7 @@ function extractDueDate(body: string, subject: string): string {
     /due\s+(?:date|by|on)?\s*:?\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
     /due\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/i,
     /payment\s+due\s+(\w+\s+\d{1,2})/i,
-    /before\s+(\w+\s+\d{1,2},?\s+\d{4})/i
+    /before\s+(\w+\s+\d{1,2},?\s+\d{4})/i,
   ]
 
   for (const pattern of patterns) {
@@ -144,16 +145,31 @@ function extractDueDate(body: string, subject: string): string {
 function categorizeBill(from: string, subject: string, body: string): BillAlert['category'] {
   const text = `${from} ${subject} ${body}`.toLowerCase()
 
-  if (text.includes('electric') || text.includes('water') || text.includes('gas') || text.includes('utility')) {
+  if (
+    text.includes('electric') ||
+    text.includes('water') ||
+    text.includes('gas') ||
+    text.includes('utility')
+  ) {
     return 'utility'
   }
   if (text.includes('rent') || text.includes('lease') || text.includes('landlord')) {
     return 'rent'
   }
-  if (text.includes('netflix') || text.includes('spotify') || text.includes('subscription') || text.includes('membership')) {
+  if (
+    text.includes('netflix') ||
+    text.includes('spotify') ||
+    text.includes('subscription') ||
+    text.includes('membership')
+  ) {
     return 'subscription'
   }
-  if (text.includes('credit card') || text.includes('visa') || text.includes('mastercard') || text.includes('amex')) {
+  if (
+    text.includes('credit card') ||
+    text.includes('visa') ||
+    text.includes('mastercard') ||
+    text.includes('amex')
+  ) {
     return 'credit-card'
   }
   if (text.includes('insurance') || text.includes('premium') || text.includes('policy')) {
@@ -169,8 +185,14 @@ function categorizeBill(from: string, subject: string, body: string): BillAlert[
 /**
  * Determine priority level
  */
-function determinePriority(amount: number, dueDate: string, category: BillAlert['category']): BillAlert['priority'] {
-  const daysUntilDue = Math.floor((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+function determinePriority(
+  amount: number,
+  dueDate: string,
+  category: BillAlert['category']
+): BillAlert['priority'] {
+  const daysUntilDue = Math.floor(
+    (new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  )
 
   // Critical: High amount, urgent, or essential services
   if (amount > 1000 || daysUntilDue < 3 || category === 'rent' || category === 'utility') {
@@ -215,9 +237,7 @@ function extractProviderName(from: string, subject: string): string {
  */
 function extractBillName(subject: string): string {
   // Remove common prefixes
-  let name = subject
-    .replace(/^(RE:|FWD:|Your|Statement|Bill|Invoice|Payment)[\s:]+/i, '')
-    .trim()
+  let name = subject.replace(/^(RE:|FWD:|Your|Statement|Bill|Invoice|Payment)[\s:]+/i, '').trim()
 
   // Capitalize first letter
   name = name.charAt(0).toUpperCase() + name.slice(1)
@@ -232,7 +252,7 @@ function extractAccountNumber(body: string): string | undefined {
   const patterns = [
     /account\s+(?:number|#)?\s*:?\s*(\d+)/i,
     /acct\s*:?\s*(\d+)/i,
-    /account\s+ending\s+in\s+(\d+)/i
+    /account\s+ending\s+in\s+(\d+)/i,
   ]
 
   for (const pattern of patterns) {
@@ -285,8 +305,9 @@ export function detectPaymentVerification(
   if (!isPaymentConfirmation) return null
 
   // Extract amount
-  const amountMatch = body.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/) ||
-                     subject.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/)
+  const amountMatch =
+    body.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/) ||
+    subject.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/)
   const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0
 
   // Extract confirmation number
@@ -312,7 +333,7 @@ export function detectPaymentVerification(
     verifiedAt: email.timestamp,
     amount,
     method,
-    confirmationNumber
+    confirmationNumber,
   }
 }
 
@@ -322,13 +343,21 @@ export function detectPaymentVerification(
 function extractPaymentMethod(body: string): string {
   const lowerBody = body.toLowerCase()
 
-  if (lowerBody.includes('credit card') || lowerBody.includes('visa') || lowerBody.includes('mastercard')) {
+  if (
+    lowerBody.includes('credit card') ||
+    lowerBody.includes('visa') ||
+    lowerBody.includes('mastercard')
+  ) {
     return 'Credit Card'
   }
   if (lowerBody.includes('debit card')) {
     return 'Debit Card'
   }
-  if (lowerBody.includes('bank account') || lowerBody.includes('checking') || lowerBody.includes('ach')) {
+  if (
+    lowerBody.includes('bank account') ||
+    lowerBody.includes('checking') ||
+    lowerBody.includes('ach')
+  ) {
     return 'Bank Transfer'
   }
   if (lowerBody.includes('paypal')) {
@@ -357,13 +386,15 @@ export function processBillAlerts(
 } {
   // Detect new bills
   const detectedBills = detectBillsFromEmails(emails)
-  const newAlerts = detectedBills.filter(bill =>
-    !currentAlerts.some(alert => alert.emailId === bill.emailId)
+  const newAlerts = detectedBills.filter(
+    bill => !currentAlerts.some(alert => alert.emailId === bill.emailId)
   )
 
   // Detect payment verifications
   const verifiedPayments: PaymentVerification[] = []
-  const pendingAlerts = currentAlerts.filter(alert => alert.status === 'pending' || alert.status === 'overdue')
+  const pendingAlerts = currentAlerts.filter(
+    alert => alert.status === 'pending' || alert.status === 'overdue'
+  )
 
   emails.forEach(email => {
     const verification = detectPaymentVerification(email, pendingAlerts)
@@ -381,7 +412,7 @@ export function processBillAlerts(
         status: 'paid' as const,
         paidAt: verification.verifiedAt,
         paymentVerificationEmailId: verification.emailId,
-        dismissedBy: 'auto' as const
+        dismissedBy: 'auto' as const,
       }
     }
 
@@ -396,7 +427,7 @@ export function processBillAlerts(
   return {
     updatedAlerts,
     newAlerts,
-    verifiedPayments
+    verifiedPayments,
   }
 }
 
@@ -436,7 +467,7 @@ export function getBillAlertSummary(alerts: BillAlert[]): {
     critical: activeAlerts.filter(a => a.priority === 'critical').length,
     overdue: activeAlerts.filter(a => a.status === 'overdue').length,
     totalAmount: activeAlerts.reduce((sum, a) => sum + a.amount, 0),
-    dueThisWeek: activeAlerts.filter(a => new Date(a.dueDate) <= weekFromNow).length
+    dueThisWeek: activeAlerts.filter(a => new Date(a.dueDate) <= weekFromNow).length,
   }
 }
 
@@ -447,7 +478,7 @@ export function dismissBillAlert(alert: BillAlert): BillAlert {
   return {
     ...alert,
     status: 'dismissed',
-    dismissedBy: 'user'
+    dismissedBy: 'user',
   }
 }
 
@@ -457,7 +488,7 @@ export function dismissBillAlert(alert: BillAlert): BillAlert {
 export function formatBillAmount(amount: number, currency: string = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency
+    currency,
   }).format(amount)
 }
 
@@ -474,13 +505,13 @@ export function getDaysUntilDue(dueDate: string): number {
  */
 export function getCategoryIcon(category: BillAlert['category']): string {
   const icons = {
-    'utility': '⚡',
-    'rent': '🏠',
-    'subscription': '📱',
+    utility: '⚡',
+    rent: '🏠',
+    subscription: '📱',
     'credit-card': '💳',
-    'insurance': '🛡️',
-    'loan': '🏦',
-    'other': '📄'
+    insurance: '🛡️',
+    loan: '🏦',
+    other: '📄',
   }
   return icons[category]
 }
@@ -490,10 +521,10 @@ export function getCategoryIcon(category: BillAlert['category']): string {
  */
 export function getPriorityColor(priority: BillAlert['priority']): string {
   const colors = {
-    'critical': '#ef4444',
-    'high': '#f97316',
-    'medium': '#eab308',
-    'low': '#22c55e'
+    critical: '#ef4444',
+    high: '#f97316',
+    medium: '#eab308',
+    low: '#22c55e',
   }
   return colors[priority]
 }

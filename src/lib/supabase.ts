@@ -38,7 +38,15 @@ export type AuthUser = {
 
 export interface SecurityLogEntry {
   user_id?: string
-  event_type: 'login' | 'logout' | 'failed_login' | 'password_change' | 'vault_access' | 'suspicious_activity' | 'session_start' | 'session_end'
+  event_type:
+    | 'login'
+    | 'logout'
+    | 'failed_login'
+    | 'password_change'
+    | 'vault_access'
+    | 'suspicious_activity'
+    | 'session_start'
+    | 'session_end'
   severity: 'info' | 'warning' | 'error' | 'critical'
   description: string
   ip_address?: string
@@ -75,10 +83,7 @@ export async function getSecurityLogs(options?: {
   offset?: number
 }): Promise<SecurityLogEntry[]> {
   try {
-    let query = supabase
-      .from('security_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
+    let query = supabase.from('security_logs').select('*').order('created_at', { ascending: false })
 
     if (options?.userId) {
       query = query.eq('user_id', options.userId)
@@ -155,7 +160,9 @@ export interface UserFeedbackEntry {
   priority?: 'low' | 'medium' | 'high' | 'critical'
 }
 
-export async function submitFeedback(feedback: UserFeedbackEntry): Promise<{ success: boolean; id?: string }> {
+export async function submitFeedback(
+  feedback: UserFeedbackEntry
+): Promise<{ success: boolean; id?: string }> {
   try {
     const { data, error } = await supabase
       .from('user_feedback')
@@ -190,10 +197,7 @@ export async function getFeedbackList(options?: {
   limit?: number
 }): Promise<UserFeedbackEntry[]> {
   try {
-    let query = supabase
-      .from('user_feedback')
-      .select('*')
-      .order('created_at', { ascending: false })
+    let query = supabase.from('user_feedback').select('*').order('created_at', { ascending: false })
 
     if (options?.status) {
       query = query.eq('status', options.status)
@@ -223,17 +227,21 @@ export async function getFeedbackList(options?: {
 // User Settings Sync Service
 // ==========================================
 
-export async function syncUserSettings(userId: string, settings: Record<string, unknown>): Promise<boolean> {
+export async function syncUserSettings(
+  userId: string,
+  settings: Record<string, unknown>
+): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({
+    const { error } = await supabase.from('user_settings').upsert(
+      {
         user_id: userId,
         settings,
         last_synced: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: 'user_id',
-      })
+      }
+    )
 
     if (error) {
       logger.error('[Supabase] Failed to sync settings:', error.message)
@@ -277,7 +285,9 @@ export async function getUserSettings(userId: string): Promise<Record<string, un
 
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
-    const { error } = await supabase.from('security_logs').select('count', { count: 'exact', head: true })
+    const { error } = await supabase
+      .from('security_logs')
+      .select('count', { count: 'exact', head: true })
     return !error
   } catch (error) {
     logger.debug('Supabase connection check failed', error)

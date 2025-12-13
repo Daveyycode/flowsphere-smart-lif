@@ -27,7 +27,7 @@ export async function getTodayEvents(): Promise<CalendarEvent[]> {
         start: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         end: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
         description: 'Daily team sync',
-        color: '#8B5CF6'
+        color: '#8B5CF6',
       },
       {
         id: '2',
@@ -36,7 +36,7 @@ export async function getTodayEvents(): Promise<CalendarEvent[]> {
         end: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
         description: 'Q4 review with client',
         location: 'Conference Room A',
-        color: '#3B82F6'
+        color: '#3B82F6',
       },
       {
         id: '3',
@@ -44,8 +44,8 @@ export async function getTodayEvents(): Promise<CalendarEvent[]> {
         start: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
         end: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
         location: 'Downtown Cafe',
-        color: '#10B981'
-      }
+        color: '#10B981',
+      },
     ]
   }
 
@@ -65,7 +65,7 @@ export async function getUpcomingEvents(days: number = 7): Promise<CalendarEvent
         start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         end: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(),
         location: 'Medical Center',
-        color: '#EF4444'
+        color: '#EF4444',
       },
       {
         id: '5',
@@ -73,8 +73,8 @@ export async function getUpcomingEvents(days: number = 7): Promise<CalendarEvent
         start: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         end: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         description: 'FlowSphere MVP launch',
-        color: '#F59E0B'
-      }
+        color: '#F59E0B',
+      },
     ]
   }
 
@@ -86,7 +86,7 @@ export async function createEvent(event: Omit<CalendarEvent, 'id'>): Promise<Cal
     // Mock creation
     return {
       ...event,
-      id: Date.now().toString()
+      id: Date.now().toString(),
     }
   }
 

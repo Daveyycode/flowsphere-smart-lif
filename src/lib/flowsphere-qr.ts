@@ -18,7 +18,7 @@ import {
   fsDecrypt,
   isFlowSpherePacket,
   FLOWSPHERE_SUFFIX,
-  FS_ALPHABET
+  FS_ALPHABET,
 } from './flowsphere-crypto'
 import { logger } from '@/lib/security-utils'
 
@@ -49,14 +49,14 @@ const QR_SHARED_SECRET = 'FlowSphere-QR-Pairing-Key-2025-Secure'
 // ============================================================
 
 export interface QRInviteData {
-  code: string           // Unique invite code
-  publicKey: string      // User's public key
-  name: string           // User's display name
-  expiresAt: string      // ISO timestamp
-  deviceId: string       // Device ID (tied to fingerprint)
-  userId: string         // Profile ID
-  version?: string       // QR algorithm version
-  timestamp?: number     // Creation timestamp
+  code: string // Unique invite code
+  publicKey: string // User's public key
+  name: string // User's display name
+  expiresAt: string // ISO timestamp
+  deviceId: string // Device ID (tied to fingerprint)
+  userId: string // Profile ID
+  version?: string // QR algorithm version
+  timestamp?: number // Creation timestamp
 }
 
 /**
@@ -86,9 +86,9 @@ function decodeFromBase64(encoded: string): string {
 function encodeStealthPath(data: string): string {
   // Convert to base64, then make URL-safe
   const base64 = btoa(unescape(encodeURIComponent(data)))
-    .replace(/\+/g, '-')  // URL-safe: + becomes -
-    .replace(/\//g, '_')  // URL-safe: / becomes _
-    .replace(/=+$/, '')   // Remove padding
+    .replace(/\+/g, '-') // URL-safe: + becomes -
+    .replace(/\//g, '_') // URL-safe: / becomes _
+    .replace(/=+$/, '') // Remove padding
   return base64
 }
 
@@ -98,9 +98,7 @@ function encodeStealthPath(data: string): string {
 function decodeStealthPath(encoded: string): string {
   try {
     // Reverse URL-safe substitution
-    let base64 = encoded
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
+    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
 
     // Add padding if needed
     while (base64.length % 4) base64 += '='
@@ -117,8 +115,7 @@ function decodeStealthPath(encoded: string): string {
  * Check if URL is from our stealth domain
  */
 function isStealthUrl(url: string): boolean {
-  return url.startsWith(STEALTH_DOMAIN) ||
-    url.includes('tripzy.international')
+  return url.startsWith(STEALTH_DOMAIN) || url.includes('tripzy.international')
 }
 
 /**
@@ -130,15 +127,12 @@ function isStealthUrl(url: string): boolean {
  * - FlowSphere scanner recognizes domain and decodes the obfuscated path
  * - Data is XOR encrypted, NOT plain base64 - can't be easily decoded
  */
-export async function generateQRCode(
-  data: QRInviteData,
-  size: number = 300
-): Promise<string> {
+export async function generateQRCode(data: QRInviteData, size: number = 300): Promise<string> {
   // Add version and timestamp
   const dataWithMeta = {
     ...data,
     version: QR_VERSION,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   }
 
   // Serialize to JSON
@@ -163,8 +157,8 @@ export async function generateQRCode(
     errorCorrectionLevel: QR_ERROR_CORRECTION,
     color: {
       dark: '#000000',
-      light: '#FFFFFF'
-    }
+      light: '#FFFFFF',
+    },
   })
 
   return qrDataURL
@@ -251,7 +245,6 @@ export async function parseQRData(rawData: string): Promise<QRInviteData | null>
 
     console.log('[QR] Successfully parsed invite:', parsed.code)
     return parsed as QRInviteData
-
   } catch (error) {
     console.error('[QR] Failed to parse QR data:', error)
     return null
@@ -271,7 +264,6 @@ function parseLegacyQRData(rawData: string): QRInviteData | null {
 
     logger.warn('Using legacy QR format - please regenerate QR code')
     return parsed as QRInviteData
-
   } catch (error) {
     logger.error('QR code parsing failed', error, 'FlowSphereQR')
     return null
@@ -315,7 +307,7 @@ export async function generateStealthQR(
   const dataWithMeta = {
     ...data,
     version: QR_VERSION,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   }
 
   const jsonPayload = JSON.stringify(dataWithMeta)
@@ -324,19 +316,20 @@ export async function generateStealthQR(
   const encrypted = await fsEncrypt(jsonPayload, QR_SHARED_SECRET, {
     deviceBound: false,
     oneTimeUse: true,
-    timeLimited: true
+    timeLimited: true,
   })
 
   // Stealth colors - increased contrast for better scanning
-  const colors = hideMode === 'faint'
-    ? { dark: '#c0c0c0', light: '#ffffff' } // Light gray (scannable)
-    : { dark: '#d8d8d8', light: '#ffffff' } // Very light (harder to see)
+  const colors =
+    hideMode === 'faint'
+      ? { dark: '#c0c0c0', light: '#ffffff' } // Light gray (scannable)
+      : { dark: '#d8d8d8', light: '#ffffff' } // Very light (harder to see)
 
   const qrDataURL = await QRCode.toDataURL(encrypted.raw, {
     width: size,
     margin: 2,
     errorCorrectionLevel: 'H', // High error correction for stealth mode
-    color: colors
+    color: colors,
   })
 
   return qrDataURL
@@ -376,7 +369,7 @@ export function migrateQRData(oldData: any): QRInviteData | null {
     expiresAt: oldData.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     deviceId: oldData.deviceId || 'unknown',
     userId: oldData.userId || 'unknown',
-    version: QR_VERSION
+    version: QR_VERSION,
   }
 }
 
@@ -416,6 +409,6 @@ export function getQRInfo(rawData: string): {
     isEncrypted,
     isLegacy,
     version: isEncrypted ? QR_VERSION : 'v1.0-legacy',
-    isValid: isEncrypted || isLegacy
+    isValid: isEncrypted || isLegacy,
   }
 }

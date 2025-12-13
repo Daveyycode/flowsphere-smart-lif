@@ -62,19 +62,24 @@ export async function getContacts(userId: string): Promise<Contact[]> {
 /**
  * Add new contact to database
  */
-export async function addContact(userId: string, contact: Omit<Contact, 'id' | 'user_id' | 'created_at'>): Promise<Contact | null> {
+export async function addContact(
+  userId: string,
+  contact: Omit<Contact, 'id' | 'user_id' | 'created_at'>
+): Promise<Contact | null> {
   try {
     const { data, error } = await supabase
       .from('messenger_contacts')
-      .insert([{
-        user_id: userId,
-        name: contact.name,
-        public_key: contact.publicKey,
-        status: contact.status,
-        theme_color: contact.themeColor,
-        notifications_enabled: contact.notificationsEnabled,
-        sound_enabled: contact.soundEnabled
-      }])
+      .insert([
+        {
+          user_id: userId,
+          name: contact.name,
+          public_key: contact.publicKey,
+          status: contact.status,
+          theme_color: contact.themeColor,
+          notifications_enabled: contact.notificationsEnabled,
+          sound_enabled: contact.soundEnabled,
+        },
+      ])
       .select()
       .single()
 
@@ -109,17 +114,19 @@ export async function getMessages(userId: string, conversationId: string): Promi
       return []
     }
 
-    return data?.map(msg => ({
-      id: msg.id,
-      user_id: msg.user_id,
-      contact_id: msg.contact_id,
-      conversation_id: msg.conversation_id,
-      content: msg.content,
-      encrypted: msg.encrypted,
-      is_read: msg.is_read,
-      timestamp: msg.created_at,
-      attachments: msg.attachments
-    })) || []
+    return (
+      data?.map(msg => ({
+        id: msg.id,
+        user_id: msg.user_id,
+        contact_id: msg.contact_id,
+        conversation_id: msg.conversation_id,
+        content: msg.content,
+        encrypted: msg.encrypted,
+        is_read: msg.is_read,
+        timestamp: msg.created_at,
+        attachments: msg.attachments,
+      })) || []
+    )
   } catch (error) {
     console.error('Failed to get messages:', error)
     return []
@@ -139,14 +146,16 @@ export async function sendMessage(
   try {
     const { data, error } = await supabase
       .from('messages')
-      .insert([{
-        user_id: userId,
-        contact_id: contactId,
-        conversation_id: conversationId,
-        content: content,
-        encrypted: encrypted,
-        is_read: false
-      }])
+      .insert([
+        {
+          user_id: userId,
+          contact_id: contactId,
+          conversation_id: conversationId,
+          content: content,
+          encrypted: encrypted,
+          is_read: false,
+        },
+      ])
       .select()
       .single()
 
@@ -165,7 +174,7 @@ export async function sendMessage(
       encrypted: data.encrypted,
       is_read: data.is_read,
       timestamp: data.created_at,
-      attachments: data.attachments
+      attachments: data.attachments,
     }
   } catch (error) {
     console.error('Failed to send message:', error)
@@ -189,9 +198,9 @@ export function subscribeToMessages(
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
+        filter: `conversation_id=eq.${conversationId}`,
       },
-      (payload) => {
+      payload => {
         const newMessage = payload.new as any
         onMessage({
           id: newMessage.id,
@@ -202,7 +211,7 @@ export function subscribeToMessages(
           encrypted: newMessage.encrypted,
           is_read: newMessage.is_read,
           timestamp: newMessage.created_at,
-          attachments: newMessage.attachments
+          attachments: newMessage.attachments,
         })
       }
     )
@@ -219,10 +228,7 @@ export function subscribeToMessages(
  */
 export async function markMessageAsRead(messageId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('id', messageId)
+    const { error } = await supabase.from('messages').update({ is_read: true }).eq('id', messageId)
 
     if (error) {
       console.error('Error marking message as read:', error)
@@ -241,10 +247,7 @@ export async function markMessageAsRead(messageId: string): Promise<boolean> {
  */
 export async function deleteContact(contactId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('messenger_contacts')
-      .delete()
-      .eq('id', contactId)
+    const { error } = await supabase.from('messenger_contacts').delete().eq('id', contactId)
 
     if (error) {
       console.error('Error deleting contact:', error)
@@ -309,7 +312,7 @@ export async function createPairingInvite(
         creator_public_key: creatorPublicKey,
         created_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
-        accepted: false
+        accepted: false,
       })
       .select()
       .single()
@@ -391,7 +394,7 @@ export async function acceptPairingInvite(
           accepted_by_id: acceptorId,
           accepted_by_name: acceptorName,
           accepted_by_public_key: acceptorPublicKey,
-          accepted_at: new Date().toISOString()
+          accepted_at: new Date().toISOString(),
         })
         .eq('id', invite.id)
 
@@ -412,9 +415,9 @@ export async function acceptPairingInvite(
       contact_user_id: invite.creator_id,
       name: invite.creator_name,
       public_key: invite.creator_public_key,
-      conversation_id: conversationId,  // SAME conversation ID!
+      conversation_id: conversationId, // SAME conversation ID!
       status: 'online',
-      paired_at: new Date().toISOString()
+      paired_at: new Date().toISOString(),
     })
 
     if (acceptorContactError) {
@@ -427,9 +430,9 @@ export async function acceptPairingInvite(
       contact_user_id: acceptorId,
       name: acceptorName,
       public_key: acceptorPublicKey,
-      conversation_id: conversationId,  // SAME conversation ID!
+      conversation_id: conversationId, // SAME conversation ID!
       status: 'online',
-      paired_at: new Date().toISOString()
+      paired_at: new Date().toISOString(),
     })
 
     if (creatorContactError) {
@@ -447,8 +450,8 @@ export async function acceptPairingInvite(
         id: invite.creator_id,
         name: invite.creator_name,
         publicKey: invite.creator_public_key,
-        conversationId: conversationId
-      }
+        conversationId: conversationId,
+      },
     }
   } catch (error) {
     console.error('Failed to accept pairing invite:', error)
@@ -482,10 +485,7 @@ export async function getMessengerContacts(userId: string): Promise<any[]> {
 /**
  * Subscribe to new contacts (for auto-connect notification)
  */
-export function subscribeToNewContacts(
-  userId: string,
-  onNewContact: (contact: any) => void
-) {
+export function subscribeToNewContacts(userId: string, onNewContact: (contact: any) => void) {
   const channel = supabase
     .channel(`contacts:${userId}`)
     .on(
@@ -494,9 +494,9 @@ export function subscribeToNewContacts(
         event: 'INSERT',
         schema: 'public',
         table: 'messenger_contacts',
-        filter: `user_id=eq.${userId}`
+        filter: `user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[REALTIME] New contact added:', payload.new)
         onNewContact(payload.new)
       }
@@ -528,7 +528,7 @@ export async function sendMessengerMessage(
         conversation_id: conversationId,
         content,
         encrypted,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       })
       .select()
       .single()
@@ -599,7 +599,10 @@ export async function getMessengerMessages(
 /**
  * Get latest messages for a conversation (simple version for backward compatibility)
  */
-export async function getLatestMessages(conversationId: string, limit: number = 50): Promise<any[]> {
+export async function getLatestMessages(
+  conversationId: string,
+  limit: number = 50
+): Promise<any[]> {
   const result = await getMessengerMessages(conversationId, { limit })
   return result.messages
 }
@@ -607,10 +610,7 @@ export async function getLatestMessages(conversationId: string, limit: number = 
 /**
  * Subscribe to messages in a conversation (real-time)
  */
-export function subscribeToConversation(
-  conversationId: string,
-  onMessage: (message: any) => void
-) {
+export function subscribeToConversation(conversationId: string, onMessage: (message: any) => void) {
   const channel = supabase
     .channel(`conversation:${conversationId}`)
     .on(
@@ -619,9 +619,9 @@ export function subscribeToConversation(
         event: 'INSERT',
         schema: 'public',
         table: 'messenger_messages',
-        filter: `conversation_id=eq.${conversationId}`
+        filter: `conversation_id=eq.${conversationId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[REALTIME] New message:', payload.new)
         onMessage(payload.new)
       }
@@ -697,9 +697,9 @@ export function subscribeToMessageDeletions(
         event: 'DELETE',
         schema: 'public',
         table: 'messenger_messages',
-        filter: `conversation_id=eq.${conversationId}`
+        filter: `conversation_id=eq.${conversationId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[REALTIME] Message deleted:', payload.old)
         if (payload.old && payload.old.id) {
           onMessageDeleted(payload.old.id)
@@ -728,9 +728,8 @@ export async function savePrivacySettings(
   }
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('user_privacy_settings')
-      .upsert({
+    const { error } = await supabase.from('user_privacy_settings').upsert(
+      {
         user_id: userId,
         device_id: userId, // Using userId as device_id for simplicity
         show_online_status: settings.showOnlineStatus,
@@ -739,10 +738,12 @@ export async function savePrivacySettings(
         allow_save_media: settings.allowSaveMedia,
         show_unique_id: settings.showUniqueId,
         auto_delete_timer: settings.autoDeleteTimer,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'user_id',
+      }
+    )
 
     if (error) {
       console.error('Error saving privacy settings:', error)
@@ -783,7 +784,7 @@ export async function getPrivacySettings(userId: string): Promise<any | null> {
       allowScreenshots: data.allow_screenshots,
       allowSaveMedia: data.allow_save_media,
       showUniqueId: data.show_unique_id,
-      autoDeleteTimer: data.auto_delete_timer
+      autoDeleteTimer: data.auto_delete_timer,
     }
   } catch (error) {
     console.error('Failed to get privacy settings:', error)
@@ -806,9 +807,9 @@ export function subscribeToPrivacySettings(
         event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
         schema: 'public',
         table: 'user_privacy_settings',
-        filter: `user_id=eq.${userId}`
+        filter: `user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[REALTIME] Privacy settings changed:', payload.new)
         if (payload.new) {
           const data = payload.new as any
@@ -818,7 +819,7 @@ export function subscribeToPrivacySettings(
             allowScreenshots: data.allow_screenshots,
             allowSaveMedia: data.allow_save_media,
             showUniqueId: data.show_unique_id,
-            autoDeleteTimer: data.auto_delete_timer
+            autoDeleteTimer: data.auto_delete_timer,
           })
         }
       }

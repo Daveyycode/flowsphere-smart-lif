@@ -34,9 +34,7 @@ export async function callClaudeAI(
   const model = options?.model || 'claude-sonnet-4-20250514'
   const maxTokens = options?.maxTokens || 4096
 
-  const messages: ClaudeMessage[] = [
-    { role: 'user', content: prompt }
-  ]
+  const messages: ClaudeMessage[] = [{ role: 'user', content: prompt }]
 
   const requestBody: {
     model: string
@@ -46,7 +44,7 @@ export async function callClaudeAI(
   } = {
     model,
     max_tokens: maxTokens,
-    messages
+    messages,
   }
 
   if (options?.systemPrompt) {
@@ -59,9 +57,9 @@ export async function callClaudeAI(
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'anthropic-dangerous-direct-browser-access': 'true',
     },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {
@@ -78,7 +76,7 @@ export async function callClaudeAI(
     throw new Error(errorData.error?.message || 'API request failed')
   }
 
-  const data = await response.json() as ClaudeResponse
+  const data = (await response.json()) as ClaudeResponse
 
   // Extract text from response
   const textContent = data.content.find(c => c.type === 'text')
@@ -103,11 +101,14 @@ export class CEOExecutiveAI {
   /**
    * Generate workflow based on request
    */
-  async generateWorkflow(request: string, context: {
-    totalUsers: number
-    revenue: number
-    growthRate: number
-  }): Promise<string> {
+  async generateWorkflow(
+    request: string,
+    context: {
+      totalUsers: number
+      revenue: number
+      growthRate: number
+    }
+  ): Promise<string> {
     const prompt = `You are a CEO Executive AI assistant specializing in workflow creation. Based on the user's request, create a detailed workflow with steps, responsibilities, and timelines. Format the response in a clear, actionable way with numbered steps.
 
 Context:
@@ -131,11 +132,14 @@ Generate a comprehensive workflow that includes:
   /**
    * Analyze issues and provide solutions
    */
-  async analyzeIssues(issue: string, context: {
-    activeUsers: number
-    churnRate: number
-    growthRate: number
-  }): Promise<string> {
+  async analyzeIssues(
+    issue: string,
+    context: {
+      activeUsers: number
+      churnRate: number
+      growthRate: number
+    }
+  ): Promise<string> {
     const prompt = `You are a CEO Executive AI assistant specializing in issue analysis and solution generation. Analyze the user's concern and provide:
 1. Root cause analysis
 2. Impact assessment
@@ -158,14 +162,17 @@ Provide actionable insights and solutions.`
   /**
    * Generate executive report
    */
-  async generateReport(request: string, context: {
-    totalUsers: number
-    activeUsers: number
-    revenue: number
-    growthRate: number
-    churnRate: number
-    suggestions?: Array<{ title: string; description: string }>
-  }): Promise<string> {
+  async generateReport(
+    request: string,
+    context: {
+      totalUsers: number
+      activeUsers: number
+      revenue: number
+      growthRate: number
+      churnRate: number
+      suggestions?: Array<{ title: string; description: string }>
+    }
+  ): Promise<string> {
     const prompt = `You are a CEO Executive AI assistant specializing in executive report generation. Create a professional executive report based on the user's request.
 
 Business Metrics:
@@ -193,21 +200,28 @@ Generate a comprehensive executive report with:
   /**
    * General analysis - debug, troubleshoot, guard
    */
-  async analyze(request: string, mode: 'debug' | 'guard' | 'troubleshoot' | 'general' = 'general'): Promise<string> {
+  async analyze(
+    request: string,
+    mode: 'debug' | 'guard' | 'troubleshoot' | 'general' = 'general'
+  ): Promise<string> {
     let systemContext = ''
 
     switch (mode) {
       case 'debug':
-        systemContext = 'You are an expert debugging assistant. Analyze the issue, identify root causes, and provide step-by-step debugging guidance.'
+        systemContext =
+          'You are an expert debugging assistant. Analyze the issue, identify root causes, and provide step-by-step debugging guidance.'
         break
       case 'guard':
-        systemContext = 'You are a security guard AI. Analyze for potential risks, vulnerabilities, and compliance issues. Provide security recommendations.'
+        systemContext =
+          'You are a security guard AI. Analyze for potential risks, vulnerabilities, and compliance issues. Provide security recommendations.'
         break
       case 'troubleshoot':
-        systemContext = 'You are a troubleshooting expert. Systematically diagnose the problem and provide clear resolution steps.'
+        systemContext =
+          'You are a troubleshooting expert. Systematically diagnose the problem and provide clear resolution steps.'
         break
       default:
-        systemContext = 'You are a helpful CEO Executive AI assistant. Provide clear, actionable analysis and recommendations.'
+        systemContext =
+          'You are a helpful CEO Executive AI assistant. Provide clear, actionable analysis and recommendations.'
     }
 
     return callClaudeAI(request, { systemPrompt: systemContext })

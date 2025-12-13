@@ -56,14 +56,16 @@ export interface EmailInsight {
 /**
  * Scan emails and categorize them
  */
-export function scanEmails(emails: Array<{
-  id: string
-  from: string
-  subject: string
-  body: string
-  timestamp: string
-  read: boolean
-}>): EmailMessage[] {
+export function scanEmails(
+  emails: Array<{
+    id: string
+    from: string
+    subject: string
+    body: string
+    timestamp: string
+    read: boolean
+  }>
+): EmailMessage[] {
   return emails.map(email => {
     const category = categorizeEmail(email)
     const important = detectImportance(email)
@@ -75,7 +77,7 @@ export function scanEmails(emails: Array<{
       important,
       category,
       attachments: detectAttachments(email.body),
-      tags
+      tags,
     }
   })
 }
@@ -156,11 +158,7 @@ function categorizeEmail(email: {
 /**
  * Detect if email is important
  */
-function detectImportance(email: {
-  from: string
-  subject: string
-  body: string
-}): boolean {
+function detectImportance(email: { from: string; subject: string; body: string }): boolean {
   const subject = email.subject.toLowerCase()
   const body = email.body.toLowerCase()
 
@@ -175,7 +173,7 @@ function detectImportance(email: {
     'final notice',
     'immediate',
     'asap',
-    'critical'
+    'critical',
   ]
 
   // Check subject for urgency
@@ -184,11 +182,7 @@ function detectImportance(email: {
   }
 
   // Check for personal communication from real people (not automated)
-  if (
-    !body.includes('unsubscribe') &&
-    !body.includes('click here') &&
-    body.length < 2000
-  ) {
+  if (!body.includes('unsubscribe') && !body.includes('click here') && body.length < 2000) {
     return true
   }
 
@@ -198,11 +192,7 @@ function detectImportance(email: {
 /**
  * Extract tags from email
  */
-function extractTags(email: {
-  from: string
-  subject: string
-  body: string
-}): string[] {
+function extractTags(email: { from: string; subject: string; body: string }): string[] {
   const tags: string[] = []
   const content = (email.subject + ' ' + email.body).toLowerCase()
 
@@ -222,14 +212,7 @@ function extractTags(email: {
  * Detect number of attachments
  */
 function detectAttachments(body: string): number {
-  const attachmentIndicators = [
-    'attachment',
-    'attached',
-    'file',
-    'document',
-    'pdf',
-    'image'
-  ]
+  const attachmentIndicators = ['attachment', 'attached', 'file', 'document', 'pdf', 'image']
 
   let count = 0
   attachmentIndicators.forEach(indicator => {
@@ -269,8 +252,7 @@ function extractSubscriptionInfo(email: EmailMessage): Subscription | null {
   const subject = email.subject.toLowerCase()
 
   // Extract cost
-  const costMatch = body.match(/\$(\d+\.?\d*)/)||
-subject.match(/\$(\d+\.?\d*)/)
+  const costMatch = body.match(/\$(\d+\.?\d*)/) || subject.match(/\$(\d+\.?\d*)/)
   const cost = costMatch ? parseFloat(costMatch[1]) : 0
 
   // Detect frequency
@@ -307,7 +289,7 @@ subject.match(/\$(\d+\.?\d*)/)
     status: detectSubscriptionStatus(body),
     wasteScore,
     recommendation,
-    reason
+    reason,
   }
 }
 
@@ -318,16 +300,32 @@ function categorizeSubscription(name: string, body: string): Subscription['categ
   const lowerName = name.toLowerCase()
   const lowerBody = body.toLowerCase()
 
-  if (lowerName.includes('netflix') || lowerName.includes('spotify') || lowerName.includes('hulu')) {
+  if (
+    lowerName.includes('netflix') ||
+    lowerName.includes('spotify') ||
+    lowerName.includes('hulu')
+  ) {
     return 'streaming'
   }
-  if (lowerName.includes('adobe') || lowerName.includes('microsoft') || lowerBody.includes('software')) {
+  if (
+    lowerName.includes('adobe') ||
+    lowerName.includes('microsoft') ||
+    lowerBody.includes('software')
+  ) {
     return 'software'
   }
-  if (lowerName.includes('news') || lowerName.includes('times') || lowerBody.includes('newspaper')) {
+  if (
+    lowerName.includes('news') ||
+    lowerName.includes('times') ||
+    lowerBody.includes('newspaper')
+  ) {
     return 'news'
   }
-  if (lowerName.includes('game') || lowerName.includes('xbox') || lowerName.includes('playstation')) {
+  if (
+    lowerName.includes('game') ||
+    lowerName.includes('xbox') ||
+    lowerName.includes('playstation')
+  ) {
     return 'gaming'
   }
   if (lowerName.includes('gym') || lowerName.includes('fitness') || lowerBody.includes('workout')) {
@@ -391,27 +389,27 @@ function getSubscriptionRecommendation(
   if (wasteScore >= 70) {
     return {
       recommendation: 'cancel',
-      reason: 'High cost with low apparent usage. Consider cancelling to save money.'
+      reason: 'High cost with low apparent usage. Consider cancelling to save money.',
     }
   }
 
   if (wasteScore >= 50) {
     return {
       recommendation: 'consider-cancel',
-      reason: 'Moderate waste detected. Review if you actually use this service regularly.'
+      reason: 'Moderate waste detected. Review if you actually use this service regularly.',
     }
   }
 
   if (wasteScore >= 30 && cost > 20) {
     return {
       recommendation: 'downgrade',
-      reason: 'Consider downgrading to a cheaper plan if available.'
+      reason: 'Consider downgrading to a cheaper plan if available.',
     }
   }
 
   return {
     recommendation: 'keep',
-    reason: 'Appears to be actively used and good value.'
+    reason: 'Appears to be actively used and good value.',
   }
 }
 
@@ -456,7 +454,7 @@ export function generateEmailInsights(
     .map(sub => ({
       subscription: sub.name,
       amount: sub.frequency === 'yearly' ? sub.cost : sub.cost * 12,
-      reason: sub.reason
+      reason: sub.reason,
     }))
 
   const totalWasted = wasteBreakdown.reduce((sum, item) => sum + item.amount, 0)
@@ -469,7 +467,9 @@ export function generateEmailInsights(
   }
 
   if (unreadCount > 50) {
-    recommendations.push(`📧 ${unreadCount} unread emails - consider unsubscribing from newsletters`)
+    recommendations.push(
+      `📧 ${unreadCount} unread emails - consider unsubscribing from newsletters`
+    )
   }
 
   if (promotionalCount > 20) {
@@ -478,7 +478,9 @@ export function generateEmailInsights(
 
   const subscriptionCancellations = subscriptions.filter(s => s.recommendation === 'cancel').length
   if (subscriptionCancellations > 0) {
-    recommendations.push(`❌ ${subscriptionCancellations} subscriptions recommended for cancellation`)
+    recommendations.push(
+      `❌ ${subscriptionCancellations} subscriptions recommended for cancellation`
+    )
   }
 
   // Generate summary
@@ -502,10 +504,10 @@ export function generateEmailInsights(
     wasteEstimate: {
       totalWasted,
       currency: 'USD',
-      breakdown: wasteBreakdown
+      breakdown: wasteBreakdown,
     },
     recommendations,
-    summary
+    summary,
   }
 }
 
@@ -516,12 +518,13 @@ export function filterImportantEmails(emails: EmailMessage[]): {
   important: EmailMessage[]
   notImportant: EmailMessage[]
 } {
-  const important = emails.filter(email =>
-    email.important ||
-    email.category === 'work' ||
-    email.category === 'financial' ||
-    email.tags.includes('urgent') ||
-    email.tags.includes('deadline')
+  const important = emails.filter(
+    email =>
+      email.important ||
+      email.category === 'work' ||
+      email.category === 'financial' ||
+      email.tags.includes('urgent') ||
+      email.tags.includes('deadline')
   )
 
   const notImportant = emails.filter(email => !important.includes(email))
@@ -541,16 +544,17 @@ export function generateMorningDigest(emails: EmailMessage[]): {
   const { important } = filterImportantEmails(emails.filter(e => !e.read))
 
   const digest = {
-    title: important.length > 0
-      ? `☀️ Good Morning! ${important.length} important email${important.length > 1 ? 's' : ''}`
-      : '☀️ Good Morning! No urgent emails',
+    title:
+      important.length > 0
+        ? `☀️ Good Morning! ${important.length} important email${important.length > 1 ? 's' : ''}`
+        : '☀️ Good Morning! No urgent emails',
     important: important.slice(0, 5).map(email => ({
       from: email.from,
       subject: email.subject,
-      preview: email.bodyPreview
+      preview: email.bodyPreview,
     })),
     count: important.length,
-    needsAttention: important.length > 0
+    needsAttention: important.length > 0,
   }
 
   return digest

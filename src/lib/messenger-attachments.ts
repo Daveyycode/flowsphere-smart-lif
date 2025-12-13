@@ -28,16 +28,16 @@ import { logger } from '@/lib/security-utils'
 export type AttachmentType = 'photo' | 'file' | 'voice'
 
 export interface AttachmentMetadata {
-  id: string                    // Unique attachment ID
-  type: AttachmentType          // Type of attachment
-  fileName: string              // Original filename
-  fileSize: number              // Size in bytes
-  mimeType: string              // MIME type
+  id: string // Unique attachment ID
+  type: AttachmentType // Type of attachment
+  fileName: string // Original filename
+  fileSize: number // Size in bytes
+  mimeType: string // MIME type
   encryptionMeta: Omit<EncryptionResult, 'encryptedData'> // Encryption metadata
-  encryptedData: string         // Encrypted file as base64 (stored in DB or IndexedDB)
+  encryptedData: string // Encrypted file as base64 (stored in DB or IndexedDB)
   storageLocation: 'database' | 'indexeddb' // Where the file is stored
-  uploadedAt: string            // ISO timestamp
-  encryptedBy: string           // Device ID of sender
+  uploadedAt: string // ISO timestamp
+  encryptedBy: string // Device ID of sender
 }
 
 export interface UploadProgress {
@@ -51,11 +51,11 @@ export interface UploadProgress {
 // ============================================
 
 const STORAGE_CONFIG = {
-  databaseSizeLimit: 5 * 1024 * 1024,  // 5MB - store in Supabase DB if smaller
-  maxFileSize: 50 * 1024 * 1024,        // 50MB - absolute max
-  maxVoiceDuration: 300,                 // 5 minutes max for voice
-  imageCompressQuality: 0.8,             // Compress images to 80% quality
-  imageMaxDimension: 1920,               // Max width/height for images
+  databaseSizeLimit: 5 * 1024 * 1024, // 5MB - store in Supabase DB if smaller
+  maxFileSize: 50 * 1024 * 1024, // 50MB - absolute max
+  maxVoiceDuration: 300, // 5 minutes max for voice
+  imageCompressQuality: 0.8, // Compress images to 80% quality
+  imageMaxDimension: 1920, // Max width/height for images
   allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
   allowedFileTypes: [
     // Documents
@@ -70,9 +70,9 @@ const STORAGE_CONFIG = {
     'application/zip',
     'application/x-rar-compressed',
     // Images (also allowed as files)
-    ...['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    ...['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
   ],
-  allowedVoiceTypes: ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg']
+  allowedVoiceTypes: ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'],
 }
 
 // ============================================
@@ -82,15 +82,12 @@ const STORAGE_CONFIG = {
 /**
  * Validate file before encryption/upload
  */
-export function validateFile(
-  file: File,
-  type: AttachmentType
-): { valid: boolean; error?: string } {
+export function validateFile(file: File, type: AttachmentType): { valid: boolean; error?: string } {
   // Check file size
   if (file.size > STORAGE_CONFIG.maxFileSize) {
     return {
       valid: false,
-      error: `File too large. Maximum size is ${STORAGE_CONFIG.maxFileSize / (1024 * 1024)}MB`
+      error: `File too large. Maximum size is ${STORAGE_CONFIG.maxFileSize / (1024 * 1024)}MB`,
     }
   }
 
@@ -111,7 +108,7 @@ export function validateFile(
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
-      error: `File type not supported: ${file.type}`
+      error: `File type not supported: ${file.type}`,
     }
   }
 
@@ -139,7 +136,7 @@ export function formatFileSize(bytes: number): string {
 async function compressImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
@@ -170,14 +167,14 @@ async function compressImage(file: File): Promise<File> {
         ctx.drawImage(img, 0, 0, width, height)
 
         canvas.toBlob(
-          (blob) => {
+          blob => {
             if (!blob) {
               reject(new Error('Failed to compress image'))
               return
             }
             const compressedFile = new File([blob], file.name, {
               type: 'image/jpeg',
-              lastModified: Date.now()
+              lastModified: Date.now(),
             })
             resolve(compressedFile)
           },
@@ -220,7 +217,9 @@ export async function encryptAttachment(
     if (type === 'photo' && file.type.startsWith('image/')) {
       try {
         fileToEncrypt = await compressImage(file)
-        logger.info(`Compressed image: ${formatFileSize(file.size)} → ${formatFileSize(fileToEncrypt.size)}`)
+        logger.info(
+          `Compressed image: ${formatFileSize(file.size)} → ${formatFileSize(fileToEncrypt.size)}`
+        )
       } catch (err) {
         console.warn('Image compression failed, using original:', err)
       }
@@ -251,9 +250,8 @@ export async function encryptAttachment(
     const attachmentId = `att_${timestamp}_${random}`
 
     // Decide storage location based on size
-    const storageLocation = fileToEncrypt.size <= STORAGE_CONFIG.databaseSizeLimit
-      ? 'database'
-      : 'indexeddb'
+    const storageLocation =
+      fileToEncrypt.size <= STORAGE_CONFIG.databaseSizeLimit ? 'database' : 'indexeddb'
 
     const metadata: AttachmentMetadata = {
       id: attachmentId,
@@ -265,7 +263,7 @@ export async function encryptAttachment(
       encryptedData,
       storageLocation,
       uploadedAt: new Date().toISOString(),
-      encryptedBy: deviceId
+      encryptedBy: deviceId,
     }
 
     // If storing in IndexedDB (large files), save there
@@ -298,7 +296,7 @@ function openDB(): Promise<IDBDatabase> {
     request.onerror = () => reject(request.error)
     request.onsuccess = () => resolve(request.result)
 
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = event => {
       const db = (event.target as IDBOpenDBRequest).result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME)
@@ -453,7 +451,7 @@ export class VoiceRecorder {
       this.audioChunks = []
       this.startTime = Date.now()
 
-      this.mediaRecorder.ondataavailable = (event) => {
+      this.mediaRecorder.ondataavailable = event => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data)
         }
@@ -483,7 +481,7 @@ export class VoiceRecorder {
 
         const audioFile = new File([audioBlob], fileName, {
           type: 'audio/webm',
-          lastModified: Date.now()
+          lastModified: Date.now(),
         })
 
         // Stop all tracks
@@ -534,7 +532,7 @@ export async function createThumbnail(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')

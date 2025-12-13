@@ -11,7 +11,7 @@ import {
   getRemoteTimerManager,
   formatTimerDisplay,
   RoomState,
-  Message
+  Message,
 } from '@/lib/remote-timer-sync'
 import { useTheme, ColorTheme } from '@/hooks/use-theme'
 import {
@@ -24,7 +24,7 @@ import {
   Bell,
   ArrowsOutSimple,
   ArrowsInSimple,
-  Broadcast
+  Broadcast,
 } from '@phosphor-icons/react'
 
 interface RemoteTimerPresenterProps {
@@ -34,7 +34,10 @@ interface RemoteTimerPresenterProps {
 }
 
 // FlowSphere theme colors - matches use-theme.ts ColorTheme
-const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Record<string, string> }> = {
+const THEME_COLORS: Record<
+  ColorTheme,
+  { light: Record<string, string>; dark: Record<string, string> }
+> = {
   'neon-noir': {
     light: {
       background: 'oklch(0.98 0.005 270)',
@@ -47,7 +50,7 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.98 0.005 270)',
       primary: 'oklch(0.65 0.28 328)',
       accent: 'oklch(0.70 0.25 320)',
-    }
+    },
   },
   'aurora-borealis': {
     light: {
@@ -61,7 +64,7 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.95 0.02 220)',
       primary: 'oklch(0.65 0.25 250)',
       accent: 'oklch(0.70 0.22 160)',
-    }
+    },
   },
   'cosmic-latte': {
     light: {
@@ -75,7 +78,7 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.95 0.02 80)',
       primary: 'oklch(0.60 0.18 70)',
       accent: 'oklch(0.70 0.15 50)',
-    }
+    },
   },
   'candy-shop': {
     light: {
@@ -89,7 +92,7 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.96 0.02 330)',
       primary: 'oklch(0.70 0.22 340)',
       accent: 'oklch(0.75 0.20 290)',
-    }
+    },
   },
   'black-gray': {
     light: {
@@ -103,9 +106,9 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.95 0 0)',
       primary: 'oklch(0.80 0 0)',
       accent: 'oklch(0.70 0 0)',
-    }
+    },
   },
-  'custom': {
+  custom: {
     light: {
       background: 'oklch(0.95 0 0)',
       foreground: 'oklch(0.15 0 0)',
@@ -117,11 +120,15 @@ const THEME_COLORS: Record<ColorTheme, { light: Record<string, string>; dark: Re
       foreground: 'oklch(0.95 0 0)',
       primary: 'oklch(0.65 0.2 250)',
       accent: 'oklch(0.70 0.15 200)',
-    }
-  }
+    },
+  },
 }
 
-export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }: RemoteTimerPresenterProps) {
+export function RemoteTimerPresenter({
+  roomCode,
+  onExit,
+  floatingMode = false,
+}: RemoteTimerPresenterProps) {
   const [manager] = useState(() => getRemoteTimerManager())
   const [state, setState] = useState<RoomState | null>(null)
   const [currentMessage, setCurrentMessage] = useState<Message | null>(null)
@@ -162,7 +169,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
 
   // Subscribe to state updates
   useEffect(() => {
-    const unsubscribe = manager.subscribe((newState) => {
+    const unsubscribe = manager.subscribe(newState => {
       setState(newState)
     })
 
@@ -173,7 +180,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
 
   // Subscribe to messages
   useEffect(() => {
-    const unsubscribe = manager.subscribeToMessages((message) => {
+    const unsubscribe = manager.subscribeToMessages(message => {
       if (message.isVisible) {
         setCurrentMessage(message)
 
@@ -183,12 +190,12 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
 
         const timeout = message.expiresAt
           ? Math.max(0, message.expiresAt - Date.now())
-          : autoDismiss ? defaultDuration : 30000
+          : autoDismiss
+            ? defaultDuration
+            : 30000
 
         setTimeout(() => {
-          setCurrentMessage(prev =>
-            prev?.id === message.id ? null : prev
-          )
+          setCurrentMessage(prev => (prev?.id === message.id ? null : prev))
         }, timeout)
       }
     })
@@ -196,7 +203,11 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
     return () => {
       unsubscribe()
     }
-  }, [manager, state?.room.settings.messageAutoDismiss, state?.room.settings.messageDefaultDuration])
+  }, [
+    manager,
+    state?.room.settings.messageAutoDismiss,
+    state?.room.settings.messageDefaultDuration,
+  ])
 
   // Handle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -240,7 +251,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
         background: customColors.background,
         foreground: customColors.foreground,
         primary: customColors.primary,
-        accent: customColors.accent
+        accent: customColors.accent,
       }
     }
 
@@ -254,10 +265,14 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
       return 'text-[8vw]'
     }
     switch (size) {
-      case 'small': return 'text-[12vw]'
-      case 'medium': return 'text-[18vw]'
-      case 'xlarge': return 'text-[28vw]'
-      default: return 'text-[22vw]'
+      case 'small':
+        return 'text-[12vw]'
+      case 'medium':
+        return 'text-[18vw]'
+      case 'xlarge':
+        return 'text-[28vw]'
+      default:
+        return 'text-[22vw]'
     }
   }
 
@@ -315,14 +330,16 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
     return (
       <div
         className={cn(
-          "flex items-center justify-center",
-          floatingMode ? "w-full h-full" : "fixed inset-0"
+          'flex items-center justify-center',
+          floatingMode ? 'w-full h-full' : 'fixed inset-0'
         )}
         style={{ background: colors.background }}
       >
         <div className="text-center">
-          <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4"
-            style={{ borderColor: statusColor, borderTopColor: 'transparent' }} />
+          <div
+            className="w-12 h-12 md:w-16 md:h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4"
+            style={{ borderColor: statusColor, borderTopColor: 'transparent' }}
+          />
           <p className="text-lg md:text-xl" style={{ color: colors.foreground }}>
             Connecting to room...
           </p>
@@ -339,8 +356,8 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
     return (
       <div
         className={cn(
-          "flex items-center justify-center",
-          floatingMode ? "w-full h-full" : "fixed inset-0"
+          'flex items-center justify-center',
+          floatingMode ? 'w-full h-full' : 'fixed inset-0'
         )}
         style={{ background: colors.background }}
       >
@@ -369,12 +386,14 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
     return (
       <div
         className={cn(
-          "flex items-center justify-center",
-          floatingMode ? "w-full h-full" : "fixed inset-0"
+          'flex items-center justify-center',
+          floatingMode ? 'w-full h-full' : 'fixed inset-0'
         )}
         style={{ background: colors.background }}
       >
-        <p className="text-xl" style={{ color: colors.foreground }}>Loading timer...</p>
+        <p className="text-xl" style={{ color: colors.foreground }}>
+          Loading timer...
+        </p>
       </div>
     )
   }
@@ -392,7 +411,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
         style={{
           background: colors.background,
           border: `2px solid ${colors.accent}`,
-          minWidth: '200px'
+          minWidth: '200px',
         }}
       >
         <div className="p-3 flex items-center gap-3">
@@ -435,7 +454,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
               style={{ backgroundColor: statusColor }}
               initial={{ width: '100%' }}
               animate={{
-                width: `${(state.timer.remaining / state.timer.duration) * 100}%`
+                width: `${(state.timer.remaining / state.timer.duration) * 100}%`,
               }}
               transition={{ duration: 0.1 }}
             />
@@ -471,13 +490,15 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center transition-all duration-300",
-        floatingMode ? "w-full h-full" : "fixed inset-0"
+        'flex flex-col items-center justify-center transition-all duration-300',
+        floatingMode ? 'w-full h-full' : 'fixed inset-0'
       )}
       style={{
         background: colors.background,
-        animation: state.timer.status === 'completed' && state.room.settings.flashOnComplete
-          ? 'pulse 1s infinite' : undefined
+        animation:
+          state.timer.status === 'completed' && state.room.settings.flashOnComplete
+            ? 'pulse 1s infinite'
+            : undefined,
       }}
     >
       {/* Control bar (hidden when fullscreen) */}
@@ -517,10 +538,11 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
             onClick={toggleFullscreen}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
-            {isFullscreen
-              ? <ArrowsIn className="w-5 h-5 md:w-6 md:h-6" />
-              : <ArrowsOut className="w-5 h-5 md:w-6 md:h-6" />
-            }
+            {isFullscreen ? (
+              <ArrowsIn className="w-5 h-5 md:w-6 md:h-6" />
+            ) : (
+              <ArrowsOut className="w-5 h-5 md:w-6 md:h-6" />
+            )}
           </button>
         </div>
       )}
@@ -552,13 +574,10 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
         key={state.timer.status}
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className={cn(
-          "font-mono font-bold leading-none tracking-tighter",
-          fontSize
-        )}
+        className={cn('font-mono font-bold leading-none tracking-tighter', fontSize)}
         style={{
           color: statusColor,
-          animation: state.timer.status === 'completed' ? 'pulse 1s infinite' : undefined
+          animation: state.timer.status === 'completed' ? 'pulse 1s infinite' : undefined,
         }}
       >
         {timerDisplay}
@@ -585,7 +604,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
             style={{ backgroundColor: statusColor }}
             initial={{ width: '100%' }}
             animate={{
-              width: `${(state.timer.remaining / state.timer.duration) * 100}%`
+              width: `${(state.timer.remaining / state.timer.duration) * 100}%`,
             }}
             transition={{ duration: 0.1 }}
           />
@@ -605,7 +624,7 @@ export function RemoteTimerPresenter({ roomCode, onExit, floatingMode = false }:
               className="rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 flex items-center gap-3 md:gap-4 shadow-2xl cursor-pointer"
               style={{
                 backgroundColor: getMessageColors(currentMessage.type).bg,
-                color: getMessageColors(currentMessage.type).text
+                color: getMessageColors(currentMessage.type).text,
               }}
               onClick={dismissMessage}
             >

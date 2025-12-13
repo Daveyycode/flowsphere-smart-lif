@@ -1,9 +1,24 @@
 import { motion } from 'framer-motion'
-import { Users, CreditCard, Bell, ChartLine, UserCircle, ShieldCheck, Trash } from '@phosphor-icons/react'
+import {
+  Users,
+  CreditCard,
+  Bell,
+  ChartLine,
+  UserCircle,
+  ShieldCheck,
+  Trash,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
@@ -30,7 +45,7 @@ export function AdminDashboard() {
       status: 'active',
       joinedDate: '2024-01-15',
       devicesCount: 12,
-      lastActive: '2 minutes ago'
+      lastActive: '2 minutes ago',
     },
     {
       id: '2',
@@ -40,7 +55,7 @@ export function AdminDashboard() {
       status: 'active',
       joinedDate: '2024-02-20',
       devicesCount: 18,
-      lastActive: '1 hour ago'
+      lastActive: '1 hour ago',
     },
     {
       id: '3',
@@ -50,7 +65,7 @@ export function AdminDashboard() {
       status: 'active',
       joinedDate: '2024-03-10',
       devicesCount: 3,
-      lastActive: '5 hours ago'
+      lastActive: '5 hours ago',
     },
     {
       id: '4',
@@ -60,8 +75,8 @@ export function AdminDashboard() {
       status: 'suspended',
       joinedDate: '2023-11-05',
       devicesCount: 8,
-      lastActive: '2 days ago'
-    }
+      lastActive: '2 days ago',
+    },
   ])
 
   const [isOwner, setIsOwner] = useState(false)
@@ -81,24 +96,26 @@ export function AdminDashboard() {
   const stats = {
     totalUsers: users?.length || 0,
     activeUsers: users?.filter(u => u.status === 'active').length || 0,
-    premiumUsers: users?.filter(u => u.subscription === 'premium' || u.subscription === 'family').length || 0,
-    totalRevenue: (users?.filter(u => u.subscription === 'premium').length || 0) * 9.99 + 
-                  (users?.filter(u => u.subscription === 'family').length || 0) * 19.99
+    premiumUsers:
+      users?.filter(u => u.subscription === 'premium' || u.subscription === 'family').length || 0,
+    totalRevenue:
+      (users?.filter(u => u.subscription === 'premium').length || 0) * 9.99 +
+      (users?.filter(u => u.subscription === 'family').length || 0) * 19.99,
   }
 
   const handleSuspendUser = (userId: string) => {
-    setUsers((currentUsers) =>
+    setUsers(currentUsers =>
       (currentUsers || []).map(user =>
-        user.id === userId ? { ...user, status: user.status === 'active' ? 'suspended' : 'active' } : user
+        user.id === userId
+          ? { ...user, status: user.status === 'active' ? 'suspended' : 'active' }
+          : user
       )
     )
     toast.success('User status updated')
   }
 
   const handleDeleteUser = (userId: string) => {
-    setUsers((currentUsers) =>
-      (currentUsers || []).filter(user => user.id !== userId)
-    )
+    setUsers(currentUsers => (currentUsers || []).filter(user => user.id !== userId))
     toast.success('User deleted')
   }
 
@@ -118,7 +135,10 @@ export function AdminDashboard() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
-            <ShieldCheck className="w-16 h-16 mx-auto mb-4 text-muted-foreground" weight="duotone" />
+            <ShieldCheck
+              className="w-16 h-16 mx-auto mb-4 text-muted-foreground"
+              weight="duotone"
+            />
             <h2 className="text-xl sm:text-2xl font-bold mb-2">Admin Access Required</h2>
             <p className="text-sm sm:text-base text-muted-foreground">
               You need administrator privileges to access this dashboard.
@@ -153,9 +173,7 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.activeUsers} active
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{stats.activeUsers} active</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -195,9 +213,7 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +12% from last month
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">+12% from last month</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -216,9 +232,7 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold">{stats.activeUsers}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Online now
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Online now</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -234,26 +248,35 @@ export function AdminDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs sm:text-sm">User</TableHead>
-                  <TableHead className="text-xs sm:text-sm hidden md:table-cell">Subscription</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden md:table-cell">
+                    Subscription
+                  </TableHead>
                   <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Devices</TableHead>
                   <TableHead className="text-xs sm:text-sm">Status</TableHead>
-                  <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Last Active</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden sm:table-cell">
+                    Last Active
+                  </TableHead>
                   <TableHead className="text-xs sm:text-sm text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(users || []).map((user) => (
+                {(users || []).map(user => (
                   <TableRow key={user.id}>
                     <TableCell className="py-2 sm:py-4">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
                           <AvatarFallback className="text-xs sm:text-sm">
-                            {user.name.split(' ').map(n => n[0]).join('')}
+                            {user.name
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium text-xs sm:text-sm">{user.name}</div>
-                          <div className="text-[10px] sm:text-xs text-muted-foreground">{user.email}</div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
+                            {user.email}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -264,7 +287,10 @@ export function AdminDashboard() {
                       {user.devicesCount} devices
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.status === 'active' ? 'default' : 'destructive'} className="text-[10px] sm:text-xs">
+                      <Badge
+                        variant={user.status === 'active' ? 'default' : 'destructive'}
+                        className="text-[10px] sm:text-xs"
+                      >
                         {user.status}
                       </Badge>
                     </TableCell>

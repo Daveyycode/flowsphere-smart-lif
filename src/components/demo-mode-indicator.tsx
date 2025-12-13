@@ -22,7 +22,7 @@ export function DemoModeIndicator({
   className,
   variant = 'banner',
   message,
-  dismissible = true
+  dismissible = true,
 }: DemoModeIndicatorProps) {
   const [isDismissed, setIsDismissed] = useState(false)
   const [showIndicator, setShowIndicator] = useState(false)
@@ -131,7 +131,7 @@ export function DemoModeIndicator({
  */
 export function MockDataIndicator({
   dataType,
-  className
+  className,
 }: {
   dataType: string
   className?: string

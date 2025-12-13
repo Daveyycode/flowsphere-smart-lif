@@ -9,10 +9,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Envelope, EnvelopeOpen, Check, X, Link as LinkIcon, Warning, Key, Eye, EyeSlash, Info, Spinner } from '@phosphor-icons/react'
+import {
+  Envelope,
+  EnvelopeOpen,
+  Check,
+  X,
+  Link as LinkIcon,
+  Warning,
+  Key,
+  Eye,
+  EyeSlash,
+  Info,
+  Spinner,
+} from '@phosphor-icons/react'
 import { EmailAccountStore, EmailAccount } from '@/lib/email/email-service'
 import { GmailProvider } from '@/lib/email/gmail-provider'
 import { YahooProvider } from '@/lib/email/yahoo-provider'
@@ -75,7 +94,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     if (error) {
       console.error('[EmailOAuth] OAuth error:', error)
       toast.error('Email connection failed', {
-        description: urlParams.get('error_description') || error
+        description: urlParams.get('error_description') || error,
       })
       window.history.replaceState({}, document.title, '/settings?tab=emails')
       return
@@ -152,16 +171,15 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
       loadAccounts()
 
       toast.success(`${userInfo.email} connected successfully!`, {
-        description: 'Email monitoring is now active'
+        description: 'Email monitoring is now active',
       })
 
       // Clean URL and redirect to settings
       window.history.replaceState({}, document.title, '/settings?tab=emails')
-
     } catch (error) {
       console.error('[EmailOAuth] Token exchange failed:', error)
       toast.error('Failed to connect email', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+        description: error instanceof Error ? error.message : 'Unknown error',
       })
       window.history.replaceState({}, document.title, '/settings?tab=emails')
     } finally {
@@ -172,11 +190,16 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
 
   const getEmailLimit = () => {
     switch (currentPlan) {
-      case 'basic': return 2
-      case 'pro': return 5
-      case 'gold': return 10
-      case 'family': return 999 // Unlimited
-      default: return 2
+      case 'basic':
+        return 2
+      case 'pro':
+        return 5
+      case 'gold':
+        return 10
+      case 'family':
+        return 999 // Unlimited
+      default:
+        return 2
     }
   }
 
@@ -185,7 +208,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
     const limit = getEmailLimit()
     if (accounts.length >= limit) {
       toast.error(`Email limit reached (${limit} accounts max for ${currentPlan} plan)`, {
-        description: 'Upgrade your plan to connect more email accounts'
+        description: 'Upgrade your plan to connect more email accounts',
       })
       return
     }
@@ -227,7 +250,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
       console.error('[EmailConnection] Connection error:', error)
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       toast.error('Failed to initiate connection', {
-        description: errorMsg
+        description: errorMsg,
       })
       setIsConnecting(false)
       setConnectingProvider(null)
@@ -273,7 +296,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
   const handleToggleActive = (account: EmailAccount) => {
     const updated = {
       ...account,
-      isActive: !account.isActive
+      isActive: !account.isActive,
     }
     EmailAccountStore.saveAccount(updated)
     loadAccounts()
@@ -286,17 +309,23 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
   }
 
   const getProviderIcon = (provider: string) => {
-    return (provider === 'gmail' || provider === 'google') ? '📧'
-         : provider === 'yahoo' ? '📨'
-         : (provider === 'icloud' || provider === 'apple') ? '☁️'
-         : '📬'
+    return provider === 'gmail' || provider === 'google'
+      ? '📧'
+      : provider === 'yahoo'
+        ? '📨'
+        : provider === 'icloud' || provider === 'apple'
+          ? '☁️'
+          : '📬'
   }
 
   const getProviderColor = (provider: string) => {
-    return (provider === 'gmail' || provider === 'google') ? 'bg-red-500/10 text-red-500'
-         : provider === 'yahoo' ? 'bg-purple-500/10 text-purple-500'
-         : (provider === 'icloud' || provider === 'apple') ? 'bg-gray-500/10 text-gray-600'
-         : 'bg-blue-500/10 text-blue-500'
+    return provider === 'gmail' || provider === 'google'
+      ? 'bg-red-500/10 text-red-500'
+      : provider === 'yahoo'
+        ? 'bg-purple-500/10 text-purple-500'
+        : provider === 'icloud' || provider === 'apple'
+          ? 'bg-gray-500/10 text-gray-600'
+          : 'bg-blue-500/10 text-blue-500'
   }
 
   const getProviderDisplayName = (provider: string) => {
@@ -307,9 +336,12 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
 
   const getIMAPProviderTitle = () => {
     switch (imapProvider) {
-      case 'yahoo': return 'Connect Yahoo Mail'
-      case 'icloud': return 'Connect iCloud Mail'
-      default: return 'Connect Email (IMAP)'
+      case 'yahoo':
+        return 'Connect Yahoo Mail'
+      case 'icloud':
+        return 'Connect iCloud Mail'
+      default:
+        return 'Connect Email (IMAP)'
     }
   }
 
@@ -326,7 +358,8 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             Connected Email Accounts
           </CardTitle>
           <CardDescription>
-            Connect your email accounts for real-time monitoring, AI classification, and intelligent alerts
+            Connect your email accounts for real-time monitoring, AI classification, and intelligent
+            alerts
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -334,18 +367,23 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
           {accounts.length > 0 && (
             <ScrollArea className="h-auto max-h-64 pr-4">
               <div className="space-y-3">
-                {accounts.map((account) => (
+                {accounts.map(account => (
                   <Card key={account.id} className="border-2">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full ${getProviderColor(account.provider)} flex items-center justify-center`}>
+                          <div
+                            className={`w-10 h-10 rounded-full ${getProviderColor(account.provider)} flex items-center justify-center`}
+                          >
                             <span className="text-xl">{getProviderIcon(account.provider)}</span>
                           </div>
                           <div>
                             <p className="font-semibold">{account.email}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge variant={account.isActive ? 'default' : 'secondary'} className="text-xs">
+                              <Badge
+                                variant={account.isActive ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
                                 {account.isActive ? 'Active' : 'Paused'}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
@@ -360,7 +398,11 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
                             size="sm"
                             onClick={() => handleToggleActive(account)}
                           >
-                            {account.isActive ? <EnvelopeOpen className="w-4 h-4" /> : <Envelope className="w-4 h-4" />}
+                            {account.isActive ? (
+                              <EnvelopeOpen className="w-4 h-4" />
+                            ) : (
+                              <Envelope className="w-4 h-4" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
@@ -460,11 +502,10 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
 
           {/* Plan Info */}
           <div className="text-sm text-muted-foreground text-center pt-2">
-            {accounts.length} / {getEmailLimit() === 999 ? '∞' : getEmailLimit()} email accounts connected
+            {accounts.length} / {getEmailLimit() === 999 ? '∞' : getEmailLimit()} email accounts
+            connected
             {currentPlan !== 'family' && (
-              <span className="ml-2 text-primary">
-                (Upgrade for more)
-              </span>
+              <span className="ml-2 text-primary">(Upgrade for more)</span>
             )}
           </div>
 
@@ -514,8 +555,8 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
               {imapProvider === 'yahoo'
                 ? 'Yahoo Mail requires an app-specific password for third-party apps.'
                 : imapProvider === 'icloud'
-                ? 'iCloud Mail requires an app-specific password for FlowSphere.'
-                : 'Enter your email credentials to connect.'}
+                  ? 'iCloud Mail requires an app-specific password for FlowSphere.'
+                  : 'Enter your email credentials to connect.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -525,9 +566,15 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
               <Input
                 id="imap-email"
                 type="email"
-                placeholder={imapProvider === 'yahoo' ? 'you@yahoo.com' : imapProvider === 'icloud' ? 'you@icloud.com' : 'you@example.com'}
+                placeholder={
+                  imapProvider === 'yahoo'
+                    ? 'you@yahoo.com'
+                    : imapProvider === 'icloud'
+                      ? 'you@icloud.com'
+                      : 'you@example.com'
+                }
                 value={imapEmail}
-                onChange={(e) => setImapEmail(e.target.value)}
+                onChange={e => setImapEmail(e.target.value)}
               />
             </div>
 
@@ -539,7 +586,7 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
                   type={showPassword ? 'text' : 'password'}
                   placeholder="xxxx-xxxx-xxxx-xxxx"
                   value={imapPassword}
-                  onChange={(e) => setImapPassword(e.target.value)}
+                  onChange={e => setImapPassword(e.target.value)}
                 />
                 <Button
                   type="button"
@@ -582,7 +629,10 @@ export function EmailConnection({ currentPlan = 'basic' }: EmailConnectionProps)
             <Button variant="outline" onClick={() => setShowIMAPDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleIMAPConnect} disabled={isConnecting || !imapEmail || !imapPassword}>
+            <Button
+              onClick={handleIMAPConnect}
+              disabled={isConnecting || !imapEmail || !imapPassword}
+            >
               {isConnecting ? 'Connecting...' : 'Connect'}
             </Button>
           </DialogFooter>

@@ -130,7 +130,11 @@ class SmartHomeManager {
    * Check if Google Home is connected
    */
   isGoogleConnected(): boolean {
-    return !!(this.config?.accessToken && this.config.expiresAt && this.config.expiresAt > Date.now())
+    return !!(
+      this.config?.accessToken &&
+      this.config.expiresAt &&
+      this.config.expiresAt > Date.now()
+    )
   }
 
   /**
@@ -168,7 +172,7 @@ class SmartHomeManager {
       const response = await fetch('/api/auth/google-home/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code }),
       })
 
       if (!response.ok) {
@@ -181,7 +185,7 @@ class SmartHomeManager {
         clientId: import.meta.env.VITE_GOOGLE_HOME_CLIENT_ID || '',
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
-        expiresAt: Date.now() + (tokens.expires_in * 1000)
+        expiresAt: Date.now() + tokens.expires_in * 1000,
       }
 
       this.saveConfig()
@@ -229,14 +233,11 @@ class SmartHomeManager {
           platform: 'google' as const,
           isOnline: d.willReportState,
           lastUpdated: Date.now(),
-          state: this.parseGoogleDeviceState(d)
+          state: this.parseGoogleDeviceState(d),
         }))
 
         // Update devices, preserving non-Google devices
-        this.devices = [
-          ...this.devices.filter(d => d.platform !== 'google'),
-          ...googleDevices
-        ]
+        this.devices = [...this.devices.filter(d => d.platform !== 'google'), ...googleDevices]
         this.saveDevices()
         this.notifyListeners()
       }
@@ -264,10 +265,10 @@ class SmartHomeManager {
     const response = await fetch(`https://homegraph.googleapis.com/v1${endpoint}`, {
       method,
       headers: {
-        'Authorization': `Bearer ${this.config.accessToken}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${this.config.accessToken}`,
+        'Content-Type': 'application/json',
       },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
     })
 
     if (!response.ok) {
@@ -289,7 +290,7 @@ class SmartHomeManager {
       const response = await fetch('/api/auth/google-home/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: this.config.refreshToken })
+        body: JSON.stringify({ refresh_token: this.config.refreshToken }),
       })
 
       if (!response.ok) {
@@ -298,7 +299,7 @@ class SmartHomeManager {
 
       const tokens = await response.json()
       this.config.accessToken = tokens.access_token
-      this.config.expiresAt = Date.now() + (tokens.expires_in * 1000)
+      this.config.expiresAt = Date.now() + tokens.expires_in * 1000
       this.saveConfig()
     } catch (error) {
       logger.error('Failed to refresh Google token', error, 'SmartHome')
@@ -309,7 +310,11 @@ class SmartHomeManager {
   /**
    * Execute device command
    */
-  async executeCommand(deviceId: string, command: string, params?: Record<string, any>): Promise<boolean> {
+  async executeCommand(
+    deviceId: string,
+    command: string,
+    params?: Record<string, any>
+  ): Promise<boolean> {
     const device = this.devices.find(d => d.id === deviceId)
     if (!device) {
       logger.error('Device not found', { deviceId }, 'SmartHome')
@@ -321,18 +326,24 @@ class SmartHomeManager {
         // Send command to Google Home
         await this.makeGoogleRequest('/devices:executeCommand', 'POST', {
           requestId: crypto.randomUUID(),
-          inputs: [{
-            intent: 'action.devices.EXECUTE',
-            payload: {
-              commands: [{
-                devices: [{ id: deviceId }],
-                execution: [{
-                  command: `action.devices.commands.${command}`,
-                  params: params || {}
-                }]
-              }]
-            }
-          }]
+          inputs: [
+            {
+              intent: 'action.devices.EXECUTE',
+              payload: {
+                commands: [
+                  {
+                    devices: [{ id: deviceId }],
+                    execution: [
+                      {
+                        command: `action.devices.commands.${command}`,
+                        params: params || {},
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
         })
       }
 
@@ -417,7 +428,7 @@ class SmartHomeManager {
       ...device,
       id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       platform: 'local',
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     }
 
     this.devices.push(newDevice)
@@ -478,7 +489,7 @@ class SmartHomeManager {
       'action.devices.types.AIRPURIFIER': 'air_purifier',
       'action.devices.types.VACUUM': 'vacuum',
       'action.devices.types.SENSOR': 'sensor',
-      'action.devices.types.OUTLET': 'outlet'
+      'action.devices.types.OUTLET': 'outlet',
     }
     return typeMap[googleType] || 'switch'
   }
@@ -554,7 +565,8 @@ export function useSmartHome() {
   return {
     isGoogleConnected: () => manager.isGoogleConnected(),
     getGoogleAuthUrl: () => manager.getGoogleAuthUrl(),
-    handleGoogleCallback: (code: string, state: string) => manager.handleGoogleCallback(code, state),
+    handleGoogleCallback: (code: string, state: string) =>
+      manager.handleGoogleCallback(code, state),
     disconnectGoogle: () => manager.disconnectGoogle(),
     syncDevices: () => manager.syncDevices(),
     executeCommand: (deviceId: string, command: string, params?: Record<string, any>) =>
@@ -567,15 +579,17 @@ export function useSmartHome() {
     removeDevice: (id: string) => manager.removeDevice(id),
     subscribe: (callback: (devices: SmartDevice[]) => void) => manager.subscribe(callback),
     startAutoRefresh: (intervalMs?: number) => manager.startAutoRefresh(intervalMs),
-    stopAutoRefresh: () => manager.stopAutoRefresh()
+    stopAutoRefresh: () => manager.stopAutoRefresh(),
   }
 }
 
 // Common device commands for easy use
 export const DeviceCommands = {
   // OnOff
-  turnOn: (deviceId: string) => getSmartHomeManager().executeCommand(deviceId, 'OnOff', { on: true }),
-  turnOff: (deviceId: string) => getSmartHomeManager().executeCommand(deviceId, 'OnOff', { on: false }),
+  turnOn: (deviceId: string) =>
+    getSmartHomeManager().executeCommand(deviceId, 'OnOff', { on: true }),
+  turnOff: (deviceId: string) =>
+    getSmartHomeManager().executeCommand(deviceId, 'OnOff', { on: false }),
   toggle: (deviceId: string) => getSmartHomeManager().executeCommand(deviceId, 'OnOff'),
 
   // Brightness
@@ -584,7 +598,9 @@ export const DeviceCommands = {
 
   // Thermostat
   setTemperature: (deviceId: string, temp: number) =>
-    getSmartHomeManager().executeCommand(deviceId, 'ThermostatTemperatureSetpoint', { thermostatTemperatureSetpoint: temp }),
+    getSmartHomeManager().executeCommand(deviceId, 'ThermostatTemperatureSetpoint', {
+      thermostatTemperatureSetpoint: temp,
+    }),
 
   // Lock
   lock: (deviceId: string) =>
@@ -598,5 +614,5 @@ export const DeviceCommands = {
 
   // Fan
   setFanSpeed: (deviceId: string, speed: number) =>
-    getSmartHomeManager().executeCommand(deviceId, 'SetFanSpeed', { fanSpeed: speed })
+    getSmartHomeManager().executeCommand(deviceId, 'SetFanSpeed', { fanSpeed: speed }),
 }

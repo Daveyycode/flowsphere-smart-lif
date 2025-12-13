@@ -9,26 +9,18 @@ export interface GPSAlert {
   registeredLocation: { lat: number; lng: number; address: string }
 }
 
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+export function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371
   const dLat = toRadians(lat2 - lat1)
   const dLng = toRadians(lng2 - lng1)
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-    Math.cos(toRadians(lat2)) *
-    Math.sin(dLng / 2) *
-    Math.sin(dLng / 2)
-  
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   const distance = R * c
-  
+
   return distance
 }
 
@@ -55,7 +47,7 @@ export function checkFamilyMemberDistance(member: FamilyMember): GPSAlert | null
       distance: Math.round(distance * 100) / 100,
       timestamp: new Date().toISOString(),
       currentLocation: member.gpsCoordinates,
-      registeredLocation: member.registeredIpLocation
+      registeredLocation: member.registeredIpLocation,
     }
   }
 
@@ -64,7 +56,8 @@ export function checkFamilyMemberDistance(member: FamilyMember): GPSAlert | null
 
 export async function sendEmailNotification(alert: GPSAlert, userEmail: string): Promise<boolean> {
   try {
-    const prompt = (window.spark.llmPrompt as any)`You are an email notification system. Generate a professional, concise email notification about a family member's GPS location alert.
+    const prompt = (window.spark
+      .llmPrompt as any)`You are an email notification system. Generate a professional, concise email notification about a family member's GPS location alert.
 
 Family Member: ${alert.memberName}
 Distance from Home: ${alert.distance} km
@@ -77,11 +70,11 @@ SUBJECT: [subject line]
 BODY: [email body]`
 
     const emailText = await window.spark.llm(prompt, 'gpt-4o-mini')
-    
+
     console.log(`📧 Email Notification Sent to: ${userEmail}`)
     console.log(`Alert: ${alert.memberName} moved ${alert.distance}km from registered location`)
     console.log(`Email Content:\n${emailText}`)
-    
+
     return true
   } catch (error) {
     console.error('Failed to send email notification:', error)
@@ -98,10 +91,10 @@ export function monitorFamilyGPS(
 
   for (const member of members) {
     const alert = checkFamilyMemberDistance(member)
-    
+
     if (alert) {
       alerts.push(alert)
-      
+
       sendEmailNotification(alert, userEmail).then(success => {
         if (success && onAlert) {
           onAlert(alert)

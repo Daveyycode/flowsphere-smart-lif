@@ -1,7 +1,13 @@
 import { useKV } from '@/hooks/use-kv'
 import { useEffect } from 'react'
 
-export type ColorTheme = 'neon-noir' | 'aurora-borealis' | 'cosmic-latte' | 'candy-shop' | 'black-gray' | 'custom'
+export type ColorTheme =
+  | 'neon-noir'
+  | 'aurora-borealis'
+  | 'cosmic-latte'
+  | 'candy-shop'
+  | 'black-gray'
+  | 'custom'
 export type ThemeMode = 'light' | 'dark'
 
 export interface CustomColors {
@@ -64,7 +70,7 @@ const themes = {
       border: 'oklch(0.25 0.03 270)',
       input: 'oklch(0.25 0.03 270)',
       ring: 'oklch(0.70 0.25 320)',
-    }
+    },
   },
   'aurora-borealis': {
     light: {
@@ -108,7 +114,7 @@ const themes = {
       border: 'oklch(0.28 0.04 240)',
       input: 'oklch(0.28 0.04 240)',
       ring: 'oklch(0.65 0.25 250)',
-    }
+    },
   },
   'cosmic-latte': {
     light: {
@@ -152,7 +158,7 @@ const themes = {
       border: 'oklch(0.30 0.04 60)',
       input: 'oklch(0.30 0.04 60)',
       ring: 'oklch(0.60 0.18 70)',
-    }
+    },
   },
   'candy-shop': {
     light: {
@@ -196,7 +202,7 @@ const themes = {
       border: 'oklch(0.28 0.03 340)',
       input: 'oklch(0.28 0.03 340)',
       ring: 'oklch(0.70 0.22 340)',
-    }
+    },
   },
   'black-gray': {
     light: {
@@ -240,8 +246,8 @@ const themes = {
       border: 'oklch(0.25 0 0)',
       input: 'oklch(0.25 0 0)',
       ring: 'oklch(0.80 0 0)',
-    }
-  }
+    },
+  },
 }
 
 // Convert hex to RGB
@@ -266,27 +272,57 @@ export function applyColorsRealTime(colors: CustomColors, mode: ThemeMode) {
   root.style.setProperty('--foreground', `${colors.foreground} / ${colors.foregroundOpacity}%`)
 
   // Apply derived colors
-  root.style.setProperty('--primary-foreground', mode === 'light' ? 'oklch(0.98 0.003 270)' : 'oklch(0.10 0.02 270)')
-  root.style.setProperty('--accent-foreground', mode === 'light' ? 'oklch(0.20 0.02 270)' : 'oklch(0.10 0.02 270)')
+  root.style.setProperty(
+    '--primary-foreground',
+    mode === 'light' ? 'oklch(0.98 0.003 270)' : 'oklch(0.10 0.02 270)'
+  )
+  root.style.setProperty(
+    '--accent-foreground',
+    mode === 'light' ? 'oklch(0.20 0.02 270)' : 'oklch(0.10 0.02 270)'
+  )
   root.style.setProperty('--card', mode === 'light' ? 'oklch(1.00 0 0)' : 'oklch(0.15 0.02 270)')
-  root.style.setProperty('--card-foreground', mode === 'light' ? 'oklch(0.12 0.02 270)' : 'oklch(0.98 0.005 270)')
+  root.style.setProperty(
+    '--card-foreground',
+    mode === 'light' ? 'oklch(0.12 0.02 270)' : 'oklch(0.98 0.005 270)'
+  )
   root.style.setProperty('--popover', mode === 'light' ? 'oklch(1.00 0 0)' : 'oklch(0.12 0.02 270)')
-  root.style.setProperty('--popover-foreground', mode === 'light' ? 'oklch(0.12 0.02 270)' : 'oklch(0.98 0.005 270)')
-  root.style.setProperty('--secondary', mode === 'light' ? 'oklch(0.88 0.08 280)' : 'oklch(0.20 0.05 280)')
-  root.style.setProperty('--secondary-foreground', mode === 'light' ? 'oklch(0.20 0.03 270)' : 'oklch(0.98 0.005 270)')
-  root.style.setProperty('--muted', mode === 'light' ? 'oklch(0.92 0.01 270)' : 'oklch(0.18 0.03 270)')
-  root.style.setProperty('--muted-foreground', mode === 'light' ? 'oklch(0.40 0.02 270)' : 'oklch(0.60 0.02 270)')
+  root.style.setProperty(
+    '--popover-foreground',
+    mode === 'light' ? 'oklch(0.12 0.02 270)' : 'oklch(0.98 0.005 270)'
+  )
+  root.style.setProperty(
+    '--secondary',
+    mode === 'light' ? 'oklch(0.88 0.08 280)' : 'oklch(0.20 0.05 280)'
+  )
+  root.style.setProperty(
+    '--secondary-foreground',
+    mode === 'light' ? 'oklch(0.20 0.03 270)' : 'oklch(0.98 0.005 270)'
+  )
+  root.style.setProperty(
+    '--muted',
+    mode === 'light' ? 'oklch(0.92 0.01 270)' : 'oklch(0.18 0.03 270)'
+  )
+  root.style.setProperty(
+    '--muted-foreground',
+    mode === 'light' ? 'oklch(0.40 0.02 270)' : 'oklch(0.60 0.02 270)'
+  )
   root.style.setProperty('--destructive', 'oklch(0.65 0.25 15)')
   root.style.setProperty('--destructive-foreground', 'oklch(0.98 0.003 270)')
-  root.style.setProperty('--border', mode === 'light' ? 'oklch(0.85 0.02 270)' : 'oklch(0.25 0.03 270)')
-  root.style.setProperty('--input', mode === 'light' ? 'oklch(0.85 0.02 270)' : 'oklch(0.25 0.03 270)')
+  root.style.setProperty(
+    '--border',
+    mode === 'light' ? 'oklch(0.85 0.02 270)' : 'oklch(0.25 0.03 270)'
+  )
+  root.style.setProperty(
+    '--input',
+    mode === 'light' ? 'oklch(0.85 0.02 270)' : 'oklch(0.25 0.03 270)'
+  )
   root.style.setProperty('--ring', `${colors.accent} / ${colors.accentOpacity}%`)
 }
 
 export function useTheme() {
   const [config, setConfig] = useKV<ThemeConfig>('flowsphere-theme-config', {
     mode: 'light',
-    colorTheme: 'neon-noir'
+    colorTheme: 'neon-noir',
   })
 
   useEffect(() => {
@@ -312,24 +348,24 @@ export function useTheme() {
   }, [config])
 
   const toggleMode = () => {
-    setConfig((current) => ({
+    setConfig(current => ({
       ...(current || { mode: 'light', colorTheme: 'neon-noir' }),
-      mode: current?.mode === 'light' ? 'dark' : 'light'
+      mode: current?.mode === 'light' ? 'dark' : 'light',
     }))
   }
 
   const setColorTheme = (colorTheme: ColorTheme) => {
-    setConfig((current) => ({
+    setConfig(current => ({
       ...(current || { mode: 'light', colorTheme: 'neon-noir' }),
-      colorTheme
+      colorTheme,
     }))
   }
 
   const setCustomColors = (customColors: CustomColors) => {
-    setConfig((current) => ({
+    setConfig(current => ({
       ...(current || { mode: 'light', colorTheme: 'custom' }),
       colorTheme: 'custom',
-      customColors
+      customColors,
     }))
   }
 
@@ -339,6 +375,6 @@ export function useTheme() {
     customColors: config?.customColors,
     toggleMode,
     setColorTheme,
-    setCustomColors
+    setCustomColors,
   }
 }

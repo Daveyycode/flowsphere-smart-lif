@@ -12,7 +12,7 @@ import {
   formatTimerDisplay,
   RoomState,
   TimerPreset,
-  Message
+  Message,
 } from '@/lib/remote-timer-sync'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,7 +43,7 @@ import {
   Palette,
   TextT,
   Eye,
-  Trash
+  Trash,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
@@ -118,7 +118,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
 
   // Subscribe to state updates
   useEffect(() => {
-    const unsubscribe = manager.subscribe((newState) => {
+    const unsubscribe = manager.subscribe(newState => {
       setState(newState)
     })
 
@@ -129,7 +129,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
 
   // Subscribe to messages
   useEffect(() => {
-    const unsubscribe = manager.subscribeToMessages((message) => {
+    const unsubscribe = manager.subscribeToMessages(message => {
       setRecentMessages(prev => [message, ...prev].slice(0, 10))
     })
 
@@ -169,11 +169,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
       return
     }
 
-    manager.sendMessage(
-      messageText.trim(),
-      messageType,
-      messageDuration * 1000
-    )
+    manager.sendMessage(messageText.trim(), messageType, messageDuration * 1000)
     toast.success('Message sent to presenter')
     setMessageText('')
   }
@@ -246,9 +242,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
           <Warning className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Connection Error</h2>
           <p className="text-lg text-muted-foreground mb-6">{connectionError}</p>
-          <Button onClick={onExit}>
-            Go Back
-          </Button>
+          <Button onClick={onExit}>Go Back</Button>
         </div>
       </div>
     )
@@ -262,12 +256,15 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
     )
   }
 
-  const timerDisplay = formatTimerDisplay(state.timer.remaining, state.room.settings.showMilliseconds)
+  const timerDisplay = formatTimerDisplay(
+    state.timer.remaining,
+    state.room.settings.showMilliseconds
+  )
   const statusColor = getStatusColor()
   const presenterCount = state.participants.filter(p => !p.isController).length
 
   return (
-    <div className={cn("space-y-4", isMobile ? "px-2" : "px-0")}>
+    <div className={cn('space-y-4', isMobile ? 'px-2' : 'px-0')}>
       {/* Header with room info */}
       <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20">
         <CardContent className="p-4">
@@ -277,7 +274,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 <Timer className="w-6 h-6 text-blue-500" weight="fill" />
               </div>
               <div>
-                <h1 className={cn("font-bold", isMobile ? "text-lg" : "text-xl")}>
+                <h1 className={cn('font-bold', isMobile ? 'text-lg' : 'text-xl')}>
                   Remote Timer Control
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -296,20 +293,15 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 <Users className="w-4 h-4" />
                 {presenterCount}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyShareLink}
-                className="gap-2"
-              >
-                {copiedLink ? <Check className="w-4 h-4 text-green-500" /> : <Link className="w-4 h-4" />}
+              <Button variant="outline" size="sm" onClick={copyShareLink} className="gap-2">
+                {copiedLink ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Link className="w-4 h-4" />
+                )}
                 Share
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowSettings(!showSettings)}>
                 <Gear className="w-4 h-4" />
               </Button>
             </div>
@@ -327,16 +319,18 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 <div className="mt-4 pt-4 border-t border-border">
                   <h3 className="text-sm font-semibold mb-2">Connected Devices</h3>
                   <div className="space-y-2">
-                    {state.participants.map((p) => (
+                    {state.participants.map(p => (
                       <div
                         key={p.id}
                         className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/50"
                       >
                         <div className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-2 h-2 rounded-full",
-                            p.isConnected ? "bg-green-500" : "bg-gray-400"
-                          )} />
+                          <div
+                            className={cn(
+                              'w-2 h-2 rounded-full',
+                              p.isConnected ? 'bg-green-500' : 'bg-gray-400'
+                            )}
+                          />
                           <span>{p.name}</span>
                           {p.isController && (
                             <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-500 rounded">
@@ -344,9 +338,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {p.deviceType}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{p.deviceType}</span>
                       </div>
                     ))}
                     {state.participants.length === 0 && (
@@ -377,8 +369,8 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className={cn(
-                "font-mono font-bold",
-                isMobile ? "text-5xl" : "text-7xl",
+                'font-mono font-bold',
+                isMobile ? 'text-5xl' : 'text-7xl',
                 statusColor,
                 state.timer.status === 'completed' && 'animate-pulse'
               )}
@@ -387,10 +379,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
             </motion.div>
 
             {/* Status */}
-            <p className={cn(
-              "mt-2 text-sm uppercase tracking-widest",
-              statusColor
-            )}>
+            <p className={cn('mt-2 text-sm uppercase tracking-widest', statusColor)}>
               {state.timer.status === 'running' && 'Running'}
               {state.timer.status === 'paused' && 'Paused'}
               {state.timer.status === 'completed' && 'Time Up!'}
@@ -402,14 +391,16 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
               <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
                 <motion.div
                   className={cn(
-                    "h-full",
-                    state.timer.remaining < 60000 ? 'bg-red-500' :
-                    state.timer.remaining < 180000 ? 'bg-yellow-500' :
-                    'bg-green-500'
+                    'h-full',
+                    state.timer.remaining < 60000
+                      ? 'bg-red-500'
+                      : state.timer.remaining < 180000
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
                   )}
                   initial={{ width: '100%' }}
                   animate={{
-                    width: `${(state.timer.remaining / state.timer.duration) * 100}%`
+                    width: `${(state.timer.remaining / state.timer.duration) * 100}%`,
                   }}
                   transition={{ duration: 0.1 }}
                 />
@@ -534,7 +525,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
             >
               <CardContent className="pt-0">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                  {presets.map((preset) => (
+                  {presets.map(preset => (
                     <Button
                       key={preset.id}
                       variant="outline"
@@ -558,7 +549,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                         min={1}
                         max={999}
                         value={customMinutes}
-                        onChange={(e) => setCustomMinutes(parseInt(e.target.value) || 1)}
+                        onChange={e => setCustomMinutes(parseInt(e.target.value) || 1)}
                         className="w-20"
                       />
                       <span className="self-center text-sm text-muted-foreground">minutes</span>
@@ -569,13 +560,11 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                     <Input
                       placeholder="Timer name..."
                       value={timerLabel}
-                      onChange={(e) => setTimerLabel(e.target.value)}
+                      onChange={e => setTimerLabel(e.target.value)}
                       className="mt-1"
                     />
                   </div>
-                  <Button onClick={handleCustomTimer}>
-                    Set Timer
-                  </Button>
+                  <Button onClick={handleCustomTimer}>Set Timer</Button>
                 </div>
               </CardContent>
             </motion.div>
@@ -618,8 +607,8 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
               <Input
                 placeholder="Type a message..."
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                onChange={e => setMessageText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                 className="flex-1"
               />
               <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
@@ -631,14 +620,14 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
               <div className="flex items-center gap-2">
                 <Label>Type:</Label>
                 <div className="flex gap-1">
-                  {(['info', 'warning', 'alert', 'success'] as const).map((type) => (
+                  {(['info', 'warning', 'alert', 'success'] as const).map(type => (
                     <Button
                       key={type}
                       variant={messageType === type ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setMessageType(type)}
                       className={cn(
-                        "w-8 h-8 p-0",
+                        'w-8 h-8 p-0',
                         messageType === type && type === 'info' && 'bg-blue-500',
                         messageType === type && type === 'warning' && 'bg-yellow-500',
                         messageType === type && type === 'alert' && 'bg-red-500',
@@ -658,7 +647,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 <Label>Duration:</Label>
                 <select
                   value={messageDuration}
-                  onChange={(e) => setMessageDuration(parseInt(e.target.value))}
+                  onChange={e => setMessageDuration(parseInt(e.target.value))}
                   className="px-2 py-1 rounded bg-muted text-sm"
                 >
                   <option value={5}>5s</option>
@@ -676,11 +665,11 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm text-muted-foreground mb-2">Recent Messages</p>
               <div className="space-y-2 max-h-32 overflow-y-auto">
-                {recentMessages.slice(0, 5).map((msg) => (
+                {recentMessages.slice(0, 5).map(msg => (
                   <div
                     key={msg.id}
                     className={cn(
-                      "text-sm p-2 rounded flex items-center justify-between",
+                      'text-sm p-2 rounded flex items-center justify-between',
                       msg.type === 'info' && 'bg-blue-500/10',
                       msg.type === 'warning' && 'bg-yellow-500/10',
                       msg.type === 'alert' && 'bg-red-500/10',
@@ -728,7 +717,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                     Font Size
                   </Label>
                   <div className="flex gap-2">
-                    {(['small', 'medium', 'large', 'xlarge'] as const).map((size) => (
+                    {(['small', 'medium', 'large', 'xlarge'] as const).map(size => (
                       <Button
                         key={size}
                         variant={state.room.settings.fontSize === size ? 'default' : 'outline'}
@@ -756,7 +745,9 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                       <Label className="text-sm">Auto-dismiss Messages</Label>
                       <Switch
                         checked={state.room.settings.messageAutoDismiss ?? true}
-                        onCheckedChange={(checked) => handleUpdateSettings({ messageAutoDismiss: checked })}
+                        onCheckedChange={checked =>
+                          handleUpdateSettings({ messageAutoDismiss: checked })
+                        }
                       />
                     </div>
 
@@ -765,7 +756,11 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                         <Label className="text-sm flex-1">Default Duration</Label>
                         <select
                           value={state.room.settings.messageDefaultDuration ?? 10}
-                          onChange={(e) => handleUpdateSettings({ messageDefaultDuration: parseInt(e.target.value) })}
+                          onChange={e =>
+                            handleUpdateSettings({
+                              messageDefaultDuration: parseInt(e.target.value),
+                            })
+                          }
                           className="px-3 py-1.5 rounded-lg bg-muted text-sm"
                         >
                           <option value={5}>5 seconds</option>
@@ -783,32 +778,30 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 {/* Display Toggles */}
                 <div className="space-y-3 pt-3 border-t">
                   <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      Show Milliseconds
-                    </Label>
+                    <Label className="flex items-center gap-2">Show Milliseconds</Label>
                     <Switch
                       checked={state.room.settings.showMilliseconds}
-                      onCheckedChange={(checked) => handleUpdateSettings({ showMilliseconds: checked })}
+                      onCheckedChange={checked =>
+                        handleUpdateSettings({ showMilliseconds: checked })
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      Flash on Complete
-                    </Label>
+                    <Label className="flex items-center gap-2">Flash on Complete</Label>
                     <Switch
                       checked={state.room.settings.flashOnComplete}
-                      onCheckedChange={(checked) => handleUpdateSettings({ flashOnComplete: checked })}
+                      onCheckedChange={checked =>
+                        handleUpdateSettings({ flashOnComplete: checked })
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      Play Sound on Complete
-                    </Label>
+                    <Label className="flex items-center gap-2">Play Sound on Complete</Label>
                     <Switch
                       checked={state.room.settings.soundEnabled}
-                      onCheckedChange={(checked) => handleUpdateSettings({ soundEnabled: checked })}
+                      onCheckedChange={checked => handleUpdateSettings({ soundEnabled: checked })}
                     />
                   </div>
                 </div>
@@ -828,10 +821,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
                 Full-screen display for projector/stage
               </p>
             </div>
-            <Button
-              onClick={() => window.open(`/timer/${roomCode}`, '_blank')}
-              className="gap-2"
-            >
+            <Button onClick={() => window.open(`/timer/${roomCode}`, '_blank')} className="gap-2">
               <Eye className="w-4 h-4" />
               Open
             </Button>
@@ -845,7 +835,13 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
             </div>
             <Button
               variant="outline"
-              onClick={() => window.open(`/timer/${roomCode}?floating=true`, 'FlowSphere Timer', 'width=400,height=200,resizable=yes')}
+              onClick={() =>
+                window.open(
+                  `/timer/${roomCode}?floating=true`,
+                  'FlowSphere Timer',
+                  'width=400,height=200,resizable=yes'
+                )
+              }
               className="gap-2"
             >
               <Eye className="w-4 h-4" />
@@ -857,11 +853,7 @@ export function RemoteTimerController({ roomCode, onExit }: RemoteTimerControlle
 
       {/* Exit Button */}
       {onExit && (
-        <Button
-          variant="ghost"
-          onClick={onExit}
-          className="w-full text-muted-foreground"
-        >
+        <Button variant="ghost" onClick={onExit} className="w-full text-muted-foreground">
           <X className="w-4 h-4 mr-2" />
           Exit Room
         </Button>

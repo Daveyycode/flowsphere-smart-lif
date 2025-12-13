@@ -55,7 +55,7 @@ import {
   Phone,
   PhoneCall,
   VideoCamera,
-  Timer
+  Timer,
 } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -66,7 +66,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useKV } from '@/hooks/use-kv'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -78,7 +84,7 @@ import {
   sendCallInvite,
   updateCallStatus,
   subscribeToCallInvites,
-  type CallInvite
+  type CallInvite,
 } from '@/lib/call-signaling'
 // FlowSphere QR System - Modular and replaceable
 import { generateQRCode as generateFlowSphereQR, parseQRData } from '@/lib/flowsphere-qr'
@@ -91,7 +97,7 @@ import {
   formatFileSize,
   getFileIcon,
   createThumbnail,
-  type AttachmentMetadata
+  type AttachmentMetadata,
 } from '@/lib/messenger-attachments'
 // Supabase real-time functions for auto-connect and live messaging
 import {
@@ -106,7 +112,7 @@ import {
   subscribeToMessageDeletions,
   savePrivacySettings,
   getPrivacySettings,
-  subscribeToPrivacySettings
+  subscribeToPrivacySettings,
 } from '@/lib/real-messaging'
 
 // ========== ID SYSTEM ==========
@@ -205,8 +211,8 @@ function AutoDeleteCountdown({ deleteAt, isOwn }: { deleteAt: string; isOwn: boo
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium animate-pulse",
-        isOwn ? "bg-red-500/20 text-red-200" : "bg-red-100 text-red-600"
+        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium animate-pulse',
+        isOwn ? 'bg-red-500/20 text-red-200' : 'bg-red-100 text-red-600'
       )}
       title="Message will be auto-deleted"
     >
@@ -291,7 +297,7 @@ const AUTO_DELETE_OPTIONS = [
   { value: 60, label: '1 hour' },
   { value: 360, label: '6 hours' },
   { value: 720, label: '12 hours' },
-  { value: 1440, label: '24 hours' }
+  { value: 1440, label: '24 hours' },
 ]
 
 // MY Privacy settings - what I allow OTHERS to see about ME
@@ -310,7 +316,7 @@ const DEFAULT_MY_PRIVACY_SETTINGS: MyPrivacySettings = {
   allowScreenshots: true,
   allowSaveMedia: true,
   showUniqueId: false,
-  autoDeleteTimer: 0 // Off by default
+  autoDeleteTimer: 0, // Off by default
 }
 
 interface OneTimeInvite {
@@ -364,7 +370,7 @@ function generateKeyPair(): { publicKey: string; privateKey: string } {
   // For symmetric E2E encryption, we derive shared secret from both keys
   return {
     publicKey: `PK_${keyHex}`,
-    privateKey: `SK_${keyHex}`
+    privateKey: `SK_${keyHex}`,
   }
 }
 
@@ -372,10 +378,7 @@ function generateKeyPair(): { publicKey: string; privateKey: string } {
  * Derive shared encryption key from my private key and their public key
  * Both parties derive the same key by sorting and combining
  */
-async function deriveSharedKey(
-  myPrivateKey: string,
-  theirPublicKey: string
-): Promise<CryptoKey> {
+async function deriveSharedKey(myPrivateKey: string, theirPublicKey: string): Promise<CryptoKey> {
   // Extract key material (remove prefixes)
   const myKey = myPrivateKey.replace('SK_', '')
   const theirKey = theirPublicKey.replace('PK_', '')
@@ -402,12 +405,12 @@ async function deriveSharedKey(
       name: 'PBKDF2',
       salt: salt,
       iterations: 100000, // Fast enough for messaging, secure enough
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     {
       name: 'AES-GCM',
-      length: 256
+      length: 256,
     },
     false,
     ['encrypt', 'decrypt']
@@ -434,11 +437,7 @@ async function encryptMessageAsync(
     const encoder = new TextEncoder()
     const data = encoder.encode(message)
 
-    const encryptedBuffer = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv },
-      key,
-      data
-    )
+    const encryptedBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, data)
 
     // Combine IV + ciphertext and encode as base64
     const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength)
@@ -450,10 +449,7 @@ async function encryptMessageAsync(
     for (let i = 0; i < combined.length; i++) {
       binaryString += String.fromCharCode(combined[i])
     }
-    const base64 = btoa(binaryString)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
+    const base64 = btoa(binaryString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 
     return `ENC2_${base64}`
   } catch (error) {
@@ -573,7 +569,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         'qr-messenger-messages',
         'qr-messenger-used-invites',
         'qr-messenger-deleted-contacts',
-        'qr-messenger-group-markings'
+        'qr-messenger-group-markings',
       ]
       keysToRemove.forEach(key => localStorage.removeItem(key))
       localStorage.setItem('qr-messenger-version', MESSENGER_VERSION)
@@ -582,14 +578,26 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   }
 
   // Persistent storage
-  const [myKeys, setMyKeys] = useKV<{ publicKey: string; privateKey: string } | null>('qr-messenger-keys', null)
+  const [myKeys, setMyKeys] = useKV<{ publicKey: string; privateKey: string } | null>(
+    'qr-messenger-keys',
+    null
+  )
   const [myName] = useKV<string>('flowsphere-user-name', '') // Use name from settings
   const [contacts, setContacts] = useKV<Contact[]>('qr-messenger-contacts', [])
   const [messages, setMessages] = useKV<Message[]>('qr-messenger-messages', [])
   const [usedInvites, setUsedInvites] = useKV<string[]>('qr-messenger-used-invites', []) // Track used codes
-  const [myPrivacySettings, setMyPrivacySettings] = useKV<MyPrivacySettings>('qr-messenger-privacy', DEFAULT_MY_PRIVACY_SETTINGS)
-  const [lastOnline, setLastOnline] = useKV<string>('qr-messenger-last-online', new Date().toISOString())
-  const [deletedContactIds, setDeletedContactIds] = useKV<string[]>('qr-messenger-deleted-contacts', []) // Track deleted contacts to prevent re-adding
+  const [myPrivacySettings, setMyPrivacySettings] = useKV<MyPrivacySettings>(
+    'qr-messenger-privacy',
+    DEFAULT_MY_PRIVACY_SETTINGS
+  )
+  const [lastOnline, setLastOnline] = useKV<string>(
+    'qr-messenger-last-online',
+    new Date().toISOString()
+  )
+  const [deletedContactIds, setDeletedContactIds] = useKV<string[]>(
+    'qr-messenger-deleted-contacts',
+    []
+  ) // Track deleted contacts to prevent re-adding
   const [groupMarkings, setGroupMarkings] = useKV<GroupMarking[]>('qr-messenger-group-markings', []) // Track group conversations
 
   // Local state
@@ -674,7 +682,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                     showOnlineStatus: contactPrivacy.showOnlineStatus,
                     showLastSeen: contactPrivacy.showLastSeen,
                     allowScreenshots: contactPrivacy.allowScreenshots,
-                    allowForwarding: false // Not implemented yet
+                    allowForwarding: false, // Not implemented yet
                   }
                 }
               } catch (err) {
@@ -691,7 +699,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                 isVerified: true,
                 conversationId: sc.conversation_id,
                 contactUserId: sc.contact_user_id,
-                privacySettings // Add contact's privacy settings
+                privacySettings, // Add contact's privacy settings
               }
             })
           )
@@ -724,58 +732,64 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
   // Subscribe to new contacts (for auto-connect when someone scans our QR)
   useEffect(() => {
-    const unsubscribe = subscribeToNewContacts(deviceId, async (newContact: SupabaseContactRecord) => {
-      console.log('[REALTIME] New contact from Supabase:', newContact)
+    const unsubscribe = subscribeToNewContacts(
+      deviceId,
+      async (newContact: SupabaseContactRecord) => {
+        console.log('[REALTIME] New contact from Supabase:', newContact)
 
-      // Fetch privacy settings for the new contact
-      let privacySettings: UserPrivacySettings | undefined
-      try {
-        const contactPrivacy = await getPrivacySettings(newContact.contact_user_id || '')
-        if (contactPrivacy) {
-          privacySettings = {
-            showOnlineStatus: contactPrivacy.showOnlineStatus,
-            showLastSeen: contactPrivacy.showLastSeen,
-            allowScreenshots: contactPrivacy.allowScreenshots,
-            allowForwarding: false
+        // Fetch privacy settings for the new contact
+        let privacySettings: UserPrivacySettings | undefined
+        try {
+          const contactPrivacy = await getPrivacySettings(newContact.contact_user_id || '')
+          if (contactPrivacy) {
+            privacySettings = {
+              showOnlineStatus: contactPrivacy.showOnlineStatus,
+              showLastSeen: contactPrivacy.showLastSeen,
+              allowScreenshots: contactPrivacy.allowScreenshots,
+              allowForwarding: false,
+            }
           }
+        } catch (err) {
+          console.warn('Failed to load privacy for new contact:', newContact.contact_user_id, err)
         }
-      } catch (err) {
-        console.warn('Failed to load privacy for new contact:', newContact.contact_user_id, err)
-      }
 
-      const contact: Contact = {
-        id: newContact.contact_user_id || newContact.id,
-        name: newContact.name,
-        publicKey: newContact.public_key || '',
-        pairingCode: newContact.conversation_id || '',
-        pairedAt: newContact.paired_at || new Date().toISOString(),
-        status: 'online',
-        isVerified: true,
-        conversationId: newContact.conversation_id,
-        contactUserId: newContact.contact_user_id,
-        privacySettings
+        const contact: Contact = {
+          id: newContact.contact_user_id || newContact.id,
+          name: newContact.name,
+          publicKey: newContact.public_key || '',
+          pairingCode: newContact.conversation_id || '',
+          pairedAt: newContact.paired_at || new Date().toISOString(),
+          status: 'online',
+          isVerified: true,
+          conversationId: newContact.conversation_id,
+          contactUserId: newContact.contact_user_id,
+          privacySettings,
+        }
+        // Add if not already exists and not deleted
+        setContacts(prev => {
+          const deletedSet = new Set(deletedContactIds || [])
+          // Skip if deleted
+          if (deletedSet.has(contact.id) || deletedSet.has(contact.contactUserId || '')) {
+            console.log('[REALTIME] Skipping deleted contact:', contact.id)
+            return prev || []
+          }
+          // Skip if already exists (check multiple IDs)
+          if (
+            (prev || []).find(
+              c =>
+                c.id === contact.id ||
+                c.contactUserId === contact.contactUserId ||
+                (c.name === contact.name && c.publicKey === contact.publicKey)
+            )
+          ) {
+            console.log('[REALTIME] Skipping duplicate contact:', contact.id)
+            return prev || []
+          }
+          toast.success(`${contact.name} connected with you!`)
+          return [...(prev || []), contact]
+        })
       }
-      // Add if not already exists and not deleted
-      setContacts(prev => {
-        const deletedSet = new Set(deletedContactIds || [])
-        // Skip if deleted
-        if (deletedSet.has(contact.id) || deletedSet.has(contact.contactUserId || '')) {
-          console.log('[REALTIME] Skipping deleted contact:', contact.id)
-          return prev || []
-        }
-        // Skip if already exists (check multiple IDs)
-        if ((prev || []).find(c =>
-          c.id === contact.id ||
-          c.contactUserId === contact.contactUserId ||
-          (c.name === contact.name && c.publicKey === contact.publicKey)
-        )) {
-          console.log('[REALTIME] Skipping duplicate contact:', contact.id)
-          return prev || []
-        }
-        toast.success(`${contact.name} connected with you!`)
-        return [...(prev || []), contact]
-      })
-    })
+    )
     return () => unsubscribe()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId]) // Only subscribe once per deviceId, not on deletedContactIds change
@@ -784,41 +798,44 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   useEffect(() => {
     if (!selectedContact?.conversationId) return
 
-    const unsubscribe = subscribeToConversation(selectedContact.conversationId, async (newMsg: SupabaseMessageRecord) => {
-      console.log('[REALTIME] New message:', newMsg)
-      // Don't add if it's from us
-      if (newMsg.sender_id === deviceId) return
+    const unsubscribe = subscribeToConversation(
+      selectedContact.conversationId,
+      async (newMsg: SupabaseMessageRecord) => {
+        console.log('[REALTIME] New message:', newMsg)
+        // Don't add if it's from us
+        if (newMsg.sender_id === deviceId) return
 
-      // Decrypt message asynchronously if encrypted
-      let decryptedText = newMsg.content
-      if (newMsg.encrypted && myKeys?.privateKey && selectedContact.publicKey) {
-        try {
-          decryptedText = await decryptMessageAsync(
-            newMsg.content,
-            myKeys.privateKey,
-            selectedContact.publicKey
-          )
-          console.log('[E2E] Message decrypted successfully')
-        } catch (error) {
-          console.error('[E2E] Decryption failed:', error)
-          decryptedText = '[Decryption failed]'
+        // Decrypt message asynchronously if encrypted
+        let decryptedText = newMsg.content
+        if (newMsg.encrypted && myKeys?.privateKey && selectedContact.publicKey) {
+          try {
+            decryptedText = await decryptMessageAsync(
+              newMsg.content,
+              myKeys.privateKey,
+              selectedContact.publicKey
+            )
+            console.log('[E2E] Message decrypted successfully')
+          } catch (error) {
+            console.error('[E2E] Decryption failed:', error)
+            decryptedText = '[Decryption failed]'
+          }
         }
-      }
 
-      const message: Message = {
-        id: newMsg.id,
-        contactId: selectedContact.id,
-        text: decryptedText, // Store decrypted text
-        timestamp: newMsg.created_at,
-        status: 'delivered',
-        isOwn: false,
-        encrypted: newMsg.encrypted ?? false
+        const message: Message = {
+          id: newMsg.id,
+          contactId: selectedContact.id,
+          text: decryptedText, // Store decrypted text
+          timestamp: newMsg.created_at,
+          status: 'delivered',
+          isOwn: false,
+          encrypted: newMsg.encrypted ?? false,
+        }
+        setMessages(prev => {
+          if ((prev || []).find(m => m.id === message.id)) return prev || []
+          return [...(prev || []), message]
+        })
       }
-      setMessages(prev => {
-        if ((prev || []).find(m => m.id === message.id)) return prev || []
-        return [...(prev || []), message]
-      })
-    })
+    )
     return () => unsubscribe()
   }, [selectedContact?.conversationId, deviceId, myKeys?.privateKey, selectedContact?.publicKey])
 
@@ -855,7 +872,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           inviteId: invite.id,
           callerName: invite.from_name,
           callType: invite.call_type,
-          roomUrl: invite.room_url
+          roomUrl: invite.room_url,
         })
       },
       // On call cancelled
@@ -885,7 +902,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               let decryptedText = m.content
 
               // Decrypt if encrypted and we have the keys
-              if (m.encrypted && m.content.startsWith('ENC2_') && myKeys?.privateKey && selectedContact.publicKey) {
+              if (
+                m.encrypted &&
+                m.content.startsWith('ENC2_') &&
+                myKeys?.privateKey &&
+                selectedContact.publicKey
+              ) {
                 try {
                   decryptedText = await decryptMessageAsync(
                     m.content,
@@ -905,7 +927,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                 timestamp: m.created_at,
                 status: 'delivered',
                 isOwn: m.sender_id === deviceId,
-                encrypted: m.encrypted ?? false
+                encrypted: m.encrypted ?? false,
               }
             })
           )
@@ -962,7 +984,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
   // Subscribe to privacy settings changes (real-time) - MY settings
   useEffect(() => {
-    const unsubscribe = subscribeToPrivacySettings(deviceId, (settings) => {
+    const unsubscribe = subscribeToPrivacySettings(deviceId, settings => {
       console.log('[REALTIME] My privacy settings updated:', settings)
       setMyPrivacySettings(settings)
     })
@@ -979,22 +1001,24 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       const contactUserId = contact.contactUserId || contact.id
       if (!contactUserId || contact.isDeleted) return
 
-      const unsubscribe = subscribeToPrivacySettings(contactUserId, (settings) => {
+      const unsubscribe = subscribeToPrivacySettings(contactUserId, settings => {
         console.log(`[REALTIME] Contact ${contact.name}'s privacy updated:`, settings)
         // Update the contact's privacy settings in our local state
-        setContacts(prev => (prev || []).map(c =>
-          (c.contactUserId === contactUserId || c.id === contactUserId)
-            ? {
-                ...c,
-                privacySettings: {
-                  showOnlineStatus: settings.showOnlineStatus,
-                  showLastSeen: settings.showLastSeen,
-                  allowScreenshots: settings.allowScreenshots,
-                  allowForwarding: false
+        setContacts(prev =>
+          (prev || []).map(c =>
+            c.contactUserId === contactUserId || c.id === contactUserId
+              ? {
+                  ...c,
+                  privacySettings: {
+                    showOnlineStatus: settings.showOnlineStatus,
+                    showLastSeen: settings.showLastSeen,
+                    allowScreenshots: settings.allowScreenshots,
+                    allowForwarding: false,
+                  },
                 }
-              }
-            : c
-        ))
+              : c
+          )
+        )
       })
       unsubscribers.push(unsubscribe)
     })
@@ -1057,20 +1081,22 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     )
 
     if (unseenMessages.length > 0) {
-      setMessages(prev => (prev || []).map(m => {
-        if (unseenMessages.find(um => um.id === m.id)) {
-          const seenAt = new Date().toISOString()
-          // Calculate deleteAt if auto-delete is set
-          let deleteAt: string | undefined
-          if (m.autoDeleteTimer && m.autoDeleteTimer > 0) {
-            const deleteTime = new Date()
-            deleteTime.setMinutes(deleteTime.getMinutes() + m.autoDeleteTimer)
-            deleteAt = deleteTime.toISOString()
+      setMessages(prev =>
+        (prev || []).map(m => {
+          if (unseenMessages.find(um => um.id === m.id)) {
+            const seenAt = new Date().toISOString()
+            // Calculate deleteAt if auto-delete is set
+            let deleteAt: string | undefined
+            if (m.autoDeleteTimer && m.autoDeleteTimer > 0) {
+              const deleteTime = new Date()
+              deleteTime.setMinutes(deleteTime.getMinutes() + m.autoDeleteTimer)
+              deleteAt = deleteTime.toISOString()
+            }
+            return { ...m, status: 'seen' as const, seenAt, deleteAt }
           }
-          return { ...m, status: 'seen' as const, seenAt, deleteAt }
-        }
-        return m
-      }))
+          return m
+        })
+      )
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedContact?.id]) // Only run when selected contact changes, not on every message update
@@ -1093,7 +1119,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       })
 
       streamRef.current = stream
@@ -1107,9 +1133,11 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     } catch (error: unknown) {
       console.error('Camera error:', error)
       const errorName = error instanceof Error ? (error as DOMException).name : ''
-      setCameraError(errorName === 'NotAllowedError'
-        ? 'Camera permission denied. Please allow camera access.'
-        : 'Could not access camera. Use manual code entry below.')
+      setCameraError(
+        errorName === 'NotAllowedError'
+          ? 'Camera permission denied. Please allow camera access.'
+          : 'Could not access camera. Use manual code entry below.'
+      )
       setIsScanning(false)
     }
   }
@@ -1172,7 +1200,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
         // Try to find QR code
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'attemptBoth'
+          inversionAttempts: 'attemptBoth',
         })
 
         URL.revokeObjectURL(imageUrl)
@@ -1287,7 +1315,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         name: myName,
         createdAt: new Date().toISOString(),
         expiresAt: supabaseInvite?.expires_at || expiresAt.toISOString(),
-        used: false
+        used: false,
       }
 
       // Generate QR code using FlowSphere QR system (modular, replaceable)
@@ -1297,7 +1325,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         name: invite.name,
         expiresAt: invite.expiresAt,
         deviceId: deviceId, // Device ID (tied to Shadow ID)
-        userId: userId // Profile ID (changes per interaction)
+        userId: userId, // Profile ID (changes per interaction)
       }
 
       // Generate QR code
@@ -1340,7 +1368,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         name: myName,
         createdAt: new Date().toISOString(),
         expiresAt: supabaseInvite?.expires_at || expiresAt.toISOString(),
-        used: false
+        used: false,
       }
 
       const qrInviteData = {
@@ -1349,7 +1377,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         name: invite.name,
         expiresAt: invite.expiresAt,
         deviceId: deviceId,
-        userId: userId
+        userId: userId,
       }
 
       const qrDataURL = await generateFlowSphereQR(qrInviteData, 300)
@@ -1412,7 +1440,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         groupMaxMembers: maxMembers,
         groupCurrentMembers: 0,
         groupId: groupId,
-        groupMembers: []
+        groupMembers: [],
       }
 
       // Create group marking
@@ -1422,7 +1450,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         creatorId: deviceId,
         memberIds: [deviceId], // Creator is first member
         maxMembers: maxMembers,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       }
       setGroupMarkings(prev => [...(prev || []), newGroupMarking])
 
@@ -1437,7 +1465,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         isGroupInvite: true,
         groupId: groupId,
         groupMaxMembers: maxMembers,
-        groupCreatorName: myName
+        groupCreatorName: myName,
       }
 
       const qrDataURL = await generateFlowSphereQR(qrInviteData as any, 300)
@@ -1467,7 +1495,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       // Check if user pasted just the short code (format: XXXX-XXXX-XXXX)
       const shortCodePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
       if (shortCodePattern.test(data.trim())) {
-        toast.error('Please paste the full invite data, not just the code. Ask your contact to click "Copy Invite Data".')
+        toast.error(
+          'Please paste the full invite data, not just the code. Ask your contact to click "Copy Invite Data".'
+        )
         return
       }
 
@@ -1523,11 +1553,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       const otherDeviceId = scannedInvite.deviceId || `device_${Date.now()}`
       const otherProfileId = scannedInvite.userId || null
 
-      const existingContact = (contacts || []).find(c =>
-        c.id === otherDeviceId ||
-        c.contactUserId === otherDeviceId ||
-        (otherProfileId && c.contactProfileId === otherProfileId) ||
-        c.publicKey === scannedInvite.publicKey
+      const existingContact = (contacts || []).find(
+        c =>
+          c.id === otherDeviceId ||
+          c.contactUserId === otherDeviceId ||
+          (otherProfileId && c.contactProfileId === otherProfileId) ||
+          c.publicKey === scannedInvite.publicKey
       )
       if (existingContact && !isGroupInvite) {
         toast.info(`You're already connected with ${existingContact.name}`)
@@ -1537,9 +1568,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
       // Generate conversation ID
       // For groups: group_${groupId}, For personal: conv_${inviteCode}
-      let conversationId = isGroupInvite && groupId
-        ? `group_${groupId}`
-        : `conv_${scannedInvite.code}`
+      let conversationId =
+        isGroupInvite && groupId ? `group_${groupId}` : `conv_${scannedInvite.code}`
 
       // Try to accept via Supabase for BIDIRECTIONAL auto-connect
       let supabaseSuccess = false
@@ -1559,7 +1589,11 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           if (!isGroupInvite && result.contact?.conversationId) {
             conversationId = result.contact.conversationId
           }
-          console.log('[SUPABASE] Bidirectional pairing created! ConversationId:', conversationId, isGroupInvite ? '(GROUP)' : '')
+          console.log(
+            '[SUPABASE] Bidirectional pairing created! ConversationId:',
+            conversationId,
+            isGroupInvite ? '(GROUP)' : ''
+          )
         } else {
           console.warn('[SUPABASE] Pairing failed:', result.error)
         }
@@ -1570,7 +1604,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       // Create new contact locally (with group marking if applicable)
       const newContact: Contact = {
         id: otherDeviceId,
-        name: isGroupInvite ? `${scannedInvite.name} [${groupCreatorName || 'Group'}]` : scannedInvite.name,
+        name: isGroupInvite
+          ? `${scannedInvite.name} [${groupCreatorName || 'Group'}]`
+          : scannedInvite.name,
         publicKey: scannedInvite.publicKey,
         pairingCode: scannedInvite.code,
         pairedAt: new Date().toISOString(),
@@ -1578,7 +1614,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         isVerified: true,
         conversationId: conversationId,
         contactUserId: otherDeviceId,
-        contactProfileId: otherProfileId || undefined // Store their shareable User ID
+        contactProfileId: otherProfileId || undefined, // Store their shareable User ID
       }
 
       // Handle group membership tracking
@@ -1588,9 +1624,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           const existing = (prev || []).find(g => g.groupId === groupId)
           if (existing) {
             // Add this device to existing group
-            return (prev || []).map(g => g.groupId === groupId
-              ? { ...g, memberIds: [...g.memberIds, deviceId] }
-              : g
+            return (prev || []).map(g =>
+              g.groupId === groupId ? { ...g, memberIds: [...g.memberIds, deviceId] } : g
             )
           } else {
             // Create new group marking (scanner is joining creator's group)
@@ -1600,7 +1635,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               creatorId: otherDeviceId,
               memberIds: [otherDeviceId, deviceId], // Creator + this scanner
               maxMembers: groupMaxMembers,
-              createdAt: new Date().toISOString()
+              createdAt: new Date().toISOString(),
             }
             return [...(prev || []), newMarking]
           }
@@ -1614,7 +1649,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           setUsedInvites([...(usedInvites || []), scannedInvite.code])
         }
 
-        console.log(`[GROUP] Joined group ${groupId}. Members: ${newMemberCount}/${groupMaxMembers}`)
+        console.log(
+          `[GROUP] Joined group ${groupId}. Members: ${newMemberCount}/${groupMaxMembers}`
+        )
       } else {
         // Personal 1:1 invite - mark as used immediately
         setUsedInvites([...(usedInvites || []), scannedInvite.code])
@@ -1634,7 +1671,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       if (isGroupInvite && groupId) {
         const currentGroup = (groupMarkings || []).find(g => g.groupId === groupId)
         const memberCount = (currentGroup?.memberIds.length || 0) + 1
-        toast.success(`Joined ${groupCreatorName || scannedInvite.name}'s group! (${memberCount}/${groupMaxMembers} members)`)
+        toast.success(
+          `Joined ${groupCreatorName || scannedInvite.name}'s group! (${memberCount}/${groupMaxMembers} members)`
+        )
         sendMessage(`👋 Hey! I joined the group via QR code.`, newContact)
       } else {
         if (supabaseSuccess) {
@@ -1653,7 +1692,6 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           await generateNewQRInBackground()
         }, 1000)
       }
-
     } catch (error) {
       console.error('QR scan error:', error)
       toast.error('Failed to process QR code')
@@ -1677,7 +1715,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       status: 'sending',
       isOwn: true,
       encrypted: true,
-      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0
+      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0,
     }
 
     setMessages([...(messages || []), optimisticMessage])
@@ -1690,7 +1728,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       // Quick update to 'sent' status
       setTimeout(() => {
         setMessages(msgs =>
-          (msgs || []).map(m => m.id === messageId && m.status === 'sending' ? { ...m, status: 'sent' } : m)
+          (msgs || []).map(m =>
+            m.id === messageId && m.status === 'sending' ? { ...m, status: 'sent' } : m
+          )
         )
       }, 300)
 
@@ -1707,7 +1747,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             console.log('[SUPABASE] Message sent with E2E encryption')
             // Update local message with Supabase ID and mark as delivered
             setMessages(msgs =>
-              (msgs || []).map(m => m.id === messageId ? { ...m, id: result.id, status: 'delivered' } : m)
+              (msgs || []).map(m =>
+                m.id === messageId ? { ...m, id: result.id, status: 'delivered' } : m
+              )
             )
           }
         } catch (err) {
@@ -1715,7 +1757,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
           // Still mark as delivered locally after delay
           setTimeout(() => {
             setMessages(msgs =>
-              (msgs || []).map(m => m.id === messageId ? { ...m, status: 'delivered' } : m)
+              (msgs || []).map(m => (m.id === messageId ? { ...m, status: 'delivered' } : m))
             )
           }, 800)
         }
@@ -1723,7 +1765,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         // No Supabase connection, simulate delivery after delay
         setTimeout(() => {
           setMessages(msgs =>
-            (msgs || []).map(m => m.id === messageId ? { ...m, status: 'delivered' } : m)
+            (msgs || []).map(m => (m.id === messageId ? { ...m, status: 'delivered' } : m))
           )
         }, 1000)
       }
@@ -1731,7 +1773,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       logger.error('Failed to send message', error)
       // Update message status to failed
       setMessages(msgs =>
-        (msgs || []).map(m => m.id === messageId ? { ...m, status: 'sending', text: '[Encryption failed]' } : m)
+        (msgs || []).map(m =>
+          m.id === messageId ? { ...m, status: 'sending', text: '[Encryption failed]' } : m
+        )
       )
     }
   }
@@ -1761,7 +1805,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     console.log('[E2EE] Shared key derived from:', {
       myId: myId.substring(0, 15),
       theirId: theirId.substring(0, 15),
-      keyPreview: sharedKey.substring(0, 30) + '...'
+      keyPreview: sharedKey.substring(0, 30) + '...',
     })
 
     return sharedKey
@@ -1808,12 +1852,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       console.log('[E2EE] Encrypting file with key:', sharedKey.substring(0, 20) + '...')
 
       // Encrypt and store attachment
-      const attachmentMeta = await encryptAttachment(
-        file,
-        'file',
-        deviceId,
-        sharedKey
-      )
+      const attachmentMeta = await encryptAttachment(file, 'file', deviceId, sharedKey)
 
       // Send message with attachment
       await sendMessageWithAttachment(attachmentMeta)
@@ -1866,12 +1905,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       console.log('[E2EE] Encrypting voice with key:', sharedKey.substring(0, 20) + '...')
 
       // Encrypt and store attachment
-      const attachmentMeta = await encryptAttachment(
-        audioFile,
-        'voice',
-        deviceId,
-        sharedKey
-      )
+      const attachmentMeta = await encryptAttachment(audioFile, 'voice', deviceId, sharedKey)
 
       // Send message with attachment
       await sendMessageWithAttachment(attachmentMeta)
@@ -1914,7 +1948,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       isOwn: true,
       encrypted: true,
       attachment: attachment, // Add attachment metadata
-      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0
+      autoDeleteTimer: myPrivacySettings?.autoDeleteTimer || 0,
     }
 
     // Add to local state immediately
@@ -1923,7 +1957,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     // Quick update to 'sent' status
     setTimeout(() => {
       setMessages(msgs =>
-        (msgs || []).map(m => m.id === newMessage.id && m.status === 'sending' ? { ...m, status: 'sent' } : m)
+        (msgs || []).map(m =>
+          m.id === newMessage.id && m.status === 'sending' ? { ...m, status: 'sent' } : m
+        )
       )
     }, 300)
 
@@ -1942,21 +1978,23 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         if (result) {
           console.log('[SUPABASE] Attachment sent and synced')
           setMessages(msgs =>
-            (msgs || []).map(m => m.id === newMessage.id ? { ...m, id: result.id, status: 'delivered' } : m)
+            (msgs || []).map(m =>
+              m.id === newMessage.id ? { ...m, id: result.id, status: 'delivered' } : m
+            )
           )
         }
       } catch (err) {
         console.warn('Supabase attachment sync failed:', err)
         setTimeout(() => {
           setMessages(msgs =>
-            (msgs || []).map(m => m.id === newMessage.id ? { ...m, status: 'delivered' } : m)
+            (msgs || []).map(m => (m.id === newMessage.id ? { ...m, status: 'delivered' } : m))
           )
         }, 800)
       }
     } else {
       setTimeout(() => {
         setMessages(msgs =>
-          (msgs || []).map(m => m.id === newMessage.id ? { ...m, status: 'delivered' } : m)
+          (msgs || []).map(m => (m.id === newMessage.id ? { ...m, status: 'delivered' } : m))
         )
       }, 1000)
     }
@@ -1970,7 +2008,11 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   }
 
   // Handle attachment view/download
-  const handleViewAttachment = async (attachment: AttachmentMetadata, contactId: string, isOwnMessage: boolean = false) => {
+  const handleViewAttachment = async (
+    attachment: AttachmentMetadata,
+    contactId: string,
+    isOwnMessage: boolean = false
+  ) => {
     if (!selectedContact) return
 
     // Check if contact allows saving media (only for their messages, not our own)
@@ -2021,7 +2063,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
       setTimeout(() => URL.revokeObjectURL(url), 60000)
     } catch (error) {
       console.error('Failed to view/download attachment:', error)
-      toast.error('Failed to decrypt attachment. Make sure you\'re using the same device and conversation.')
+      toast.error(
+        "Failed to decrypt attachment. Make sure you're using the same device and conversation."
+      )
     }
   }
 
@@ -2044,7 +2088,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   const deleteMessageForEveryone = async (message: Message) => {
     // Only allow deleting your own messages
     if (!message.isOwn) {
-      toast.error("You can only delete your own messages for everyone")
+      toast.error('You can only delete your own messages for everyone')
       return
     }
 
@@ -2060,17 +2104,21 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         } else {
           toast.error(result.error || 'Failed to delete message for everyone')
           // Restore message if deletion failed
-          setMessages(prev => [...(prev || []), message].sort((a, b) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          ))
+          setMessages(prev =>
+            [...(prev || []), message].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            )
+          )
         }
       } catch (error) {
         console.error('Failed to delete message for everyone:', error)
         toast.error('Failed to delete message for everyone')
         // Restore message if deletion failed
-        setMessages(prev => [...(prev || []), message].sort((a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        ))
+        setMessages(prev =>
+          [...(prev || []), message].sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          )
+        )
       }
     } else {
       toast.success('Message deleted for everyone')
@@ -2084,13 +2132,16 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
   const deleteConversation = (forEveryone: boolean = false) => {
     if (!selectedContact) return
 
-    console.log('[DELETE] Deleting conversation for contact:', selectedContact.id, selectedContact.name)
+    console.log(
+      '[DELETE] Deleting conversation for contact:',
+      selectedContact.id,
+      selectedContact.name
+    )
 
     // Remove all messages for this contact (match by contactId OR conversationId)
     setMessages(prev => {
-      const filtered = (prev || []).filter(m =>
-        m.contactId !== selectedContact.id &&
-        m.contactId !== selectedContact.contactUserId
+      const filtered = (prev || []).filter(
+        m => m.contactId !== selectedContact.id && m.contactId !== selectedContact.contactUserId
       )
       console.log('[DELETE] Messages before:', prev?.length, 'after:', filtered.length)
       return filtered
@@ -2113,10 +2164,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
     console.log('[DELETE] Deleting contact:', contactId)
 
     // Find contact to get all its IDs for tracking
-    const contactToDelete = (contacts || []).find(c =>
-      c.id === contactId ||
-      c.contactUserId === contactId ||
-      c.contactProfileId === contactId
+    const contactToDelete = (contacts || []).find(
+      c => c.id === contactId || c.contactUserId === contactId || c.contactProfileId === contactId
     )
 
     // Track ALL IDs of this contact to prevent re-adding from Supabase
@@ -2125,7 +2174,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
         contactToDelete.id,
         contactToDelete.contactUserId,
         contactToDelete.contactProfileId,
-        contactToDelete.conversationId
+        contactToDelete.conversationId,
       ].filter(Boolean) as string[]
 
       setDeletedContactIds(prev => {
@@ -2138,10 +2187,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
     // Remove contact (match by id, contactUserId, or contactProfileId)
     setContacts(prev => {
-      const filtered = (prev || []).filter(c =>
-        c.id !== contactId &&
-        c.contactUserId !== contactId &&
-        c.contactProfileId !== contactId
+      const filtered = (prev || []).filter(
+        c => c.id !== contactId && c.contactUserId !== contactId && c.contactProfileId !== contactId
       )
       console.log('[DELETE] Contacts before:', prev?.length, 'after:', filtered.length)
       return filtered
@@ -2368,7 +2415,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             {/* Name reminder - name is set in Settings */}
             {!myName && (
               <div className="p-4 bg-yellow-50 border-b">
-                <p className="text-sm text-yellow-800">Please set your name in Settings first to use messenger.</p>
+                <p className="text-sm text-yellow-800">
+                  Please set your name in Settings first to use messenger.
+                </p>
               </div>
             )}
 
@@ -2417,83 +2466,102 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   </div>
                 ) : (
                   // Sort contacts by most recent message (newest first)
-                  [...(contacts || [])].sort((a, b) => {
-                    // Get last message time for each contact
-                    const getLastMessageTime = (contact: Contact) => {
-                      const contactMessages = (messages || []).filter(m => m.contactId === contact.id)
-                      if (contactMessages.length === 0) {
-                        // No messages - use paired date or current time
-                        return new Date(contact.pairedAt || 0).getTime()
+                  [...(contacts || [])]
+                    .sort((a, b) => {
+                      // Get last message time for each contact
+                      const getLastMessageTime = (contact: Contact) => {
+                        const contactMessages = (messages || []).filter(
+                          m => m.contactId === contact.id
+                        )
+                        if (contactMessages.length === 0) {
+                          // No messages - use paired date or current time
+                          return new Date(contact.pairedAt || 0).getTime()
+                        }
+                        // Get the most recent message timestamp
+                        const lastMsg = contactMessages[contactMessages.length - 1]
+                        return new Date(lastMsg.timestamp || lastMsg.createdAt || 0).getTime()
                       }
-                      // Get the most recent message timestamp
-                      const lastMsg = contactMessages[contactMessages.length - 1]
-                      return new Date(lastMsg.timestamp || lastMsg.createdAt || 0).getTime()
-                    }
-                    // Sort descending (newest first)
-                    return getLastMessageTime(b) - getLastMessageTime(a)
-                  }).map(contact => (
-                    <motion.div
-                      key={contact.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={cn(
-                        "p-3 rounded-lg cursor-pointer transition-colors mb-2",
-                        contact.isDeleted && "opacity-60",
-                        selectedContact?.id === contact.id
-                          ? "bg-blue-50 border-2 border-blue-500"
-                          : "bg-gray-50 hover:bg-gray-100"
-                      )}
-                      onClick={() => {
-                        setSelectedContact(contact)
-                        setView('chat')
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className={contact.isDeleted ? "grayscale" : ""}>
-                            <AvatarFallback>
-                              {contact.isDeleted ? "?" : contact.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          {/* Online indicator dot - only show if CONTACT's privacy allows */}
-                          {!contact.isDeleted && (contact.privacySettings?.showOnlineStatus ?? true) && (
-                            <span className={cn(
-                              "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white",
-                              contact.status === 'online' ? 'bg-green-500' :
-                              contact.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                            )} />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className={cn("font-semibold truncate", contact.isDeleted && "text-gray-400 italic")}>
-                              {contact.isDeleted ? "Deleted Account" : contact.name}
-                            </p>
-                            {!contact.isDeleted && contact.isVerified && (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            )}
+                      // Sort descending (newest first)
+                      return getLastMessageTime(b) - getLastMessageTime(a)
+                    })
+                    .map(contact => (
+                      <motion.div
+                        key={contact.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={cn(
+                          'p-3 rounded-lg cursor-pointer transition-colors mb-2',
+                          contact.isDeleted && 'opacity-60',
+                          selectedContact?.id === contact.id
+                            ? 'bg-blue-50 border-2 border-blue-500'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        )}
+                        onClick={() => {
+                          setSelectedContact(contact)
+                          setView('chat')
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <Avatar className={contact.isDeleted ? 'grayscale' : ''}>
+                              <AvatarFallback>
+                                {contact.isDeleted
+                                  ? '?'
+                                  : contact.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {/* Online indicator dot - only show if CONTACT's privacy allows */}
+                            {!contact.isDeleted &&
+                              (contact.privacySettings?.showOnlineStatus ?? true) && (
+                                <span
+                                  className={cn(
+                                    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white',
+                                    contact.status === 'online'
+                                      ? 'bg-green-500'
+                                      : contact.status === 'away'
+                                        ? 'bg-yellow-500'
+                                        : 'bg-gray-400'
+                                  )}
+                                />
+                              )}
                           </div>
-                          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                            {contact.isDeleted ? (
-                              <span className="text-gray-400">Account no longer exists</span>
-                            ) : (contact.privacySettings?.showOnlineStatus ?? true) && contact.status === 'online' ? (
-                              <>
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                Online
-                              </>
-                            ) : (contact.privacySettings?.showLastSeen ?? true) && contact.lastSeenTimestamp ? (
-                              <>
-                                <Clock className="w-3 h-3" />
-                                {formatLastSeen(contact.lastSeenTimestamp)}
-                              </>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={cn(
+                                  'font-semibold truncate',
+                                  contact.isDeleted && 'text-gray-400 italic'
+                                )}
+                              >
+                                {contact.isDeleted ? 'Deleted Account' : contact.name}
+                              </p>
+                              {!contact.isDeleted && contact.isVerified && (
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                              {contact.isDeleted ? (
+                                <span className="text-gray-400">Account no longer exists</span>
+                              ) : (contact.privacySettings?.showOnlineStatus ?? true) &&
+                                contact.status === 'online' ? (
+                                <>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                  Online
+                                </>
+                              ) : (contact.privacySettings?.showLastSeen ?? true) &&
+                                contact.lastSeenTimestamp ? (
+                                <>
+                                  <Clock className="w-3 h-3" />
+                                  {formatLastSeen(contact.lastSeenTimestamp)}
+                                </>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))
+                      </motion.div>
+                    ))
                 )}
               </div>
             </div>
@@ -2523,29 +2591,43 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                       </Avatar>
                       {/* Online indicator dot - only show if CONTACT's privacy allows */}
                       {(selectedContact.privacySettings?.showOnlineStatus ?? true) && (
-                        <span className={cn(
-                          "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
-                          selectedContact.status === 'online' ? 'bg-green-500' :
-                          selectedContact.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                        )} />
+                        <span
+                          className={cn(
+                            'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white',
+                            selectedContact.status === 'online'
+                              ? 'bg-green-500'
+                              : selectedContact.status === 'away'
+                                ? 'bg-yellow-500'
+                                : 'bg-gray-400'
+                          )}
+                        />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <h3 className={cn("font-semibold text-sm truncate", selectedContact.isDeleted && "text-gray-400 italic")}>
-                        {selectedContact.isDeleted ? "Deleted Account" : selectedContact.name}
+                      <h3
+                        className={cn(
+                          'font-semibold text-sm truncate',
+                          selectedContact.isDeleted && 'text-gray-400 italic'
+                        )}
+                      >
+                        {selectedContact.isDeleted ? 'Deleted Account' : selectedContact.name}
                       </h3>
                       <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
                         {selectedContact.isDeleted ? (
                           <span className="text-red-400">Deleted</span>
-                        ) : (selectedContact.privacySettings?.showOnlineStatus ?? true) && selectedContact.status === 'online' ? (
+                        ) : (selectedContact.privacySettings?.showOnlineStatus ?? true) &&
+                          selectedContact.status === 'online' ? (
                           <>
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                             Online
                           </>
-                        ) : (selectedContact.privacySettings?.showLastSeen ?? true) && selectedContact.lastSeenTimestamp ? (
+                        ) : (selectedContact.privacySettings?.showLastSeen ?? true) &&
+                          selectedContact.lastSeenTimestamp ? (
                           <>
                             <Clock className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{formatLastSeen(selectedContact.lastSeenTimestamp)}</span>
+                            <span className="truncate">
+                              {formatLastSeen(selectedContact.lastSeenTimestamp)}
+                            </span>
                           </>
                         ) : (
                           <span className="text-gray-400">—</span>
@@ -2607,7 +2689,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
                       WebkitTouchCallout: 'none',
-                    })
+                    }),
                   }}
                 >
                   {/* Screenshot protection notice */}
@@ -2624,8 +2706,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={cn(
-                          "flex group",
-                          message.isOwn ? "justify-end" : "justify-start"
+                          'flex group',
+                          message.isOwn ? 'justify-end' : 'justify-start'
                         )}
                       >
                         {/* Delete button - shows on hover/tap */}
@@ -2642,10 +2724,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                         )}
                         <div
                           className={cn(
-                            "max-w-[70%] rounded-lg p-3 cursor-pointer",
-                            message.isOwn
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-900"
+                            'max-w-[70%] rounded-lg p-3 cursor-pointer',
+                            message.isOwn ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'
                           )}
                           onClick={() => handleMessageLongPress(message)}
                         >
@@ -2662,9 +2742,13 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                       size="sm"
                                       variant="ghost"
                                       className="text-white hover:bg-white hover:bg-opacity-20"
-                                      onClick={(e) => {
+                                      onClick={e => {
                                         e.stopPropagation()
-                                        handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
+                                        handleViewAttachment(
+                                          message.attachment!,
+                                          message.contactId,
+                                          message.isOwn
+                                        )
                                       }}
                                     >
                                       <Download className="w-4 h-4 mr-1" />
@@ -2672,34 +2756,46 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                     </Button>
                                   </div>
                                   <div className="absolute top-2 left-2">
-                                    <ShieldCheck className={cn(
-                                      "w-4 h-4",
-                                      message.isOwn ? "text-white" : "text-green-500"
-                                    )} />
+                                    <ShieldCheck
+                                      className={cn(
+                                        'w-4 h-4',
+                                        message.isOwn ? 'text-white' : 'text-green-500'
+                                      )}
+                                    />
                                   </div>
                                 </div>
                               )}
 
                               {message.attachment.type === 'file' && (
-                                <div className={cn(
-                                  "flex items-center gap-3 p-3 rounded-lg border",
-                                  message.isOwn ? "border-blue-300 bg-blue-400" : "border-gray-300 bg-white"
-                                )}>
-                                  <File className={cn(
-                                    "w-8 h-8 flex-shrink-0",
-                                    message.isOwn ? "text-white" : "text-blue-500"
-                                  )} />
+                                <div
+                                  className={cn(
+                                    'flex items-center gap-3 p-3 rounded-lg border',
+                                    message.isOwn
+                                      ? 'border-blue-300 bg-blue-400'
+                                      : 'border-gray-300 bg-white'
+                                  )}
+                                >
+                                  <File
+                                    className={cn(
+                                      'w-8 h-8 flex-shrink-0',
+                                      message.isOwn ? 'text-white' : 'text-blue-500'
+                                    )}
+                                  />
                                   <div className="flex-1 min-w-0">
-                                    <p className={cn(
-                                      "text-sm font-medium truncate",
-                                      message.isOwn ? "text-white" : "text-gray-900"
-                                    )}>
+                                    <p
+                                      className={cn(
+                                        'text-sm font-medium truncate',
+                                        message.isOwn ? 'text-white' : 'text-gray-900'
+                                      )}
+                                    >
                                       {message.attachment.fileName}
                                     </p>
-                                    <p className={cn(
-                                      "text-xs",
-                                      message.isOwn ? "text-blue-100" : "text-gray-500"
-                                    )}>
+                                    <p
+                                      className={cn(
+                                        'text-xs',
+                                        message.isOwn ? 'text-blue-100' : 'text-gray-500'
+                                      )}
+                                    >
                                       {formatFileSize(message.attachment.fileSize)}
                                     </p>
                                   </div>
@@ -2707,69 +2803,91 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                                     size="sm"
                                     variant="ghost"
                                     className={cn(
-                                      "flex-shrink-0",
-                                      message.isOwn ? "text-white hover:bg-blue-300" : "text-gray-600 hover:bg-gray-100"
+                                      'flex-shrink-0',
+                                      message.isOwn
+                                        ? 'text-white hover:bg-blue-300'
+                                        : 'text-gray-600 hover:bg-gray-100'
                                     )}
-                                    onClick={(e) => {
+                                    onClick={e => {
                                       e.stopPropagation()
-                                      handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
+                                      handleViewAttachment(
+                                        message.attachment!,
+                                        message.contactId,
+                                        message.isOwn
+                                      )
                                     }}
                                   >
                                     <Download className="w-4 h-4" />
                                   </Button>
-                                  <ShieldCheck className={cn(
-                                    "w-4 h-4 flex-shrink-0",
-                                    message.isOwn ? "text-white" : "text-green-500"
-                                  )} />
+                                  <ShieldCheck
+                                    className={cn(
+                                      'w-4 h-4 flex-shrink-0',
+                                      message.isOwn ? 'text-white' : 'text-green-500'
+                                    )}
+                                  />
                                 </div>
                               )}
 
                               {message.attachment.type === 'voice' && (
-                                <div className={cn(
-                                  "flex items-center gap-3 p-3 rounded-lg",
-                                  message.isOwn ? "bg-blue-400" : "bg-white border border-gray-300"
-                                )}>
+                                <div
+                                  className={cn(
+                                    'flex items-center gap-3 p-3 rounded-lg',
+                                    message.isOwn
+                                      ? 'bg-blue-400'
+                                      : 'bg-white border border-gray-300'
+                                  )}
+                                >
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     className={cn(
-                                      "flex-shrink-0 rounded-full w-10 h-10 p-0",
-                                      message.isOwn ? "text-white hover:bg-blue-300" : "text-blue-500 hover:bg-blue-50"
+                                      'flex-shrink-0 rounded-full w-10 h-10 p-0',
+                                      message.isOwn
+                                        ? 'text-white hover:bg-blue-300'
+                                        : 'text-blue-500 hover:bg-blue-50'
                                     )}
-                                    onClick={(e) => {
+                                    onClick={e => {
                                       e.stopPropagation()
-                                      handleViewAttachment(message.attachment!, message.contactId, message.isOwn)
+                                      handleViewAttachment(
+                                        message.attachment!,
+                                        message.contactId,
+                                        message.isOwn
+                                      )
                                     }}
                                   >
                                     <Play className="w-5 h-5" />
                                   </Button>
                                   <div className="flex-1">
-                                    <div className={cn(
-                                      "h-8 flex items-center",
-                                      message.isOwn ? "text-white" : "text-gray-400"
-                                    )}>
+                                    <div
+                                      className={cn(
+                                        'h-8 flex items-center',
+                                        message.isOwn ? 'text-white' : 'text-gray-400'
+                                      )}
+                                    >
                                       {/* Voice waveform placeholder */}
                                       <div className="flex gap-0.5 items-center h-full">
                                         {[...Array(20)].map((_, i) => (
                                           <div
                                             key={i}
                                             className={cn(
-                                              "w-1 rounded-full",
-                                              message.isOwn ? "bg-white" : "bg-gray-400"
+                                              'w-1 rounded-full',
+                                              message.isOwn ? 'bg-white' : 'bg-gray-400'
                                             )}
                                             style={{
                                               height: `${20 + Math.random() * 80}%`,
-                                              opacity: 0.7
+                                              opacity: 0.7,
                                             }}
                                           />
                                         ))}
                                       </div>
                                     </div>
                                   </div>
-                                  <ShieldCheck className={cn(
-                                    "w-4 h-4 flex-shrink-0",
-                                    message.isOwn ? "text-white" : "text-green-500"
-                                  )} />
+                                  <ShieldCheck
+                                    className={cn(
+                                      'w-4 h-4 flex-shrink-0',
+                                      message.isOwn ? 'text-white' : 'text-green-500'
+                                    )}
+                                  />
                                 </div>
                               )}
                             </div>
@@ -2783,29 +2901,40 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                           )}
 
                           {/* Message metadata (timestamp, status) */}
-                          <div className={cn(
-                            "flex items-center gap-1 mt-1 text-xs",
-                            message.isOwn ? "text-blue-100" : "text-gray-500"
-                          )}>
+                          <div
+                            className={cn(
+                              'flex items-center gap-1 mt-1 text-xs',
+                              message.isOwn ? 'text-blue-100' : 'text-gray-500'
+                            )}
+                          >
                             <span>{formatTime(message.timestamp)}</span>
                             {renderStatusIndicator(message.status, message.isOwn)}
                             {/* Show countdown if message has deleteAt (seen and scheduled for deletion) */}
                             {message.deleteAt && (
-                              <AutoDeleteCountdown deleteAt={message.deleteAt} isOwn={message.isOwn} />
+                              <AutoDeleteCountdown
+                                deleteAt={message.deleteAt}
+                                isOwn={message.isOwn}
+                              />
                             )}
                             {/* Show clock icon if auto-delete is set but message not yet seen */}
-                            {message.autoDeleteTimer && message.autoDeleteTimer > 0 && !message.deleteAt && (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-0.5 px-1 rounded text-[10px]",
-                                  message.isOwn ? "bg-blue-400/20 text-blue-100" : "bg-gray-200 text-gray-600"
-                                )}
-                                title={`Will auto-delete ${AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label} after seen`}
-                              >
-                                <Clock className="w-2.5 h-2.5" weight="bold" />
-                                {AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label?.replace(' ', '')}
-                              </span>
-                            )}
+                            {message.autoDeleteTimer &&
+                              message.autoDeleteTimer > 0 &&
+                              !message.deleteAt && (
+                                <span
+                                  className={cn(
+                                    'inline-flex items-center gap-0.5 px-1 rounded text-[10px]',
+                                    message.isOwn
+                                      ? 'bg-blue-400/20 text-blue-100'
+                                      : 'bg-gray-200 text-gray-600'
+                                  )}
+                                  title={`Will auto-delete ${AUTO_DELETE_OPTIONS.find(o => o.value === message.autoDeleteTimer)?.label} after seen`}
+                                >
+                                  <Clock className="w-2.5 h-2.5" weight="bold" />
+                                  {AUTO_DELETE_OPTIONS.find(
+                                    o => o.value === message.autoDeleteTimer
+                                  )?.label?.replace(' ', '')}
+                                </span>
+                              )}
                           </div>
                         </div>
                         {/* Delete button for received messages - shows on right */}
@@ -2943,10 +3072,12 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
 
                         {/* Text Input */}
                         <Input
-                          placeholder={isUploadingAttachment ? "Uploading..." : "Type a message..."}
+                          placeholder={isUploadingAttachment ? 'Uploading...' : 'Type a message...'}
                           value={messageInput}
-                          onChange={(e) => setMessageInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && !isUploadingAttachment && handleSendMessage()}
+                          onChange={e => setMessageInput(e.target.value)}
+                          onKeyPress={e =>
+                            e.key === 'Enter' && !isUploadingAttachment && handleSendMessage()
+                          }
                           className="flex-1"
                           disabled={isUploadingAttachment}
                         />
@@ -3002,8 +3133,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Status:</span>
-                      <Badge variant={currentInvite.used ? "secondary" : "default"}>
-                        {currentInvite.used ? "Used" : "Active"}
+                      <Badge variant={currentInvite.used ? 'secondary' : 'default'}>
+                        {currentInvite.used ? 'Used' : 'Active'}
                       </Badge>
                     </div>
 
@@ -3034,7 +3165,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                           code: currentInvite.code,
                           publicKey: currentInvite.publicKey,
                           name: currentInvite.name,
-                          expiresAt: currentInvite.expiresAt
+                          expiresAt: currentInvite.expiresAt,
                         })
                         navigator.clipboard.writeText(inviteData)
                         toast.success('Invite data copied! Share this with your contact.')
@@ -3049,7 +3180,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                     <div className="bg-purple-50 p-3 rounded-lg">
                       <p className="text-sm text-purple-900 flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        <strong>Group QR:</strong> {currentInvite.groupCurrentMembers || 0}/{currentInvite.groupMaxMembers} members joined
+                        <strong>Group QR:</strong> {currentInvite.groupCurrentMembers || 0}/
+                        {currentInvite.groupMaxMembers} members joined
                       </p>
                       <p className="text-xs text-purple-700 mt-1">
                         Group ID: {currentInvite.groupId}
@@ -3065,10 +3197,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                   )}
 
                   {currentInvite.used && (
-                    <Button
-                      onClick={generateOneTimeQR}
-                      className="w-full"
-                    >
+                    <Button onClick={generateOneTimeQR} className="w-full">
                       Generate New QR Code
                     </Button>
                   )}
@@ -3090,8 +3219,8 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             <div className="space-y-4">
               <div className="bg-purple-50 p-4 rounded-lg">
                 <p className="text-sm text-purple-900">
-                  Create a QR code that multiple people can scan to join a group conversation.
-                  Each person can only scan once (no duplicates allowed).
+                  Create a QR code that multiple people can scan to join a group conversation. Each
+                  person can only scan once (no duplicates allowed).
                 </p>
               </div>
 
@@ -3104,7 +3233,9 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                     min={2}
                     max={50}
                     value={groupMemberCount}
-                    onChange={(e) => setGroupMemberCount(Math.min(50, Math.max(2, parseInt(e.target.value) || 2)))}
+                    onChange={e =>
+                      setGroupMemberCount(Math.min(50, Math.max(2, parseInt(e.target.value) || 2)))
+                    }
                     className="w-24"
                   />
                   <span className="text-sm text-gray-500">members (2-50)</span>
@@ -3181,7 +3312,7 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
                             duration: 2,
                             repeat: Infinity,
                             repeatType: 'reverse',
-                            ease: 'linear'
+                            ease: 'linear',
                           }}
                         />
                       )}
@@ -3245,17 +3376,17 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               {/* Manual code entry fallback */}
               <div className="pt-4 border-t">
                 <label className="text-sm text-gray-600">Or paste invite data manually:</label>
-                <p className="text-xs text-gray-500 mb-2">Ask your contact to click "Copy Invite Data" and share it with you</p>
+                <p className="text-xs text-gray-500 mb-2">
+                  Ask your contact to click "Copy Invite Data" and share it with you
+                </p>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Paste full invite data here..."
                     value={scannedData}
-                    onChange={(e) => setScannedData(e.target.value)}
+                    onChange={e => setScannedData(e.target.value)}
                     className="text-xs"
                   />
-                  <Button onClick={() => scannedData && handleQRScan(scannedData)}>
-                    Add
-                  </Button>
+                  <Button onClick={() => scannedData && handleQRScan(scannedData)}>Add</Button>
                 </div>
               </div>
             </div>
@@ -3272,235 +3403,299 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               </DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(85vh - 80px)' }}>
-            <div className="space-y-6">
-              {/* Online Status Settings */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  Visibility
-                </h4>
+              <div className="space-y-6">
+                {/* Online Status Settings */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Visibility
+                  </h4>
 
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="show-online" className="text-sm font-medium">Show Online Status</Label>
-                    <p className="text-xs text-gray-500">Let others see when you're online</p>
-                  </div>
-                  <Switch
-                    id="show-online"
-                    checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showOnlineStatus}
-                    onCheckedChange={(checked) => {
-                      console.log('[PRIVACY] Show Online Status:', checked)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showOnlineStatus: checked }))
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="show-last-seen" className="text-sm font-medium">Show Last Seen</Label>
-                    <p className="text-xs text-gray-500">Let others see when you were last active</p>
-                  </div>
-                  <Switch
-                    id="show-last-seen"
-                    checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showLastSeen}
-                    onCheckedChange={(checked) => {
-                      console.log('[PRIVACY] Show Last Seen:', checked)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showLastSeen: checked }))
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="show-id" className="text-sm font-medium flex items-center gap-1">
-                      <IdentificationCard className="w-3 h-3" />
-                      Show Unique ID
-                    </Label>
-                    <p className="text-xs text-gray-500">Let others see your personal ID</p>
-                  </div>
-                  <Switch
-                    id="show-id"
-                    checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showUniqueId}
-                    onCheckedChange={(checked) => {
-                      console.log('[PRIVACY] Show Unique ID:', checked)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, showUniqueId: checked }))
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Security Settings */}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  Security
-                </h4>
-
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="allow-screenshots" className="text-sm font-medium">Allow Screenshots</Label>
-                    <p className="text-xs text-gray-500">Let others screenshot your conversation</p>
-                  </div>
-                  <Switch
-                    id="allow-screenshots"
-                    checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowScreenshots}
-                    onCheckedChange={(checked) => {
-                      console.log('[PRIVACY] Allow Screenshots:', checked)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, allowScreenshots: checked }))
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="allow-save" className="text-sm font-medium flex items-center gap-1">
-                      <FloppyDisk className="w-3 h-3" />
-                      Allow Saving Media
-                    </Label>
-                    <p className="text-xs text-gray-500">Let others save photos, files, voice records</p>
-                  </div>
-                  <Switch
-                    id="allow-save"
-                    checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowSaveMedia}
-                    onCheckedChange={(checked) => {
-                      console.log('[PRIVACY] Allow Save Media:', checked)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, allowSaveMedia: checked }))
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Auto-Delete Timer */}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Disappearing Messages
-                </h4>
-
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex-1 pr-4">
-                    <Label htmlFor="auto-delete" className="text-sm font-medium">Auto-Delete Timer</Label>
-                    <p className="text-xs text-gray-500">Messages disappear after being seen</p>
-                  </div>
-                  <Select
-                    value={String((myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer)}
-                    onValueChange={(value) => {
-                      console.log('[PRIVACY] Auto-Delete Timer:', value)
-                      setMyPrivacySettings(prev => ({ ...DEFAULT_MY_PRIVACY_SETTINGS, ...prev, autoDeleteTimer: Number(value) }))
-                    }}
-                  >
-                    <SelectTrigger className="w-[120px] h-9">
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AUTO_DELETE_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={String(option.value)}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer > 0 && (
-                  <div className="bg-purple-50 p-3 rounded-lg">
-                    <p className="text-xs text-purple-900 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Messages will auto-delete {AUTO_DELETE_OPTIONS.find(o => o.value === (myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer)?.label} after being seen
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Your IDs Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                  <IdentificationCard className="w-4 h-4" />
-                  Your Identifiers
-                </h4>
-
-                {/* User ID - Shareable */}
-                <div className="bg-purple-50 p-3 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <Label className="text-sm font-medium text-purple-900">Your User ID</Label>
-                      <p className="text-xs text-purple-700">Share this to let others find you</p>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label htmlFor="show-online" className="text-sm font-medium">
+                        Show Online Status
+                      </Label>
+                      <p className="text-xs text-gray-500">Let others see when you're online</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white"
-                      onClick={() => {
-                        navigator.clipboard.writeText(userId)
-                        toast.success('User ID copied! Share this with contacts.')
+                    <Switch
+                      id="show-online"
+                      checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showOnlineStatus}
+                      onCheckedChange={checked => {
+                        console.log('[PRIVACY] Show Online Status:', checked)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          showOnlineStatus: checked,
+                        }))
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label htmlFor="show-last-seen" className="text-sm font-medium">
+                        Show Last Seen
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Let others see when you were last active
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-last-seen"
+                      checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showLastSeen}
+                      onCheckedChange={checked => {
+                        console.log('[PRIVACY] Show Last Seen:', checked)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          showLastSeen: checked,
+                        }))
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label
+                        htmlFor="show-id"
+                        className="text-sm font-medium flex items-center gap-1"
+                      >
+                        <IdentificationCard className="w-3 h-3" />
+                        Show Unique ID
+                      </Label>
+                      <p className="text-xs text-gray-500">Let others see your personal ID</p>
+                    </div>
+                    <Switch
+                      id="show-id"
+                      checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).showUniqueId}
+                      onCheckedChange={checked => {
+                        console.log('[PRIVACY] Show Unique ID:', checked)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          showUniqueId: checked,
+                        }))
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Security Settings */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" />
+                    Security
+                  </h4>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label htmlFor="allow-screenshots" className="text-sm font-medium">
+                        Allow Screenshots
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Let others screenshot your conversation
+                      </p>
+                    </div>
+                    <Switch
+                      id="allow-screenshots"
+                      checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowScreenshots}
+                      onCheckedChange={checked => {
+                        console.log('[PRIVACY] Allow Screenshots:', checked)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          allowScreenshots: checked,
+                        }))
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label
+                        htmlFor="allow-save"
+                        className="text-sm font-medium flex items-center gap-1"
+                      >
+                        <FloppyDisk className="w-3 h-3" />
+                        Allow Saving Media
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Let others save photos, files, voice records
+                      </p>
+                    </div>
+                    <Switch
+                      id="allow-save"
+                      checked={(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).allowSaveMedia}
+                      onCheckedChange={checked => {
+                        console.log('[PRIVACY] Allow Save Media:', checked)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          allowSaveMedia: checked,
+                        }))
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Auto-Delete Timer */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Disappearing Messages
+                  </h4>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label htmlFor="auto-delete" className="text-sm font-medium">
+                        Auto-Delete Timer
+                      </Label>
+                      <p className="text-xs text-gray-500">Messages disappear after being seen</p>
+                    </div>
+                    <Select
+                      value={String(
+                        (myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer
+                      )}
+                      onValueChange={value => {
+                        console.log('[PRIVACY] Auto-Delete Timer:', value)
+                        setMyPrivacySettings(prev => ({
+                          ...DEFAULT_MY_PRIVACY_SETTINGS,
+                          ...prev,
+                          autoDeleteTimer: Number(value),
+                        }))
                       }}
                     >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copy
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AUTO_DELETE_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={String(option.value)}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer > 0 && (
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-xs text-purple-900 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Messages will auto-delete{' '}
+                        {
+                          AUTO_DELETE_OPTIONS.find(
+                            o =>
+                              o.value ===
+                              (myPrivacySettings || DEFAULT_MY_PRIVACY_SETTINGS).autoDeleteTimer
+                          )?.label
+                        }{' '}
+                        after being seen
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Your IDs Section */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <IdentificationCard className="w-4 h-4" />
+                    Your Identifiers
+                  </h4>
+
+                  {/* User ID - Shareable */}
+                  <div className="bg-purple-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <Label className="text-sm font-medium text-purple-900">Your User ID</Label>
+                        <p className="text-xs text-purple-700">Share this to let others find you</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white"
+                        onClick={() => {
+                          navigator.clipboard.writeText(userId)
+                          toast.success('User ID copied! Share this with contacts.')
+                        }}
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    <code className="block text-lg font-mono font-bold text-purple-900 bg-white p-2 rounded text-center">
+                      {userId}
+                    </code>
+                  </div>
+
+                  {/* Device ID - Internal */}
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <Label className="text-sm text-gray-700">Device ID</Label>
+                        <p className="text-xs text-gray-500">
+                          Internal use only • Tied to your login
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        <Shield className="w-3 h-3 mr-1" />
+                        Private
+                      </Badge>
+                    </div>
+                    <code className="block text-xs text-gray-600 bg-white p-2 rounded truncate">
+                      {deviceId}
+                    </code>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Changes only when you switch device or change login email
+                    </p>
+                  </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="space-y-4 pt-4 border-t border-red-200">
+                  <h4 className="text-sm font-medium text-red-600 flex items-center gap-2">
+                    <Warning className="w-4 h-4" />
+                    Danger Zone
+                  </h4>
+
+                  <div className="bg-red-50 p-3 rounded-lg space-y-3">
+                    <div>
+                      <p className="text-sm text-red-800 font-medium">Clear All Contacts</p>
+                      <p className="text-xs text-red-600">
+                        Remove all contacts and messages. This cannot be undone.
+                      </p>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            'Are you sure you want to delete ALL contacts and messages? This cannot be undone.'
+                          )
+                        ) {
+                          // Track all current contact IDs as deleted
+                          const allIds = (contacts || []).flatMap(c =>
+                            [c.id, c.contactUserId, c.contactProfileId, c.conversationId].filter(
+                              Boolean
+                            )
+                          ) as string[]
+                          setDeletedContactIds(prev => [...new Set([...(prev || []), ...allIds])])
+                          setContacts([])
+                          setMessages([])
+                          toast.success('All contacts and messages cleared')
+                          setShowSettings(false)
+                        }
+                      }}
+                    >
+                      <Trash className="w-4 h-4 mr-2" />
+                      Clear All Contacts
                     </Button>
                   </div>
-                  <code className="block text-lg font-mono font-bold text-purple-900 bg-white p-2 rounded text-center">
-                    {userId}
-                  </code>
-                </div>
-
-                {/* Device ID - Internal */}
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <Label className="text-sm text-gray-700">Device ID</Label>
-                      <p className="text-xs text-gray-500">Internal use only • Tied to your login</p>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Private
-                    </Badge>
-                  </div>
-                  <code className="block text-xs text-gray-600 bg-white p-2 rounded truncate">
-                    {deviceId}
-                  </code>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Changes only when you switch device or change login email
-                  </p>
                 </div>
               </div>
-
-              {/* Danger Zone */}
-              <div className="space-y-4 pt-4 border-t border-red-200">
-                <h4 className="text-sm font-medium text-red-600 flex items-center gap-2">
-                  <Warning className="w-4 h-4" />
-                  Danger Zone
-                </h4>
-
-                <div className="bg-red-50 p-3 rounded-lg space-y-3">
-                  <div>
-                    <p className="text-sm text-red-800 font-medium">Clear All Contacts</p>
-                    <p className="text-xs text-red-600">Remove all contacts and messages. This cannot be undone.</p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete ALL contacts and messages? This cannot be undone.')) {
-                        // Track all current contact IDs as deleted
-                        const allIds = (contacts || []).flatMap(c => [
-                          c.id, c.contactUserId, c.contactProfileId, c.conversationId
-                        ].filter(Boolean)) as string[]
-                        setDeletedContactIds(prev => [...new Set([...(prev || []), ...allIds])])
-                        setContacts([])
-                        setMessages([])
-                        toast.success('All contacts and messages cleared')
-                        setShowSettings(false)
-                      }
-                    }}
-                  >
-                    <Trash className="w-4 h-4 mr-2" />
-                    Clear All Contacts
-                  </Button>
-                </div>
-              </div>
-            </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -3515,18 +3710,19 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                How would you like to delete this message?
-              </p>
+              <p className="text-sm text-gray-600">How would you like to delete this message?</p>
 
               {messageToDelete && (
                 <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 max-h-24 overflow-y-auto">
-                  "{(() => {
-                    const text = messageToDelete.isOwn || !messageToDelete.text.startsWith('ENC')
-                      ? messageToDelete.text
-                      : decryptMessage(messageToDelete.text, myKeys?.privateKey || '')
+                  "
+                  {(() => {
+                    const text =
+                      messageToDelete.isOwn || !messageToDelete.text.startsWith('ENC')
+                        ? messageToDelete.text
+                        : decryptMessage(messageToDelete.text, myKeys?.privateKey || '')
                     return text.substring(0, 100) + (text.length > 100 ? '...' : '')
-                  })()}"
+                  })()}
+                  "
                 </div>
               )}
 
@@ -3586,23 +3782,26 @@ export function SecureQRMessenger({ isOpen, onClose }: SecureQRMessengerProps) {
             <div className="space-y-4">
               {selectedContact && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Avatar className={selectedContact.isDeleted ? "grayscale" : ""}>
+                  <Avatar className={selectedContact.isDeleted ? 'grayscale' : ''}>
                     <AvatarFallback>
-                      {selectedContact.isDeleted ? "?" : selectedContact.name.substring(0, 2).toUpperCase()}
+                      {selectedContact.isDeleted
+                        ? '?'
+                        : selectedContact.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{selectedContact.isDeleted ? "Deleted Account" : selectedContact.name}</p>
+                    <p className="font-medium">
+                      {selectedContact.isDeleted ? 'Deleted Account' : selectedContact.name}
+                    </p>
                     <p className="text-xs text-gray-500">
-                      {(messages || []).filter(m => m.contactId === selectedContact.id).length} messages
+                      {(messages || []).filter(m => m.contactId === selectedContact.id).length}{' '}
+                      messages
                     </p>
                   </div>
                 </div>
               )}
 
-              <p className="text-sm text-gray-600">
-                What would you like to do?
-              </p>
+              <p className="text-sm text-gray-600">What would you like to do?</p>
 
               <div className="space-y-2">
                 <Button

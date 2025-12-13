@@ -100,15 +100,15 @@ function subscribeToContacts(userId: string) {
         event: 'INSERT',
         schema: 'public',
         table: 'messenger_contacts',
-        filter: `user_id=eq.${userId}`
+        filter: `user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[REALTIME-MANAGER] New contact:', payload.new)
         notifyContactListeners(userId, payload.new)
         showNotification('New Contact', `${(payload.new as any).name} connected with you!`)
       }
     )
-    .subscribe((status) => {
+    .subscribe(status => {
       console.log('[REALTIME-MANAGER] Contacts subscription:', status)
       if (status === 'SUBSCRIBED') {
         setConnectionStatus(true)
@@ -140,9 +140,9 @@ function subscribeToCallInvites(userId: string) {
         event: 'INSERT',
         schema: 'public',
         table: 'call_invites',
-        filter: `to_user_id=eq.${userId}`
+        filter: `to_user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         const invite = payload.new as any
         console.log('[REALTIME-MANAGER] Incoming call:', invite)
         if (invite.status === 'pending') {
@@ -161,16 +161,16 @@ function subscribeToCallInvites(userId: string) {
         event: 'UPDATE',
         schema: 'public',
         table: 'call_invites',
-        filter: `to_user_id=eq.${userId}`
+        filter: `to_user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         const invite = payload.new as any
         if (invite.status === 'ended' || invite.status === 'missed') {
           notifyCallListeners(userId, { ...invite, cancelled: true })
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe(status => {
       console.log('[REALTIME-MANAGER] Calls subscription:', status)
     })
 
@@ -202,9 +202,9 @@ export function subscribeToConversation(
           event: 'INSERT',
           schema: 'public',
           table: 'messenger_messages',
-          filter: `conversation_id=eq.${conversationId}`
+          filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        payload => {
           console.log('[REALTIME-MANAGER] New message:', payload.new)
           const listeners = messageListeners.get(conversationId) || []
           listeners.forEach(cb => cb(payload.new))
@@ -221,15 +221,15 @@ export function subscribeToConversation(
           event: 'DELETE',
           schema: 'public',
           table: 'messenger_messages',
-          filter: `conversation_id=eq.${conversationId}`
+          filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        payload => {
           console.log('[REALTIME-MANAGER] Message deleted:', payload.old)
           const listeners = messageListeners.get(conversationId) || []
           listeners.forEach(cb => cb({ ...payload.old, deleted: true }))
         }
       )
-      .subscribe((status) => {
+      .subscribe(status => {
         console.log('[REALTIME-MANAGER] Messages subscription:', status, conversationId)
       })
 
@@ -338,7 +338,9 @@ function scheduleReconnect(userId: string) {
 
   reconnectAttempts++
   const delay = RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1) // Exponential backoff
-  console.log(`[REALTIME-MANAGER] Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts})`)
+  console.log(
+    `[REALTIME-MANAGER] Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts})`
+  )
 
   setTimeout(() => {
     checkAndReconnect(userId)
@@ -377,7 +379,10 @@ function startHeartbeat(userId: string): ReturnType<typeof setInterval> {
     }
 
     // Simple heartbeat - check if we can reach Supabase
-    supabase.from('messenger_contacts').select('id', { count: 'exact', head: true }).limit(0)
+    supabase
+      .from('messenger_contacts')
+      .select('id', { count: 'exact', head: true })
+      .limit(0)
       .then(({ error }) => {
         if (error) {
           console.log('[REALTIME-MANAGER] Heartbeat failed:', error)
@@ -446,7 +451,7 @@ export function showNotification(
     badge: '/icon-192.png',
     tag: options?.tag || 'flowsphere',
     requireInteraction: options?.requireInteraction || false,
-    silent: false
+    silent: false,
   })
 
   notification.onclick = () => {

@@ -27,7 +27,7 @@ import {
   X,
   Sparkle,
   ChartBar,
-  Gear
+  Gear,
 } from '@phosphor-icons/react'
 import {
   AI_PROVIDERS,
@@ -42,7 +42,7 @@ import {
   getTodayUsage,
   getUsageStats,
   setUsageLimits,
-  getAllProviders
+  getAllProviders,
 } from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 
@@ -72,20 +72,21 @@ export function AIUsageWarning() {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg mb-4",
+        'flex items-center gap-3 p-3 rounded-lg mb-4',
         isLimit
-          ? "bg-red-500/20 border border-red-500/30"
-          : "bg-yellow-500/20 border border-yellow-500/30"
+          ? 'bg-red-500/20 border border-red-500/30'
+          : 'bg-yellow-500/20 border border-yellow-500/30'
       )}
     >
-      <Warning className={cn("w-5 h-5 flex-shrink-0", isLimit ? "text-red-500" : "text-yellow-500")} weight="fill" />
+      <Warning
+        className={cn('w-5 h-5 flex-shrink-0', isLimit ? 'text-red-500' : 'text-yellow-500')}
+        weight="fill"
+      />
       <div className="flex-1 text-sm">
-        <p className={cn("font-medium", isLimit ? "text-red-500" : "text-yellow-500")}>
+        <p className={cn('font-medium', isLimit ? 'text-red-500' : 'text-yellow-500')}>
           {isLimit ? 'Daily AI Limit Reached' : 'Approaching Limit'}
         </p>
-        <p className="text-muted-foreground text-xs mt-0.5">
-          {limitCheck.warning}
-        </p>
+        <p className="text-muted-foreground text-xs mt-0.5">{limitCheck.warning}</p>
       </div>
       <Button
         size="sm"
@@ -124,7 +125,9 @@ export function AIUsageStats({ compact = false }: { compact?: boolean }) {
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
           <Lightning className="w-4 h-4 text-yellow-500" />
-          <span>{todayUsage.messages}/{limits.enabled ? limits.dailyMessageLimit : '∞'}</span>
+          <span>
+            {todayUsage.messages}/{limits.enabled ? limits.dailyMessageLimit : '∞'}
+          </span>
         </div>
         <Progress value={messagePercent} className="w-20 h-2" />
       </div>
@@ -143,14 +146,16 @@ export function AIUsageStats({ compact = false }: { compact?: boolean }) {
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span>Messages</span>
-            <span>{todayUsage.messages} / {limits.enabled ? limits.dailyMessageLimit : 'Unlimited'}</span>
+            <span>
+              {todayUsage.messages} / {limits.enabled ? limits.dailyMessageLimit : 'Unlimited'}
+            </span>
           </div>
           <Progress
             value={messagePercent}
             className={cn(
-              "h-2",
-              messagePercent >= 80 && "[&>div]:bg-yellow-500",
-              messagePercent >= 100 && "[&>div]:bg-red-500"
+              'h-2',
+              messagePercent >= 80 && '[&>div]:bg-yellow-500',
+              messagePercent >= 100 && '[&>div]:bg-red-500'
             )}
           />
         </div>
@@ -158,14 +163,17 @@ export function AIUsageStats({ compact = false }: { compact?: boolean }) {
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span>Tokens Used</span>
-            <span>{todayUsage.tokens.toLocaleString()} / {limits.enabled ? limits.dailyTokenLimit.toLocaleString() : 'Unlimited'}</span>
+            <span>
+              {todayUsage.tokens.toLocaleString()} /{' '}
+              {limits.enabled ? limits.dailyTokenLimit.toLocaleString() : 'Unlimited'}
+            </span>
           </div>
           <Progress
             value={tokenPercent}
             className={cn(
-              "h-2",
-              tokenPercent >= 80 && "[&>div]:bg-yellow-500",
-              tokenPercent >= 100 && "[&>div]:bg-red-500"
+              'h-2',
+              tokenPercent >= 80 && '[&>div]:bg-yellow-500',
+              tokenPercent >= 100 && '[&>div]:bg-red-500'
             )}
           />
         </div>
@@ -187,7 +195,7 @@ export function AIUsageStats({ compact = false }: { compact?: boolean }) {
 
 function ProviderCard({
   provider,
-  onKeyAdded
+  onKeyAdded,
 }: {
   provider: AIProviderInfo & { hasKey?: boolean }
   onKeyAdded: () => void
@@ -225,22 +233,22 @@ function ProviderCard({
     toast.success(`${provider.name} API key removed`)
   }
 
-  const costDisplay = provider.costPer1kTokens === 0
-    ? 'Free'
-    : `$${(provider.costPer1kTokens * 1000).toFixed(2)}/1M tokens`
+  const costDisplay =
+    provider.costPer1kTokens === 0
+      ? 'Free'
+      : `$${(provider.costPer1kTokens * 1000).toFixed(2)}/1M tokens`
 
   return (
-    <Card className={cn(
-      "transition-all",
-      hasKey && "ring-1 ring-green-500/50 bg-green-500/5"
-    )}>
+    <Card className={cn('transition-all', hasKey && 'ring-1 ring-green-500/50 bg-green-500/5')}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center",
-              hasKey ? "bg-green-500/20" : "bg-muted"
-            )}>
+            <div
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center',
+                hasKey ? 'bg-green-500/20' : 'bg-muted'
+              )}
+            >
               {hasKey ? (
                 <CheckCircle className="w-5 h-5 text-green-500" weight="fill" />
               ) : (
@@ -269,7 +277,10 @@ function ProviderCard({
             </span>
           )}
           {provider.complexity.map(c => (
-            <span key={c} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+            <span
+              key={c}
+              className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize"
+            >
               {c}
             </span>
           ))}
@@ -289,7 +300,7 @@ function ProviderCard({
                   type={showKey ? 'text' : 'password'}
                   placeholder="Paste your API key..."
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={e => setApiKey(e.target.value)}
                   className="pr-10"
                 />
                 <button
@@ -318,7 +329,12 @@ function ProviderCard({
             >
               {hasKey ? (
                 <>
-                  <Button size="sm" variant="outline" onClick={() => setShowInput(true)} className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowInput(true)}
+                    className="flex-1"
+                  >
                     <Key className="w-4 h-4 mr-1" />
                     Update Key
                   </Button>
@@ -401,12 +417,17 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
           </div>
           <Progress value={(configuredCount / providers.length) * 100} className="h-2 mb-3" />
           <p className="text-xs text-muted-foreground mb-3">
-            Add your own API keys for unlimited AI usage. FlowSphere routes to the cheapest provider automatically.
+            Add your own API keys for unlimited AI usage. FlowSphere routes to the cheapest provider
+            automatically.
           </p>
-          <Button size="sm" className="w-full" onClick={() => {
-            const dialog = document.getElementById('ai-setup-dialog')
-            if (dialog) dialog.click()
-          }}>
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              const dialog = document.getElementById('ai-setup-dialog')
+              if (dialog) dialog.click()
+            }}
+          >
             <Gear className="w-4 h-4 mr-2" />
             Configure AI Providers
           </Button>
@@ -483,7 +504,7 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
             </div>
             <Switch
               checked={config.limits.enabled}
-              onCheckedChange={(enabled) => {
+              onCheckedChange={enabled => {
                 setUsageLimits({ enabled })
                 refreshProviders()
               }}
@@ -497,7 +518,7 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
                 <Input
                   type="number"
                   value={config.limits.dailyMessageLimit}
-                  onChange={(e) => {
+                  onChange={e => {
                     setUsageLimits({ dailyMessageLimit: parseInt(e.target.value) || 100 })
                     refreshProviders()
                   }}
@@ -510,7 +531,7 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
                 <Input
                   type="number"
                   value={config.limits.dailyTokenLimit}
-                  onChange={(e) => {
+                  onChange={e => {
                     setUsageLimits({ dailyTokenLimit: parseInt(e.target.value) || 100000 })
                     refreshProviders()
                   }}
@@ -524,7 +545,7 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
                 <Input
                   type="number"
                   value={config.limits.warningThreshold}
-                  onChange={(e) => {
+                  onChange={e => {
                     setUsageLimits({ warningThreshold: parseInt(e.target.value) || 80 })
                     refreshProviders()
                   }}
@@ -539,14 +560,12 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
 
       {/* Provider List */}
       <div>
-        <h3 className="font-semibold mb-3">Available Providers ({configuredCount}/{providers.length} configured)</h3>
+        <h3 className="font-semibold mb-3">
+          Available Providers ({configuredCount}/{providers.length} configured)
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {providers.map((provider) => (
-            <ProviderCard
-              key={provider.id}
-              provider={provider}
-              onKeyAdded={refreshProviders}
-            />
+          {providers.map(provider => (
+            <ProviderCard key={provider.id} provider={provider} onKeyAdded={refreshProviders} />
           ))}
         </div>
       </div>
@@ -562,19 +581,27 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
         <CardContent>
           <ol className="space-y-3 text-sm">
             <li className="flex gap-2">
-              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">
+                1
+              </span>
               <span>Click the link next to any provider above to visit their website</span>
             </li>
             <li className="flex gap-2">
-              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">
+                2
+              </span>
               <span>Create a free account (most providers offer free credits)</span>
             </li>
             <li className="flex gap-2">
-              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">
+                3
+              </span>
               <span>Navigate to API Keys or Settings in their dashboard</span>
             </li>
             <li className="flex gap-2">
-              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+              <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold flex-shrink-0">
+                4
+              </span>
               <span>Generate a new API key and paste it here</span>
             </li>
           </ol>
@@ -582,9 +609,15 @@ export function AISetupGuide({ onClose, compact, showUsageOnly }: AISetupGuidePr
           <div className="mt-4 p-3 bg-green-500/10 rounded-lg">
             <p className="text-xs text-green-500 font-medium">Recommended Free Options:</p>
             <ul className="mt-1 text-xs text-muted-foreground space-y-0.5">
-              <li>• <strong>Groq</strong> - Completely free, fast responses</li>
-              <li>• <strong>Google Gemini</strong> - Free tier available, supports vision</li>
-              <li>• <strong>DeepSeek</strong> - Extremely cheap ($0.10/1M tokens)</li>
+              <li>
+                • <strong>Groq</strong> - Completely free, fast responses
+              </li>
+              <li>
+                • <strong>Google Gemini</strong> - Free tier available, supports vision
+              </li>
+              <li>
+                • <strong>DeepSeek</strong> - Extremely cheap ($0.10/1M tokens)
+              </li>
             </ul>
           </div>
         </CardContent>

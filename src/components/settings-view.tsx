@@ -1,5 +1,30 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Bell, Lock, Palette, CreditCard, Info, ShieldCheck, SpeakerHigh, Check, SignOut, TestTube, CaretDown, TextAa, Sliders, Key, Eye, EyeSlash, PencilSimple, At, Link as LinkIcon, Plus, X, DownloadSimple, DeviceMobile } from '@phosphor-icons/react'
+import {
+  User,
+  Bell,
+  Lock,
+  Palette,
+  CreditCard,
+  Info,
+  ShieldCheck,
+  SpeakerHigh,
+  Check,
+  SignOut,
+  TestTube,
+  CaretDown,
+  TextAa,
+  Sliders,
+  Key,
+  Eye,
+  EyeSlash,
+  PencilSimple,
+  At,
+  Link as LinkIcon,
+  Plus,
+  X,
+  DownloadSimple,
+  DeviceMobile,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -8,8 +33,21 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useTheme, ColorTheme, CustomColors, applyColorsRealTime } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -64,7 +102,16 @@ interface SettingsViewProps {
   onNotificationChange: (type: 'email' | 'push' | 'sms', value: boolean) => void
   onUserNameChange: (name: string) => void
   onUserEmailChange: (email: string) => void
-  onNavigate: (tab: 'subscription' | 'subscription-monitoring' | 'terms' | 'privacy' | 'permissions' | 'ai-voice' | 'vault') => void
+  onNavigate: (
+    tab:
+      | 'subscription'
+      | 'subscription-monitoring'
+      | 'terms'
+      | 'privacy'
+      | 'permissions'
+      | 'ai-voice'
+      | 'vault'
+  ) => void
   onLogout?: () => void
 }
 
@@ -77,7 +124,7 @@ export function SettingsView({
   onUserNameChange,
   onUserEmailChange,
   onNavigate,
-  onLogout
+  onLogout,
 }: SettingsViewProps) {
   const { mode, colorTheme, customColors, setColorTheme, setCustomColors } = useTheme()
   const [showVoiceTester, setShowVoiceTester] = useState(false)
@@ -124,7 +171,7 @@ export function SettingsView({
       outlook: [],
       facebook: [],
       twitter: [],
-      instagram: []
+      instagram: [],
     }
   })
 
@@ -132,7 +179,7 @@ export function SettingsView({
   const [newAccountInputs, setNewAccountInputs] = useState<Record<string, string>>({
     facebook: '',
     twitter: '',
-    instagram: ''
+    instagram: '',
   })
 
   // OAuth email accounts state
@@ -146,7 +193,7 @@ export function SettingsView({
     imapPort: '993',
     smtpHost: '',
     smtpPort: '587',
-    name: ''
+    name: '',
   })
 
   // Load email accounts on mount
@@ -173,7 +220,7 @@ export function SettingsView({
 
     if (error) {
       toast.error('Failed to connect account', {
-        description: urlParams.get('error_description') || 'Please try again'
+        description: urlParams.get('error_description') || 'Please try again',
       })
       window.history.replaceState({}, document.title, '/settings')
       return
@@ -251,7 +298,7 @@ export function SettingsView({
       loadEmailAccounts()
 
       toast.success(`${userInfo.email} connected successfully!`, {
-        description: 'Email monitoring is now active'
+        description: 'Email monitoring is now active',
       })
 
       // Clean URL
@@ -259,7 +306,7 @@ export function SettingsView({
     } catch (error) {
       console.error('OAuth callback error:', error)
       toast.error('Failed to connect account', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description: error instanceof Error ? error.message : 'Please try again',
       })
       window.history.replaceState({}, document.title, '/settings')
     } finally {
@@ -287,7 +334,7 @@ export function SettingsView({
         case 'icloud':
           // iCloud requires app-specific password (handled separately)
           toast.info('iCloud requires an app-specific password', {
-            description: 'Please use the Email Connections section in Settings'
+            description: 'Please use the Email Connections section in Settings',
           })
           setIsConnectingEmail(false)
           return
@@ -321,17 +368,19 @@ export function SettingsView({
       provider: 'custom' as any,
       email: customEmailConfig.email,
       name: customEmailConfig.name || customEmailConfig.email.split('@')[0],
-      accessToken: btoa(JSON.stringify({
-        password: customEmailConfig.password,
-        imapHost: customEmailConfig.imapHost,
-        imapPort: customEmailConfig.imapPort,
-        smtpHost: customEmailConfig.smtpHost,
-        smtpPort: customEmailConfig.smtpPort
-      })),
+      accessToken: btoa(
+        JSON.stringify({
+          password: customEmailConfig.password,
+          imapHost: customEmailConfig.imapHost,
+          imapPort: customEmailConfig.imapPort,
+          smtpHost: customEmailConfig.smtpHost,
+          smtpPort: customEmailConfig.smtpPort,
+        })
+      ),
       refreshToken: '',
       expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
       isActive: true,
-      connectedAt: new Date().toISOString()
+      connectedAt: new Date().toISOString(),
     }
 
     EmailAccountStore.saveAccount(account)
@@ -344,7 +393,7 @@ export function SettingsView({
       imapPort: '993',
       smtpHost: '',
       smtpPort: '587',
-      name: ''
+      name: '',
     })
     toast.success('Custom email connected!')
   }
@@ -355,44 +404,57 @@ export function SettingsView({
       case 'gmail':
         return (
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="#EA4335"/>
-            <path d="M4 6L12 11L20 6" fill="#EA4335"/>
-            <path d="M2 6V18C2 19.1 2.9 20 4 20H8V9.5L2 6Z" fill="#4285F4"/>
-            <path d="M22 6V18C22 19.1 21.1 20 20 20H16V9.5L22 6Z" fill="#34A853"/>
-            <path d="M8 20V9.5L12 12.5L16 9.5V20H8Z" fill="#FBBC05"/>
+            <path
+              d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z"
+              fill="#EA4335"
+            />
+            <path d="M4 6L12 11L20 6" fill="#EA4335" />
+            <path d="M2 6V18C2 19.1 2.9 20 4 20H8V9.5L2 6Z" fill="#4285F4" />
+            <path d="M22 6V18C22 19.1 21.1 20 20 20H16V9.5L22 6Z" fill="#34A853" />
+            <path d="M8 20V9.5L12 12.5L16 9.5V20H8Z" fill="#FBBC05" />
           </svg>
         )
       case 'yahoo':
         return (
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="4" fill="#6001D2"/>
-            <path d="M7 7L10.5 13.5V17H13.5V13.5L17 7H14L12 11L10 7H7Z" fill="white"/>
-            <circle cx="12" cy="18.5" r="1.5" fill="white"/>
+            <rect width="24" height="24" rx="4" fill="#6001D2" />
+            <path d="M7 7L10.5 13.5V17H13.5V13.5L17 7H14L12 11L10 7H7Z" fill="white" />
+            <circle cx="12" cy="18.5" r="1.5" fill="white" />
           </svg>
         )
       case 'outlook':
         return (
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="4" fill="#0078D4"/>
-            <path d="M3 6.5V17.5C3 18.3 3.7 19 4.5 19H10V5H4.5C3.7 5 3 5.7 3 6.5Z" fill="#0078D4"/>
-            <ellipse cx="6.5" cy="12" rx="2.5" ry="3.5" fill="white"/>
-            <path d="M10 5V19H19.5C20.3 19 21 18.3 21 17.5V6.5C21 5.7 20.3 5 19.5 5H10Z" fill="#0364B8"/>
-            <path d="M13 8L17 12L13 16V8Z" fill="white" fillOpacity="0.8"/>
+            <rect width="24" height="24" rx="4" fill="#0078D4" />
+            <path d="M3 6.5V17.5C3 18.3 3.7 19 4.5 19H10V5H4.5C3.7 5 3 5.7 3 6.5Z" fill="#0078D4" />
+            <ellipse cx="6.5" cy="12" rx="2.5" ry="3.5" fill="white" />
+            <path
+              d="M10 5V19H19.5C20.3 19 21 18.3 21 17.5V6.5C21 5.7 20.3 5 19.5 5H10Z"
+              fill="#0364B8"
+            />
+            <path d="M13 8L17 12L13 16V8Z" fill="white" fillOpacity="0.8" />
           </svg>
         )
       case 'icloud':
         return (
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="4" fill="#3693F3"/>
-            <path d="M18.5 14.5C19.9 14.5 21 13.4 21 12C21 10.8 20.1 9.8 18.9 9.5C18.9 7.5 17.3 6 15.3 6C14 6 12.9 6.7 12.3 7.7C11.7 7.3 11 7 10.2 7C8.2 7 6.5 8.7 6.5 10.7C6.5 10.8 6.5 10.9 6.5 11C5.1 11.2 4 12.4 4 13.8C4 15.4 5.3 16.5 6.8 16.5H18.5V14.5Z" fill="white"/>
+            <rect width="24" height="24" rx="4" fill="#3693F3" />
+            <path
+              d="M18.5 14.5C19.9 14.5 21 13.4 21 12C21 10.8 20.1 9.8 18.9 9.5C18.9 7.5 17.3 6 15.3 6C14 6 12.9 6.7 12.3 7.7C11.7 7.3 11 7 10.2 7C8.2 7 6.5 8.7 6.5 10.7C6.5 10.8 6.5 10.9 6.5 11C5.1 11.2 4 12.4 4 13.8C4 15.4 5.3 16.5 6.8 16.5H18.5V14.5Z"
+              fill="white"
+            />
           </svg>
         )
       case 'custom':
         return (
           <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="4" fill="#6B7280"/>
-            <path d="M4 6C4 5.4 4.4 5 5 5H19C19.6 5 20 5.4 20 6V18C20 18.6 19.6 19 19 19H5C4.4 19 4 18.6 4 18V6Z" stroke="white" strokeWidth="1.5"/>
-            <path d="M4 6L12 12L20 6" stroke="white" strokeWidth="1.5"/>
+            <rect width="24" height="24" rx="4" fill="#6B7280" />
+            <path
+              d="M4 6C4 5.4 4.4 5 5 5H19C19.6 5 20 5.4 20 6V18C20 18.6 19.6 19 19 19H5C4.4 19 4 18.6 4 18V6Z"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+            <path d="M4 6L12 12L20 6" stroke="white" strokeWidth="1.5" />
           </svg>
         )
       default:
@@ -410,7 +472,7 @@ export function SettingsView({
       yahoo: 'Yahoo Mail',
       outlook: 'Outlook',
       icloud: 'iCloud Mail',
-      custom: 'Custom Email'
+      custom: 'Custom Email',
     }
     return names[provider] || provider
   }
@@ -418,12 +480,26 @@ export function SettingsView({
   // Security sessions state
   const [showSessions, setShowSessions] = useState(false)
   const [sessions] = useState([
-    { id: '1', device: 'MacBook Pro', location: 'San Francisco, CA', lastActive: 'Just now', current: true },
-    { id: '2', device: 'iPhone 15 Pro', location: 'San Francisco, CA', lastActive: '5 minutes ago', current: false }
+    {
+      id: '1',
+      device: 'MacBook Pro',
+      location: 'San Francisco, CA',
+      lastActive: 'Just now',
+      current: true,
+    },
+    {
+      id: '2',
+      device: 'iPhone 15 Pro',
+      location: 'San Francisco, CA',
+      lastActive: '5 minutes ago',
+      current: false,
+    },
   ])
 
   // Custom API keys state
-  const [customApiKeys, setCustomApiKeys] = useState<Array<{id: string, name: string, value: string}>>(() => {
+  const [customApiKeys, setCustomApiKeys] = useState<
+    Array<{ id: string; name: string; value: string }>
+  >(() => {
     const stored = localStorage.getItem('flowsphere-custom-api-keys')
     return stored ? JSON.parse(stored) : []
   })
@@ -432,27 +508,27 @@ export function SettingsView({
   const [newKeyValue, setNewKeyValue] = useState('')
 
   // API Keys state
-  const [openaiApiKey, setOpenaiApiKey] = useState(() =>
-    localStorage.getItem('flowsphere-openai-api-key') || ''
+  const [openaiApiKey, setOpenaiApiKey] = useState(
+    () => localStorage.getItem('flowsphere-openai-api-key') || ''
   )
-  const [anthropicApiKey, setAnthropicApiKey] = useState(() =>
-    localStorage.getItem('flowsphere-anthropic-api-key') || ''
+  const [anthropicApiKey, setAnthropicApiKey] = useState(
+    () => localStorage.getItem('flowsphere-anthropic-api-key') || ''
   )
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
 
   // Font settings state
-  const [fontFamily, setFontFamily] = useState(() =>
-    localStorage.getItem('flowsphere-font-family') || 'Inter'
+  const [fontFamily, setFontFamily] = useState(
+    () => localStorage.getItem('flowsphere-font-family') || 'Inter'
   )
-  const [fontSize, setFontSize] = useState(() =>
-    Number(localStorage.getItem('flowsphere-font-size')) || 16
+  const [fontSize, setFontSize] = useState(
+    () => Number(localStorage.getItem('flowsphere-font-size')) || 16
   )
-  const [lineHeight, setLineHeight] = useState(() =>
-    Number(localStorage.getItem('flowsphere-line-height')) || 1.5
+  const [lineHeight, setLineHeight] = useState(
+    () => Number(localStorage.getItem('flowsphere-line-height')) || 1.5
   )
-  const [letterSpacing, setLetterSpacing] = useState(() =>
-    Number(localStorage.getItem('flowsphere-letter-spacing')) || 0
+  const [letterSpacing, setLetterSpacing] = useState(
+    () => Number(localStorage.getItem('flowsphere-letter-spacing')) || 0
   )
 
   // PWA Install state
@@ -476,7 +552,7 @@ export function SettingsView({
     notifications: true,
     contacts: false,
     storage: true,
-    hasSeenPrompt: false
+    hasSeenPrompt: false,
   })
 
   // Apply font settings in real-time as they change
@@ -536,7 +612,7 @@ export function SettingsView({
       }, 800) // Save after 800ms of no changes
     }
   }, [tempCustomColors, mode, colorTheme, setCustomColors])
-  
+
   useEffect(() => {
     return () => {
       if (tapTimeoutRef.current) {
@@ -549,7 +625,7 @@ export function SettingsView({
   }, [])
 
   const handleAboutClick = () => {
-    setTapCount((prev) => {
+    setTapCount(prev => {
       const newCount = prev + 1
 
       if (tapTimeoutRef.current) {
@@ -560,7 +636,7 @@ export function SettingsView({
         // SECRET PASSAGE: 7 taps opens Vault
         onNavigate('vault')
         toast.success('🔒 Vault Access Granted!', {
-          description: 'Secure storage unlocked'
+          description: 'Secure storage unlocked',
         })
         return 0
       }
@@ -572,60 +648,69 @@ export function SettingsView({
       return newCount
     })
   }
-  
+
   const getSubscriptionBadge = () => {
     switch (subscription) {
       case 'pro':
         return <Badge className="bg-blue-mid text-white">Pro</Badge>
       case 'gold':
-        return <Badge className="bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-foreground">Gold</Badge>
+        return (
+          <Badge className="bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-foreground">
+            Gold
+          </Badge>
+        )
       case 'family':
         return <Badge className="bg-[#7B61FF] text-white">Family / Team</Badge>
       default:
-        return <Badge variant="secondary" className="bg-muted text-muted-foreground">Basic</Badge>
+        return (
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+            Basic
+          </Badge>
+        )
     }
   }
 
-  const themeOptions: { value: ColorTheme; label: string; description: string; preview: string }[] = [
-    {
-      value: 'neon-noir',
-      label: 'Neon Noir',
-      description: 'Vibrant neon accents with dark undertones',
-      preview: 'linear-gradient(135deg, oklch(0.65 0.28 328) 0%, oklch(0.70 0.25 320) 100%)'
-    },
-    {
-      value: 'aurora-borealis',
-      label: 'Aurora Borealis',
-      description: 'Cool blues and teals like northern lights',
-      preview: 'linear-gradient(135deg, oklch(0.55 0.25 250) 0%, oklch(0.65 0.22 160) 100%)'
-    },
-    {
-      value: 'cosmic-latte',
-      label: 'Cosmic Latte',
-      description: 'Warm beige tones inspired by the universe',
-      preview: 'linear-gradient(135deg, oklch(0.50 0.18 70) 0%, oklch(0.65 0.15 50) 100%)'
-    },
-    {
-      value: 'candy-shop',
-      label: 'Candy Shop',
-      description: 'Sweet pink and purple candy colors',
-      preview: 'linear-gradient(135deg, oklch(0.60 0.22 340) 0%, oklch(0.70 0.20 290) 100%)'
-    },
-    {
-      value: 'black-gray',
-      label: 'Black & Gray',
-      description: 'Classic monochrome elegance',
-      preview: 'linear-gradient(135deg, oklch(0.30 0 0) 0%, oklch(0.60 0 0) 100%)'
-    },
-    {
-      value: 'custom',
-      label: 'Custom Colors',
-      description: 'Create your own color palette',
-      preview: customColors
-        ? `linear-gradient(135deg, ${customColors.primary} 0%, ${customColors.accent} 100%)`
-        : 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)'
-    }
-  ]
+  const themeOptions: { value: ColorTheme; label: string; description: string; preview: string }[] =
+    [
+      {
+        value: 'neon-noir',
+        label: 'Neon Noir',
+        description: 'Vibrant neon accents with dark undertones',
+        preview: 'linear-gradient(135deg, oklch(0.65 0.28 328) 0%, oklch(0.70 0.25 320) 100%)',
+      },
+      {
+        value: 'aurora-borealis',
+        label: 'Aurora Borealis',
+        description: 'Cool blues and teals like northern lights',
+        preview: 'linear-gradient(135deg, oklch(0.55 0.25 250) 0%, oklch(0.65 0.22 160) 100%)',
+      },
+      {
+        value: 'cosmic-latte',
+        label: 'Cosmic Latte',
+        description: 'Warm beige tones inspired by the universe',
+        preview: 'linear-gradient(135deg, oklch(0.50 0.18 70) 0%, oklch(0.65 0.15 50) 100%)',
+      },
+      {
+        value: 'candy-shop',
+        label: 'Candy Shop',
+        description: 'Sweet pink and purple candy colors',
+        preview: 'linear-gradient(135deg, oklch(0.60 0.22 340) 0%, oklch(0.70 0.20 290) 100%)',
+      },
+      {
+        value: 'black-gray',
+        label: 'Black & Gray',
+        description: 'Classic monochrome elegance',
+        preview: 'linear-gradient(135deg, oklch(0.30 0 0) 0%, oklch(0.60 0 0) 100%)',
+      },
+      {
+        value: 'custom',
+        label: 'Custom Colors',
+        description: 'Create your own color palette',
+        preview: customColors
+          ? `linear-gradient(135deg, ${customColors.primary} 0%, ${customColors.accent} 100%)`
+          : 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+      },
+    ]
 
   const applyCustomColors = () => {
     setCustomColors(tempCustomColors)
@@ -677,7 +762,7 @@ export function SettingsView({
 
     setSocialAccounts(prev => ({
       ...prev,
-      [service]: [...(prev[service] || []), value]
+      [service]: [...(prev[service] || []), value],
     }))
     setNewAccountInputs(prev => ({ ...prev, [service]: '' }))
     toast.success('Account added')
@@ -687,7 +772,7 @@ export function SettingsView({
   const handleRemoveAccount = (service: string, account: string) => {
     setSocialAccounts(prev => ({
       ...prev,
-      [service]: prev[service]?.filter(a => a !== account) || []
+      [service]: prev[service]?.filter(a => a !== account) || [],
     }))
     toast.success('Account removed')
   }
@@ -700,7 +785,7 @@ export function SettingsView({
     const newKey = {
       id: Date.now().toString(),
       name: newKeyName.trim(),
-      value: newKeyValue.trim()
+      value: newKeyValue.trim(),
     }
     const updated = [...customApiKeys, newKey]
     setCustomApiKeys(updated)
@@ -732,11 +817,14 @@ export function SettingsView({
       let instructions = 'To install FlowSphere:\n\n'
 
       if (isIOS) {
-        instructions += 'iOS/Safari:\n1. Tap the Share button (⬆️)\n2. Tap "Add to Home Screen"\n3. Tap "Add"'
+        instructions +=
+          'iOS/Safari:\n1. Tap the Share button (⬆️)\n2. Tap "Add to Home Screen"\n3. Tap "Add"'
       } else if (isAndroid) {
-        instructions += 'Android/Chrome:\n1. Tap menu (⋮) at top right\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install"'
+        instructions +=
+          'Android/Chrome:\n1. Tap menu (⋮) at top right\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install"'
       } else {
-        instructions += 'Desktop:\n1. Look for install icon (⊕) in the address bar\n2. Click "Install"\n\nOr use your browser menu → "Install FlowSphere"'
+        instructions +=
+          'Desktop:\n1. Look for install icon (⊕) in the address bar\n2. Click "Install"\n\nOr use your browser menu → "Install FlowSphere"'
       }
 
       alert(instructions)
@@ -767,56 +855,57 @@ export function SettingsView({
       icon: User,
       items: [
         { label: 'Name', value: userName },
-        { label: 'Email', value: userEmail }
-      ]
+        { label: 'Email', value: userEmail },
+      ],
     },
     {
       title: 'Notifications',
       icon: Bell,
       controls: [
-        { 
-          label: 'Email Notifications', 
+        {
+          label: 'Email Notifications',
           description: 'Receive updates via email',
           checked: notifications.email,
-          onChange: (checked: boolean) => onNotificationChange('email', checked)
+          onChange: (checked: boolean) => onNotificationChange('email', checked),
         },
-        { 
-          label: 'Push Notifications', 
+        {
+          label: 'Push Notifications',
           description: 'Get real-time alerts',
           checked: notifications.push,
-          onChange: (checked: boolean) => onNotificationChange('push', checked)
+          onChange: (checked: boolean) => onNotificationChange('push', checked),
         },
-        { 
-          label: 'SMS Notifications', 
+        {
+          label: 'SMS Notifications',
           description: 'Emergency alerts only',
           checked: notifications.sms,
-          onChange: (checked: boolean) => onNotificationChange('sms', checked)
-        }
-      ]
+          onChange: (checked: boolean) => onNotificationChange('sms', checked),
+        },
+      ],
     },
     {
       title: 'Security',
       icon: Lock,
       items: [
-        { label: 'Two-Factor Authentication', value: <Badge variant="secondary">Not enabled</Badge> },
+        {
+          label: 'Two-Factor Authentication',
+          value: <Badge variant="secondary">Not enabled</Badge>,
+        },
         {
           label: 'Last login',
           value: 'Today at 10:30 AM',
           clickable: true,
-          onClick: () => setShowSessions(!showSessions)
+          onClick: () => setShowSessions(!showSessions),
         },
-        { label: 'Active sessions', value: `${sessions.length} devices` }
-      ]
-    }
+        { label: 'Active sessions', value: `${sessions.length} devices` },
+      ],
+    },
   ]
 
   return (
     <div className="space-y-6 pb-8 max-w-4xl">
       <div>
         <h1 className="text-4xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account and preferences
-        </p>
+        <p className="text-muted-foreground">Manage your account and preferences</p>
       </div>
 
       <div className="space-y-6">
@@ -838,31 +927,39 @@ export function SettingsView({
                       {subscription === 'pro' && (
                         <>
                           <Check className="w-5 h-5 text-blue-mid" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Pro</span>
+                          <span className="text-sm sm:text-base font-medium">
+                            You're subscribed to FlowSphere Pro
+                          </span>
                         </>
                       )}
                       {subscription === 'gold' && (
                         <>
                           <Check className="w-5 h-5 text-[#FFB700]" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Gold</span>
+                          <span className="text-sm sm:text-base font-medium">
+                            You're subscribed to FlowSphere Gold
+                          </span>
                         </>
                       )}
                       {subscription === 'family' && (
                         <>
                           <Check className="w-5 h-5 text-[#7B61FF]" weight="bold" />
-                          <span className="text-sm sm:text-base font-medium">You're subscribed to FlowSphere Family / Team</span>
+                          <span className="text-sm sm:text-base font-medium">
+                            You're subscribed to FlowSphere Family / Team
+                          </span>
                         </>
                       )}
                       {subscription === 'basic' && (
                         <>
-                          <span className="text-sm sm:text-base text-muted-foreground">You're on the Basic plan</span>
+                          <span className="text-sm sm:text-base text-muted-foreground">
+                            You're on the Basic plan
+                          </span>
                         </>
                       )}
                     </div>
                     {getSubscriptionBadge()}
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={() => onNavigate('subscription')}
                   className="bg-accent hover:bg-accent/90 min-touch-target"
                 >
@@ -930,7 +1027,8 @@ export function SettingsView({
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Current theme: <span className="font-semibold capitalize">{colorTheme}</span> • Mode: <span className="font-semibold capitalize">{mode}</span>
+                  Current theme: <span className="font-semibold capitalize">{colorTheme}</span> •
+                  Mode: <span className="font-semibold capitalize">{mode}</span>
                 </p>
                 <Button
                   onClick={() => setShowThemeModal(true)}
@@ -1071,21 +1169,21 @@ export function SettingsView({
                             fontFamily: fontFamily,
                             fontSize: `${fontSize}px`,
                             lineHeight: lineHeight,
-                            letterSpacing: `${letterSpacing}px`
+                            letterSpacing: `${letterSpacing}px`,
                           }}
                         >
-                          <p className="font-semibold mb-2">The quick brown fox jumps over the lazy dog</p>
+                          <p className="font-semibold mb-2">
+                            The quick brown fox jumps over the lazy dog
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            FlowSphere is your command center for modern life. AI-powered assistance for work, family, and home.
+                            FlowSphere is your command center for modern life. AI-powered assistance
+                            for work, family, and home.
                           </p>
                         </div>
                       </div>
 
                       {/* Apply Button */}
-                      <Button
-                        onClick={applyFontSettings}
-                        className="w-full"
-                      >
+                      <Button onClick={applyFontSettings} className="w-full">
                         <Check className="w-4 h-4 mr-2" />
                         Apply Typography Settings
                       </Button>
@@ -1114,11 +1212,7 @@ export function SettingsView({
                       <span>{section.title}</span>
                     </CardTitle>
                     {section.title === 'Account' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAccountEdit(true)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setShowAccountEdit(true)}>
                         <PencilSimple className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
@@ -1130,34 +1224,46 @@ export function SettingsView({
                     <div key={index}>
                       <div
                         className={cn(
-                          "flex items-center justify-between py-2",
-                          item.clickable && "cursor-pointer hover:bg-muted/50 -mx-4 px-4 rounded-lg transition-colors"
+                          'flex items-center justify-between py-2',
+                          item.clickable &&
+                            'cursor-pointer hover:bg-muted/50 -mx-4 px-4 rounded-lg transition-colors'
                         )}
                         onClick={item.onClick}
                       >
                         <span className="text-sm text-muted-foreground">{item.label}</span>
                         <span className="text-sm font-medium">{item.value}</span>
                       </div>
-                      {item.clickable && showSessions && section.title === 'Security' && item.label === 'Last login' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="pl-4 space-y-3 py-3"
-                        >
-                          <h5 className="text-xs font-medium text-muted-foreground">Active Login Sessions</h5>
-                          {sessions.map((sess) => (
-                            <div key={sess.id} className="p-3 rounded-lg bg-muted/40 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{sess.device}</span>
-                                {sess.current && <Badge variant="secondary" className="text-xs">Current</Badge>}
+                      {item.clickable &&
+                        showSessions &&
+                        section.title === 'Security' &&
+                        item.label === 'Last login' && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="pl-4 space-y-3 py-3"
+                          >
+                            <h5 className="text-xs font-medium text-muted-foreground">
+                              Active Login Sessions
+                            </h5>
+                            {sessions.map(sess => (
+                              <div key={sess.id} className="p-3 rounded-lg bg-muted/40 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">{sess.device}</span>
+                                  {sess.current && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Current
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{sess.location}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Last active: {sess.lastActive}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground">{sess.location}</p>
-                              <p className="text-xs text-muted-foreground">Last active: {sess.lastActive}</p>
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
+                            ))}
+                          </motion.div>
+                        )}
                       {index < section.items!.length - 1 && <Separator />}
                     </div>
                   ))}
@@ -1169,9 +1275,7 @@ export function SettingsView({
                           <Label htmlFor={`control-${sectionIndex}-${index}`}>
                             {control.label}
                           </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {control.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{control.description}</p>
                         </div>
                         <Switch
                           id={`control-${sectionIndex}-${index}`}
@@ -1203,14 +1307,17 @@ export function SettingsView({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Configure your AI service API keys for enhanced features like the AI Assistant and Meeting Notes transcription.
+                Configure your AI service API keys for enhanced features like the AI Assistant and
+                Meeting Notes transcription.
               </p>
 
               {/* OpenAI API Key */}
               <div className="space-y-2">
                 <Label htmlFor="openai-key" className="text-sm font-medium">
                   OpenAI API Key
-                  <Badge variant="secondary" className="ml-2 text-[10px]">Optional</Badge>
+                  <Badge variant="secondary" className="ml-2 text-[10px]">
+                    Optional
+                  </Badge>
                 </Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -1219,7 +1326,7 @@ export function SettingsView({
                       type={showOpenaiKey ? 'text' : 'password'}
                       placeholder="sk-..."
                       value={openaiApiKey}
-                      onChange={(e) => setOpenaiApiKey(e.target.value)}
+                      onChange={e => setOpenaiApiKey(e.target.value)}
                       className="pr-10"
                     />
                     <Button
@@ -1245,7 +1352,9 @@ export function SettingsView({
               <div className="space-y-2">
                 <Label htmlFor="anthropic-key" className="text-sm font-medium">
                   Anthropic API Key
-                  <Badge variant="secondary" className="ml-2 text-[10px]">Optional</Badge>
+                  <Badge variant="secondary" className="ml-2 text-[10px]">
+                    Optional
+                  </Badge>
                 </Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -1254,7 +1363,7 @@ export function SettingsView({
                       type={showAnthropicKey ? 'text' : 'password'}
                       placeholder="sk-ant-..."
                       value={anthropicApiKey}
-                      onChange={(e) => setAnthropicApiKey(e.target.value)}
+                      onChange={e => setAnthropicApiKey(e.target.value)}
                       className="pr-10"
                     />
                     <Button
@@ -1283,21 +1392,22 @@ export function SettingsView({
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-sm font-medium">Custom API Keys</Label>
-                    <p className="text-xs text-muted-foreground mt-1">Add other API keys (Weather, Maps, Calendar, etc.)</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Add other API keys (Weather, Maps, Calendar, etc.)
+                    </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddCustomKey(true)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setShowAddCustomKey(true)}>
                     <Plus className="w-4 h-4 mr-1" />
                     Add Key
                   </Button>
                 </div>
                 {customApiKeys.length > 0 && (
                   <div className="space-y-2">
-                    {customApiKeys.map((key) => (
-                      <div key={key.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                    {customApiKeys.map(key => (
+                      <div
+                        key={key.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
+                      >
                         <span className="text-sm font-medium">{key.name}</span>
                         <Button
                           variant="ghost"
@@ -1313,19 +1423,33 @@ export function SettingsView({
                 )}
               </div>
 
-              <Button
-                onClick={handleSaveApiKeys}
-                className="w-full"
-              >
+              <Button onClick={handleSaveApiKeys} className="w-full">
                 <Check className="w-4 h-4 mr-2" />
                 Save API Keys
               </Button>
 
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  🔒 Your API keys are stored locally in your browser and never sent to our servers. Get your keys from:
-                  <br />• OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">platform.openai.com/api-keys</a>
-                  <br />• Anthropic: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">console.anthropic.com/settings/keys</a>
+                  🔒 Your API keys are stored locally in your browser and never sent to our servers.
+                  Get your keys from:
+                  <br />• OpenAI:{' '}
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    platform.openai.com/api-keys
+                  </a>
+                  <br />• Anthropic:{' '}
+                  <a
+                    href="https://console.anthropic.com/settings/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    console.anthropic.com/settings/keys
+                  </a>
                   <br />• Weather API, Maps API, Calendar sync APIs can be added as custom keys
                 </p>
               </div>
@@ -1452,7 +1576,8 @@ export function SettingsView({
                     Install FlowSphere
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    💡 If the button doesn't work, use your browser's menu to "Install App" or "Add to Home Screen"
+                    💡 If the button doesn't work, use your browser's menu to "Install App" or "Add
+                    to Home Screen"
                   </p>
                 </>
               )}
@@ -1485,7 +1610,8 @@ export function SettingsView({
                   <div className="flex items-center justify-between py-2 mb-3">
                     <span className="text-xs text-muted-foreground">Permissions Granted</span>
                     <Badge variant="secondary" className="bg-mint/20 text-mint">
-                      {Object.values(permissions || {}).filter(Boolean).length} / {Object.keys(permissions || {}).length - 1}
+                      {Object.values(permissions || {}).filter(Boolean).length} /{' '}
+                      {Object.keys(permissions || {}).length - 1}
                     </Badge>
                   </div>
                   <Button
@@ -1576,8 +1702,8 @@ export function SettingsView({
               <p className="text-sm text-muted-foreground">
                 Sign out of your FlowSphere account. You can always sign back in anytime.
               </p>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 className="w-full gap-2"
                 onClick={() => {
                   if (onLogout) {
@@ -1609,7 +1735,7 @@ export function SettingsView({
               <Input
                 id="key-name"
                 value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
+                onChange={e => setNewKeyName(e.target.value)}
                 placeholder="e.g., Weather API, Maps API"
               />
             </div>
@@ -1619,7 +1745,7 @@ export function SettingsView({
                 id="key-value"
                 type="password"
                 value={newKeyValue}
-                onChange={(e) => setNewKeyValue(e.target.value)}
+                onChange={e => setNewKeyValue(e.target.value)}
                 placeholder="Enter your API key"
               />
             </div>
@@ -1653,7 +1779,7 @@ export function SettingsView({
               <Input
                 id="edit-name"
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={e => setEditName(e.target.value)}
                 placeholder="Your name"
               />
             </div>
@@ -1685,7 +1811,9 @@ export function SettingsView({
                       </div>
                       <div className="flex items-center gap-2">
                         {emailAccounts.length > 1 && (
-                          <Badge variant="secondary" className="text-xs">+{emailAccounts.length - 1}</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            +{emailAccounts.length - 1}
+                          </Badge>
                         )}
                         <CaretUpDown className="w-4 h-4 opacity-50" />
                       </div>
@@ -1693,14 +1821,23 @@ export function SettingsView({
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-2" align="start">
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">Connected Accounts</p>
-                      {emailAccounts.map((account) => (
-                        <div key={account.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+                        Connected Accounts
+                      </p>
+                      {emailAccounts.map(account => (
+                        <div
+                          key={account.id}
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                        >
                           <div className="flex items-center gap-2">
                             <ProviderLogo provider={account.provider} size={20} />
                             <div>
-                              <p className="text-sm font-medium truncate max-w-[180px]">{account.email}</p>
-                              <p className="text-xs text-muted-foreground">{getProviderName(account.provider)}</p>
+                              <p className="text-sm font-medium truncate max-w-[180px]">
+                                {account.email}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {getProviderName(account.provider)}
+                              </p>
                             </div>
                           </div>
                           <Button
@@ -1790,7 +1927,9 @@ export function SettingsView({
                   <LinkIcon className="w-4 h-4" />
                   Social Media Profiles
                 </h4>
-                <Badge variant="secondary" className="text-xs">Optional</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Optional
+                </Badge>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Facebook */}
@@ -1800,11 +1939,16 @@ export function SettingsView({
                     {socialAccounts.facebook?.length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                          <Button
+                            variant="outline"
+                            className="flex-1 justify-between text-sm h-9 font-normal"
+                          >
                             <span className="truncate">{socialAccounts.facebook[0]}</span>
                             <div className="flex items-center gap-1 ml-2">
                               {socialAccounts.facebook.length > 1 && (
-                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.facebook.length}</Badge>
+                                <Badge variant="secondary" className="text-[10px] px-1">
+                                  {socialAccounts.facebook.length}
+                                </Badge>
                               )}
                               <CaretUpDown className="w-3 h-3 opacity-50" />
                             </div>
@@ -1813,9 +1957,17 @@ export function SettingsView({
                         <PopoverContent className="w-64 p-2" align="start">
                           <div className="space-y-1">
                             {socialAccounts.facebook.map((account, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm"
+                              >
                                 <span className="truncate">{account}</span>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('facebook', account)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRemoveAccount('facebook', account)}
+                                >
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
@@ -1825,11 +1977,20 @@ export function SettingsView({
                               <Input
                                 placeholder="Add username"
                                 value={newAccountInputs.facebook}
-                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, facebook: e.target.value }))}
+                                onChange={e =>
+                                  setNewAccountInputs(prev => ({
+                                    ...prev,
+                                    facebook: e.target.value,
+                                  }))
+                                }
                                 className="h-8 text-sm"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('facebook')}
+                                onKeyDown={e => e.key === 'Enter' && handleAddAccount('facebook')}
                               />
-                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('facebook')}>
+                              <Button
+                                size="sm"
+                                className="h-8 px-2"
+                                onClick={() => handleAddAccount('facebook')}
+                              >
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </div>
@@ -1840,12 +2001,19 @@ export function SettingsView({
                       <Input
                         placeholder="@username"
                         value={newAccountInputs.facebook}
-                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, facebook: e.target.value }))}
+                        onChange={e =>
+                          setNewAccountInputs(prev => ({ ...prev, facebook: e.target.value }))
+                        }
                         className="text-sm flex-1 h-9"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('facebook')}
+                        onKeyDown={e => e.key === 'Enter' && handleAddAccount('facebook')}
                       />
                     )}
-                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('facebook')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={() => handleAddAccount('facebook')}
+                    >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -1858,11 +2026,16 @@ export function SettingsView({
                     {socialAccounts.twitter?.length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                          <Button
+                            variant="outline"
+                            className="flex-1 justify-between text-sm h-9 font-normal"
+                          >
                             <span className="truncate">{socialAccounts.twitter[0]}</span>
                             <div className="flex items-center gap-1 ml-2">
                               {socialAccounts.twitter.length > 1 && (
-                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.twitter.length}</Badge>
+                                <Badge variant="secondary" className="text-[10px] px-1">
+                                  {socialAccounts.twitter.length}
+                                </Badge>
                               )}
                               <CaretUpDown className="w-3 h-3 opacity-50" />
                             </div>
@@ -1871,9 +2044,17 @@ export function SettingsView({
                         <PopoverContent className="w-64 p-2" align="start">
                           <div className="space-y-1">
                             {socialAccounts.twitter.map((account, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm"
+                              >
                                 <span className="truncate">{account}</span>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('twitter', account)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRemoveAccount('twitter', account)}
+                                >
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
@@ -1883,11 +2064,20 @@ export function SettingsView({
                               <Input
                                 placeholder="Add username"
                                 value={newAccountInputs.twitter}
-                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, twitter: e.target.value }))}
+                                onChange={e =>
+                                  setNewAccountInputs(prev => ({
+                                    ...prev,
+                                    twitter: e.target.value,
+                                  }))
+                                }
                                 className="h-8 text-sm"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('twitter')}
+                                onKeyDown={e => e.key === 'Enter' && handleAddAccount('twitter')}
                               />
-                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('twitter')}>
+                              <Button
+                                size="sm"
+                                className="h-8 px-2"
+                                onClick={() => handleAddAccount('twitter')}
+                              >
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </div>
@@ -1898,12 +2088,19 @@ export function SettingsView({
                       <Input
                         placeholder="@username"
                         value={newAccountInputs.twitter}
-                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, twitter: e.target.value }))}
+                        onChange={e =>
+                          setNewAccountInputs(prev => ({ ...prev, twitter: e.target.value }))
+                        }
                         className="text-sm flex-1 h-9"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('twitter')}
+                        onKeyDown={e => e.key === 'Enter' && handleAddAccount('twitter')}
                       />
                     )}
-                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('twitter')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={() => handleAddAccount('twitter')}
+                    >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -1916,11 +2113,16 @@ export function SettingsView({
                     {socialAccounts.instagram?.length > 0 ? (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="flex-1 justify-between text-sm h-9 font-normal">
+                          <Button
+                            variant="outline"
+                            className="flex-1 justify-between text-sm h-9 font-normal"
+                          >
                             <span className="truncate">{socialAccounts.instagram[0]}</span>
                             <div className="flex items-center gap-1 ml-2">
                               {socialAccounts.instagram.length > 1 && (
-                                <Badge variant="secondary" className="text-[10px] px-1">{socialAccounts.instagram.length}</Badge>
+                                <Badge variant="secondary" className="text-[10px] px-1">
+                                  {socialAccounts.instagram.length}
+                                </Badge>
                               )}
                               <CaretUpDown className="w-3 h-3 opacity-50" />
                             </div>
@@ -1929,9 +2131,17 @@ export function SettingsView({
                         <PopoverContent className="w-64 p-2" align="start">
                           <div className="space-y-1">
                             {socialAccounts.instagram.map((account, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm">
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded hover:bg-muted/50 text-sm"
+                              >
                                 <span className="truncate">{account}</span>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleRemoveAccount('instagram', account)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleRemoveAccount('instagram', account)}
+                                >
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
@@ -1941,11 +2151,20 @@ export function SettingsView({
                               <Input
                                 placeholder="Add username"
                                 value={newAccountInputs.instagram}
-                                onChange={(e) => setNewAccountInputs(prev => ({ ...prev, instagram: e.target.value }))}
+                                onChange={e =>
+                                  setNewAccountInputs(prev => ({
+                                    ...prev,
+                                    instagram: e.target.value,
+                                  }))
+                                }
                                 className="h-8 text-sm"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('instagram')}
+                                onKeyDown={e => e.key === 'Enter' && handleAddAccount('instagram')}
                               />
-                              <Button size="sm" className="h-8 px-2" onClick={() => handleAddAccount('instagram')}>
+                              <Button
+                                size="sm"
+                                className="h-8 px-2"
+                                onClick={() => handleAddAccount('instagram')}
+                              >
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </div>
@@ -1956,12 +2175,19 @@ export function SettingsView({
                       <Input
                         placeholder="@username"
                         value={newAccountInputs.instagram}
-                        onChange={(e) => setNewAccountInputs(prev => ({ ...prev, instagram: e.target.value }))}
+                        onChange={e =>
+                          setNewAccountInputs(prev => ({ ...prev, instagram: e.target.value }))
+                        }
                         className="text-sm flex-1 h-9"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddAccount('instagram')}
+                        onKeyDown={e => e.key === 'Enter' && handleAddAccount('instagram')}
                       />
                     )}
-                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => handleAddAccount('instagram')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={() => handleAddAccount('instagram')}
+                    >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -1974,11 +2200,7 @@ export function SettingsView({
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowAccountEdit(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setShowAccountEdit(false)}>
               Cancel
             </Button>
             <Button
@@ -2004,7 +2226,7 @@ export function SettingsView({
           </DialogHeader>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4">
-            {themeOptions.map((theme) => (
+            {themeOptions.map(theme => (
               <button
                 key={theme.value}
                 onClick={() => {
@@ -2055,8 +2277,14 @@ export function SettingsView({
                     <Label>Primary</Label>
                     <input
                       type="color"
-                      value={tempCustomColors.primary.startsWith('#') ? tempCustomColors.primary : '#8B5CF6'}
-                      onChange={(e) => setTempCustomColors({ ...tempCustomColors, primary: e.target.value })}
+                      value={
+                        tempCustomColors.primary.startsWith('#')
+                          ? tempCustomColors.primary
+                          : '#8B5CF6'
+                      }
+                      onChange={e =>
+                        setTempCustomColors({ ...tempCustomColors, primary: e.target.value })
+                      }
                       className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
                     />
                   </div>
@@ -2064,7 +2292,9 @@ export function SettingsView({
                     <Label className="text-xs">Opacity: {tempCustomColors.primaryOpacity}%</Label>
                     <Slider
                       value={[tempCustomColors.primaryOpacity]}
-                      onValueChange={([value]) => setTempCustomColors({ ...tempCustomColors, primaryOpacity: value })}
+                      onValueChange={([value]) =>
+                        setTempCustomColors({ ...tempCustomColors, primaryOpacity: value })
+                      }
                       max={100}
                       step={1}
                     />
@@ -2077,8 +2307,14 @@ export function SettingsView({
                     <Label>Accent</Label>
                     <input
                       type="color"
-                      value={tempCustomColors.accent.startsWith('#') ? tempCustomColors.accent : '#EC4899'}
-                      onChange={(e) => setTempCustomColors({ ...tempCustomColors, accent: e.target.value })}
+                      value={
+                        tempCustomColors.accent.startsWith('#')
+                          ? tempCustomColors.accent
+                          : '#EC4899'
+                      }
+                      onChange={e =>
+                        setTempCustomColors({ ...tempCustomColors, accent: e.target.value })
+                      }
                       className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
                     />
                   </div>
@@ -2086,7 +2322,9 @@ export function SettingsView({
                     <Label className="text-xs">Opacity: {tempCustomColors.accentOpacity}%</Label>
                     <Slider
                       value={[tempCustomColors.accentOpacity]}
-                      onValueChange={([value]) => setTempCustomColors({ ...tempCustomColors, accentOpacity: value })}
+                      onValueChange={([value]) =>
+                        setTempCustomColors({ ...tempCustomColors, accentOpacity: value })
+                      }
                       max={100}
                       step={1}
                     />
@@ -2099,16 +2337,26 @@ export function SettingsView({
                     <Label>Background</Label>
                     <input
                       type="color"
-                      value={tempCustomColors.background.startsWith('#') ? tempCustomColors.background : '#FFFFFF'}
-                      onChange={(e) => setTempCustomColors({ ...tempCustomColors, background: e.target.value })}
+                      value={
+                        tempCustomColors.background.startsWith('#')
+                          ? tempCustomColors.background
+                          : '#FFFFFF'
+                      }
+                      onChange={e =>
+                        setTempCustomColors({ ...tempCustomColors, background: e.target.value })
+                      }
                       className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Opacity: {tempCustomColors.backgroundOpacity}%</Label>
+                    <Label className="text-xs">
+                      Opacity: {tempCustomColors.backgroundOpacity}%
+                    </Label>
                     <Slider
                       value={[tempCustomColors.backgroundOpacity]}
-                      onValueChange={([value]) => setTempCustomColors({ ...tempCustomColors, backgroundOpacity: value })}
+                      onValueChange={([value]) =>
+                        setTempCustomColors({ ...tempCustomColors, backgroundOpacity: value })
+                      }
                       max={100}
                       step={1}
                     />
@@ -2121,16 +2369,26 @@ export function SettingsView({
                     <Label>Text</Label>
                     <input
                       type="color"
-                      value={tempCustomColors.foreground.startsWith('#') ? tempCustomColors.foreground : '#000000'}
-                      onChange={(e) => setTempCustomColors({ ...tempCustomColors, foreground: e.target.value })}
+                      value={
+                        tempCustomColors.foreground.startsWith('#')
+                          ? tempCustomColors.foreground
+                          : '#000000'
+                      }
+                      onChange={e =>
+                        setTempCustomColors({ ...tempCustomColors, foreground: e.target.value })
+                      }
                       className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Opacity: {tempCustomColors.foregroundOpacity}%</Label>
+                    <Label className="text-xs">
+                      Opacity: {tempCustomColors.foregroundOpacity}%
+                    </Label>
                     <Slider
                       value={[tempCustomColors.foregroundOpacity]}
-                      onValueChange={([value]) => setTempCustomColors({ ...tempCustomColors, foregroundOpacity: value })}
+                      onValueChange={([value]) =>
+                        setTempCustomColors({ ...tempCustomColors, foregroundOpacity: value })
+                      }
                       max={100}
                       step={1}
                     />
@@ -2145,10 +2403,12 @@ export function SettingsView({
               Close
             </Button>
             {colorTheme === 'custom' && showCustomColors && (
-              <Button onClick={() => {
-                applyCustomColors()
-                setShowThemeModal(false)
-              }}>
+              <Button
+                onClick={() => {
+                  applyCustomColors()
+                  setShowThemeModal(false)
+                }}
+              >
                 <Check className="w-4 h-4 mr-2" />
                 Save Changes
               </Button>
@@ -2166,7 +2426,8 @@ export function SettingsView({
               Connect Custom / Business Email
             </DialogTitle>
             <DialogDescription>
-              Connect your business email using IMAP/SMTP settings. You'll need your email provider's server details.
+              Connect your business email using IMAP/SMTP settings. You'll need your email
+              provider's server details.
             </DialogDescription>
           </DialogHeader>
 
@@ -2179,7 +2440,7 @@ export function SettingsView({
                   type="email"
                   placeholder="you@company.com"
                   value={customEmailConfig.email}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={e => setCustomEmailConfig(prev => ({ ...prev, email: e.target.value }))}
                 />
               </div>
 
@@ -2189,7 +2450,7 @@ export function SettingsView({
                   id="custom-name"
                   placeholder="Your Name"
                   value={customEmailConfig.name}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setCustomEmailConfig(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
 
@@ -2200,7 +2461,9 @@ export function SettingsView({
                   type="password"
                   placeholder="App-specific password"
                   value={customEmailConfig.password}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, password: e.target.value }))}
+                  onChange={e =>
+                    setCustomEmailConfig(prev => ({ ...prev, password: e.target.value }))
+                  }
                 />
                 <p className="text-xs text-muted-foreground">
                   Use an app-specific password, not your regular password
@@ -2216,13 +2479,17 @@ export function SettingsView({
                 <Input
                   placeholder="imap.example.com"
                   value={customEmailConfig.imapHost}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, imapHost: e.target.value }))}
+                  onChange={e =>
+                    setCustomEmailConfig(prev => ({ ...prev, imapHost: e.target.value }))
+                  }
                   className="col-span-2"
                 />
                 <Input
                   placeholder="993"
                   value={customEmailConfig.imapPort}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, imapPort: e.target.value }))}
+                  onChange={e =>
+                    setCustomEmailConfig(prev => ({ ...prev, imapPort: e.target.value }))
+                  }
                 />
               </div>
             </div>
@@ -2233,24 +2500,31 @@ export function SettingsView({
                 <Input
                   placeholder="smtp.example.com"
                   value={customEmailConfig.smtpHost}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, smtpHost: e.target.value }))}
+                  onChange={e =>
+                    setCustomEmailConfig(prev => ({ ...prev, smtpHost: e.target.value }))
+                  }
                   className="col-span-2"
                 />
                 <Input
                   placeholder="587"
                   value={customEmailConfig.smtpPort}
-                  onChange={(e) => setCustomEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))}
+                  onChange={e =>
+                    setCustomEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))
+                  }
                 />
               </div>
             </div>
 
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-xs text-muted-foreground">
-                <strong>Common IMAP/SMTP settings:</strong><br/>
-                • Google Workspace: imap.gmail.com / smtp.gmail.com<br/>
-                • Microsoft 365: outlook.office365.com<br/>
-                • GoDaddy: imap.secureserver.net / smtpout.secureserver.net<br/>
-                • Zoho: imap.zoho.com / smtp.zoho.com
+                <strong>Common IMAP/SMTP settings:</strong>
+                <br />
+                • Google Workspace: imap.gmail.com / smtp.gmail.com
+                <br />
+                • Microsoft 365: outlook.office365.com
+                <br />
+                • GoDaddy: imap.secureserver.net / smtpout.secureserver.net
+                <br />• Zoho: imap.zoho.com / smtp.zoho.com
               </p>
             </div>
           </div>
@@ -2266,7 +2540,6 @@ export function SettingsView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   )
 }

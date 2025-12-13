@@ -158,7 +158,10 @@ export class RemoteTimerManager {
   /**
    * Create a new timer room
    */
-  async createRoom(name: string, creatorName: string): Promise<{ room: TimerRoom; shareUrl: string } | null> {
+  async createRoom(
+    name: string,
+    creatorName: string
+  ): Promise<{ room: TimerRoom; shareUrl: string } | null> {
     const roomCode = generateRoomCode()
     const roomId = `room-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -177,8 +180,8 @@ export class RemoteTimerManager {
         theme: 'black-gray', // Default to neutral black-gray theme
         fontSize: 'large',
         messageAutoDismiss: true,
-        messageDefaultDuration: 10 // 10 seconds default
-      }
+        messageDefaultDuration: 10, // 10 seconds default
+      },
     }
 
     const initialState: RoomState = {
@@ -191,7 +194,7 @@ export class RemoteTimerManager {
         remaining: 5 * 60 * 1000,
         startedAt: null,
         pausedAt: null,
-        label: 'Timer'
+        label: 'Timer',
       },
       presets: [
         { id: '1', name: '1 Minute', duration: 60 * 1000, color: '#3b82f6' },
@@ -199,21 +202,23 @@ export class RemoteTimerManager {
         { id: '3', name: '10 Minutes', duration: 10 * 60 * 1000, color: '#f59e0b' },
         { id: '4', name: '15 Minutes', duration: 15 * 60 * 1000, color: '#ef4444' },
         { id: '5', name: '30 Minutes', duration: 30 * 60 * 1000, color: '#8b5cf6' },
-        { id: '6', name: '1 Hour', duration: 60 * 60 * 1000, color: '#ec4899' }
+        { id: '6', name: '1 Hour', duration: 60 * 60 * 1000, color: '#ec4899' },
       ],
       messages: [],
-      participants: [{
-        id: this.participantId,
-        name: creatorName || 'Controller',
-        role: 'controller',
-        joinedAt: Date.now(),
-        lastSeen: Date.now(),
-        deviceType: getDeviceType(),
-        isController: true,
-        isConnected: true
-      }],
+      participants: [
+        {
+          id: this.participantId,
+          name: creatorName || 'Controller',
+          role: 'controller',
+          joinedAt: Date.now(),
+          lastSeen: Date.now(),
+          deviceType: getDeviceType(),
+          isController: true,
+          isConnected: true,
+        },
+      ],
       lastUpdatedBy: this.participantId,
-      lastUpdatedAt: Date.now()
+      lastUpdatedAt: Date.now(),
     }
 
     // Save to localStorage for persistence
@@ -237,7 +242,11 @@ export class RemoteTimerManager {
    * For Controllers: Creates room if not found (they are the source of truth)
    * For Presenters: Fetches from database first, then falls back to broadcast
    */
-  async joinRoom(code: string, participantName: string, asController: boolean = false): Promise<RoomState | null> {
+  async joinRoom(
+    code: string,
+    participantName: string,
+    asController: boolean = false
+  ): Promise<RoomState | null> {
     this.roomCode = code.toUpperCase()
     this.participantName = participantName || 'Viewer'
     this.role = asController ? 'controller' : 'viewer'
@@ -260,7 +269,7 @@ export class RemoteTimerManager {
         lastSeen: Date.now(),
         deviceType: getDeviceType(),
         isController: this.role === 'controller',
-        isConnected: true
+        isConnected: true,
       }
 
       if (!dbRoom.participants.find(p => p.id === this.participantId)) {
@@ -293,7 +302,7 @@ export class RemoteTimerManager {
         lastSeen: Date.now(),
         deviceType: getDeviceType(),
         isController: this.role === 'controller',
-        isConnected: true
+        isConnected: true,
       }
 
       if (!localRoom.participants.find(p => p.id === this.participantId)) {
@@ -323,28 +332,36 @@ export class RemoteTimerManager {
     logger.info('Presenter trying broadcast fallback', { code: upperCode }, 'RemoteTimer')
 
     const tempChannel = supabase.channel(`timer-room-${upperCode}`, {
-      config: { broadcast: { self: true } }
+      config: { broadcast: { self: true } },
     })
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let resolved = false
       let retryCount = 0
       const maxRetries = 5 // Reduced retries since DB is primary (10 seconds total)
 
       const requestState = async () => {
         if (resolved) return
-        logger.info('Presenter requesting state via broadcast', { code: upperCode, retry: retryCount }, 'RemoteTimer')
+        logger.info(
+          'Presenter requesting state via broadcast',
+          { code: upperCode, retry: retryCount },
+          'RemoteTimer'
+        )
         await tempChannel.send({
           type: 'broadcast',
           event: 'state_request',
-          payload: { requesterId: this.participantId, code: upperCode }
+          payload: { requesterId: this.participantId, code: upperCode },
         })
       }
 
       tempChannel
-        .on('broadcast', { event: 'state_sync' }, (payload) => {
+        .on('broadcast', { event: 'state_sync' }, payload => {
           if (!resolved && payload.payload) {
-            logger.info('Presenter received state sync', { roomId: payload.payload.room?.id }, 'RemoteTimer')
+            logger.info(
+              'Presenter received state sync',
+              { roomId: payload.payload.room?.id },
+              'RemoteTimer'
+            )
             resolved = true
             tempChannel.unsubscribe()
             this.joinChannel(payload.payload.room.id, payload.payload)
@@ -354,7 +371,7 @@ export class RemoteTimerManager {
         .on('broadcast', { event: 'state_request' }, () => {
           // Another device is requesting state - we don't have it (we're a presenter)
         })
-        .subscribe(async (status) => {
+        .subscribe(async status => {
           if (status === 'SUBSCRIBED') {
             logger.info('Presenter subscribed to channel', { code: upperCode }, 'RemoteTimer')
             // Request state from controller
@@ -369,7 +386,11 @@ export class RemoteTimerManager {
               retryCount++
               if (retryCount >= maxRetries) {
                 clearInterval(retryInterval)
-                logger.warn('Presenter could not find room', { code: upperCode, retries: maxRetries }, 'RemoteTimer')
+                logger.warn(
+                  'Presenter could not find room',
+                  { code: upperCode, retries: maxRetries },
+                  'RemoteTimer'
+                )
                 if (!resolved) {
                   resolved = true
                   tempChannel.unsubscribe()
@@ -394,7 +415,10 @@ export class RemoteTimerManager {
   /**
    * Create a room with a specific code (used when joining as controller but room doesn't exist)
    */
-  private async createRoomWithCode(code: string, creatorName: string): Promise<{ room: TimerRoom; shareUrl: string } | null> {
+  private async createRoomWithCode(
+    code: string,
+    creatorName: string
+  ): Promise<{ room: TimerRoom; shareUrl: string } | null> {
     const roomId = `room-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
     const room: TimerRoom = {
@@ -412,8 +436,8 @@ export class RemoteTimerManager {
         theme: 'black-gray',
         fontSize: 'large',
         messageAutoDismiss: true,
-        messageDefaultDuration: 10
-      }
+        messageDefaultDuration: 10,
+      },
     }
 
     const initialState: RoomState = {
@@ -426,7 +450,7 @@ export class RemoteTimerManager {
         remaining: 5 * 60 * 1000,
         startedAt: null,
         pausedAt: null,
-        label: 'Timer'
+        label: 'Timer',
       },
       presets: [
         { id: '1', name: '1 Minute', duration: 60 * 1000, color: '#3b82f6' },
@@ -434,21 +458,23 @@ export class RemoteTimerManager {
         { id: '3', name: '10 Minutes', duration: 10 * 60 * 1000, color: '#f59e0b' },
         { id: '4', name: '15 Minutes', duration: 15 * 60 * 1000, color: '#ef4444' },
         { id: '5', name: '30 Minutes', duration: 30 * 60 * 1000, color: '#8b5cf6' },
-        { id: '6', name: '1 Hour', duration: 60 * 60 * 1000, color: '#ec4899' }
+        { id: '6', name: '1 Hour', duration: 60 * 60 * 1000, color: '#ec4899' },
       ],
       messages: [],
-      participants: [{
-        id: this.participantId,
-        name: creatorName || 'Controller',
-        role: 'controller',
-        joinedAt: Date.now(),
-        lastSeen: Date.now(),
-        deviceType: getDeviceType(),
-        isController: true,
-        isConnected: true
-      }],
+      participants: [
+        {
+          id: this.participantId,
+          name: creatorName || 'Controller',
+          role: 'controller',
+          joinedAt: Date.now(),
+          lastSeen: Date.now(),
+          deviceType: getDeviceType(),
+          isController: true,
+          isConnected: true,
+        },
+      ],
       lastUpdatedBy: this.participantId,
-      lastUpdatedAt: Date.now()
+      lastUpdatedAt: Date.now(),
     }
 
     this.saveRoomLocally(roomId, initialState)
@@ -481,16 +507,16 @@ export class RemoteTimerManager {
 
     this.channel = supabase.channel(`timer-room-${initialState.room.code}`, {
       config: {
-        broadcast: { self: true }
-      }
+        broadcast: { self: true },
+      },
     })
 
     this.channel
-      .on('broadcast', { event: 'timer_event' }, (payload) => {
+      .on('broadcast', { event: 'timer_event' }, payload => {
         logger.info('Received timer_event', { type: payload.payload?.type }, 'RemoteTimer')
         this.handleRemoteEvent(payload.payload as RoomEvent)
       })
-      .on('broadcast', { event: 'state_sync' }, (payload) => {
+      .on('broadcast', { event: 'state_sync' }, payload => {
         if (payload.payload && payload.payload.lastUpdatedAt > (this.state?.lastUpdatedAt || 0)) {
           logger.info('Received state_sync, updating state', {}, 'RemoteTimer')
           // Preserve timer calculation - use startedAt to recalculate remaining
@@ -504,23 +530,31 @@ export class RemoteTimerManager {
           this.notifyListeners()
         }
       })
-      .on('broadcast', { event: 'state_request' }, async (payload) => {
+      .on('broadcast', { event: 'state_request' }, async payload => {
         // Someone is requesting state - send it if we have it (any participant with state can share)
         if (this.state) {
-          logger.info('Received state request, broadcasting state', { requesterId: payload.payload?.requesterId }, 'RemoteTimer')
+          logger.info(
+            'Received state request, broadcasting state',
+            { requesterId: payload.payload?.requesterId },
+            'RemoteTimer'
+          )
           await this.broadcastState()
         }
       })
-      .on('broadcast', { event: 'message' }, (payload) => {
+      .on('broadcast', { event: 'message' }, payload => {
         if (payload.payload) {
-          logger.info('Received message', { text: (payload.payload as Message).text }, 'RemoteTimer')
+          logger.info(
+            'Received message',
+            { text: (payload.payload as Message).text },
+            'RemoteTimer'
+          )
           this.handleIncomingMessage(payload.payload as Message)
         }
       })
       .on('presence', { event: 'sync' }, () => {
         // Handle presence updates
       })
-      .subscribe(async (status) => {
+      .subscribe(async status => {
         logger.info('Channel subscription status', { status, roomId }, 'RemoteTimer')
         if (status === 'SUBSCRIBED') {
           logger.info('Successfully joined timer room channel', { roomId }, 'RemoteTimer')
@@ -562,7 +596,11 @@ export class RemoteTimerManager {
         // Presenter: Periodically fetch from database to catch missed updates
         const dbRoom = await this.fetchRoomFromDatabase(this.state.room.code)
         if (dbRoom && dbRoom.lastUpdatedAt > this.state.lastUpdatedAt) {
-          logger.info('Presenter syncing from database', { code: this.state.room.code }, 'RemoteTimer')
+          logger.info(
+            'Presenter syncing from database',
+            { code: this.state.room.code },
+            'RemoteTimer'
+          )
           // Preserve local participant info but update timer state
           const localParticipant = this.state.participants.find(p => p.id === this.participantId)
           this.state = dbRoom
@@ -584,7 +622,7 @@ export class RemoteTimerManager {
     await this.channel.send({
       type: 'broadcast',
       event: 'state_sync',
-      payload: this.state
+      payload: this.state,
     })
   }
 
@@ -597,7 +635,7 @@ export class RemoteTimerManager {
     await this.channel.send({
       type: 'broadcast',
       event: 'timer_event',
-      payload: event
+      payload: event,
     })
   }
 
@@ -725,7 +763,10 @@ export class RemoteTimerManager {
         this.state.timer.elapsed = now - this.state.timer.startedAt
 
         if (this.state.timer.type === 'countdown') {
-          this.state.timer.remaining = Math.max(0, this.state.timer.duration - this.state.timer.elapsed)
+          this.state.timer.remaining = Math.max(
+            0,
+            this.state.timer.duration - this.state.timer.elapsed
+          )
 
           // Check if timer completed
           if (this.state.timer.remaining <= 0) {
@@ -786,8 +827,8 @@ export class RemoteTimerManager {
       payload: {
         duration: duration || this.state.timer.duration,
         label: label || this.state.timer.label,
-        startedAt: startedAt // Synchronized timestamp
-      }
+        startedAt: startedAt, // Synchronized timestamp
+      },
     }
 
     this.handleRemoteEvent(event)
@@ -804,7 +845,7 @@ export class RemoteTimerManager {
     const remaining = this.state.timer.remaining
     const event: RoomEvent = {
       type: 'timer_pause',
-      payload: { pausedAt, remaining }
+      payload: { pausedAt, remaining },
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -820,7 +861,7 @@ export class RemoteTimerManager {
     const newStartedAt = now - (this.state.timer.duration - this.state.timer.remaining)
     const event: RoomEvent = {
       type: 'timer_resume',
-      payload: { startedAt: newStartedAt }
+      payload: { startedAt: newStartedAt },
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -853,7 +894,7 @@ export class RemoteTimerManager {
 
     const event: RoomEvent = {
       type: 'timer_set',
-      payload: { duration, label }
+      payload: { duration, label },
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -866,7 +907,7 @@ export class RemoteTimerManager {
 
     const event: RoomEvent = {
       type: 'timer_add_time',
-      payload: { seconds }
+      payload: { seconds },
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -874,7 +915,11 @@ export class RemoteTimerManager {
     await this.saveRoomToDatabase(this.state)
   }
 
-  async sendMessage(text: string, type: Message['type'] = 'info', expiresInSeconds?: number): Promise<void> {
+  async sendMessage(
+    text: string,
+    type: Message['type'] = 'info',
+    expiresInSeconds?: number
+  ): Promise<void> {
     if (!this.state || !this.channel) return
 
     const message: Message = {
@@ -883,13 +928,13 @@ export class RemoteTimerManager {
       type,
       sentBy: this.participantName,
       sentAt: Date.now(),
-      expiresAt: expiresInSeconds ? Date.now() + (expiresInSeconds * 1000) : undefined,
-      isVisible: true
+      expiresAt: expiresInSeconds ? Date.now() + expiresInSeconds * 1000 : undefined,
+      isVisible: true,
     }
 
     const event: RoomEvent = {
       type: 'message_send',
-      payload: message
+      payload: message,
     }
 
     this.handleRemoteEvent(event)
@@ -899,7 +944,7 @@ export class RemoteTimerManager {
     await this.channel.send({
       type: 'broadcast',
       event: 'message',
-      payload: message
+      payload: message,
     })
 
     // Save to DB for persistence
@@ -911,7 +956,7 @@ export class RemoteTimerManager {
 
     const event: RoomEvent = {
       type: 'message_dismiss',
-      payload: { id }
+      payload: { id },
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -923,7 +968,7 @@ export class RemoteTimerManager {
 
     const event: RoomEvent = {
       type: 'settings_update',
-      payload: settings
+      payload: settings,
     }
     this.handleRemoteEvent(event)
     await this.broadcastEvent(event)
@@ -1000,16 +1045,17 @@ export class RemoteTimerManager {
    */
   private async saveRoomToDatabase(state: RoomState): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('timer_rooms')
-        .upsert({
+      const { error } = await supabase.from('timer_rooms').upsert(
+        {
           code: state.room.code,
           name: state.room.name,
           created_by: state.room.createdBy,
           room_state: state,
           updated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        }, { onConflict: 'code' })
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+        { onConflict: 'code' }
+      )
 
       if (error) {
         logger.error('Failed to save room to database', error, 'RemoteTimer')
@@ -1036,7 +1082,8 @@ export class RemoteTimerManager {
         .single()
 
       if (error) {
-        if (error.code !== 'PGRST116') { // PGRST116 = no rows found (expected)
+        if (error.code !== 'PGRST116') {
+          // PGRST116 = no rows found (expected)
           logger.error('Failed to fetch room from database', error, 'RemoteTimer')
         }
         return null
@@ -1051,7 +1098,10 @@ export class RemoteTimerManager {
         if (roomState.timer.status === 'running' && roomState.timer.startedAt) {
           const now = Date.now()
           roomState.timer.elapsed = now - roomState.timer.startedAt
-          roomState.timer.remaining = Math.max(0, roomState.timer.duration - roomState.timer.elapsed)
+          roomState.timer.remaining = Math.max(
+            0,
+            roomState.timer.duration - roomState.timer.elapsed
+          )
 
           // Check if timer should have completed
           if (roomState.timer.remaining <= 0) {
@@ -1059,11 +1109,15 @@ export class RemoteTimerManager {
             roomState.timer.remaining = 0
           }
 
-          logger.info('Recalculated timer from DB', {
-            startedAt: roomState.timer.startedAt,
-            elapsed: roomState.timer.elapsed,
-            remaining: roomState.timer.remaining
-          }, 'RemoteTimer')
+          logger.info(
+            'Recalculated timer from DB',
+            {
+              startedAt: roomState.timer.startedAt,
+              elapsed: roomState.timer.elapsed,
+              remaining: roomState.timer.remaining,
+            },
+            'RemoteTimer'
+          )
         }
 
         return roomState
@@ -1081,10 +1135,7 @@ export class RemoteTimerManager {
    */
   private async deleteRoomFromDatabase(code: string): Promise<void> {
     try {
-      await supabase
-        .from('timer_rooms')
-        .delete()
-        .eq('code', code.toUpperCase())
+      await supabase.from('timer_rooms').delete().eq('code', code.toUpperCase())
     } catch (error) {
       logger.error('Database delete error', error, 'RemoteTimer')
     }
@@ -1134,7 +1185,7 @@ export class RemoteTimerManager {
       // Broadcast leave event
       const event: RoomEvent = {
         type: 'participant_leave',
-        payload: { id: this.participantId }
+        payload: { id: this.participantId },
       }
       await this.broadcastEvent(event)
 

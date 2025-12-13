@@ -19,7 +19,10 @@ const CACHE_DURATION_HOURS = 6
 /**
  * Fetch top headlines using RSS2JSON (free, no API key)
  */
-export async function fetchDailyNews(category: string = 'general', maxResults: number = 10): Promise<NewsItem[]> {
+export async function fetchDailyNews(
+  category: string = 'general',
+  maxResults: number = 10
+): Promise<NewsItem[]> {
   try {
     const cachedNews = localStorage.getItem(NEWS_CACHE_KEY)
     const cacheTimestamp = localStorage.getItem(NEWS_CACHE_TIMESTAMP_KEY)
@@ -61,7 +64,7 @@ export async function fetchDailyNews(category: string = 'general', maxResults: n
       source: item.author || 'Google News',
       category: category,
       time: formatTime(item.pubDate),
-      url: item.link
+      url: item.link,
     }))
 
     localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsItems))

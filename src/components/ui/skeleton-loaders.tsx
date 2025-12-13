@@ -16,13 +16,7 @@ interface SkeletonProps {
  */
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'animate-pulse rounded-md bg-muted/60',
-        className
-      )}
-      aria-hidden="true"
-    />
+    <div className={cn('animate-pulse rounded-md bg-muted/60', className)} aria-hidden="true" />
   )
 }
 
@@ -32,10 +26,7 @@ export function Skeleton({ className }: SkeletonProps) {
 export function CardSkeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        'rounded-lg border bg-card p-6 space-y-4',
-        className
-      )}
+      className={cn('rounded-lg border bg-card p-6 space-y-4', className)}
       aria-label="Loading content"
       role="progressbar"
     >
@@ -54,13 +45,7 @@ export function CardSkeleton({ className }: SkeletonProps) {
  */
 export function ListItemSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-4 p-4 border-b',
-        className
-      )}
-      aria-hidden="true"
-    >
+    <div className={cn('flex items-center gap-4 p-4 border-b', className)} aria-hidden="true">
       <Skeleton className="h-10 w-10 rounded-full" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-3/4" />
@@ -74,10 +59,7 @@ export function ListItemSkeleton({ className }: SkeletonProps) {
 /**
  * Table row skeleton
  */
-export function TableRowSkeleton({
-  columns = 4,
-  className
-}: SkeletonProps & { columns?: number }) {
+export function TableRowSkeleton({ columns = 4, className }: SkeletonProps & { columns?: number }) {
   return (
     <tr className={className} aria-hidden="true">
       {Array.from({ length: columns }).map((_, i) => (
@@ -92,17 +74,10 @@ export function TableRowSkeleton({
 /**
  * Message/Chat skeleton
  */
-export function MessageSkeleton({
-  isOwn = false,
-  className
-}: SkeletonProps & { isOwn?: boolean }) {
+export function MessageSkeleton({ isOwn = false, className }: SkeletonProps & { isOwn?: boolean }) {
   return (
     <div
-      className={cn(
-        'flex gap-3',
-        isOwn ? 'flex-row-reverse' : '',
-        className
-      )}
+      className={cn('flex gap-3', isOwn ? 'flex-row-reverse' : '', className)}
       aria-hidden="true"
     >
       <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
@@ -143,13 +118,7 @@ export function EmailListSkeleton({ count = 5 }: { count?: number }) {
  */
 export function DeviceCardSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'rounded-xl border p-4 space-y-3',
-        className
-      )}
-      aria-hidden="true"
-    >
+    <div className={cn('rounded-xl border p-4 space-y-3', className)} aria-hidden="true">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Skeleton className="h-10 w-10 rounded-lg" />
@@ -187,10 +156,7 @@ export function ProfileSkeleton({ className }: SkeletonProps) {
 export function DashboardStatsSkeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        'grid grid-cols-2 md:grid-cols-4 gap-4',
-        className
-      )}
+      className={cn('grid grid-cols-2 md:grid-cols-4 gap-4', className)}
       aria-label="Loading statistics"
       role="progressbar"
     >
@@ -207,10 +173,7 @@ export function DashboardStatsSkeleton({ className }: SkeletonProps) {
 export function CCTVFeedSkeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        'aspect-video rounded-lg overflow-hidden relative',
-        className
-      )}
+      className={cn('aspect-video rounded-lg overflow-hidden relative', className)}
       aria-hidden="true"
     >
       <Skeleton className="absolute inset-0" />
@@ -227,13 +190,7 @@ export function CCTVFeedSkeleton({ className }: SkeletonProps) {
  */
 export function NotificationSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'flex gap-3 p-3 border-b',
-        className
-      )}
-      aria-hidden="true"
-    >
+    <div className={cn('flex gap-3 p-3 border-b', className)} aria-hidden="true">
       <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
         <Skeleton className="h-4 w-3/4" />

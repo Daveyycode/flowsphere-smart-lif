@@ -39,7 +39,7 @@ export class ICloudProvider extends EmailProvider {
       redirect_uri: this.redirectUri,
       response_type: 'code',
       response_mode: 'form_post',
-      scope: 'name email'
+      scope: 'name email',
     })
 
     return `https://appleid.apple.com/auth/authorize?${params.toString()}`
@@ -56,15 +56,15 @@ export class ICloudProvider extends EmailProvider {
     const response = await fetch('https://appleid.apple.com/auth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         client_id: this.clientId,
         client_secret: this.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: this.redirectUri
-      })
+        redirect_uri: this.redirectUri,
+      }),
     })
 
     if (!response.ok) {
@@ -75,7 +75,7 @@ export class ICloudProvider extends EmailProvider {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      expiresIn: data.expires_in
+      expiresIn: data.expires_in,
     }
   }
 
@@ -90,7 +90,7 @@ export class ICloudProvider extends EmailProvider {
     // In production, you'd validate the ID token and extract user info
     return {
       email: 'user@icloud.com', // Extracted from ID token
-      name: 'iCloud User'
+      name: 'iCloud User',
     }
   }
 
@@ -108,15 +108,15 @@ export class ICloudProvider extends EmailProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${account.accessToken}`
+        Authorization: `Bearer ${account.accessToken}`,
       },
       body: JSON.stringify({
         account: {
           email: account.email,
-          password: account.accessToken // App-specific password
+          password: account.accessToken, // App-specific password
         },
-        options
-      })
+        options,
+      }),
     })
 
     if (!response.ok) {
@@ -132,7 +132,7 @@ export class ICloudProvider extends EmailProvider {
     return {
       emails: data.emails || [],
       nextPageToken: data.nextPageToken,
-      totalResults: data.total || 0
+      totalResults: data.total || 0,
     }
   }
 
@@ -150,15 +150,15 @@ export class ICloudProvider extends EmailProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${account.accessToken}`
+        Authorization: `Bearer ${account.accessToken}`,
       },
       body: JSON.stringify({
         account: {
           email: account.email,
-          password: account.accessToken // App-specific password
+          password: account.accessToken, // App-specific password
         },
-        email
-      })
+        email,
+      }),
     })
 
     if (!response.ok) {
@@ -173,14 +173,14 @@ export class ICloudProvider extends EmailProvider {
     const response = await fetch('https://appleid.apple.com/auth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         client_id: this.clientId,
         client_secret: this.clientSecret,
         refresh_token: account.refreshToken,
-        grant_type: 'refresh_token'
-      })
+        grant_type: 'refresh_token',
+      }),
     })
 
     if (!response.ok) {
@@ -192,7 +192,7 @@ export class ICloudProvider extends EmailProvider {
     return {
       ...account,
       accessToken: data.access_token,
-      expiresAt: Date.now() + data.expires_in * 1000
+      expiresAt: Date.now() + data.expires_in * 1000,
     }
   }
 
@@ -200,12 +200,13 @@ export class ICloudProvider extends EmailProvider {
    * Get new emails since timestamp
    */
   async getNewEmails(account: EmailAccount, since?: string): Promise<Email[]> {
-    const afterDate = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const afterDate =
+      since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     const result = await this.searchEmails(account, {
       after: afterDate,
       maxResults: 100,
-      isUnread: true
+      isUnread: true,
     })
 
     return result.emails

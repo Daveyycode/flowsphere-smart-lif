@@ -76,12 +76,15 @@ export interface SearchResult {
  */
 export abstract class EmailProvider {
   abstract searchEmails(account: EmailAccount, options: SearchOptions): Promise<SearchResult>
-  abstract sendEmail(account: EmailAccount, email: {
-    to: string[]
-    subject: string
-    body: string
-    html?: string
-  }): Promise<void>
+  abstract sendEmail(
+    account: EmailAccount,
+    email: {
+      to: string[]
+      subject: string
+      body: string
+      html?: string
+    }
+  ): Promise<void>
   abstract refreshAccessToken(account: EmailAccount): Promise<EmailAccount>
   abstract getNewEmails(account: EmailAccount, since?: string): Promise<Email[]>
 }

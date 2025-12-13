@@ -30,21 +30,21 @@ export const FS_ALPHABET = 'FSPHERVAULTQCOD23456789BGKMNWXYZ'
 const FEISTEL_ROUNDS = 8
 // FlowSphere secret constant (derived from "FlowSphere2025Secure")
 const FEISTEL_CONSTANTS = new Uint32Array([
-  0x466C6F77, // "Flow"
+  0x466c6f77, // "Flow"
   0x53706865, // "Sphe"
   0x72653230, // "re20"
   0x32355365, // "25Se"
   0x63757265, // "cure"
   0x56617574, // "Vaut"
-  0x4C744B65, // "LtKe"
-  0x79537973  // "ySys"
+  0x4c744b65, // "LtKe"
+  0x79537973, // "ySys"
 ])
 
 // Key IDs for rotation support
 export const KEY_IDS = {
   PRIMARY: 0x0001,
   SECONDARY: 0x0002,
-  LEGACY: 0x0000
+  LEGACY: 0x0000,
 }
 
 // Flags bitmap
@@ -53,7 +53,7 @@ export const FLAGS = {
   DEVICE_BOUND: 0x01,
   TIME_LIMITED: 0x02,
   ONE_TIME_USE: 0x04,
-  COMPRESSED: 0x08
+  COMPRESSED: 0x08,
 }
 
 // ========== FEISTEL CIPHER (OBFUSCATION LAYER) ==========
@@ -71,8 +71,8 @@ function feistelRoundFunction(data: number, round: number): number {
   result = ((result << rotateAmount) | (result >>> (32 - rotateAmount))) >>> 0
 
   // Additional mixing
-  result = (result * 0x9E3779B9) >>> 0 // Golden ratio constant
-  result ^= (result >>> 16)
+  result = (result * 0x9e3779b9) >>> 0 // Golden ratio constant
+  result ^= result >>> 16
 
   return result >>> 0
 }
@@ -162,12 +162,12 @@ export function fsBase32Encode(data: Uint8Array): string {
 
     while (bits >= 5) {
       bits -= 5
-      result += FS_ALPHABET[(value >>> bits) & 0x1F]
+      result += FS_ALPHABET[(value >>> bits) & 0x1f]
     }
   }
 
   if (bits > 0) {
-    result += FS_ALPHABET[(value << (5 - bits)) & 0x1F]
+    result += FS_ALPHABET[(value << (5 - bits)) & 0x1f]
   }
 
   return result
@@ -190,7 +190,7 @@ export function fsBase32Decode(str: string): Uint8Array {
 
     while (bits >= 8) {
       bits -= 8
-      result.push((value >>> bits) & 0xFF)
+      result.push((value >>> bits) & 0xff)
     }
   }
 
@@ -209,10 +209,7 @@ function generateNonce(): Uint8Array {
 /**
  * Derive encryption key from password and device fingerprint
  */
-export async function deriveKey(
-  password: string,
-  deviceBound: boolean = true
-): Promise<CryptoKey> {
+export async function deriveKey(password: string, deviceBound: boolean = true): Promise<CryptoKey> {
   let keyMaterial = password
 
   if (deviceBound) {
@@ -236,7 +233,7 @@ export async function deriveKey(
       name: 'PBKDF2',
       salt,
       iterations: 310000,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyData,
     { name: 'AES-GCM', length: 256 },
@@ -296,7 +293,7 @@ async function aesDecrypt(
 // ========== FLOWSPHERE PROTOCOL V2 ==========
 
 export interface EncryptedPacket {
-  raw: string           // Final encoded string
+  raw: string // Final encoded string
   version: number
   flags: number
   keyId: number
@@ -334,13 +331,11 @@ export async function fsEncrypt(
     deviceBound = true,
     timeLimited = false,
     oneTimeUse = false,
-    keyId = KEY_IDS.PRIMARY
+    keyId = KEY_IDS.PRIMARY,
   } = options
 
   // Convert string to bytes
-  const data = typeof plaintext === 'string'
-    ? new TextEncoder().encode(plaintext)
-    : plaintext
+  const data = typeof plaintext === 'string' ? new TextEncoder().encode(plaintext) : plaintext
 
   // Calculate flags
   let flags = FLAGS.NONE
@@ -374,8 +369,8 @@ export async function fsEncrypt(
   packet[offset++] = flags
 
   // Key ID (big-endian)
-  packet[offset++] = (keyId >> 8) & 0xFF
-  packet[offset++] = keyId & 0xFF
+  packet[offset++] = (keyId >> 8) & 0xff
+  packet[offset++] = keyId & 0xff
 
   // Nonce
   packet.set(nonce, offset)
@@ -402,7 +397,7 @@ export async function fsEncrypt(
     version: PROTOCOL_VERSION,
     flags,
     keyId,
-    deviceBound
+    deviceBound,
   }
 }
 
@@ -473,7 +468,7 @@ export async function fsDecrypt(
     text: new TextDecoder().decode(decrypted),
     version,
     flags,
-    keyId
+    keyId,
   }
 }
 
@@ -491,7 +486,7 @@ export async function encryptForQR(
   const result = await fsEncrypt(data, sharedSecret, {
     deviceBound,
     oneTimeUse: true,
-    timeLimited: true
+    timeLimited: true,
   })
   return result.raw
 }
@@ -555,7 +550,7 @@ export function getPacketInfo(encrypted: string): {
       version,
       flags,
       keyId,
-      deviceBound: (flags & FLAGS.DEVICE_BOUND) !== 0
+      deviceBound: (flags & FLAGS.DEVICE_BOUND) !== 0,
     }
   } catch (error) {
     logger.debug('FlowSphere crypto protocol validation failed', error)

@@ -15,10 +15,7 @@ export interface ApiResponse<T = any> {
 /**
  * Base fetch wrapper with error handling
  */
-async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
@@ -61,9 +58,9 @@ export const authApi = {
    * Get OAuth providers list
    */
   async getProviders() {
-    return apiFetch<{ providers: Array<{ id: string; name: string; enabled: boolean; icon: string }> }>(
-      '/auth/providers'
-    )
+    return apiFetch<{
+      providers: Array<{ id: string; name: string; enabled: boolean; icon: string }>
+    }>('/auth/providers')
   },
 
   /**

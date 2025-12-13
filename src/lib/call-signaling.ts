@@ -48,7 +48,7 @@ export async function sendCallInvite(
         room_url: roomUrl,
         room_name: roomName,
         call_type: callType,
-        status: 'pending'
+        status: 'pending',
       })
       .select()
       .single()
@@ -74,10 +74,7 @@ export async function updateCallStatus(
   status: 'accepted' | 'rejected' | 'missed' | 'ended'
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('call_invites')
-      .update({ status })
-      .eq('id', inviteId)
+    const { error } = await supabase.from('call_invites').update({ status }).eq('id', inviteId)
 
     if (error) {
       logger.error('[CALL SIGNALING] Failed to update status:', error)
@@ -142,9 +139,9 @@ export function subscribeToCallInvites(
         event: 'INSERT',
         schema: 'public',
         table: 'call_invites',
-        filter: `to_user_id=eq.${userId}`
+        filter: `to_user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         const invite = payload.new as CallInvite
         logger.info('[CALL SIGNALING] Incoming call:', invite)
         if (invite.status === 'pending') {
@@ -158,9 +155,9 @@ export function subscribeToCallInvites(
         event: 'UPDATE',
         schema: 'public',
         table: 'call_invites',
-        filter: `to_user_id=eq.${userId}`
+        filter: `to_user_id=eq.${userId}`,
       },
-      (payload) => {
+      payload => {
         const invite = payload.new as CallInvite
         logger.info('[CALL SIGNALING] Call status updated:', invite)
         if (invite.status === 'ended' || invite.status === 'missed') {
@@ -168,7 +165,7 @@ export function subscribeToCallInvites(
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe(status => {
       logger.info('[CALL SIGNALING] Subscription status:', status)
     })
 
@@ -196,9 +193,9 @@ export function subscribeToCallStatus(
         event: 'UPDATE',
         schema: 'public',
         table: 'call_invites',
-        filter: `id=eq.${inviteId}`
+        filter: `id=eq.${inviteId}`,
       },
-      (payload) => {
+      payload => {
         const invite = payload.new as CallInvite
         logger.info('[CALL SIGNALING] Call status changed:', invite.status)
         onStatusChange(invite.status)

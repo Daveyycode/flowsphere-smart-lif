@@ -21,7 +21,7 @@ export function SteganographicQR({
   value,
   size = 200,
   className,
-  hideMode = 'faint'
+  hideMode = 'faint',
 }: SteganographicQRProps) {
   const ref = useRef<HTMLDivElement>(null)
   const qrCode = useRef<QRCodeStyling | null>(null)
@@ -29,9 +29,9 @@ export function SteganographicQR({
   // Opacity levels for different hide modes
   // NOTE: These need to be high enough for cameras to scan!
   const opacityLevels = {
-    'faint': 0.40,           // Subtle but clearly scannable (40%)
-    'ultra-faint': 0.25,     // Harder to notice, still scannable (25%)
-    'invisible': 0.15        // Very subtle, requires good camera (15%)
+    faint: 0.4, // Subtle but clearly scannable (40%)
+    'ultra-faint': 0.25, // Harder to notice, still scannable (25%)
+    invisible: 0.15, // Very subtle, requires good camera (15%)
   }
 
   const opacity = opacityLevels[hideMode]
@@ -48,12 +48,12 @@ export function SteganographicQR({
       qrOptions: {
         typeNumber: 0,
         mode: 'Byte',
-        errorCorrectionLevel: 'H' // High error correction for better scanning
+        errorCorrectionLevel: 'H', // High error correction for better scanning
       },
       imageOptions: {
         hideBackgroundDots: true,
         imageSize: 0.4,
-        margin: 0
+        margin: 0,
       },
       dotsOptions: {
         type: 'dots', // Softer appearance
@@ -63,21 +63,21 @@ export function SteganographicQR({
           rotation: 45,
           colorStops: [
             { offset: 0, color: `rgba(80, 80, 80, ${opacity * 0.8})` },
-            { offset: 1, color: `rgba(120, 120, 120, ${opacity * 1.2})` }
-          ]
-        }
+            { offset: 1, color: `rgba(120, 120, 120, ${opacity * 1.2})` },
+          ],
+        },
       },
       backgroundOptions: {
-        color: 'transparent'
+        color: 'transparent',
       },
       cornersSquareOptions: {
         type: 'dot',
-        color: `rgba(90, 90, 90, ${opacity * 1.5})` // Slightly more visible corners
+        color: `rgba(90, 90, 90, ${opacity * 1.5})`, // Slightly more visible corners
       },
       cornersDotOptions: {
         type: 'dot',
-        color: `rgba(70, 70, 70, ${opacity * 1.3})`
-      }
+        color: `rgba(70, 70, 70, ${opacity * 1.3})`,
+      },
     })
 
     // Clear previous QR code
@@ -107,19 +107,17 @@ export function SteganographicQR({
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23999999' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23999999' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
       />
 
       {/* QR Code Container */}
       <div
         ref={ref}
-        className={cn(
-          'flex items-center justify-center'
-        )}
+        className={cn('flex items-center justify-center')}
         style={{
           // Removed blur and contrast reduction for better scannability
-          opacity: 0.95 // Keep QR crisp for cameras
+          opacity: 0.95, // Keep QR crisp for cameras
         }}
       />
 
@@ -155,8 +153,8 @@ export function SteganoQRScanner({ onScan, onError, className }: SteganoQRScanne
           video: {
             facingMode: 'environment', // Use back camera on mobile
             width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          }
+            height: { ideal: 1080 },
+          },
         })
 
         if (videoRef.current) {
@@ -230,9 +228,9 @@ export function SteganoQRScanner({ onScan, onError, className }: SteganoQRScanne
         let b = data[i + 2]
 
         // Apply contrast
-        r = ((r - 128) * contrastFactor) + 128
-        g = ((g - 128) * contrastFactor) + 128
-        b = ((b - 128) * contrastFactor) + 128
+        r = (r - 128) * contrastFactor + 128
+        g = (g - 128) * contrastFactor + 128
+        b = (b - 128) * contrastFactor + 128
 
         // Apply brightness
         r += brightnessFactor
@@ -257,7 +255,9 @@ export function SteganoQRScanner({ onScan, onError, className }: SteganoQRScanne
   }, [onScan, onError])
 
   return (
-    <div className={cn('relative w-full aspect-square rounded-lg overflow-hidden bg-black', className)}>
+    <div
+      className={cn('relative w-full aspect-square rounded-lg overflow-hidden bg-black', className)}
+    >
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover"
@@ -283,7 +283,7 @@ export function SteganoQRScanner({ onScan, onError, className }: SteganoQRScanne
             duration: 2,
             repeat: Infinity,
             repeatType: 'reverse',
-            ease: 'linear'
+            ease: 'linear',
           }}
         />
       </div>

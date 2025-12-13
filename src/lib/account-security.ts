@@ -56,7 +56,13 @@ export interface SecurityAlert {
   accountId: string
   accountName: string
   accountType: string
-  alertType: 'suspicious-login' | 'new-location' | 'new-device' | 'failed-attempts' | 'password-change' | 'unusual-activity'
+  alertType:
+    | 'suspicious-login'
+    | 'new-location'
+    | 'new-device'
+    | 'failed-attempts'
+    | 'password-change'
+    | 'unusual-activity'
   severity: 'info' | 'warning' | 'critical'
   timestamp: string
   title: string
@@ -103,8 +109,11 @@ export function monitorAccountSecurity(
           account.lastKnownLocation.longitude
         )
 
-        if (distance > 100) { // >100km away
-          suspicionReasons.push(`Login from ${login.location.city} (${Math.round(distance)}km away)`)
+        if (distance > 100) {
+          // >100km away
+          suspicionReasons.push(
+            `Login from ${login.location.city} (${Math.round(distance)}km away)`
+          )
           riskLevel = 'medium'
         }
       }
@@ -121,7 +130,8 @@ export function monitorAccountSecurity(
       }
 
       // Check time pattern
-      const timeSinceLastLogin = new Date(login.timestamp).getTime() - new Date(account.lastLogin).getTime()
+      const timeSinceLastLogin =
+        new Date(login.timestamp).getTime() - new Date(account.lastLogin).getTime()
       const hoursSinceLastLogin = timeSinceLastLogin / (1000 * 60 * 60)
 
       // Rapid logins from different locations suggest credential theft
@@ -148,14 +158,15 @@ export function monitorAccountSecurity(
           alertType: 'suspicious-login',
           severity: riskLevel === 'critical' || riskLevel === 'high' ? 'critical' : 'warning',
           timestamp: login.timestamp,
-          title: riskLevel === 'critical'
-            ? `🚨 CRITICAL: Suspicious login to ${account.accountName}`
-            : `⚠️ Suspicious login detected - ${account.accountName}`,
+          title:
+            riskLevel === 'critical'
+              ? `🚨 CRITICAL: Suspicious login to ${account.accountName}`
+              : `⚠️ Suspicious login detected - ${account.accountName}`,
           message: `Login from ${login.location.city}, ${login.location.country} using ${login.device.type}. ${suspicionReasons.join('. ')}.`,
           details: {
             location: `${login.location.city}, ${login.location.country}`,
             device: `${login.device.type} - ${login.device.os}`,
-            ip: login.location.ip
+            ip: login.location.ip,
           },
           actionable: true,
           actions: [
@@ -163,8 +174,8 @@ export function monitorAccountSecurity(
             { label: 'Was This You?', type: 'verify-login' },
             { label: 'Change Password', type: 'change-password' },
             { label: 'Enable 2FA', type: 'enable-2fa' },
-            { label: 'Dismiss', type: 'dismiss' }
-          ]
+            { label: 'Dismiss', type: 'dismiss' },
+          ],
         }
 
         onAlert(alert)
@@ -186,14 +197,14 @@ export function monitorAccountSecurity(
         message: `${failedLogins.length} failed login attempts detected on your ${account.type} account. This may indicate someone is trying to access your account.`,
         details: {
           attemptCount: failedLogins.length,
-          location: failedLogins[failedLogins.length - 1]?.location.city
+          location: failedLogins[failedLogins.length - 1]?.location.city,
         },
         actionable: true,
         actions: [
           { label: 'Change Password', type: 'change-password' },
           { label: 'Enable 2FA', type: 'enable-2fa' },
-          { label: 'Dismiss', type: 'dismiss' }
-        ]
+          { label: 'Dismiss', type: 'dismiss' },
+        ],
       }
 
       onAlert(alert)
@@ -204,10 +215,7 @@ export function monitorAccountSecurity(
 /**
  * Check if login is from usual location
  */
-export function isUsualLocation(
-  newLogin: LoginActivity,
-  account: UserAccount
-): boolean {
+export function isUsualLocation(newLogin: LoginActivity, account: UserAccount): boolean {
   const distance = calculateDistance(
     newLogin.location.latitude,
     newLogin.location.longitude,
@@ -222,10 +230,7 @@ export function isUsualLocation(
 /**
  * Check if device is recognized
  */
-export function isRecognizedDevice(
-  newLogin: LoginActivity,
-  account: UserAccount
-): boolean {
+export function isRecognizedDevice(newLogin: LoginActivity, account: UserAccount): boolean {
   return (
     newLogin.device.type === account.lastKnownDevice.type &&
     newLogin.device.os === account.lastKnownDevice.os
@@ -235,19 +240,13 @@ export function isRecognizedDevice(
 /**
  * Calculate distance between two coordinates (Haversine formula)
  */
-function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371 // Earth's radius in km
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lng2 - lng1)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
 }
@@ -288,7 +287,9 @@ export function generateSecurityReport(
 
     if (suspiciousLogins.length > 0) {
       accountScore -= 20 * suspiciousLogins.length
-      criticalIssues.push(`${account.accountName}: ${suspiciousLogins.length} suspicious login(s) detected`)
+      criticalIssues.push(
+        `${account.accountName}: ${suspiciousLogins.length} suspicious login(s) detected`
+      )
     }
 
     // Check failed attempts
@@ -332,7 +333,7 @@ export function generateSecurityReport(
     accountsAtRisk,
     recommendations,
     summary,
-    criticalIssues
+    criticalIssues,
   }
 }
 
@@ -355,18 +356,18 @@ export function generateMockLoginActivity(accountId: string): LoginActivity[] {
         city: 'San Francisco',
         country: 'USA',
         latitude: 37.7749,
-        longitude: -122.4194
+        longitude: -122.4194,
       },
       device: {
         type: 'desktop',
         browser: 'Chrome',
         os: 'macOS',
-        deviceName: 'MacBook Pro'
+        deviceName: 'MacBook Pro',
       },
       success: true,
       suspicious: false,
       suspicionReasons: [],
-      riskLevel: 'low'
+      riskLevel: 'low',
     },
     {
       id: 'login-2',
@@ -379,19 +380,19 @@ export function generateMockLoginActivity(accountId: string): LoginActivity[] {
         city: 'Moscow',
         country: 'Russia',
         latitude: 55.7558,
-        longitude: 37.6173
+        longitude: 37.6173,
       },
       device: {
         type: 'mobile',
         browser: 'Safari',
         os: 'Android',
-        deviceName: 'Unknown'
+        deviceName: 'Unknown',
       },
       success: true,
       suspicious: true,
       suspicionReasons: ['Different country', 'Different device', 'Rapid login'],
-      riskLevel: 'critical'
-    }
+      riskLevel: 'critical',
+    },
   ]
 }
 
@@ -438,6 +439,6 @@ export function secureAccount(account: UserAccount): {
   return {
     steps,
     priority,
-    estimatedTime: '10-15 minutes'
+    estimatedTime: '10-15 minutes',
   }
 }

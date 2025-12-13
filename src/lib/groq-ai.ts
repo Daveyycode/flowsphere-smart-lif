@@ -30,15 +30,8 @@ export interface GroqChatOptions {
 /**
  * Send a prompt to Groq AI via Edge Function (secure) or direct API (fallback)
  */
-export async function groqChat(
-  prompt: string,
-  options: GroqChatOptions = {}
-): Promise<string> {
-  const {
-    model = 'llama-3.3-70b-versatile',
-    temperature = 0.7,
-    max_tokens = 2048,
-  } = options
+export async function groqChat(prompt: string, options: GroqChatOptions = {}): Promise<string> {
+  const { model = 'llama-3.3-70b-versatile', temperature = 0.7, max_tokens = 2048 } = options
 
   // Try Edge Function first (secure - API key hidden server-side)
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
@@ -46,7 +39,7 @@ export async function groqChat(
       const response = await fetch(GROQ_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -72,14 +65,16 @@ export async function groqChat(
 
   // Fallback: Direct API call (for development or if Edge Function not deployed)
   if (!GROQ_API_KEY) {
-    throw new Error('Groq AI not configured. Deploy the groq-ai Edge Function or add VITE_GROQ_API_KEY.')
+    throw new Error(
+      'Groq AI not configured. Deploy the groq-ai Edge Function or add VITE_GROQ_API_KEY.'
+    )
   }
 
   const messages: GroqMessage[] = [
     {
       role: 'user',
-      content: prompt
-    }
+      content: prompt,
+    },
   ]
 
   try {
@@ -87,20 +82,22 @@ export async function groqChat(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
+        Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model,
         messages,
         temperature,
         max_tokens,
-        stream: false
-      })
+        stream: false,
+      }),
     })
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw new Error(`Groq API error: ${response.status} - ${error.error?.message || 'Unknown error'}`)
+      throw new Error(
+        `Groq API error: ${response.status} - ${error.error?.message || 'Unknown error'}`
+      )
     }
 
     const data = await response.json()
@@ -118,11 +115,7 @@ export async function groqChatWithHistory(
   messages: GroqMessage[],
   options: GroqChatOptions = {}
 ): Promise<string> {
-  const {
-    model = 'llama-3.3-70b-versatile',
-    temperature = 0.7,
-    max_tokens = 2048
-  } = options
+  const { model = 'llama-3.3-70b-versatile', temperature = 0.7, max_tokens = 2048 } = options
 
   // Try Edge Function first
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
@@ -130,7 +123,7 @@ export async function groqChatWithHistory(
       const response = await fetch(GROQ_EDGE_FUNCTION, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -162,14 +155,14 @@ export async function groqChatWithHistory(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
+        Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model,
         messages,
         temperature,
-        max_tokens
-      })
+        max_tokens,
+      }),
     })
 
     if (!response.ok) {
@@ -192,11 +185,7 @@ export async function* groqChatStream(
   prompt: string,
   options: GroqChatOptions = {}
 ): AsyncGenerator<string> {
-  const {
-    model = 'llama-3.3-70b-versatile',
-    temperature = 0.7,
-    max_tokens = 2048
-  } = options
+  const { model = 'llama-3.3-70b-versatile', temperature = 0.7, max_tokens = 2048 } = options
 
   if (!GROQ_API_KEY) {
     throw new Error('Groq API key not configured for streaming')
@@ -208,15 +197,15 @@ export async function* groqChatStream(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`
+      Authorization: `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
       model,
       messages,
       temperature,
       max_tokens,
-      stream: true
-    })
+      stream: true,
+    }),
   })
 
   if (!response.ok) {
@@ -262,7 +251,12 @@ export function isGroqConfigured(): boolean {
   const isConfigured = hasEdgeFunction || hasDirectAPI
 
   if (!isConfigured) {
-    console.warn('[Groq] Not configured. Edge Function:', hasEdgeFunction, 'Direct API:', hasDirectAPI)
+    console.warn(
+      '[Groq] Not configured. Edge Function:',
+      hasEdgeFunction,
+      'Direct API:',
+      hasDirectAPI
+    )
   }
 
   return isConfigured

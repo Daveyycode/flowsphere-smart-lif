@@ -24,9 +24,14 @@ import {
   ArrowRight,
   Sparkle,
   SpeakerHigh,
-  Stop
+  Stop,
 } from '@phosphor-icons/react'
-import { askEmailAssistant, getEmailOverview, QUICK_ACTIONS, AssistantResponse } from '@/lib/email/ai-email-assistant'
+import {
+  askEmailAssistant,
+  getEmailOverview,
+  QUICK_ACTIONS,
+  AssistantResponse,
+} from '@/lib/email/ai-email-assistant'
 import { Email } from '@/lib/email/email-service'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -111,7 +116,7 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
       id: Date.now().toString(),
       type: 'user',
       content: query,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -127,7 +132,7 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
         content: response.summary,
         emails: response.emails,
         suggestions: response.suggestions,
-        timestamp: new Date()
+        timestamp: new Date(),
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -139,7 +144,7 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: "I'm sorry, I encountered an error processing your request. Please try again.",
-        timestamp: new Date()
+        timestamp: new Date(),
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
@@ -161,13 +166,20 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
 
   const getQuickActionIcon = (icon: string) => {
     switch (icon) {
-      case 'warning': return Warning
-      case 'briefcase': return Briefcase
-      case 'envelope': return Envelope
-      case 'calendar': return Calendar
-      case 'check': return CheckCircle
-      case 'user': return User
-      default: return Lightning
+      case 'warning':
+        return Warning
+      case 'briefcase':
+        return Briefcase
+      case 'envelope':
+        return Envelope
+      case 'calendar':
+        return Calendar
+      case 'check':
+        return CheckCircle
+      case 'user':
+        return User
+      default:
+        return Lightning
     }
   }
 
@@ -185,11 +197,16 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
 
   const getCategoryColor = (category?: string) => {
     switch (category) {
-      case 'emergency': return 'text-red-500 bg-red-500/10'
-      case 'work': return 'text-blue-500 bg-blue-500/10'
-      case 'personal': return 'text-green-500 bg-green-500/10'
-      case 'subscription': return 'text-purple-500 bg-purple-500/10'
-      default: return 'text-gray-500 bg-gray-500/10'
+      case 'emergency':
+        return 'text-red-500 bg-red-500/10'
+      case 'work':
+        return 'text-blue-500 bg-blue-500/10'
+      case 'personal':
+        return 'text-green-500 bg-green-500/10'
+      case 'subscription':
+        return 'text-purple-500 bg-purple-500/10'
+      default:
+        return 'text-gray-500 bg-gray-500/10'
     }
   }
 
@@ -221,7 +238,7 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
               Quick Actions
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {QUICK_ACTIONS.map((action) => {
+              {QUICK_ACTIONS.map(action => {
                 const Icon = getQuickActionIcon(action.icon)
                 return (
                   <Button
@@ -244,24 +261,23 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
         <ScrollArea className="flex-1 -mx-4 px-4" ref={scrollRef}>
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
-              {messages.map((message) => (
+              {messages.map(message => (
                 <motion.div
                   key={message.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className={cn(
-                    "flex gap-3",
-                    message.type === 'user' && "flex-row-reverse"
-                  )}
+                  className={cn('flex gap-3', message.type === 'user' && 'flex-row-reverse')}
                 >
                   {/* Avatar */}
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                    message.type === 'assistant'
-                      ? "bg-gradient-to-br from-primary to-accent"
-                      : "bg-muted"
-                  )}>
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                      message.type === 'assistant'
+                        ? 'bg-gradient-to-br from-primary to-accent'
+                        : 'bg-muted'
+                    )}
+                  >
                     {message.type === 'assistant' ? (
                       <Robot className="w-5 h-5 text-white" weight="fill" />
                     ) : (
@@ -270,16 +286,20 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
                   </div>
 
                   {/* Content */}
-                  <div className={cn(
-                    "flex-1 space-y-2",
-                    message.type === 'user' && "flex flex-col items-end"
-                  )}>
-                    <div className={cn(
-                      "rounded-lg p-3 max-w-[85%]",
-                      message.type === 'assistant'
-                        ? "bg-muted"
-                        : "bg-primary text-primary-foreground"
-                    )}>
+                  <div
+                    className={cn(
+                      'flex-1 space-y-2',
+                      message.type === 'user' && 'flex flex-col items-end'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'rounded-lg p-3 max-w-[85%]',
+                        message.type === 'assistant'
+                          ? 'bg-muted'
+                          : 'bg-primary text-primary-foreground'
+                      )}
+                    >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       {/* Hear Summary button for assistant messages */}
                       {message.type === 'assistant' && (
@@ -312,14 +332,19 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
                           Related Emails ({message.emails.length})
                         </p>
                         <div className="space-y-1">
-                          {message.emails.slice(0, 5).map((email) => (
+                          {message.emails.slice(0, 5).map(email => (
                             <div
                               key={email.id}
                               className="p-2 rounded-lg bg-background border hover:bg-muted/50 cursor-pointer transition-colors"
                               onClick={() => onEmailSelect?.(email)}
                             >
                               <div className="flex items-center gap-2 mb-1">
-                                <Badge className={cn("text-[10px] px-1.5 py-0", getCategoryColor(email.category))}>
+                                <Badge
+                                  className={cn(
+                                    'text-[10px] px-1.5 py-0',
+                                    getCategoryColor(email.category)
+                                  )}
+                                >
                                   {email.category || 'bills'}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">
@@ -386,7 +411,7 @@ export function AIEmailAssistant({ onEmailSelect }: AIEmailAssistantProps) {
             ref={inputRef}
             placeholder="Ask about your emails... (e.g., 'What's urgent today?')"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             disabled={isLoading}
             className="flex-1"
           />

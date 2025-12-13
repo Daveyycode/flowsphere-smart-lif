@@ -43,7 +43,7 @@ export const initialCallState: CallState = {
   remoteParticipants: [],
   isMicMuted: false,
   isCameraMuted: false,
-  isScreenSharing: false
+  isScreenSharing: false,
 }
 
 // Daily.co API configuration
@@ -68,15 +68,18 @@ export function createCallInstance(): DailyCall {
     subscribeToTracksAutomatically: true,
     // Use permissive audio/video constraints to avoid "Invalid constraint" errors
     dailyConfig: {
-      experimentalChromeVideoMuteLightOff: true
-    }
+      experimentalChromeVideoMuteLightOff: true,
+    },
   })
 }
 
 /**
  * Create a room via Edge Function (secure, uses API key on server)
  */
-export async function createRoom(roomName: string, callType: 'video' | 'audio' = 'video'): Promise<{ url: string } | null> {
+export async function createRoom(
+  roomName: string,
+  callType: 'video' | 'audio' = 'video'
+): Promise<{ url: string } | null> {
   const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
   try {
@@ -84,10 +87,10 @@ export async function createRoom(roomName: string, callType: 'video' | 'audio' =
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'apikey': SUPABASE_ANON_KEY
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ roomName, callType })
+      body: JSON.stringify({ roomName, callType }),
     })
 
     const data = await response.json()
@@ -124,7 +127,7 @@ export async function joinRoom(
     url: roomUrl,
     userName: userName,
     startVideoOff: !isVideoCall,
-    startAudioOff: false
+    startAudioOff: false,
   })
 }
 
@@ -204,7 +207,7 @@ export function subscribeToCallEvents(
     onParticipantUpdated,
     onError,
     onTrackStarted,
-    onTrackStopped
+    onTrackStopped,
   } = handlers
 
   if (onJoinedMeeting) {
@@ -261,7 +264,7 @@ export function checkBrowserSupport(): { supported: boolean; error?: string } {
   if (!supported.supported) {
     return {
       supported: false,
-      error: `Browser not supported`
+      error: `Browser not supported`,
     }
   }
   return { supported: true }
@@ -270,7 +273,10 @@ export function checkBrowserSupport(): { supported: boolean; error?: string } {
 /**
  * Request media permissions
  */
-export async function requestMediaPermissions(video: boolean = true, audio: boolean = true): Promise<{
+export async function requestMediaPermissions(
+  video: boolean = true,
+  audio: boolean = true
+): Promise<{
   granted: boolean
   error?: string
 }> {
@@ -287,7 +293,7 @@ export async function requestMediaPermissions(video: boolean = true, audio: bool
       constraints.video = {
         facingMode: 'user',
         width: { ideal: 1280 },
-        height: { ideal: 720 }
+        height: { ideal: 720 },
       }
     }
 
@@ -316,13 +322,14 @@ export async function requestMediaPermissions(video: boolean = true, audio: bool
 
     return {
       granted: false,
-      error: error.name === 'NotAllowedError'
-        ? 'Camera/microphone permission denied'
-        : error.name === 'OverconstrainedError'
-        ? 'Camera not available on this device'
-        : error.name === 'NotFoundError'
-        ? 'No camera or microphone found'
-        : error.message
+      error:
+        error.name === 'NotAllowedError'
+          ? 'Camera/microphone permission denied'
+          : error.name === 'OverconstrainedError'
+            ? 'Camera not available on this device'
+            : error.name === 'NotFoundError'
+              ? 'No camera or microphone found'
+              : error.message,
     }
   }
 }

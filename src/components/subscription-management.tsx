@@ -1,6 +1,19 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Star, Users, Sparkle, CreditCard, CalendarBlank, Diamond, GraduationCap, DeviceMobile, Database, Infinity, Lock } from '@phosphor-icons/react'
+import {
+  Check,
+  Star,
+  Users,
+  Sparkle,
+  CreditCard,
+  CalendarBlank,
+  Diamond,
+  GraduationCap,
+  DeviceMobile,
+  Database,
+  Infinity,
+  Lock,
+} from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,11 +41,26 @@ interface SubscriptionManagementProps {
 }
 
 export function SubscriptionManagement({ currentPlan, onPlanChange }: SubscriptionManagementProps) {
-  const [billingCycle, setBillingCycle] = useKV<'monthly' | 'yearly'>('flowsphere-billing-cycle', 'monthly')
-  const [paymentMethod] = useKV<{type: 'card' | 'paypal' | 'apple', last4?: string} | null>('flowsphere-payment-method', null)
-  const [nextBillingDate] = useKV<string>('flowsphere-next-billing', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
-  const [isEarlyBirdActive, setIsEarlyBirdActive] = useKV<boolean>('flowsphere-early-bird-active', true)
-  const [earlyBirdStartDate, setEarlyBirdStartDate] = useKV<string | null>('flowsphere-early-bird-start', null)
+  const [billingCycle, setBillingCycle] = useKV<'monthly' | 'yearly'>(
+    'flowsphere-billing-cycle',
+    'monthly'
+  )
+  const [paymentMethod] = useKV<{ type: 'card' | 'paypal' | 'apple'; last4?: string } | null>(
+    'flowsphere-payment-method',
+    null
+  )
+  const [nextBillingDate] = useKV<string>(
+    'flowsphere-next-billing',
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  )
+  const [isEarlyBirdActive, setIsEarlyBirdActive] = useKV<boolean>(
+    'flowsphere-early-bird-active',
+    true
+  )
+  const [earlyBirdStartDate, setEarlyBirdStartDate] = useKV<string | null>(
+    'flowsphere-early-bird-start',
+    null
+  )
   const [hasLifetimeGold, setHasLifetimeGold] = useKV<boolean>('flowsphere-lifetime-gold', false)
   const [activeAddOns, setActiveAddOns] = useKV<{
     aiTutor: number
@@ -41,15 +69,20 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
   }>('flowsphere-active-addons', {
     aiTutor: 0,
     smartDevicePack: 0,
-    extendedMemory: false
+    extendedMemory: false,
   })
-  
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<{id: string, name: string, price: number, isLifetime?: boolean} | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<{
+    id: string
+    name: string
+    price: number
+    isLifetime?: boolean
+  } | null>(null)
   const [tempAddOns, setTempAddOns] = useState({
     aiTutor: activeAddOns?.aiTutor || 0,
     smartDevicePack: activeAddOns?.smartDevicePack || 0,
-    extendedMemory: activeAddOns?.extendedMemory || false
+    extendedMemory: activeAddOns?.extendedMemory || false,
   })
 
   const plans = [
@@ -63,13 +96,8 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       yearlyTotal: 161.88,
       description: 'First-time users',
       color: 'gray',
-      features: [
-        'Email sorting',
-        'Daily prayers',
-        'Basic scheduler',
-        'Limited AI usage'
-      ],
-      cta: 'Get Started'
+      features: ['Email sorting', 'Daily prayers', 'Basic scheduler', 'Limited AI usage'],
+      cta: 'Get Started',
     },
     {
       id: 'pro',
@@ -86,9 +114,9 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         'Traffic alerts',
         'Learning scheduler',
         'AI automation',
-        'Unlimited AI usage'
+        'Unlimited AI usage',
       ],
-      cta: 'Upgrade to Pro'
+      cta: 'Upgrade to Pro',
     },
     {
       id: 'gold',
@@ -105,10 +133,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         'Full automation',
         'Family dashboard',
         'Voice control',
-        'Advanced analytics'
+        'Advanced analytics',
       ],
       cta: 'Go Gold',
-      popular: true
+      popular: true,
     },
     {
       id: 'family',
@@ -125,10 +153,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         'Multi-account (up to 5 users)',
         'Tutor AI',
         'Complete home integration',
-        'Team management & concierge support'
+        'Team management & concierge support',
       ],
-      cta: 'Get Family Plan'
-    }
+      cta: 'Get Family Plan',
+    },
   ]
 
   const addOns: AddOn[] = [
@@ -138,7 +166,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       price: 14.99,
       description: 'Per child per month - Interactive learning assistant with homework help',
       icon: GraduationCap,
-      quantityLabel: 'Number of children'
+      quantityLabel: 'Number of children',
     },
     {
       id: 'smartDevicePack',
@@ -146,15 +174,15 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       price: 4.99,
       description: 'Per pack per month - Add 5 more smart devices to your ecosystem',
       icon: DeviceMobile,
-      quantityLabel: 'Number of packs'
+      quantityLabel: 'Number of packs',
     },
     {
       id: 'extendedMemory',
       name: 'Extended Memory & Analytics',
       price: 3.99,
       description: 'Per month - Extended data retention and advanced insights',
-      icon: Database
-    }
+      icon: Database,
+    },
   ]
 
   const getEarlyBirdDiscount = () => {
@@ -162,7 +190,9 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
 
     const startDate = new Date(earlyBirdStartDate)
     const currentDate = new Date()
-    const monthsSinceStart = Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
+    const monthsSinceStart = Math.floor(
+      (currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+    )
 
     if (monthsSinceStart < 3) {
       return 0.1
@@ -196,9 +226,11 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         toast.success('🎉 Lifetime Gold Access activated! Welcome to the family!')
       } else {
         onPlanChange(selectedPlan.id as 'basic' | 'pro' | 'gold' | 'family')
-        toast.success(`Successfully ${getPlanLevel(selectedPlan.id) > getPlanLevel(currentPlan) ? 'upgraded' : 'changed'} to ${selectedPlan.name} plan!`)
+        toast.success(
+          `Successfully ${getPlanLevel(selectedPlan.id) > getPlanLevel(currentPlan) ? 'upgraded' : 'changed'} to ${selectedPlan.name} plan!`
+        )
       }
-      
+
       if (!earlyBirdStartDate && isEarlyBirdActive) {
         setEarlyBirdStartDate(new Date().toISOString())
       }
@@ -209,7 +241,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
     setActiveAddOns({
       aiTutor: tempAddOns.aiTutor,
       smartDevicePack: tempAddOns.smartDevicePack,
-      extendedMemory: tempAddOns.extendedMemory
+      extendedMemory: tempAddOns.extendedMemory,
     })
     toast.success('Add-ons updated successfully!')
   }
@@ -234,38 +266,48 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
   }
 
   const getCardColor = (color: string) => {
-    switch(color) {
-      case 'gray': return 'border-muted-foreground/20'
-      case 'blue': return 'border-blue-mid/30'
-      case 'gold': return 'border-[#FFB700]/40'
-      case 'purple': return 'border-[#7B61FF]/40'
-      default: return ''
+    switch (color) {
+      case 'gray':
+        return 'border-muted-foreground/20'
+      case 'blue':
+        return 'border-blue-mid/30'
+      case 'gold':
+        return 'border-[#FFB700]/40'
+      case 'purple':
+        return 'border-[#7B61FF]/40'
+      default:
+        return ''
     }
   }
 
   const getIconColor = (color: string) => {
-    switch(color) {
-      case 'gray': return 'text-muted-foreground'
-      case 'blue': return 'text-blue-mid'
-      case 'gold': return 'text-[#FFB700]'
-      case 'purple': return 'text-[#7B61FF]'
-      default: return 'text-foreground'
+    switch (color) {
+      case 'gray':
+        return 'text-muted-foreground'
+      case 'blue':
+        return 'text-blue-mid'
+      case 'gold':
+        return 'text-[#FFB700]'
+      case 'purple':
+        return 'text-[#7B61FF]'
+      default:
+        return 'text-foreground'
     }
   }
 
   const getButtonStyles = (color: string, isCurrentPlan: boolean) => {
     if (isCurrentPlan) return 'bg-muted text-muted-foreground cursor-not-allowed'
-    
-    switch(color) {
-      case 'gray': 
+
+    switch (color) {
+      case 'gray':
         return 'bg-muted-foreground/10 hover:bg-muted-foreground/20 text-foreground'
-      case 'blue': 
+      case 'blue':
         return 'bg-blue-mid hover:bg-blue-deep text-white'
-      case 'gold': 
+      case 'gold':
         return 'bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:from-[#FFB700] hover:to-[#FF9500] text-foreground font-semibold'
-      case 'purple': 
+      case 'purple':
         return 'bg-[#7B61FF] hover:bg-[#6B51EF] text-white'
-      default: 
+      default:
         return 'bg-primary hover:bg-primary/90 text-primary-foreground'
     }
   }
@@ -323,12 +365,8 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                       $349
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground line-through">
-                        $599
-                      </span>
-                      <span className="text-xs text-accent font-semibold">
-                        Save $250
-                      </span>
+                      <span className="text-sm text-muted-foreground line-through">$599</span>
+                      <span className="text-xs text-accent font-semibold">Save $250</span>
                     </div>
                   </div>
                   <ul className="space-y-2">
@@ -390,22 +428,29 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
       )}
 
       <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10">
-        <Label htmlFor="billing-toggle" className={`text-sm sm:text-base font-medium transition-colors ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <Label
+          htmlFor="billing-toggle"
+          className={`text-sm sm:text-base font-medium transition-colors ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}
+        >
           Monthly
         </Label>
-        <motion.div
-          whileTap={{ scale: 0.95 }}
-        >
+        <motion.div whileTap={{ scale: 0.95 }}>
           <Switch
             id="billing-toggle"
             checked={billingCycle === 'yearly'}
-            onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+            onCheckedChange={checked => setBillingCycle(checked ? 'yearly' : 'monthly')}
             className="data-[state=checked]:bg-accent"
           />
         </motion.div>
-        <Label htmlFor="billing-toggle" className={`text-sm sm:text-base font-medium transition-colors ${billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}`}>
+        <Label
+          htmlFor="billing-toggle"
+          className={`text-sm sm:text-base font-medium transition-colors ${billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}`}
+        >
           Yearly
-          <Badge variant="secondary" className="ml-2 text-[10px] sm:text-xs bg-accent/20 text-accent-foreground">
+          <Badge
+            variant="secondary"
+            className="ml-2 text-[10px] sm:text-xs bg-accent/20 text-accent-foreground"
+          >
             Save 10%
           </Badge>
         </Label>
@@ -418,7 +463,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
           const isPopular = plan.popular || false
           let displayPrice = billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice
           const yearlyTotal = plan.yearlyTotal
-          
+
           if (hasEarlyBirdDiscount) {
             displayPrice = displayPrice * (1 - earlyBirdDiscount)
           }
@@ -441,7 +486,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
               )}
               {billingCycle === 'yearly' && !hasEarlyBirdDiscount && (
                 <div className="absolute -top-2 -right-2 z-10">
-                  <Badge variant="secondary" className="bg-accent/90 text-accent-foreground text-[9px] sm:text-[10px] px-2 py-0.5 shadow-sm">
+                  <Badge
+                    variant="secondary"
+                    className="bg-accent/90 text-accent-foreground text-[9px] sm:text-[10px] px-2 py-0.5 shadow-sm"
+                  >
                     Save 10%
                   </Badge>
                 </div>
@@ -453,12 +501,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                   </Badge>
                 </div>
               )}
-              <Card 
+              <Card
                 className={`h-full transition-all duration-300 ${
                   isCurrentPlan ? 'border-primary border-2 shadow-xl' : 'border-2'
-                } ${
-                  getCardColor(plan.color)
-                } ${
+                } ${getCardColor(plan.color)} ${
                   isPopular ? 'shadow-xl glow-accent' : 'shadow-md hover:shadow-xl'
                 } bg-card/50 backdrop-blur-sm`}
               >
@@ -466,13 +512,21 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl sm:text-3xl">{plan.emoji}</span>
-                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${getIconColor(plan.color)}`} weight="duotone" />
+                      <Icon
+                        className={`w-5 h-5 sm:w-6 sm:h-6 ${getIconColor(plan.color)}`}
+                        weight="duotone"
+                      />
                     </div>
                     {isCurrentPlan && (
-                      <Badge variant="default" className="text-[10px] sm:text-xs bg-primary">Active</Badge>
+                      <Badge variant="default" className="text-[10px] sm:text-xs bg-primary">
+                        Active
+                      </Badge>
                     )}
                     {hasLifetimeGold && plan.id === 'gold' && (
-                      <Badge variant="default" className="text-[10px] sm:text-xs bg-[#FFD700] text-foreground">
+                      <Badge
+                        variant="default"
+                        className="text-[10px] sm:text-xs bg-[#FFD700] text-foreground"
+                      >
                         <Infinity className="w-3 h-3 mr-1" weight="bold" />
                         Lifetime
                       </Badge>
@@ -494,9 +548,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                       <span className="text-4xl sm:text-5xl font-bold tracking-tight">
                         ${displayPrice.toFixed(2)}
                       </span>
-                      <span className="text-sm text-muted-foreground">
-                        /month
-                      </span>
+                      <span className="text-sm text-muted-foreground">/month</span>
                     </div>
                     {hasEarlyBirdDiscount && (
                       <p className="text-[10px] sm:text-xs text-[#FFD700] font-semibold mt-1">
@@ -513,34 +565,48 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                 <CardContent className="space-y-4 sm:space-y-5">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
-                      onClick={() => handleUpgrade(
-                        plan.id, 
-                        plan.name, 
-                        hasEarlyBirdDiscount 
-                          ? displayPrice 
-                          : (billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyTotal)
-                      )}
+                      onClick={() =>
+                        handleUpgrade(
+                          plan.id,
+                          plan.name,
+                          hasEarlyBirdDiscount
+                            ? displayPrice
+                            : billingCycle === 'monthly'
+                              ? plan.monthlyPrice
+                              : plan.yearlyTotal
+                        )
+                      }
                       disabled={isCurrentPlan || (!!hasLifetimeGold && plan.id === 'gold')}
-                      className={`w-full min-touch-target text-sm sm:text-base font-semibold rounded-xl transition-all duration-200 ${
-                        getButtonStyles(plan.color, isCurrentPlan || (!!hasLifetimeGold && plan.id === 'gold'))
-                      }`}
+                      className={`w-full min-touch-target text-sm sm:text-base font-semibold rounded-xl transition-all duration-200 ${getButtonStyles(
+                        plan.color,
+                        isCurrentPlan || (!!hasLifetimeGold && plan.id === 'gold')
+                      )}`}
                     >
-                      {hasLifetimeGold && plan.id === 'gold' ? 'Lifetime Active' : isCurrentPlan ? 'Current Plan' : plan.cta}
+                      {hasLifetimeGold && plan.id === 'gold'
+                        ? 'Lifetime Active'
+                        : isCurrentPlan
+                          ? 'Current Plan'
+                          : plan.cta}
                     </Button>
                   </motion.div>
 
                   <div className="space-y-3 pt-2">
                     <ul className="space-y-2.5 sm:space-y-3">
                       {plan.features.map((feature, idx) => (
-                        <motion.li 
-                          key={idx} 
+                        <motion.li
+                          key={idx}
                           className="flex items-start gap-2.5"
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.1 + idx * 0.05 }}
                         >
-                          <Check className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 ${getIconColor(plan.color)}`} weight="bold" />
-                          <span className="text-xs sm:text-sm text-foreground leading-relaxed">{feature}</span>
+                          <Check
+                            className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 ${getIconColor(plan.color)}`}
+                            weight="bold"
+                          />
+                          <span className="text-xs sm:text-sm text-foreground leading-relaxed">
+                            {feature}
+                          </span>
                         </motion.li>
                       ))}
                     </ul>
@@ -559,9 +625,7 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
         className="mt-12 sm:mt-16 max-w-5xl mx-auto"
       >
         <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
-            Optional Add-Ons
-          </h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">Optional Add-Ons</h2>
           <p className="text-sm sm:text-base text-muted-foreground">
             Enhance your FlowSphere experience with these powerful extras
           </p>
@@ -571,9 +635,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
           <CardContent className="p-6 sm:p-8 space-y-6">
             {addOns.map((addOn, index) => {
               const Icon = addOn.icon
-              const isActive = addOn.id === 'extendedMemory' 
-                ? tempAddOns.extendedMemory 
-                : (tempAddOns[addOn.id as keyof typeof tempAddOns] as number) > 0
+              const isActive =
+                addOn.id === 'extendedMemory'
+                  ? tempAddOns.extendedMemory
+                  : (tempAddOns[addOn.id as keyof typeof tempAddOns] as number) > 0
 
               return (
                 <motion.div
@@ -603,7 +668,10 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                     <div className="flex items-center gap-3 sm:ml-4">
                       {addOn.quantityLabel ? (
                         <div className="flex items-center gap-2">
-                          <Label htmlFor={`addon-${addOn.id}`} className="text-xs sm:text-sm whitespace-nowrap">
+                          <Label
+                            htmlFor={`addon-${addOn.id}`}
+                            className="text-xs sm:text-sm whitespace-nowrap"
+                          >
                             {addOn.quantityLabel}:
                           </Label>
                           <Input
@@ -612,10 +680,15 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                             min="0"
                             max="10"
                             value={tempAddOns[addOn.id as keyof typeof tempAddOns] as number}
-                            onChange={(e) => setTempAddOns({
-                              ...tempAddOns,
-                              [addOn.id]: Math.max(0, Math.min(10, parseInt(e.target.value) || 0))
-                            })}
+                            onChange={e =>
+                              setTempAddOns({
+                                ...tempAddOns,
+                                [addOn.id]: Math.max(
+                                  0,
+                                  Math.min(10, parseInt(e.target.value) || 0)
+                                ),
+                              })
+                            }
                             className="w-20 text-center"
                           />
                         </div>
@@ -624,10 +697,12 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                           <Checkbox
                             id={`addon-${addOn.id}`}
                             checked={tempAddOns.extendedMemory}
-                            onCheckedChange={(checked) => setTempAddOns({
-                              ...tempAddOns,
-                              extendedMemory: checked as boolean
-                            })}
+                            onCheckedChange={checked =>
+                              setTempAddOns({
+                                ...tempAddOns,
+                                extendedMemory: checked as boolean,
+                              })
+                            }
                           />
                           <Label htmlFor={`addon-${addOn.id}`} className="text-sm cursor-pointer">
                             Enable
@@ -683,8 +758,8 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
           Start your 3-day free trial today — no credit card required
         </p>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-semibold px-8 py-6 text-base sm:text-lg rounded-xl shadow-lg"
           >
             Start Free Trial
@@ -717,9 +792,13 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
             <div>
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Next Billing Date</p>
               <p className="text-base sm:text-lg font-semibold">
-                {hasLifetimeGold 
-                  ? 'Never (Lifetime)' 
-                  : new Date(nextBillingDate || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {hasLifetimeGold
+                  ? 'Never (Lifetime)'
+                  : new Date(nextBillingDate || Date.now()).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
               </p>
             </div>
             <div>
@@ -727,19 +806,21 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-muted-foreground" />
                 <p className="text-base sm:text-lg font-semibold">
-                  {paymentMethod?.type === 'card' && paymentMethod?.last4 
-                    ? `•••• ${paymentMethod.last4}` 
+                  {paymentMethod?.type === 'card' && paymentMethod?.last4
+                    ? `•••• ${paymentMethod.last4}`
                     : paymentMethod?.type === 'paypal'
-                    ? 'PayPal'
-                    : paymentMethod?.type === 'apple'
-                    ? 'Apple Pay'
-                    : 'No payment method'}
+                      ? 'PayPal'
+                      : paymentMethod?.type === 'apple'
+                        ? 'Apple Pay'
+                        : 'No payment method'}
                 </p>
               </div>
             </div>
           </div>
-          
-          {((activeAddOns?.aiTutor || 0) > 0 || (activeAddOns?.smartDevicePack || 0) > 0 || activeAddOns?.extendedMemory) && (
+
+          {((activeAddOns?.aiTutor || 0) > 0 ||
+            (activeAddOns?.smartDevicePack || 0) > 0 ||
+            activeAddOns?.extendedMemory) && (
             <div className="pt-4 border-t border-border/50">
               <p className="text-xs sm:text-sm text-muted-foreground mb-3">Active Add-Ons</p>
               <div className="space-y-2">
@@ -749,7 +830,9 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                       <GraduationCap className="w-4 h-4 text-accent" />
                       <span>AI Tutor Module × {activeAddOns?.aiTutor}</span>
                     </div>
-                    <span className="font-semibold">${((activeAddOns?.aiTutor || 0) * 14.99).toFixed(2)}/mo</span>
+                    <span className="font-semibold">
+                      ${((activeAddOns?.aiTutor || 0) * 14.99).toFixed(2)}/mo
+                    </span>
                   </div>
                 )}
                 {(activeAddOns?.smartDevicePack || 0) > 0 && (
@@ -758,7 +841,9 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
                       <DeviceMobile className="w-4 h-4 text-accent" />
                       <span>Smart Device Pack × {activeAddOns?.smartDevicePack}</span>
                     </div>
-                    <span className="font-semibold">${((activeAddOns?.smartDevicePack || 0) * 4.99).toFixed(2)}/mo</span>
+                    <span className="font-semibold">
+                      ${((activeAddOns?.smartDevicePack || 0) * 4.99).toFixed(2)}/mo
+                    </span>
                   </div>
                 )}
                 {activeAddOns?.extendedMemory && (
@@ -801,7 +886,8 @@ export function SubscriptionManagement({ currentPlan, onPlanChange }: Subscripti
           </p>
         )}
         <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-          Need help choosing? <button className="text-accent hover:underline font-medium">Contact our team</button>
+          Need help choosing?{' '}
+          <button className="text-accent hover:underline font-medium">Contact our team</button>
         </p>
       </div>
 

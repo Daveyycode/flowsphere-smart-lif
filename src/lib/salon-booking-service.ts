@@ -91,11 +91,11 @@ export async function searchSalons(
       services: [
         {
           id: 'svc-1',
-          name: 'Women\'s Haircut & Style',
+          name: "Women's Haircut & Style",
           description: 'Professional cut with wash and style',
           duration: 60,
           price: 85,
-          category: 'haircut'
+          category: 'haircut',
         },
         {
           id: 'svc-2',
@@ -103,8 +103,8 @@ export async function searchSalons(
           description: 'Hand-painted highlights',
           duration: 180,
           price: 250,
-          category: 'color'
-        }
+          category: 'color',
+        },
       ],
       hours: {
         monday: '9:00 AM - 7:00 PM',
@@ -113,11 +113,11 @@ export async function searchSalons(
         thursday: '9:00 AM - 8:00 PM',
         friday: '9:00 AM - 8:00 PM',
         saturday: '8:00 AM - 6:00 PM',
-        sunday: 'Closed'
+        sunday: 'Closed',
       },
       specialties: ['Balayage', 'Color Correction', 'Extensions'],
       images: [],
-      verified: true
+      verified: true,
     },
     {
       id: 'salon-2',
@@ -137,7 +137,7 @@ export async function searchSalons(
           description: 'Luxury haircut experience',
           duration: 90,
           price: 150,
-          category: 'haircut'
+          category: 'haircut',
         },
         {
           id: 'svc-4',
@@ -145,8 +145,8 @@ export async function searchSalons(
           description: 'Professional smoothing treatment',
           duration: 240,
           price: 400,
-          category: 'treatment'
-        }
+          category: 'treatment',
+        },
       ],
       hours: {
         monday: '10:00 AM - 8:00 PM',
@@ -155,11 +155,11 @@ export async function searchSalons(
         thursday: '10:00 AM - 8:00 PM',
         friday: '10:00 AM - 8:00 PM',
         saturday: '9:00 AM - 7:00 PM',
-        sunday: '10:00 AM - 6:00 PM'
+        sunday: '10:00 AM - 6:00 PM',
       },
       specialties: ['Keratin', 'Brazilian Blowout', 'Luxury Services'],
       images: [],
-      verified: true
+      verified: true,
     },
     {
       id: 'salon-3',
@@ -178,7 +178,7 @@ export async function searchSalons(
           description: 'Fast and affordable cut',
           duration: 30,
           price: 35,
-          category: 'haircut'
+          category: 'haircut',
         },
         {
           id: 'svc-6',
@@ -186,8 +186,8 @@ export async function searchSalons(
           description: 'Single process color',
           duration: 90,
           price: 75,
-          category: 'color'
-        }
+          category: 'color',
+        },
       ],
       hours: {
         monday: '9:00 AM - 6:00 PM',
@@ -196,12 +196,12 @@ export async function searchSalons(
         thursday: '9:00 AM - 6:00 PM',
         friday: '9:00 AM - 6:00 PM',
         saturday: '9:00 AM - 5:00 PM',
-        sunday: 'Closed'
+        sunday: 'Closed',
       },
       specialties: ['Quick Service', 'Walk-ins Welcome'],
       images: [],
-      verified: false
-    }
+      verified: false,
+    },
   ]
 
   // Sort based on criteria
@@ -222,14 +222,14 @@ export async function searchSalons(
     case 'cheapest':
       sortedSalons = sortedSalons.filter(s => s.priceRange === '$' || s.priceRange === '$$')
       sortedSalons.sort((a, b) => {
-        const priceOrder = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 }
+        const priceOrder = { $: 1, $$: 2, $$$: 3, $$$$: 4 }
         return priceOrder[a.priceRange] - priceOrder[b.priceRange]
       })
       break
     case 'vip':
       sortedSalons = sortedSalons.filter(s => s.priceRange === '$$$' || s.priceRange === '$$$$')
       sortedSalons.sort((a, b) => {
-        const priceOrder = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 }
+        const priceOrder = { $: 1, $$: 2, $$$: 3, $$$$: 4 }
         return priceOrder[b.priceRange] - priceOrder[a.priceRange]
       })
       break
@@ -253,7 +253,7 @@ export async function fetchRealtimeSalonData(
   return {
     rating: 4.5,
     reviewCount: 250,
-    verified: true
+    verified: true,
   }
 }
 
@@ -271,7 +271,7 @@ export async function makeAIEmailBooking(
       confirmed: false,
       message: 'Booking cancelled - user did not approve',
       contactMethod: 'email',
-      cost: 0
+      cost: 0,
     }
   }
 
@@ -288,7 +288,7 @@ export async function makeAIEmailBooking(
     confirmed: false, // Requires salon confirmation
     message: `Booking request sent to ${salon.name} via email. You'll receive a confirmation within 24 hours.`,
     contactMethod: 'email',
-    cost: 0.50 // Cost of AI email from credit system
+    cost: 0.5, // Cost of AI email from credit system
   }
 }
 
@@ -306,7 +306,7 @@ export async function makeAIPhoneBooking(
       confirmed: false,
       message: 'Booking cancelled - user did not approve',
       contactMethod: 'phone',
-      cost: 0
+      cost: 0,
     }
   }
 
@@ -322,7 +322,7 @@ export async function makeAIPhoneBooking(
     confirmationNumber: `CONF-${Date.now()}`,
     message: `Booking confirmed at ${salon.name} for ${booking.preferredDate} at ${booking.preferredTime}`,
     contactMethod: 'phone',
-    cost: 2.00 // Cost of AI phone call from credit system
+    cost: 2.0, // Cost of AI phone call from credit system
   }
 }
 
@@ -340,7 +340,7 @@ export async function makeAISMSBooking(
       confirmed: false,
       message: 'Booking cancelled - user did not approve',
       contactMethod: 'sms',
-      cost: 0
+      cost: 0,
     }
   }
 
@@ -353,7 +353,7 @@ export async function makeAISMSBooking(
     confirmed: false,
     message: `Booking request sent to ${salon.name} via SMS. They'll reply to confirm.`,
     contactMethod: 'sms',
-    cost: 0.75 // Cost of AI SMS from credit system
+    cost: 0.75, // Cost of AI SMS from credit system
   }
 }
 
@@ -401,12 +401,12 @@ function generateBookingSMS(salon: Salon, booking: BookingRequest): string {
  */
 export function getServiceRecommendations(hairNeeds: string): string[] {
   const recommendations: Record<string, string[]> = {
-    'haircut': ['Women\'s Haircut', 'Men\'s Haircut', 'Kids Haircut', 'Trim'],
-    'color': ['Full Color', 'Highlights', 'Balayage', 'Color Correction', 'Root Touch-up'],
-    'treatment': ['Keratin Treatment', 'Deep Conditioning', 'Scalp Treatment', 'Brazilian Blowout'],
-    'styling': ['Blowout', 'Updo', 'Curls', 'Special Occasion Style'],
-    'length': ['Extensions', 'Weave', 'Hair Addition'],
-    'texture': ['Perm', 'Relaxer', 'Straightening']
+    haircut: ["Women's Haircut", "Men's Haircut", 'Kids Haircut', 'Trim'],
+    color: ['Full Color', 'Highlights', 'Balayage', 'Color Correction', 'Root Touch-up'],
+    treatment: ['Keratin Treatment', 'Deep Conditioning', 'Scalp Treatment', 'Brazilian Blowout'],
+    styling: ['Blowout', 'Updo', 'Curls', 'Special Occasion Style'],
+    length: ['Extensions', 'Weave', 'Hair Addition'],
+    texture: ['Perm', 'Relaxer', 'Straightening'],
   }
 
   const lowerNeeds = hairNeeds.toLowerCase()

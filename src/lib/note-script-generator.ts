@@ -42,7 +42,7 @@ export async function generateScriptFromNotes(
     includeClosing = true,
     removeFillers = true,
     improvePacing = true,
-    enhanceClarity = true
+    enhanceClarity = true,
   } = options
 
   // Clean and process transcript
@@ -61,7 +61,7 @@ export async function generateScriptFromNotes(
         type: 'clarity',
         description: 'Removed filler words for smoother flow',
         before: 'um, like, you know...',
-        after: 'Clear and direct language'
+        after: 'Clear and direct language',
       })
     }
   }
@@ -73,7 +73,7 @@ export async function generateScriptFromNotes(
       type: 'structure',
       description: 'Enhanced sentence structure and paragraph breaks',
       before: 'Long run-on sentences',
-      after: 'Clear, well-structured sentences'
+      after: 'Clear, well-structured sentences',
     })
   }
 
@@ -83,7 +83,7 @@ export async function generateScriptFromNotes(
     type: 'tone',
     description: `Adjusted tone to be more ${tone}`,
     before: 'Raw transcript',
-    after: `${tone.charAt(0).toUpperCase() + tone.slice(1)} tone applied`
+    after: `${tone.charAt(0).toUpperCase() + tone.slice(1)} tone applied`,
   })
 
   // Step 4: Add greeting and closing
@@ -115,7 +115,7 @@ export async function generateScriptFromNotes(
     tone,
     wordCount,
     readingTime,
-    suggestions
+    suggestions,
   }
 }
 
@@ -195,7 +195,7 @@ function getGreeting(tone: ScriptOptions['tone'] = 'professional'): string {
     professional: 'Good morning/afternoon. Thank you for joining me.',
     casual: 'Hey everyone! Thanks for being here.',
     formal: 'Dear colleagues and stakeholders, I appreciate your time and attention.',
-    friendly: 'Hi there! Great to connect with you today.'
+    friendly: 'Hi there! Great to connect with you today.',
   }
 
   return greetings[tone] || greetings.professional
@@ -206,10 +206,12 @@ function getGreeting(tone: ScriptOptions['tone'] = 'professional'): string {
  */
 function getClosing(tone: ScriptOptions['tone'] = 'professional'): string {
   const closings = {
-    professional: 'Thank you for your time and attention. Please feel free to reach out with any questions.',
+    professional:
+      'Thank you for your time and attention. Please feel free to reach out with any questions.',
     casual: 'Thanks for listening! Hit me up if you have any questions.',
-    formal: 'I thank you for your attention and remain available for any clarifications you may require.',
-    friendly: 'Thanks so much! Feel free to reach out anytime with questions or thoughts.'
+    formal:
+      'I thank you for your attention and remain available for any clarifications you may require.',
+    friendly: 'Thanks so much! Feel free to reach out anytime with questions or thoughts.',
   }
 
   return closings[tone] || closings.professional
@@ -245,12 +247,16 @@ function generateSuggestions(script: string, improvements: ScriptImprovement[]):
   if (wordCount < 50) {
     suggestions.push('💡 Consider adding more detail and examples to reach your audience better')
   } else if (wordCount > 500) {
-    suggestions.push('💡 Your script is quite long. Consider breaking it into multiple parts or removing less essential details')
+    suggestions.push(
+      '💡 Your script is quite long. Consider breaking it into multiple parts or removing less essential details'
+    )
   }
 
   // Sentence length suggestions
   if (avgWordsPerSentence > 25) {
-    suggestions.push('💡 Some sentences are quite long. Break them down for better clarity and flow')
+    suggestions.push(
+      '💡 Some sentences are quite long. Break them down for better clarity and flow'
+    )
   } else if (avgWordsPerSentence < 10) {
     suggestions.push('💡 Try combining some short sentences for better flow')
   }
@@ -291,22 +297,38 @@ export function getScriptImprovementTips(script: string): string[] {
   const tips: string[] = []
 
   // Check for transitions
-  if (!script.includes('furthermore') && !script.includes('additionally') && !script.includes('moreover')) {
+  if (
+    !script.includes('furthermore') &&
+    !script.includes('additionally') &&
+    !script.includes('moreover')
+  ) {
     tips.push('Add transition words (furthermore, additionally, moreover) to connect ideas')
   }
 
   // Check for examples
-  if (!script.includes('for example') && !script.includes('for instance') && !script.includes('such as')) {
+  if (
+    !script.includes('for example') &&
+    !script.includes('for instance') &&
+    !script.includes('such as')
+  ) {
     tips.push('Include specific examples to illustrate your points')
   }
 
   // Check for emphasis
-  if (!script.includes('important') && !script.includes('crucial') && !script.includes('essential')) {
+  if (
+    !script.includes('important') &&
+    !script.includes('crucial') &&
+    !script.includes('essential')
+  ) {
     tips.push('Highlight key points with emphasis words (important, crucial, essential)')
   }
 
   // Check for conclusion
-  if (!script.includes('conclusion') && !script.includes('summary') && !script.includes('in summary')) {
+  if (
+    !script.includes('conclusion') &&
+    !script.includes('summary') &&
+    !script.includes('in summary')
+  ) {
     tips.push('Add a clear conclusion or summary section')
   }
 
@@ -339,7 +361,12 @@ export function formatScriptForEmail(script: string, subject?: string): string {
 export async function generateScriptVariations(
   transcript: string
 ): Promise<Record<string, GeneratedScript>> {
-  const tones: ('professional' | 'casual' | 'formal' | 'friendly')[] = ['professional', 'casual', 'formal', 'friendly']
+  const tones: ('professional' | 'casual' | 'formal' | 'friendly')[] = [
+    'professional',
+    'casual',
+    'formal',
+    'friendly',
+  ]
 
   const variations: Record<string, GeneratedScript> = {}
 

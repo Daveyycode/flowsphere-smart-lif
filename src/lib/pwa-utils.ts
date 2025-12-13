@@ -9,7 +9,7 @@ export async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js', {
-        scope: '/'
+        scope: '/',
       })
 
       logger.info('Service Worker registered successfully:', registration.scope, 'PWA')
@@ -69,13 +69,13 @@ export async function showNotification(title: string, options?: NotificationOpti
       return registration.showNotification(title, {
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        ...options
+        ...options,
       } as NotificationOptions)
     } else {
       // Fallback to regular notification
       return new Notification(title, {
         icon: '/icon-192.png',
-        ...options
+        ...options,
       })
     }
   }
@@ -83,8 +83,10 @@ export async function showNotification(title: string, options?: NotificationOpti
 
 // Check if app is installed
 export function isAppInstalled(): boolean {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         (window.navigator as any).standalone === true
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  )
 }
 
 // Prompt to install app
@@ -110,7 +112,7 @@ export function playSound(soundType: 'notification' | 'success' | 'error' | 'war
     notification: [800, 1000],
     success: [523, 659, 784],
     error: [400, 300],
-    warning: [600, 500, 600]
+    warning: [600, 500, 600],
   }
 
   const freq = frequencies[soundType]
@@ -191,7 +193,7 @@ export function getGeolocation(): Promise<GeolocationPosition> {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
         timeout: 5000,
-        maximumAge: 0
+        maximumAge: 0,
       })
     } else {
       reject(new Error('Geolocation not supported'))
@@ -211,6 +213,6 @@ export function getDeviceCapabilities() {
     hasSpeechRecognition: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
     hasBluetooth: 'bluetooth' in navigator,
     isInstalled: isAppInstalled(),
-    isOnline: navigator.onLine
+    isOnline: navigator.onLine,
   }
 }

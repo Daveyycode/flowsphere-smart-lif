@@ -42,14 +42,23 @@ export class EmailAIClassifier {
         console.log('📋 Loaded user work settings:', {
           workKeywords: this.settings.workKeywords?.length || 0,
           workDomains: this.settings.workDomains?.length || 0,
-          personalDomains: this.settings.personalDomains?.length || 0
+          personalDomains: this.settings.personalDomains?.length || 0,
         })
       } else {
         // Default settings
         this.settings = {
-          workKeywords: ['project', 'meeting', 'deadline', 'team', 'office', 'task', 'report', 'client'],
+          workKeywords: [
+            'project',
+            'meeting',
+            'deadline',
+            'team',
+            'office',
+            'task',
+            'report',
+            'client',
+          ],
           workDomains: [],
-          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com']
+          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'],
         }
       }
     } catch (error) {
@@ -57,7 +66,7 @@ export class EmailAIClassifier {
       this.settings = {
         workKeywords: [],
         workDomains: [],
-        personalDomains: []
+        personalDomains: [],
       }
     }
   }
@@ -74,15 +83,18 @@ export class EmailAIClassifier {
    * These settings are the PRIMARY classification rules - they OVERRIDE general AI logic
    */
   private getUserSettingsPrompt(): string {
-    const workKeywords = this.settings.workKeywords?.length > 0
-      ? this.settings.workKeywords.join(', ')
-      : 'NONE CONFIGURED'
-    const workDomains = this.settings.workDomains?.length > 0
-      ? this.settings.workDomains.join(', ')
-      : 'NONE CONFIGURED'
-    const personalDomains = this.settings.personalDomains?.length > 0
-      ? this.settings.personalDomains.join(', ')
-      : 'NONE CONFIGURED'
+    const workKeywords =
+      this.settings.workKeywords?.length > 0
+        ? this.settings.workKeywords.join(', ')
+        : 'NONE CONFIGURED'
+    const workDomains =
+      this.settings.workDomains?.length > 0
+        ? this.settings.workDomains.join(', ')
+        : 'NONE CONFIGURED'
+    const personalDomains =
+      this.settings.personalDomains?.length > 0
+        ? this.settings.personalDomains.join(', ')
+        : 'NONE CONFIGURED'
 
     return `
 === USER'S CUSTOM CATEGORIZATION SETTINGS (PRIMARY - MUST FOLLOW) ===
@@ -249,7 +261,9 @@ Respond ONLY with valid JSON:
 
     try {
       if (!this.groqApiKey) {
-        console.warn('⚠️ No Groq API key - using local fallback (configure VITE_GROQ_API_KEY for AI classification)')
+        console.warn(
+          '⚠️ No Groq API key - using local fallback (configure VITE_GROQ_API_KEY for AI classification)'
+        )
         return this.getDefaultClassification(email)
       }
 
@@ -259,7 +273,7 @@ Respond ONLY with valid JSON:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.groqApiKey}`
+          Authorization: `Bearer ${this.groqApiKey}`,
         },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
@@ -291,16 +305,16 @@ URGENT FLAG (VERY STRICT):
 - NEVER urgent: promos, sales, login links, newsletters, retail
 - ONLY urgent: actual emergencies, deadlines from boss
 
-Respond with valid JSON only.`
+Respond with valid JSON only.`,
             },
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           temperature: 0.2, // Lower temperature for more consistent classification
-          max_tokens: 600
-        })
+          max_tokens: 600,
+        }),
       })
 
       if (!response.ok) {
@@ -336,7 +350,7 @@ Respond with valid JSON only.`
         tags: classification.tags || [],
         isUrgent: classification.isUrgent || false,
         requiresAction: classification.requiresAction || false,
-        suggestedActions: classification.suggestedActions
+        suggestedActions: classification.suggestedActions,
       }
     } catch (error) {
       console.error('❌ Groq AI classification failed:', error)
@@ -381,13 +395,22 @@ Respond with valid JSON only.`
       'danger',
       'intruder',
       'fire alarm',
-      'break-in'
+      'break-in',
     ]
 
     const text = `${email.subject} ${email.body}`.toLowerCase()
 
     // First check if it's a subscription/newsletter - these are NOT emergencies
-    const subscriptionIndicators = ['newsletter', 'digest', 'unsubscribe', 'weekly', 'monthly', 'tips', 'best practices', 'get the most']
+    const subscriptionIndicators = [
+      'newsletter',
+      'digest',
+      'unsubscribe',
+      'weekly',
+      'monthly',
+      'tips',
+      'best practices',
+      'get the most',
+    ]
     const isNewsletter = subscriptionIndicators.some(ind => text.includes(ind))
     if (isNewsletter) return false
 
@@ -405,59 +428,162 @@ Respond with valid JSON only.`
    */
   private readonly SUBSCRIPTION_TRIGGER_WORDS = [
     // Core subscription triggers
-    'newsletter', 'update', 'your account', 'renewal', 'receipt',
-    'order confirmation', 'shipping', 'unsubscribe', 'promotion', 'deal',
-    'discount', 'weekly digest', 'monthly roundup', 'new post', "you're invited",
-    'exclusive offer', 'limited time', 'flash sale', 'welcome to',
-    'thank you for subscribing', 'subscription', 'billing',
+    'newsletter',
+    'update',
+    'your account',
+    'renewal',
+    'receipt',
+    'order confirmation',
+    'shipping',
+    'unsubscribe',
+    'promotion',
+    'deal',
+    'discount',
+    'weekly digest',
+    'monthly roundup',
+    'new post',
+    "you're invited",
+    'exclusive offer',
+    'limited time',
+    'flash sale',
+    'welcome to',
+    'thank you for subscribing',
+    'subscription',
+    'billing',
     // Payment-related
-    'payment was unsuccessful', 'payment unsuccessful', 'payment declined',
-    'payment to', 'unable to charge', 'charge the credit card',
-    'subscription suspended', 'subscription cancelled', 'subscription canceled',
-    'trial started', 'trial ending', 'trial expires', 'free trial',
+    'payment was unsuccessful',
+    'payment unsuccessful',
+    'payment declined',
+    'payment to',
+    'unable to charge',
+    'charge the credit card',
+    'subscription suspended',
+    'subscription cancelled',
+    'subscription canceled',
+    'trial started',
+    'trial ending',
+    'trial expires',
+    'free trial',
     // Service names
-    'netflix', 'spotify', 'amazon', 'medium', 'substack', 'patreon',
-    'google play', 'apple', 'microsoft', 'adobe', 'dropbox', 'slack',
-    'notion', 'figma', 'github', 'zoom', 'canva', 'openai', 'anthropic'
+    'netflix',
+    'spotify',
+    'amazon',
+    'medium',
+    'substack',
+    'patreon',
+    'google play',
+    'apple',
+    'microsoft',
+    'adobe',
+    'dropbox',
+    'slack',
+    'notion',
+    'figma',
+    'github',
+    'zoom',
+    'canva',
+    'openai',
+    'anthropic',
   ]
 
   /**
    * WORK TRIGGER WORDS - Professional/business context
    */
   private readonly WORK_TRIGGER_WORDS = [
-    'meeting', 'deadline', 'project', 'report', 'client', 'invoice',
-    'follow-up', 'task', 'collaboration', 'team update', 'standup', 'sprint',
-    'review', 'approval', 'fyi', 'q4 goals', 'deliverable', 'status update',
-    'onboarding', 'offboarding', 'performance review', 'budget', 'expenses',
-    'contract', 'nda'
+    'meeting',
+    'deadline',
+    'project',
+    'report',
+    'client',
+    'invoice',
+    'follow-up',
+    'task',
+    'collaboration',
+    'team update',
+    'standup',
+    'sprint',
+    'review',
+    'approval',
+    'fyi',
+    'q4 goals',
+    'deliverable',
+    'status update',
+    'onboarding',
+    'offboarding',
+    'performance review',
+    'budget',
+    'expenses',
+    'contract',
+    'nda',
   ]
 
   /**
    * PERSONAL TRIGGER WORDS - Informal/relational emails
    */
   private readonly PERSONAL_TRIGGER_WORDS = [
-    'hey', 'hi there', 'how are you', 'dinner', 'lunch', 'coffee',
-    'catch up', 'weekend plans', 'birthday', 'happy birthday', 'congratulations',
-    'thank you', 'sorry', 'family', 'mom', 'dad', 'love you', 'see you soon',
-    'thinking of you', 'photos attached'
+    'hey',
+    'hi there',
+    'how are you',
+    'dinner',
+    'lunch',
+    'coffee',
+    'catch up',
+    'weekend plans',
+    'birthday',
+    'happy birthday',
+    'congratulations',
+    'thank you',
+    'sorry',
+    'family',
+    'mom',
+    'dad',
+    'love you',
+    'see you soon',
+    'thinking of you',
+    'photos attached',
   ]
 
   /**
    * URGENT TRIGGER WORDS - Time-sensitive (FLAG, can overlap)
    */
   private readonly URGENT_TRIGGER_WORDS = [
-    'urgent', 'asap', 'immediate', 'now', 'today', 'tomorrow', 'emergency',
-    'critical', 'action required', 'help needed', 'outage', 'down', 'crash',
-    'fix now', 'call me', 'important', 'high priority', 'reply by eod', 'due today'
+    'urgent',
+    'asap',
+    'immediate',
+    'now',
+    'today',
+    'tomorrow',
+    'emergency',
+    'critical',
+    'action required',
+    'help needed',
+    'outage',
+    'down',
+    'crash',
+    'fix now',
+    'call me',
+    'important',
+    'high priority',
+    'reply by eod',
+    'due today',
   ]
 
   /**
    * MISC/SPAM TRIGGER WORDS - Catch-all for spam/irrelevant
    */
   private readonly MISC_TRIGGER_WORDS = [
-    'click here', 'free offer', 'win a prize', 'congratulations you won',
-    'verify your account', 'enlarge', 'viagra', 'prince from nigeria',
-    'act now', 'limited spots', 'guarantee', '100% free'
+    'click here',
+    'free offer',
+    'win a prize',
+    'congratulations you won',
+    'verify your account',
+    'enlarge',
+    'viagra',
+    'prince from nigeria',
+    'act now',
+    'limited spots',
+    'guarantee',
+    '100% free',
   ]
 
   /**
@@ -465,18 +591,25 @@ Respond with valid JSON only.`
    * Subscription must have: "subscription" + (amount/money OR company name)
    * Example: "your subscription to Flowsphere amounting $35 is unsuccessful..."
    */
-  isRealSubscriptionEmail(email: Email): { isSubscription: boolean; reason?: string; confidence: number } {
+  isRealSubscriptionEmail(email: Email): {
+    isSubscription: boolean
+    reason?: string
+    confidence: number
+  } {
     const text = `${email.subject} ${email.body || email.snippet || ''}`.toLowerCase()
 
     // PATTERN 1: "subscription" + money amount
     // Matches: subscription $35, subscription 35$, subscription amounting $35, subscription of $35
-    const hasSubscriptionWithMoney = /subscription[\s\w]*(\$[\d.,]+|[\d.,]+\$|amounting[\s]*\$?[\d.,]+|[\d.,]+[\s]?(dollars?|usd|eur|gbp|php|peso))/i.test(text)
+    const hasSubscriptionWithMoney =
+      /subscription[\s\w]*(\$[\d.,]+|[\d.,]+\$|amounting[\s]*\$?[\d.,]+|[\d.,]+[\s]?(dollars?|usd|eur|gbp|php|peso))/i.test(
+        text
+      )
 
     if (hasSubscriptionWithMoney) {
       return {
         isSubscription: true,
         reason: 'Contains "subscription" with money amount',
-        confidence: 0.95
+        confidence: 0.95,
       }
     }
 
@@ -487,7 +620,7 @@ Respond with valid JSON only.`
       return {
         isSubscription: true,
         reason: `Contains "subscription to ${subscriptionToMatch[1].trim()}"`,
-        confidence: 0.9
+        confidence: 0.9,
       }
     }
 
@@ -505,7 +638,7 @@ Respond with valid JSON only.`
       'subscription.*expired',
       'subscription.*unsuccessful',
       'renew.*subscription',
-      'cancel.*subscription'
+      'cancel.*subscription',
     ]
 
     for (const pattern of paymentSubscriptionPatterns) {
@@ -513,19 +646,53 @@ Respond with valid JSON only.`
         return {
           isSubscription: true,
           reason: `Matches subscription payment pattern: "${pattern}"`,
-          confidence: 0.9
+          confidence: 0.9,
         }
       }
     }
 
     // PATTERN 4: Known subscription service names + billing context
-    const knownServices = ['netflix', 'spotify', 'amazon prime', 'apple music', 'youtube premium',
-      'hulu', 'disney+', 'hbo max', 'adobe', 'microsoft 365', 'dropbox', 'google one',
-      'icloud', 'slack', 'notion', 'figma', 'github', 'anthropic', 'openai', 'patreon',
-      'substack', 'flowsphere', 'google play', 'app store']
+    const knownServices = [
+      'netflix',
+      'spotify',
+      'amazon prime',
+      'apple music',
+      'youtube premium',
+      'hulu',
+      'disney+',
+      'hbo max',
+      'adobe',
+      'microsoft 365',
+      'dropbox',
+      'google one',
+      'icloud',
+      'slack',
+      'notion',
+      'figma',
+      'github',
+      'anthropic',
+      'openai',
+      'patreon',
+      'substack',
+      'flowsphere',
+      'google play',
+      'app store',
+    ]
 
-    const billingContext = ['billing', 'payment', 'charge', 'invoice', 'receipt', 'renewal',
-      'trial', 'unsuccessful', 'failed', 'declined', 'expired', 'suspended']
+    const billingContext = [
+      'billing',
+      'payment',
+      'charge',
+      'invoice',
+      'receipt',
+      'renewal',
+      'trial',
+      'unsuccessful',
+      'failed',
+      'declined',
+      'expired',
+      'suspended',
+    ]
 
     for (const service of knownServices) {
       if (text.includes(service)) {
@@ -535,7 +702,7 @@ Respond with valid JSON only.`
           return {
             isSubscription: true,
             reason: `Known service "${service}" with billing context`,
-            confidence: 0.85
+            confidence: 0.85,
           }
         }
       }
@@ -543,9 +710,16 @@ Respond with valid JSON only.`
 
     // PATTERN 5: Generic subscription keywords (lower confidence)
     const genericTriggers = [
-      'your membership', 'account billing', 'billing statement', 'payment receipt',
-      'monthly charge', 'recurring payment', 'auto-renewal', 'subscription plan',
-      'your plan', 'plan renewal'
+      'your membership',
+      'account billing',
+      'billing statement',
+      'payment receipt',
+      'monthly charge',
+      'recurring payment',
+      'auto-renewal',
+      'subscription plan',
+      'your plan',
+      'plan renewal',
     ]
 
     const matchedGeneric = genericTriggers.find(trigger => text.includes(trigger))
@@ -553,14 +727,14 @@ Respond with valid JSON only.`
       return {
         isSubscription: true,
         reason: `Contains generic billing trigger: "${matchedGeneric}"`,
-        confidence: 0.7
+        confidence: 0.7,
       }
     }
 
     return {
       isSubscription: false,
       reason: 'No subscription pattern found (need "subscription" + amount/company)',
-      confidence: 0.3
+      confidence: 0.3,
     }
   }
 
@@ -569,10 +743,12 @@ Respond with valid JSON only.`
    */
   private isWorkEmailByTriggers(email: Email): { isWork: boolean; reason?: string } {
     const text = `${email.subject} ${email.body || email.snippet || ''}`.toLowerCase()
-    const matchedTrigger = this.WORK_TRIGGER_WORDS.find(trigger => text.includes(trigger.toLowerCase()))
+    const matchedTrigger = this.WORK_TRIGGER_WORDS.find(trigger =>
+      text.includes(trigger.toLowerCase())
+    )
     return {
       isWork: !!matchedTrigger,
-      reason: matchedTrigger ? `Contains work trigger: "${matchedTrigger}"` : undefined
+      reason: matchedTrigger ? `Contains work trigger: "${matchedTrigger}"` : undefined,
     }
   }
 
@@ -581,15 +757,20 @@ Respond with valid JSON only.`
    */
   private isPersonalEmailByTriggers(email: Email): { isPersonal: boolean; reason?: string } {
     const text = `${email.subject} ${email.body || email.snippet || ''}`.toLowerCase()
-    const matchedTrigger = this.PERSONAL_TRIGGER_WORDS.find(trigger => text.includes(trigger.toLowerCase()))
+    const matchedTrigger = this.PERSONAL_TRIGGER_WORDS.find(trigger =>
+      text.includes(trigger.toLowerCase())
+    )
 
     // Also check for personal email domains (non-work context)
     const personalDomains = ['gmail.com', 'hotmail.com', 'yahoo.com', 'icloud.com', 'outlook.com']
-    const isFromPersonalDomain = personalDomains.some(d => email.from.email.toLowerCase().includes(d))
+    const isFromPersonalDomain = personalDomains.some(d =>
+      email.from.email.toLowerCase().includes(d)
+    )
 
     return {
-      isPersonal: !!matchedTrigger || (isFromPersonalDomain && !this.isWorkEmailByTriggers(email).isWork),
-      reason: matchedTrigger ? `Contains personal trigger: "${matchedTrigger}"` : undefined
+      isPersonal:
+        !!matchedTrigger || (isFromPersonalDomain && !this.isWorkEmailByTriggers(email).isWork),
+      reason: matchedTrigger ? `Contains personal trigger: "${matchedTrigger}"` : undefined,
     }
   }
 
@@ -601,7 +782,9 @@ Respond with valid JSON only.`
     const subject = email.subject
 
     // Check for urgent trigger words
-    const hasUrgentWord = this.URGENT_TRIGGER_WORDS.some(trigger => text.includes(trigger.toLowerCase()))
+    const hasUrgentWord = this.URGENT_TRIGGER_WORDS.some(trigger =>
+      text.includes(trigger.toLowerCase())
+    )
 
     // Check for ALL CAPS subject
     const hasAllCapsSubject = subject.length > 5 && subject === subject.toUpperCase()
@@ -624,7 +807,9 @@ Respond with valid JSON only.`
    * Use Groq AI to verify if email is a true subscription email
    * This provides additional verification beyond the main classification
    */
-  async verifySubscriptionWithAI(email: Email): Promise<{ isSubscription: boolean; reason: string; confidence: number }> {
+  async verifySubscriptionWithAI(
+    email: Email
+  ): Promise<{ isSubscription: boolean; reason: string; confidence: number }> {
     if (!this.groqApiKey) {
       console.log('⚠️ No Groq API key for subscription verification, using local check')
       const result = this.isRealSubscriptionEmail(email)
@@ -671,20 +856,21 @@ Respond ONLY in JSON:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.groqApiKey}`
+          Authorization: `Bearer ${this.groqApiKey}`,
         },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [
             {
               role: 'system',
-              content: 'You are a subscription email detector. Be strict: only emails with "subscription" + billing/payment context are true subscription emails. Newsletters, promos, and order confirmations are NOT subscription emails.'
+              content:
+                'You are a subscription email detector. Be strict: only emails with "subscription" + billing/payment context are true subscription emails. Newsletters, promos, and order confirmations are NOT subscription emails.',
             },
-            { role: 'user', content: prompt }
+            { role: 'user', content: prompt },
           ],
           temperature: 0.1, // Very low for consistent decisions
-          max_tokens: 250
-        })
+          max_tokens: 250,
+        }),
       })
 
       if (!response.ok) {
@@ -724,11 +910,13 @@ Respond ONLY in JSON:
       'microsoft.com',
       'adobe.com',
       'stripe.com',
-      'paypal.com'
+      'paypal.com',
     ]
 
     // Only return true if it also has subscription content
-    const isFromServiceDomain = subscriptionDomains.some(domain => email.from.email.includes(domain))
+    const isFromServiceDomain = subscriptionDomains.some(domain =>
+      email.from.email.includes(domain)
+    )
     if (isFromServiceDomain) {
       const result = this.isRealSubscriptionEmail(email)
       return result.isSubscription
@@ -766,24 +954,69 @@ Respond ONLY in JSON:
 
     // Sender indicators (promotional/marketing senders)
     const promoSenderPatterns = [
-      'promotion', 'promo', 'marketing', 'newsletter', 'noreply', 'no-reply',
-      'deals', 'offers', 'sales', 'campaign', 'mailer', 'info@', 'support@'
+      'promotion',
+      'promo',
+      'marketing',
+      'newsletter',
+      'noreply',
+      'no-reply',
+      'deals',
+      'offers',
+      'sales',
+      'campaign',
+      'mailer',
+      'info@',
+      'support@',
     ]
-    const isFromPromoSender = promoSenderPatterns.some(p => senderEmail.includes(p) || senderName.includes(p))
+    const isFromPromoSender = promoSenderPatterns.some(
+      p => senderEmail.includes(p) || senderName.includes(p)
+    )
 
     // Subject/content indicators
     const promoContentPatterns = [
-      'sale', '% off', 'discount', 'voucher', 'coupon', 'deal', 'offer',
-      'free shipping', 'limited time', 'shop now', 'buy now', 'exclusive',
-      '12.12', '11.11', '10.10', 'black friday', 'cyber monday', 'flash sale',
-      'clearance', 'save', 'win', 'prize', 'giveaway', 'spree'
+      'sale',
+      '% off',
+      'discount',
+      'voucher',
+      'coupon',
+      'deal',
+      'offer',
+      'free shipping',
+      'limited time',
+      'shop now',
+      'buy now',
+      'exclusive',
+      '12.12',
+      '11.11',
+      '10.10',
+      'black friday',
+      'cyber monday',
+      'flash sale',
+      'clearance',
+      'save',
+      'win',
+      'prize',
+      'giveaway',
+      'spree',
     ]
     const hasPromoContent = promoContentPatterns.some(p => text.includes(p))
 
     // Known retail stores (always promotional unless subscription billing)
     const retailStores = [
-      'lazada', 'shopee', 'amazon', 'zalora', 'shein', 'aliexpress',
-      'ebay', 'wish', 'taobao', 'uniqlo', 'h&m', 'zara', 'nike', 'adidas'
+      'lazada',
+      'shopee',
+      'amazon',
+      'zalora',
+      'shein',
+      'aliexpress',
+      'ebay',
+      'wish',
+      'taobao',
+      'uniqlo',
+      'h&m',
+      'zara',
+      'nike',
+      'adidas',
     ]
     const isFromRetail = retailStores.some(r => senderEmail.includes(r) || senderName.includes(r))
 
@@ -800,9 +1033,10 @@ Respond ONLY in JSON:
     )
 
     // Check if from individual (not noreply, no-reply, etc.)
-    const isFromIndividual = !email.from.email.toLowerCase().includes('noreply') &&
-                             !email.from.email.toLowerCase().includes('no-reply') &&
-                             !email.from.email.toLowerCase().includes('donotreply')
+    const isFromIndividual =
+      !email.from.email.toLowerCase().includes('noreply') &&
+      !email.from.email.toLowerCase().includes('no-reply') &&
+      !email.from.email.toLowerCase().includes('donotreply')
 
     return fromPersonalDomain && isFromIndividual
   }
@@ -820,7 +1054,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['bills'],
         isUrgent: false,
-        requiresAction: false
+        requiresAction: false,
       }
     }
 
@@ -837,8 +1071,14 @@ Respond ONLY in JSON:
     const isPromotional = this.isPromotionalEmail(email)
 
     // USER SETTINGS ONLY - no generic trigger words
-    const workCheck = { isWork: workByUserSettings, reason: workByUserSettings ? 'Matched user work settings' : undefined }
-    const personalCheck = { isPersonal: personalByUserSettings, reason: personalByUserSettings ? 'Matched user personal settings' : undefined }
+    const workCheck = {
+      isWork: workByUserSettings,
+      reason: workByUserSettings ? 'Matched user work settings' : undefined,
+    }
+    const personalCheck = {
+      isPersonal: personalByUserSettings,
+      reason: personalByUserSettings ? 'Matched user personal settings' : undefined,
+    }
 
     // PROMOTIONAL CHECK FIRST - always REGULAR
     if (isPromotional && !subscriptionCheck.isSubscription) {
@@ -849,7 +1089,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['promo', 'retail'],
         isUrgent: false,
-        requiresAction: false
+        requiresAction: false,
       }
     }
 
@@ -861,7 +1101,10 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['subscription', 'service'],
         isUrgent: isUrgent,
-        requiresAction: subscriptionCheck.reason?.includes('payment') || subscriptionCheck.reason?.includes('unsuccessful') || false
+        requiresAction:
+          subscriptionCheck.reason?.includes('payment') ||
+          subscriptionCheck.reason?.includes('unsuccessful') ||
+          false,
       }
     }
 
@@ -873,7 +1116,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['alert', 'urgent'],
         isUrgent: true,
-        requiresAction: true
+        requiresAction: true,
       }
     }
 
@@ -885,7 +1128,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['work', 'business'],
         isUrgent: isUrgent,
-        requiresAction: true
+        requiresAction: true,
       }
     }
 
@@ -897,7 +1140,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['personal'],
         isUrgent: isUrgent,
-        requiresAction: false
+        requiresAction: false,
       }
     }
 
@@ -909,7 +1152,7 @@ Respond ONLY in JSON:
         summary: email.subject,
         tags: ['billing', 'service'],
         isUrgent: false,
-        requiresAction: false
+        requiresAction: false,
       }
     }
 
@@ -919,7 +1162,7 @@ Respond ONLY in JSON:
       summary: email.subject,
       tags: [],
       isUrgent: false,
-      requiresAction: false
+      requiresAction: false,
     }
   }
 }

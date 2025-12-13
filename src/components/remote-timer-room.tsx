@@ -27,7 +27,7 @@ import {
   Check,
   ArrowLeft,
   Info,
-  QrCode
+  QrCode,
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
@@ -145,18 +145,16 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
 
   // Landing page
   return (
-    <div className={cn("space-y-6", isMobile ? "px-2" : "max-w-2xl mx-auto")}>
+    <div className={cn('space-y-6', isMobile ? 'px-2' : 'max-w-2xl mx-auto')}>
       {/* Header */}
       <Card className="bg-gradient-to-br from-orange-500/10 via-red-500/10 to-purple-500/10 border-orange-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
+        <CardHeader className={cn(isMobile ? 'pb-2' : 'pb-4')}>
           <CardTitle className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
               <Broadcast className="w-7 h-7 text-white" weight="fill" />
             </div>
             <div>
-              <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
-                Remote Timer
-              </h1>
+              <h1 className={cn('font-bold', isMobile ? 'text-xl' : 'text-2xl')}>Remote Timer</h1>
               <p className="text-sm text-muted-foreground">
                 Sync timers across devices for presentations and events
               </p>
@@ -173,7 +171,9 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
             <div className="text-sm">
               <p className="font-medium text-blue-500">How it works</p>
               <ul className="text-muted-foreground mt-1 space-y-1">
-                <li>1. Create a room as the <strong>Controller</strong></li>
+                <li>
+                  1. Create a room as the <strong>Controller</strong>
+                </li>
                 <li>2. Share the presenter link with the speaker/screen</li>
                 <li>3. Control the timer and send messages remotely</li>
               </ul>
@@ -192,8 +192,8 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Start a new timer room and become the controller. You'll get a shareable link
-            for presenters to join.
+            Start a new timer room and become the controller. You'll get a shareable link for
+            presenters to join.
           </p>
           <Button
             onClick={handleCreateRoom}
@@ -231,7 +231,7 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
               <Input
                 placeholder="Enter 6-character code"
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                onChange={e => setJoinCode(e.target.value.toUpperCase())}
                 maxLength={6}
                 className="font-mono text-lg tracking-widest uppercase text-center"
               />
@@ -271,32 +271,21 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recentRooms.map((code) => (
+              {recentRooms.map(code => (
                 <div
                   key={code}
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                 >
                   <span className="font-mono font-bold text-lg">{code}</span>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyRoomLink(code, true)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => copyRoomLink(code, true)}>
                       {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleJoinRoom(code, true)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleJoinRoom(code, true)}>
                       <SlidersHorizontal className="w-4 h-4 mr-1" />
                       Control
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleJoinRoom(code, false)}
-                    >
+                    <Button size="sm" onClick={() => handleJoinRoom(code, false)}>
                       <MonitorPlay className="w-4 h-4 mr-1" />
                       Present
                     </Button>
@@ -343,11 +332,7 @@ export function RemoteTimerRoom({ initialRoomCode, initialMode, onBack }: Remote
 
       {/* Back button */}
       {onBack && (
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="w-full text-muted-foreground"
-        >
+        <Button variant="ghost" onClick={onBack} className="w-full text-muted-foreground">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Smart Timer
         </Button>

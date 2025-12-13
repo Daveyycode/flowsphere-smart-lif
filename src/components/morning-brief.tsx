@@ -15,7 +15,7 @@ import {
   PencilSimple,
   Plus,
   Trash,
-  CheckCircle
+  CheckCircle,
 } from '@phosphor-icons/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,9 @@ import { WeatherStore, TrafficStore, NotificationSyncStore } from '@/lib/shared-
 interface MorningBriefProps {
   isVisible: boolean
   onDismiss: () => void
-  onTabChange?: (tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'traffic' | 'settings') => void
+  onTabChange?: (
+    tab: 'dashboard' | 'devices' | 'family' | 'notifications' | 'traffic' | 'settings'
+  ) => void
 }
 
 interface DailyNote {
@@ -77,7 +79,8 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
   const [completedCards, setCompletedCards] = useKV<string[]>('flowsphere-completed-cards', [])
 
   const currentHour = new Date().getHours()
-  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
+  const greeting =
+    currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
 
   // Get real sleep data from tracking
   const sleepData = getTodaySleepData()
@@ -88,25 +91,25 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
       condition: 'sunny',
       temperature: 72,
       high: 78,
-      low: 65
+      low: 65,
     },
     sleep: {
       hours: sleepData.hours || 0,
-      quality: sleepData.quality || 0
+      quality: sleepData.quality || 0,
     },
     traffic: {
       status: 'light',
       duration: '--',
-      delay: '--'
+      delay: '--',
     },
     schedule: {
       events: 0,
-      nextEvent: 'No upcoming events'
+      nextEvent: 'No upcoming events',
     },
     notifications: {
       unread: 0,
-      important: 0
-    }
+      important: 0,
+    },
   })
 
   // Update sleep data whenever it changes
@@ -116,8 +119,8 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
         ...briefData,
         sleep: {
           hours: sleepData.hours,
-          quality: sleepData.quality
-        }
+          quality: sleepData.quality,
+        },
       })
     }
   }, [sleepData.hours, sleepData.quality, briefData, setBriefData])
@@ -129,26 +132,32 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
       setBriefData(prev => ({
         ...prev!,
         weather: {
-          condition: cachedWeather.condition.toLowerCase().includes('rain') ? 'rainy' :
-                     cachedWeather.condition.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+          condition: cachedWeather.condition.toLowerCase().includes('rain')
+            ? 'rainy'
+            : cachedWeather.condition.toLowerCase().includes('cloud')
+              ? 'cloudy'
+              : 'sunny',
           temperature: cachedWeather.temperature,
           high: cachedWeather.high,
-          low: cachedWeather.low
-        }
+          low: cachedWeather.low,
+        },
       }))
     }
 
     // Subscribe to weather updates
-    const unsubscribe = WeatherStore.subscribe((weatherData) => {
+    const unsubscribe = WeatherStore.subscribe(weatherData => {
       setBriefData(prev => ({
         ...prev!,
         weather: {
-          condition: weatherData.condition.toLowerCase().includes('rain') ? 'rainy' :
-                     weatherData.condition.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+          condition: weatherData.condition.toLowerCase().includes('rain')
+            ? 'rainy'
+            : weatherData.condition.toLowerCase().includes('cloud')
+              ? 'cloudy'
+              : 'sunny',
           temperature: weatherData.temperature,
           high: weatherData.high,
-          low: weatherData.low
-        }
+          low: weatherData.low,
+        },
       }))
     })
 
@@ -164,20 +173,20 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
         traffic: {
           status: cachedTraffic.status,
           duration: cachedTraffic.duration,
-          delay: cachedTraffic.delay
-        }
+          delay: cachedTraffic.delay,
+        },
       }))
     }
 
     // Subscribe to traffic updates
-    const unsubscribe = TrafficStore.subscribe((trafficData) => {
+    const unsubscribe = TrafficStore.subscribe(trafficData => {
       setBriefData(prev => ({
         ...prev!,
         traffic: {
           status: trafficData.status,
           duration: trafficData.duration,
-          delay: trafficData.delay
-        }
+          delay: trafficData.delay,
+        },
       }))
     })
 
@@ -192,8 +201,8 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
         ...prev!,
         notifications: {
           unread: counts.unread,
-          important: counts.important
-        }
+          important: counts.important,
+        },
       }))
     }
 
@@ -204,8 +213,8 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
         ...prev!,
         notifications: {
           unread: updatedCounts.unread,
-          important: updatedCounts.important
-        }
+          important: updatedCounts.important,
+        },
       }))
     })
 
@@ -214,9 +223,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
 
   const getWeatherIcon = () => {
     switch (briefData?.weather?.condition) {
-      case 'sunny': return Sun
-      case 'rainy': return CloudRain
-      default: return Cloud
+      case 'sunny':
+        return Sun
+      case 'rainy':
+        return CloudRain
+      default:
+        return Cloud
     }
   }
 
@@ -249,7 +261,8 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
       stopListening()
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
 
     recognition.continuous = true
@@ -301,15 +314,30 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
           handleCardClick('sleep')
         } else if (transcript.includes('commute') || transcript.includes('traffic')) {
           handleCardClick('commute')
-        } else if (transcript.includes('important') || transcript.includes('email') || transcript.includes('notification')) {
+        } else if (
+          transcript.includes('important') ||
+          transcript.includes('email') ||
+          transcript.includes('notification')
+        ) {
           handleCardClick('important')
-        } else if (transcript.includes('add note') || transcript.includes('create note') || transcript.includes('new note')) {
+        } else if (
+          transcript.includes('add note') ||
+          transcript.includes('create note') ||
+          transcript.includes('new note')
+        ) {
           setIsAddingNote(true)
           toast.success('Note creator opened')
-        } else if ((transcript.includes('open') || transcript.includes('show')) && !transcript.includes('weather') && !transcript.includes('sleep') && !transcript.includes('commute') && !transcript.includes('important')) {
+        } else if (
+          (transcript.includes('open') || transcript.includes('show')) &&
+          !transcript.includes('weather') &&
+          !transcript.includes('sleep') &&
+          !transcript.includes('commute') &&
+          !transcript.includes('important')
+        ) {
           // User said "open" but didn't specify what
           toast.info('Please say "open weather", "open sleep", "open commute", or "open important"')
-          const helpMessage = 'What would you like to open? You can say: weather, sleep, commute, or important emails.'
+          const helpMessage =
+            'What would you like to open? You can say: weather, sleep, commute, or important emails.'
           const utterance = new SpeechSynthesisUtterance(helpMessage)
           utterance.rate = 1.0
           utterance.pitch = 1.0
@@ -411,7 +439,7 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
 
   const handleCardClick = async (cardType: 'weather' | 'sleep' | 'commute' | 'important') => {
     // Mark card as completed
-    setCompletedCards((prev) => [...(prev || []), cardType])
+    setCompletedCards(prev => [...(prev || []), cardType])
 
     // Navigate to relevant sections
     switch (cardType) {
@@ -451,17 +479,17 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
     const note: DailyNote = {
       id: Date.now().toString(),
       text: newNote.trim(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     }
 
-    setDailyNotes((current) => [...(current || []), note])
+    setDailyNotes(current => [...(current || []), note])
     setNewNote('')
     setIsAddingNote(false)
     toast.success('Note added')
   }
 
   const handleDeleteNote = (noteId: string) => {
-    setDailyNotes((current) => (current || []).filter(note => note.id !== noteId))
+    setDailyNotes(current => (current || []).filter(note => note.id !== noteId))
     toast.success('Note deleted')
   }
 
@@ -556,8 +584,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Weather</h4>
-                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData?.weather?.temperature}°F</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{briefData?.weather?.condition}</p>
+                  <p className="text-lg sm:text-xl font-bold mb-0.5">
+                    {briefData?.weather?.temperature}°F
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">
+                    {briefData?.weather?.condition}
+                  </p>
                 </motion.button>
 
                 <motion.button
@@ -568,7 +600,10 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                   className={`bg-card/50 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 border transition-all cursor-pointer group text-left relative ${(completedCards || []).includes('sleep') ? 'border-green-500/50 bg-green-500/10' : 'border-border/50 hover:border-primary/50 hover:bg-card/70'}`}
                 >
                   {(completedCards || []).includes('sleep') && (
-                    <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-green-500" weight="fill" />
+                    <CheckCircle
+                      className="absolute top-2 right-2 w-4 h-4 text-green-500"
+                      weight="fill"
+                    />
                   )}
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -591,7 +626,10 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                   className={`bg-card/50 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 border transition-all cursor-pointer group text-left relative ${(completedCards || []).includes('commute') ? 'border-green-500/50 bg-green-500/10' : 'border-border/50 hover:border-mint/50 hover:bg-card/70'}`}
                 >
                   {(completedCards || []).includes('commute') && (
-                    <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-green-500" weight="fill" />
+                    <CheckCircle
+                      className="absolute top-2 right-2 w-4 h-4 text-green-500"
+                      weight="fill"
+                    />
                   )}
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-mint/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -605,8 +643,12 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Commute</h4>
-                  <p className="text-lg sm:text-xl font-bold mb-0.5">{briefData?.traffic?.duration}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{briefData?.traffic?.delay} from usual</p>
+                  <p className="text-lg sm:text-xl font-bold mb-0.5">
+                    {briefData?.traffic?.duration}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {briefData?.traffic?.delay} from usual
+                  </p>
                 </motion.button>
 
                 <motion.button
@@ -617,14 +659,18 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                   className={`bg-card/50 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 border transition-all cursor-pointer group text-left relative ${(completedCards || []).includes('important') ? 'border-green-500/50 bg-green-500/10' : 'border-border/50 hover:border-accent/50 hover:bg-card/70'}`}
                 >
                   {(completedCards || []).includes('important') && (
-                    <CheckCircle className="absolute top-2 right-2 w-4 h-4 text-green-500" weight="fill" />
+                    <CheckCircle
+                      className="absolute top-2 right-2 w-4 h-4 text-green-500"
+                      weight="fill"
+                    />
                   )}
                   <div className="flex items-start justify-between mb-1.5">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Envelope className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" weight="fill" />
                     </div>
                     <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
-                      {(briefData?.notifications?.unread ?? 0) + (briefData?.notifications?.important ?? 0)}
+                      {(briefData?.notifications?.unread ?? 0) +
+                        (briefData?.notifications?.important ?? 0)}
                     </Badge>
                   </div>
                   <h4 className="font-semibold mb-0.5 text-xs">Important</h4>
@@ -649,7 +695,9 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                 <div className="p-2.5 sm:p-3 bg-accent/10 rounded-lg border border-accent/20">
                   <h4 className="font-semibold text-xs mb-1.5">Day Optimizer Suggestion</h4>
                   <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">
-                    Consider leaving 10 minutes earlier due to current traffic conditions. Your morning routine looks good - you have buffer time before your first meeting at 10:00 AM.
+                    Consider leaving 10 minutes earlier due to current traffic conditions. Your
+                    morning routine looks good - you have buffer time before your first meeting at
+                    10:00 AM.
                   </p>
                 </div>
 
@@ -679,10 +727,10 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                     >
                       <Input
                         value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
+                        onChange={e => setNewNote(e.target.value)}
                         placeholder="Enter a note or reminder..."
                         className="text-[10px] sm:text-xs h-8"
-                        onKeyDown={(e) => {
+                        onKeyDown={e => {
                           if (e.key === 'Enter') {
                             handleAddNote()
                           } else if (e.key === 'Escape') {
@@ -692,11 +740,7 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
                         }}
                         autoFocus
                       />
-                      <Button
-                        size="sm"
-                        onClick={handleAddNote}
-                        className="h-8 px-2 text-[10px]"
-                      >
+                      <Button size="sm" onClick={handleAddNote} className="h-8 px-2 text-[10px]">
                         Save
                       </Button>
                       <Button
@@ -715,7 +759,7 @@ export function MorningBrief({ isVisible, onDismiss, onTabChange }: MorningBrief
 
                   <div className="space-y-1.5">
                     {dailyNotes && dailyNotes.length > 0 ? (
-                      dailyNotes.map((note) => (
+                      dailyNotes.map(note => (
                         <motion.div
                           key={note.id}
                           initial={{ opacity: 0, x: -10 }}

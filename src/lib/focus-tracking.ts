@@ -98,7 +98,7 @@ export class FocusTracker {
         this.currentSession.distractions.push({
           timestamp: this.hiddenStartTime,
           duration: hiddenDuration,
-          type: 'tab_hidden'
+          type: 'tab_hidden',
         })
         this.currentSession.distractedDuration += hiddenDuration
       }
@@ -113,14 +113,14 @@ export class FocusTracker {
 
     if (this.isTracking && this.currentSession) {
       // Check for idle period
-      if (this.idleStartTime > 0 && (now - this.lastActivityTime) > IDLE_THRESHOLD) {
+      if (this.idleStartTime > 0 && now - this.lastActivityTime > IDLE_THRESHOLD) {
         const idleDuration = now - this.idleStartTime
 
         if (idleDuration > DISTRACTION_THRESHOLD) {
           this.currentSession.distractions.push({
             timestamp: this.idleStartTime,
             duration: idleDuration,
-            type: 'idle'
+            type: 'idle',
           })
           this.currentSession.distractedDuration += idleDuration
         }
@@ -151,7 +151,7 @@ export class FocusTracker {
       focusScore: 100,
       label,
       distractions: [],
-      breaks: []
+      breaks: [],
     }
 
     this.sessionStartTime = now
@@ -201,10 +201,14 @@ export class FocusTracker {
       this.checkInterval = null
     }
 
-    logger.info('Focus session ended', {
-      duration: session.totalDuration,
-      score: session.focusScore
-    }, 'FocusTracker')
+    logger.info(
+      'Focus session ended',
+      {
+        duration: session.totalDuration,
+        score: session.focusScore,
+      },
+      'FocusTracker'
+    )
 
     this.notifyListeners()
     return session
@@ -220,7 +224,7 @@ export class FocusTracker {
     this.currentSession.breaks.push({
       timestamp: breakStart,
       duration: 0,
-      planned: true
+      planned: true,
     })
 
     this.notifyListeners()
@@ -252,9 +256,7 @@ export class FocusTracker {
     const session = { ...this.currentSession }
     session.totalDuration = now - this.sessionStartTime
     session.focusedDuration =
-      session.totalDuration -
-      session.distractedDuration -
-      session.breaksDuration
+      session.totalDuration - session.distractedDuration - session.breaksDuration
     session.focusScore = this.calculateFocusScore(session)
 
     return session
@@ -303,7 +305,7 @@ export class FocusTracker {
         bestFocusTime: 'N/A',
         longestSession: 0,
         currentStreak: 0,
-        weeklyData: []
+        weeklyData: [],
       }
     }
 
@@ -312,7 +314,7 @@ export class FocusTracker {
     const longestSession = Math.max(...sessions.map(s => s.totalDuration))
 
     // Find best focus time (hour of day)
-    const hourCounts: { [hour: number]: { count: number, totalScore: number } } = {}
+    const hourCounts: { [hour: number]: { count: number; totalScore: number } } = {}
     sessions.forEach(s => {
       const hour = new Date(s.startTime).getHours()
       if (!hourCounts[hour]) {
@@ -362,9 +364,10 @@ export class FocusTracker {
         date: date.toLocaleDateString('en-US', { weekday: 'short' }),
         focusTime: daySessions.reduce((sum, s) => sum + s.focusedDuration, 0),
         sessions: daySessions.length,
-        avgScore: daySessions.length > 0
-          ? daySessions.reduce((sum, s) => sum + s.focusScore, 0) / daySessions.length
-          : 0
+        avgScore:
+          daySessions.length > 0
+            ? daySessions.reduce((sum, s) => sum + s.focusScore, 0) / daySessions.length
+            : 0,
       })
     }
 
@@ -375,7 +378,7 @@ export class FocusTracker {
       bestFocusTime: `${formatHour(bestHour)} - ${formatHour(bestHour + 1)}`,
       longestSession,
       currentStreak: streak,
-      weeklyData
+      weeklyData,
     }
   }
 

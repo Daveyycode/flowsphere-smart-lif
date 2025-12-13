@@ -49,7 +49,10 @@ export async function generateUserId(pin: string): Promise<string> {
   const encoder = new TextEncoder()
   const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data))
   const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32)
+  return hashArray
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32)
 }
 
 // Get or create persistent user ID
@@ -81,7 +84,7 @@ export async function createConnection(
         user_a_id: userId,
         shared_key: sharedKey,
         status: 'pending',
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       .select()
       .single()
@@ -126,7 +129,7 @@ export async function acceptInvite(
       .update({
         user_b_id: userId,
         status: 'active',
-        accepted_at: new Date().toISOString()
+        accepted_at: new Date().toISOString(),
       })
       .eq('id', connection.id)
       .select()
@@ -208,7 +211,7 @@ export async function sendMessage(
         connection_id: connectionId,
         sender_id: senderId,
         encrypted_content: encryptedContent,
-        message_type: messageType
+        message_type: messageType,
       })
       .select()
       .single()
@@ -255,10 +258,7 @@ export async function getMessages(
 /**
  * Mark messages as read
  */
-export async function markMessagesRead(
-  connectionId: string,
-  userId: string
-): Promise<void> {
+export async function markMessagesRead(connectionId: string, userId: string): Promise<void> {
   try {
     await supabase
       .from('hashfl_messages')
@@ -297,14 +297,14 @@ export function subscribeToMessages(
         event: 'INSERT',
         schema: 'public',
         table: 'hashfl_messages',
-        filter: `connection_id=eq.${connectionId}`
+        filter: `connection_id=eq.${connectionId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[HashFL] New message received:', payload)
         onMessage(payload.new as HashFLMessage)
       }
     )
-    .subscribe((status) => {
+    .subscribe(status => {
       console.log('[HashFL] Realtime subscription status:', status)
     })
 
@@ -332,9 +332,9 @@ export function subscribeToConnection(
         event: 'UPDATE',
         schema: 'public',
         table: 'hashfl_connections',
-        filter: `id=eq.${connectionId}`
+        filter: `id=eq.${connectionId}`,
       },
-      (payload) => {
+      payload => {
         console.log('[HashFL] Connection updated:', payload)
         onUpdate(payload.new as HashFLConnection)
       }
@@ -355,13 +355,7 @@ export async function encryptMessage(content: string, sharedKey: string): Promis
   const keyData = Uint8Array.from(atob(sharedKey), c => c.charCodeAt(0))
   const iv = crypto.getRandomValues(new Uint8Array(12))
 
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt']
-  )
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt'])
 
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
@@ -383,19 +377,11 @@ export async function decryptMessage(encryptedContent: string, sharedKey: string
     const data = combined.slice(12)
 
     const keyData = Uint8Array.from(atob(sharedKey), c => c.charCodeAt(0))
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'AES-GCM' },
-      false,
-      ['decrypt']
-    )
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, [
+      'decrypt',
+    ])
 
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      key,
-      data
-    )
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
 
     return new TextDecoder().decode(decrypted)
   } catch {

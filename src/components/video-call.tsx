@@ -5,7 +5,15 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { DailyProvider, useDaily, useLocalSessionId, useParticipantIds, DailyVideo, useVideoTrack, useAudioTrack } from '@daily-co/daily-react'
+import {
+  DailyProvider,
+  useDaily,
+  useLocalSessionId,
+  useParticipantIds,
+  DailyVideo,
+  useVideoTrack,
+  useAudioTrack,
+} from '@daily-co/daily-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -19,14 +27,14 @@ import {
   SpeakerHigh,
   SpeakerSlash,
   ArrowsOut,
-  X
+  X,
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import {
   createCallInstance,
   joinRoom,
   leaveRoom,
-  checkBrowserSupport
+  checkBrowserSupport,
 } from '@/lib/daily-call-service'
 import type { DailyCall } from '@daily-co/daily-js'
 
@@ -54,7 +62,15 @@ interface IncomingCallProps {
 
 // ========== PARTICIPANT VIDEO TILE ==========
 
-function ParticipantTile({ sessionId, isLocal, name }: { sessionId: string; isLocal: boolean; name: string }) {
+function ParticipantTile({
+  sessionId,
+  isLocal,
+  name,
+}: {
+  sessionId: string
+  isLocal: boolean
+  name: string
+}) {
   const videoTrack = useVideoTrack(sessionId)
   const audioTrack = useAudioTrack(sessionId)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -69,10 +85,12 @@ function ParticipantTile({ sessionId, isLocal, name }: { sessionId: string; isLo
   const hasAudio = audioTrack?.state === 'playable'
 
   return (
-    <div className={cn(
-      "relative rounded-2xl overflow-hidden bg-gray-900",
-      isLocal ? "w-32 h-44 absolute bottom-4 right-4 z-10 shadow-xl" : "w-full h-full"
-    )}>
+    <div
+      className={cn(
+        'relative rounded-2xl overflow-hidden bg-gray-900',
+        isLocal ? 'w-32 h-44 absolute bottom-4 right-4 z-10 shadow-xl' : 'w-full h-full'
+      )}
+    >
       {hasVideo ? (
         <video
           ref={videoRef}
@@ -80,13 +98,13 @@ function ParticipantTile({ sessionId, isLocal, name }: { sessionId: string; isLo
           playsInline
           muted={isLocal}
           className={cn(
-            "w-full h-full object-cover",
-            isLocal && "transform scale-x-[-1]" // Mirror local video
+            'w-full h-full object-cover',
+            isLocal && 'transform scale-x-[-1]' // Mirror local video
           )}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-          <Avatar className={cn(isLocal ? "w-16 h-16" : "w-24 h-24")}>
+          <Avatar className={cn(isLocal ? 'w-16 h-16' : 'w-24 h-24')}>
             <AvatarFallback className="text-2xl bg-purple-600 text-white">
               {name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -113,7 +131,7 @@ function CallControls({
   onToggleMute,
   onToggleVideo,
   onEndCall,
-  callType
+  callType,
 }: {
   isMuted: boolean
   isVideoOff: boolean
@@ -134,8 +152,10 @@ function CallControls({
         variant="outline"
         size="lg"
         className={cn(
-          "w-14 h-14 rounded-full",
-          isMuted ? "bg-red-500 border-red-500 text-white hover:bg-red-600" : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+          'w-14 h-14 rounded-full',
+          isMuted
+            ? 'bg-red-500 border-red-500 text-white hover:bg-red-600'
+            : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
         )}
         onClick={onToggleMute}
       >
@@ -148,12 +168,18 @@ function CallControls({
           variant="outline"
           size="lg"
           className={cn(
-            "w-14 h-14 rounded-full",
-            isVideoOff ? "bg-red-500 border-red-500 text-white hover:bg-red-600" : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+            'w-14 h-14 rounded-full',
+            isVideoOff
+              ? 'bg-red-500 border-red-500 text-white hover:bg-red-600'
+              : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
           )}
           onClick={onToggleVideo}
         >
-          {isVideoOff ? <VideoCameraSlash className="w-6 h-6" /> : <VideoCamera className="w-6 h-6" />}
+          {isVideoOff ? (
+            <VideoCameraSlash className="w-6 h-6" />
+          ) : (
+            <VideoCamera className="w-6 h-6" />
+          )}
         </Button>
       )}
 
@@ -172,7 +198,12 @@ function CallControls({
 
 // ========== MAIN CALL UI (inside DailyProvider) ==========
 
-function CallUI({ userName, contactName, callType, onEndCall }: {
+function CallUI({
+  userName,
+  contactName,
+  callType,
+  onEndCall,
+}: {
   userName: string
   contactName: string
   callType: 'video' | 'audio'
@@ -245,10 +276,12 @@ function CallUI({ userName, contactName, callType, onEndCall }: {
       <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-3 h-3 rounded-full",
-              isConnected ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-            )} />
+            <div
+              className={cn(
+                'w-3 h-3 rounded-full',
+                isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'
+              )}
+            />
             <span className="text-white font-medium">
               {isConnected ? formatDuration(callDuration) : 'Connecting...'}
             </span>
@@ -263,11 +296,7 @@ function CallUI({ userName, contactName, callType, onEndCall }: {
       <div className="flex-1 relative">
         {/* Remote participant (full screen) */}
         {remoteParticipantIds.length > 0 ? (
-          <ParticipantTile
-            sessionId={remoteParticipantIds[0]}
-            isLocal={false}
-            name={contactName}
-          />
+          <ParticipantTile sessionId={remoteParticipantIds[0]} isLocal={false} name={contactName} />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
             <Avatar className="w-32 h-32 mb-4">
@@ -284,11 +313,7 @@ function CallUI({ userName, contactName, callType, onEndCall }: {
 
         {/* Local participant (picture-in-picture) */}
         {localSessionId && callType === 'video' && (
-          <ParticipantTile
-            sessionId={localSessionId}
-            isLocal={true}
-            name={userName}
-          />
+          <ParticipantTile sessionId={localSessionId} isLocal={true} name={userName} />
         )}
       </div>
 
@@ -313,7 +338,7 @@ export function VideoCall({
   roomUrl,
   userName,
   contactName,
-  callType
+  callType,
 }: VideoCallProps) {
   const [callObject, setCallObject] = useState<DailyCall | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -417,7 +442,13 @@ export function VideoCall({
 
 // ========== INCOMING CALL COMPONENT ==========
 
-export function IncomingCall({ isOpen, callerName, callType, onAccept, onReject }: IncomingCallProps) {
+export function IncomingCall({
+  isOpen,
+  callerName,
+  callType,
+  onAccept,
+  onReject,
+}: IncomingCallProps) {
   const [ringDuration, setRingDuration] = useState(0)
 
   // Auto-reject after 30 seconds

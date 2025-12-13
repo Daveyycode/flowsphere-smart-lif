@@ -10,7 +10,16 @@ import { logger } from '@/lib/security-utils'
 // Types & Interfaces
 // ==========================================
 
-export type AIProvider = 'groq' | 'openrouter' | 'xai' | 'openai' | 'anthropic' | 'deepseek' | 'gemini' | 'mistral' | 'together'
+export type AIProvider =
+  | 'groq'
+  | 'openrouter'
+  | 'xai'
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'gemini'
+  | 'mistral'
+  | 'together'
 
 export type TaskComplexity = 'simple' | 'medium' | 'complex' | 'vision'
 
@@ -32,11 +41,14 @@ export interface AIUsageStats {
   totalMessages: number
   totalTokens: number
   totalCost: number
-  byProvider: Record<AIProvider, {
-    messages: number
-    tokens: number
-    cost: number
-  }>
+  byProvider: Record<
+    AIProvider,
+    {
+      messages: number
+      tokens: number
+      cost: number
+    }
+  >
   dailyUsage: {
     date: string
     messages: number
@@ -76,7 +88,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://openrouter.ai/keys',
     description: 'FREE models available. Many AI options.',
-    complexity: ['simple', 'medium', 'complex']
+    complexity: ['simple', 'medium', 'complex'],
   },
   xai: {
     id: 'xai',
@@ -89,7 +101,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://x.ai',
     description: 'Grok AI by xAI/Elon Musk.',
-    complexity: ['simple', 'medium', 'complex']
+    complexity: ['simple', 'medium', 'complex'],
   },
   groq: {
     id: 'groq',
@@ -102,20 +114,21 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://console.groq.com/keys',
     description: 'FREE - 14,400 req/day. Best for tutoring.',
-    complexity: ['simple', 'medium', 'complex']
+    complexity: ['simple', 'medium', 'complex'],
   },
   gemini: {
     id: 'gemini',
     name: 'Google Gemini (Free)',
     model: 'gemini-1.5-flash',
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+    endpoint:
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
     costPer1kTokens: 0, // Free tier - 15 req/min, 1500/day
     maxTokens: 8192,
     supportsVision: true,
     requiresKey: true,
     signupUrl: 'https://aistudio.google.com/app/apikey',
     description: 'FREE - 1500 req/day. Vision support!',
-    complexity: ['simple', 'medium', 'complex', 'vision']
+    complexity: ['simple', 'medium', 'complex', 'vision'],
   },
   mistral: {
     id: 'mistral',
@@ -128,7 +141,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://console.mistral.ai/api-keys',
     description: 'FREE tier available. European AI.',
-    complexity: ['simple', 'medium']
+    complexity: ['simple', 'medium'],
   },
   deepseek: {
     id: 'deepseek',
@@ -141,7 +154,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://platform.deepseek.com/api_keys',
     description: '$0.14/1M tokens - Cheapest paid option!',
-    complexity: ['simple', 'medium', 'complex']
+    complexity: ['simple', 'medium', 'complex'],
   },
   together: {
     id: 'together',
@@ -154,7 +167,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://api.together.xyz/settings/api-keys',
     description: '$25 free credit. Open source models.',
-    complexity: ['simple', 'medium', 'complex']
+    complexity: ['simple', 'medium', 'complex'],
   },
   openai: {
     id: 'openai',
@@ -167,7 +180,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://platform.openai.com/api-keys',
     description: '$0.15/1M tokens. Vision + great quality.',
-    complexity: ['simple', 'medium', 'complex', 'vision']
+    complexity: ['simple', 'medium', 'complex', 'vision'],
   },
   anthropic: {
     id: 'anthropic',
@@ -180,21 +193,21 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     requiresKey: true,
     signupUrl: 'https://console.anthropic.com/settings/keys',
     description: '$0.25/1M tokens. Best for learning.',
-    complexity: ['simple', 'medium', 'complex', 'vision']
-  }
+    complexity: ['simple', 'medium', 'complex', 'vision'],
+  },
 }
 
 // Provider priority for smart routing (free first, then cheapest)
 const PROVIDER_PRIORITY: AIProvider[] = [
   'openrouter', // FREE models available
-  'xai',       // Grok - has free tier
-  'groq',      // FREE - 14,400 req/day
-  'gemini',    // FREE - 1500 req/day
-  'mistral',   // FREE tier available
-  'deepseek',  // $0.14/1M tokens (cheapest paid)
-  'openai',    // $0.15/1M tokens
+  'xai', // Grok - has free tier
+  'groq', // FREE - 14,400 req/day
+  'gemini', // FREE - 1500 req/day
+  'mistral', // FREE tier available
+  'deepseek', // $0.14/1M tokens (cheapest paid)
+  'openai', // $0.15/1M tokens
   'anthropic', // $0.25/1M tokens
-  'together'   // $0.88/1M tokens
+  'together', // $0.88/1M tokens
 ]
 
 // ==========================================
@@ -213,7 +226,7 @@ const DEFAULT_KEYS: Partial<Record<AIProvider, string>> = {
   deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY || '',
   gemini: import.meta.env.VITE_GEMINI_API_KEY || '',
   mistral: import.meta.env.VITE_MISTRAL_API_KEY || '',
-  together: import.meta.env.VITE_TOGETHER_API_KEY || ''
+  together: import.meta.env.VITE_TOGETHER_API_KEY || '',
 }
 
 function getDefaultConfig(): UserAIConfig {
@@ -226,15 +239,15 @@ function getDefaultConfig(): UserAIConfig {
       totalCost: 0,
       byProvider: {} as any,
       dailyUsage: [],
-      lastReset: Date.now()
+      lastReset: Date.now(),
     },
     limits: {
       dailyMessageLimit: 100,
       dailyTokenLimit: 100000,
       warningThreshold: 80,
-      enabled: true
+      enabled: true,
     },
-    autoRoute: true
+    autoRoute: true,
   }
 }
 
@@ -247,7 +260,10 @@ export function getAIConfig(): UserAIConfig {
       const today = new Date().toISOString().split('T')[0]
       const lastUsageDate = config.usageStats.dailyUsage[0]?.date
       if (lastUsageDate !== today) {
-        config.usageStats.dailyUsage = [{ date: today, messages: 0, tokens: 0 }, ...config.usageStats.dailyUsage.slice(0, 29)]
+        config.usageStats.dailyUsage = [
+          { date: today, messages: 0, tokens: 0 },
+          ...config.usageStats.dailyUsage.slice(0, 29),
+        ]
       }
       return { ...getDefaultConfig(), ...config }
     }
@@ -342,7 +358,7 @@ export function getAvailableProviders(): AIProviderInfo[] {
 export function getAllProviders(): AIProviderInfo[] {
   return PROVIDER_PRIORITY.map(p => ({
     ...AI_PROVIDERS[p],
-    hasKey: hasAPIKey(p)
+    hasKey: hasAPIKey(p),
   })) as any
 }
 
@@ -404,7 +420,13 @@ export function checkUsageLimits(): {
   const today = getTodayUsage()
 
   if (!limits.enabled) {
-    return { canProceed: true, warning: null, messagesRemaining: Infinity, tokensRemaining: Infinity, percentUsed: 0 }
+    return {
+      canProceed: true,
+      warning: null,
+      messagesRemaining: Infinity,
+      tokensRemaining: Infinity,
+      percentUsed: 0,
+    }
   }
 
   const messagesRemaining = Math.max(0, limits.dailyMessageLimit - today.messages)
@@ -518,14 +540,14 @@ async function callServerlessProxy(
   const response = await fetch('/api/ai-completion', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       provider,
       messages,
       maxTokens: options.maxTokens || providerInfo.maxTokens,
-      temperature: options.temperature || 0.7
-    })
+      temperature: options.temperature || 0.7,
+    }),
   })
 
   if (!response.ok) {
@@ -539,8 +561,8 @@ async function callServerlessProxy(
     content: data.content || '',
     provider: data.provider || provider,
     tokens: data.tokens || 0,
-    cost: (data.tokens || 0) / 1000 * providerInfo.costPer1kTokens,
-    model: data.model || providerInfo.model
+    cost: ((data.tokens || 0) / 1000) * providerInfo.costPer1kTokens,
+    model: data.model || providerInfo.model,
   }
 }
 
@@ -554,14 +576,14 @@ async function callOpenAICompatible(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: provider.model,
       messages,
       max_tokens: options.maxTokens || provider.maxTokens,
-      temperature: options.temperature || 0.7
-    })
+      temperature: options.temperature || 0.7,
+    }),
   })
 
   if (!response.ok) {
@@ -577,7 +599,7 @@ async function callOpenAICompatible(
     provider: provider.id,
     tokens,
     cost: (tokens / 1000) * provider.costPer1kTokens,
-    model: provider.model
+    model: provider.model,
   }
 }
 
@@ -595,15 +617,15 @@ async function callAnthropic(
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
       model: provider.model,
       max_tokens: options.maxTokens || provider.maxTokens,
       temperature: options.temperature || 0.7,
       system: systemMessage,
-      messages: chatMessages.map(m => ({ role: m.role, content: m.content }))
-    })
+      messages: chatMessages.map(m => ({ role: m.role, content: m.content })),
+    }),
   })
 
   if (!response.ok) {
@@ -619,7 +641,7 @@ async function callAnthropic(
     provider: provider.id,
     tokens,
     cost: (tokens / 1000) * provider.costPer1kTokens,
-    model: provider.model
+    model: provider.model,
   }
 }
 
@@ -634,7 +656,7 @@ async function callGemini(
     .filter(m => m.role !== 'system')
     .map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
+      parts: [{ text: m.content }],
     }))
 
   const systemInstruction = messages.find(m => m.role === 'system')?.content
@@ -642,16 +664,16 @@ async function callGemini(
   const response = await fetch(`${provider.endpoint}?key=${apiKey}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       contents,
       systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
       generationConfig: {
         maxOutputTokens: options.maxTokens || provider.maxTokens,
-        temperature: options.temperature || 0.7
-      }
-    })
+        temperature: options.temperature || 0.7,
+      },
+    }),
   })
 
   if (!response.ok) {
@@ -667,7 +689,7 @@ async function callGemini(
     provider: provider.id,
     tokens,
     cost: (tokens / 1000) * provider.costPer1kTokens,
-    model: provider.model
+    model: provider.model,
   }
 }
 
@@ -677,9 +699,7 @@ async function callGemini(
 
 export async function testAPIKey(provider: AIProvider, apiKey: string): Promise<boolean> {
   try {
-    const testMessages: ChatMessage[] = [
-      { role: 'user', content: 'Say "OK" in one word.' }
-    ]
+    const testMessages: ChatMessage[] = [{ role: 'user', content: 'Say "OK" in one word.' }]
 
     const providerInfo = AI_PROVIDERS[provider]
 
@@ -710,6 +730,6 @@ export async function chatCompletion(
   return {
     content: result.content,
     tokensUsed: result.tokens,
-    provider: result.provider
+    provider: result.provider,
   }
 }

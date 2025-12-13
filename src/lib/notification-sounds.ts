@@ -68,7 +68,7 @@ export function playSystemNotification(): void {
       body: 'You have new email',
       icon: '/icon.png',
       silent: false,
-      tag: 'flowsphere-email'
+      tag: 'flowsphere-email',
     })
 
     // Auto-close after 3 seconds

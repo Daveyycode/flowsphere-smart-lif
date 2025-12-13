@@ -62,7 +62,7 @@ export class TermsConditionsManager {
         content: this.getTermsOfServiceContent(),
         effectiveDate: '2025-01-01',
         lastUpdated: new Date().toISOString(),
-        required: true
+        required: true,
       },
       {
         id: 'privacy-v1',
@@ -72,7 +72,7 @@ export class TermsConditionsManager {
         content: this.getPrivacyPolicyContent(),
         effectiveDate: '2025-01-01',
         lastUpdated: new Date().toISOString(),
-        required: true
+        required: true,
       },
       {
         id: 'data-consent-v1',
@@ -82,7 +82,7 @@ export class TermsConditionsManager {
         content: this.getDataConsentContent(),
         effectiveDate: '2025-01-01',
         lastUpdated: new Date().toISOString(),
-        required: true
+        required: true,
       },
       {
         id: 'photo-consent-v1',
@@ -92,7 +92,7 @@ export class TermsConditionsManager {
         content: this.getPhotoConsentContent(),
         effectiveDate: '2025-01-01',
         lastUpdated: new Date().toISOString(),
-        required: true
+        required: true,
       },
       {
         id: 'location-consent-v1',
@@ -102,8 +102,8 @@ export class TermsConditionsManager {
         content: this.getLocationConsentContent(),
         effectiveDate: '2025-01-01',
         lastUpdated: new Date().toISOString(),
-        required: true
-      }
+        required: true,
+      },
     ]
 
     localStorage.setItem(this.documentsKey, JSON.stringify(defaultDocuments))
@@ -176,7 +176,7 @@ export class TermsConditionsManager {
       acceptedAt: new Date().toISOString(),
       ipAddress: await this.getIPAddress(),
       userAgent: navigator.userAgent,
-      signature
+      signature,
     }
 
     const consents = this.getUserConsents()
@@ -282,38 +282,38 @@ export class TermsConditionsManager {
         feature: 'face-capture',
         requiredDocuments: ['terms-v1', 'privacy-v1', 'photo-consent-v1'],
         description: 'Face capture for security requires consent for photo processing',
-        canProceedWithoutConsent: false
+        canProceedWithoutConsent: false,
       },
       'location-tracking': {
         feature: 'location-tracking',
         requiredDocuments: ['terms-v1', 'privacy-v1', 'location-consent-v1'],
         description: 'Location tracking requires consent for GPS data processing',
-        canProceedWithoutConsent: false
+        canProceedWithoutConsent: false,
       },
       'family-safety': {
         feature: 'family-safety',
         requiredDocuments: ['terms-v1', 'privacy-v1', 'location-consent-v1'],
         description: 'Family safety features require location tracking consent',
-        canProceedWithoutConsent: false
+        canProceedWithoutConsent: false,
       },
       'device-config': {
         feature: 'device-config',
         requiredDocuments: ['terms-v1', 'privacy-v1', 'data-consent-v1'],
         description: 'Device configuration requires data processing consent',
-        canProceedWithoutConsent: false
+        canProceedWithoutConsent: false,
       },
       'social-auth': {
         feature: 'social-auth',
         requiredDocuments: ['terms-v1', 'privacy-v1'],
         description: 'Social authentication requires basic consent',
-        canProceedWithoutConsent: false
+        canProceedWithoutConsent: false,
       },
       'email-monitoring': {
         feature: 'email-monitoring',
         requiredDocuments: ['terms-v1', 'privacy-v1', 'data-consent-v1'],
         description: 'Email monitoring requires data processing consent',
-        canProceedWithoutConsent: false
-      }
+        canProceedWithoutConsent: false,
+      },
     }
 
     return requirements[feature] || null
@@ -580,13 +580,11 @@ export interface ConsentPromptResult {
 /**
  * Show consent prompt (to be implemented in UI)
  */
-export async function promptForConsent(
-  documents: TermsDocument[]
-): Promise<ConsentPromptResult> {
+export async function promptForConsent(documents: TermsDocument[]): Promise<ConsentPromptResult> {
   // This would show a UI modal with the documents
   // For now, return a placeholder
   return {
     accepted: false,
-    documentsAccepted: []
+    documentsAccepted: [],
   }
 }

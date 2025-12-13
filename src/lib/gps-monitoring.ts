@@ -22,12 +22,7 @@ export interface GPSAlert {
  * Calculate distance between two GPS coordinates using Haversine formula
  * Returns distance in meters
  */
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+export function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371e3 // Earth's radius in meters
   const φ1 = (lat1 * Math.PI) / 180
   const φ2 = (lat2 * Math.PI) / 180
@@ -76,10 +71,7 @@ export function isInAnySafeZone(
   }
 
   // Combine member's personal safe zones with global safe zones
-  const allSafeZones = [
-    ...(globalSafeZones || []),
-    ...(member.safeZones || [])
-  ]
+  const allSafeZones = [...(globalSafeZones || []), ...(member.safeZones || [])]
 
   if (allSafeZones.length === 0) {
     return { isInSafeZone: false, distanceToNearestZone: Infinity }
@@ -108,7 +100,7 @@ export function isInAnySafeZone(
       return {
         isInSafeZone: true,
         nearestZone: zone,
-        distanceToNearestZone: distance
+        distanceToNearestZone: distance,
       }
     }
   }
@@ -117,7 +109,7 @@ export function isInAnySafeZone(
   return {
     isInSafeZone: false,
     nearestZone,
-    distanceToNearestZone: minDistance
+    distanceToNearestZone: minDistance,
   }
 }
 
@@ -150,7 +142,7 @@ export function getMembersOutsideSafeZones(
       outsideMembers.push({
         member,
         distanceFromNearestZone: distanceToNearestZone,
-        nearestZone
+        nearestZone,
       })
     }
   }
@@ -211,7 +203,7 @@ export class GPSMonitoringService {
           location: member.gpsCoordinates,
           distance: distanceFromNearestZone,
           nearestSafeZone: nearestZone,
-          status: 'active'
+          status: 'active',
         }
 
         alerts.push(alert)
