@@ -1,6 +1,10 @@
 /**
  * Email Classification Rules - User-customizable rules for email categorization
- * Allows users to define trigger words, senders, and domains for each category
+ * NO AUTOMATIC DEFAULTS - User must configure via Email Categorization Setup Wizard
+ *
+ * This integrates with the setup wizard settings in:
+ * - flowsphere-email-categorization-setup (full wizard settings)
+ * - flowsphere-work-categorization (work/personal specific)
  */
 
 export interface CategoryRule {
@@ -19,297 +23,174 @@ export interface EmailClassificationRules {
 }
 
 const RULES_STORAGE_KEY = 'flowsphere-email-classification-rules'
+const WIZARD_SETTINGS_KEY = 'flowsphere-email-categorization-setup'
+const WIZARD_COMPLETE_KEY = 'flowsphere-email-categorization-complete'
+const WORK_SETTINGS_KEY = 'flowsphere-work-categorization'
 
-// Default rules with user-defined trigger words
-const DEFAULT_RULES: EmailClassificationRules = {
+/**
+ * Check if user has completed the categorization setup wizard
+ */
+function isSetupComplete(): boolean {
+  return localStorage.getItem(WIZARD_COMPLETE_KEY) === 'true'
+}
+
+/**
+ * Get user's work/personal settings from the wizard
+ */
+function getWizardSettings(): {
+  workKeywords: string[]
+  workDomains: string[]
+  personalDomains: string[]
+} {
+  try {
+    const stored = localStorage.getItem(WORK_SETTINGS_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // ignore
+  }
+  return { workKeywords: [], workDomains: [], personalDomains: [] }
+}
+
+/**
+ * EMPTY DEFAULT RULES - No automatic categorization
+ * User must configure via the Email Categorization Setup Wizard
+ */
+const EMPTY_RULES: EmailClassificationRules = {
   urgent: {
-    // URGENT (FLAG - can overlap with other categories)
-    keywords: [
-      'urgent',
-      'asap',
-      'immediate',
-      'now',
-      'today',
-      'tomorrow',
-      'emergency',
-      'critical',
-      'action required',
-      'help needed',
-      'outage',
-      'down',
-      'crash',
-      'fix now',
-      'call me',
-      'important',
-      'high priority',
-      'reply by eod',
-      'due today',
-      'final notice',
-      'expiring today',
-    ],
+    // URGENT - Only truly urgent items (user can add keywords)
+    // NO DEFAULT KEYWORDS - marketing emails like Bubble should NOT be urgent
+    keywords: [],
     senderEmails: [],
     senderDomains: [],
-    enabled: true,
+    enabled: false, // Disabled until user enables
   },
   work: {
-    // WORK - Professional/business context
-    keywords: [
-      'meeting',
-      'deadline',
-      'project',
-      'report',
-      'client',
-      'invoice',
-      'follow-up',
-      'task',
-      'collaboration',
-      'team update',
-      'standup',
-      'sprint',
-      'review',
-      'approval',
-      'fyi',
-      'q4 goals',
-      'deliverable',
-      'status update',
-      'onboarding',
-      'offboarding',
-      'performance review',
-      'budget',
-      'expenses',
-      'contract',
-      'nda',
-      'manager',
-      'supervisor',
-      'hr',
-      'compliance',
-      'policy',
-    ],
+    // WORK - User defines what "work" means to them
+    keywords: [],
+    senderDomains: [],
     senderEmails: [],
-    senderDomains: [
-      // User can add their @company.com domains
-    ],
-    enabled: true,
+    enabled: false, // Disabled until user configures
   },
   personal: {
-    // PERSONAL - Informal/relational emails
-    keywords: [
-      'hey',
-      'hi there',
-      'how are you',
-      'dinner',
-      'lunch',
-      'coffee',
-      'catch up',
-      'weekend plans',
-      'birthday',
-      'happy birthday',
-      'congratulations',
-      'thank you',
-      'sorry',
-      'family',
-      'mom',
-      'dad',
-      'love you',
-      'see you soon',
-      'thinking of you',
-      'photos attached',
-      'party',
-      'invitation',
-      'wedding',
-      'vacation',
-      'trip',
-      'hangout',
-      'miss you',
-    ],
+    // PERSONAL - User defines their personal email domains
+    keywords: [],
     senderEmails: [],
-    senderDomains: [
-      'gmail.com',
-      'yahoo.com',
-      'hotmail.com',
-      'outlook.com',
-      'icloud.com',
-      'aol.com',
-      'protonmail.com',
-    ],
-    enabled: true,
+    senderDomains: [],
+    enabled: false, // Disabled until user configures
   },
   subs: {
-    // SUBSCRIPTION - Automated service emails (billing, newsletters, promos)
+    // SUBSCRIPTION - Billing and subscription emails
+    // These defaults are safe as they're very specific
     keywords: [
-      'newsletter',
-      'update',
-      'your account',
-      'renewal',
-      'receipt',
-      'order confirmation',
-      'shipping',
-      'unsubscribe',
-      'promotion',
-      'deal',
-      'discount',
-      'weekly digest',
-      'monthly roundup',
-      'new post',
-      "you're invited",
-      'exclusive offer',
-      'limited time',
-      'flash sale',
-      'welcome to',
-      'thank you for subscribing',
       'subscription',
       'billing',
-      // Payment-related
+      'renewal',
       'payment was unsuccessful',
       'payment unsuccessful',
       'payment declined',
-      'payment to',
-      'unable to charge',
-      'charge the credit card',
       'subscription suspended',
       'subscription cancelled',
       'subscription canceled',
-      'trial started',
       'trial ending',
       'trial expires',
-      'free trial',
     ],
     senderEmails: [
       'billing@',
       'subscriptions@',
-      'membership@',
       'payments@',
-      'accounts@',
-      'noreply@',
-      'no-reply@',
-      'notifications@',
-      'updates@',
     ],
     senderDomains: [
-      // Service names from user's list
       'netflix.com',
       'spotify.com',
-      'amazon.com',
-      'medium.com',
-      'substack.com',
-      'patreon.com',
+      'adobe.com',
+      'microsoft.com',
       'apple.com',
       'google.com',
-      'microsoft.com',
-      'adobe.com',
-      'dropbox.com',
-      'slack.com',
-      'notion.so',
-      'figma.com',
-      'github.com',
-      'stripe.com',
-      'zoom.us',
-      'canva.com',
-      'openai.com',
-      'anthropic.com',
     ],
     enabled: true,
   },
   bills: {
-    // BILLS - Utility bills, credit cards, loans, due payments
+    // BILLS - Utility bills, these are specific enough
     keywords: [
       'bill',
-      'invoice',
       'statement',
-      'due date',
       'payment due',
       'amount due',
-      'electricity bill',
-      'water bill',
-      'internet bill',
-      'phone bill',
-      'gas bill',
-      'credit card statement',
-      'credit card bill',
-      'minimum payment',
-      'balance due',
-      'utility bill',
-      'rent due',
-      'mortgage payment',
-      'loan payment',
-      'installment',
       'overdue',
       'past due',
       'late fee',
-      'pay now',
-      'pay by',
-      'final reminder',
       'disconnection notice',
-      'service interruption',
-      'meralco',
-      'pldt',
-      'globe',
-      'maynilad',
-      'manila water',
-      'bpi',
-      'bdo',
-      'metrobank',
-      'gcash',
-      'maya',
-      'your bill is ready',
-      'view your statement',
-      'e-statement',
-      'e-bill',
     ],
     senderEmails: [
       'billing@',
       'statements@',
       'ebill@',
-      'noreply@',
-      'payments@',
-      'accounts@',
-      'collections@',
-      'notices@',
     ],
     senderDomains: [
       'meralco.com.ph',
       'pldt.com.ph',
       'globe.com.ph',
-      'smart.com.ph',
       'maynilad.com.ph',
       'manilawater.com',
-      'bpiexpressonline.com',
-      'bdo.com.ph',
-      'metrobank.com.ph',
-      'gcash.com',
-      'maya.ph',
-      'unionbankph.com',
-      'securitybank.com',
-      'chinabank.ph',
-      'landbank.com',
     ],
     enabled: true,
   },
 }
 
+/**
+ * Build rules from wizard settings
+ * Merges user's wizard configuration with minimal safe defaults
+ */
+function buildRulesFromWizard(): EmailClassificationRules {
+  const wizardSettings = getWizardSettings()
+  const setupComplete = isSetupComplete()
+
+  const rules: EmailClassificationRules = {
+    ...EMPTY_RULES,
+    work: {
+      keywords: wizardSettings.workKeywords || [],
+      senderDomains: wizardSettings.workDomains || [],
+      senderEmails: [],
+      enabled: setupComplete && (wizardSettings.workKeywords?.length > 0 || wizardSettings.workDomains?.length > 0),
+    },
+    personal: {
+      keywords: [],
+      senderDomains: wizardSettings.personalDomains || [],
+      senderEmails: [],
+      enabled: setupComplete && wizardSettings.personalDomains?.length > 0,
+    },
+  }
+
+  return rules
+}
+
 export const EmailClassificationRulesStore = {
   /**
-   * Get all classification rules
+   * Get all classification rules - now respects wizard settings
    */
   getRules(): EmailClassificationRules {
+    // First, build rules from wizard settings
+    const wizardRules = buildRulesFromWizard()
+
+    // Then check for any custom overrides
     try {
       const stored = localStorage.getItem(RULES_STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
-        // Merge with defaults to ensure all categories exist
+        // Merge custom overrides with wizard rules
         return {
-          ...DEFAULT_RULES,
-          ...parsed,
-          urgent: { ...DEFAULT_RULES.urgent, ...parsed.urgent },
-          work: { ...DEFAULT_RULES.work, ...parsed.work },
-          personal: { ...DEFAULT_RULES.personal, ...parsed.personal },
-          subs: { ...DEFAULT_RULES.subs, ...parsed.subs },
-          bills: { ...DEFAULT_RULES.bills, ...parsed.bills },
+          urgent: { ...wizardRules.urgent, ...parsed.urgent },
+          work: { ...wizardRules.work, ...parsed.work },
+          personal: { ...wizardRules.personal, ...parsed.personal },
+          subs: { ...wizardRules.subs, ...parsed.subs },
+          bills: { ...wizardRules.bills, ...parsed.bills },
         }
       }
-      return DEFAULT_RULES
+      return wizardRules
     } catch {
-      return DEFAULT_RULES
+      return wizardRules
     }
   },
 
@@ -391,11 +272,52 @@ export const EmailClassificationRulesStore = {
    * Reset to default rules
    */
   resetToDefaults(): void {
-    this.saveRules(DEFAULT_RULES)
+    // Reset to empty rules - user should configure via wizard
+    this.saveRules(EMPTY_RULES)
+  },
+
+  /**
+   * Check if email is promotional/marketing (should NOT be urgent or work)
+   */
+  isPromotionalEmail(email: { subject: string; body: string; from: { email: string; name: string } }): boolean {
+    const text = `${email.subject} ${email.body}`.toLowerCase()
+    const senderEmail = email.from.email.toLowerCase()
+    const senderName = (email.from.name || '').toLowerCase()
+
+    // Promotional sender patterns
+    const promoSenderPatterns = [
+      'marketing', 'promo', 'newsletter', 'noreply', 'no-reply',
+      'news@', 'info@', 'hello@', 'team@', 'updates@'
+    ]
+    if (promoSenderPatterns.some(p => senderEmail.includes(p) || senderName.includes(p))) {
+      return true
+    }
+
+    // Promotional content patterns
+    const promoContentPatterns = [
+      'sale', '% off', 'discount', 'deal', 'offer', 'free shipping',
+      'limited time', 'shop now', 'buy now', 'exclusive', 'save',
+      'unsubscribe', 'view in browser', 'click here', 'learn more'
+    ]
+    if (promoContentPatterns.some(p => text.includes(p))) {
+      return true
+    }
+
+    // Known marketing/product companies (not urgent, not work)
+    const marketingCompanies = [
+      'bubble', 'shopify', 'squarespace', 'wix', 'canva', 'figma',
+      'notion', 'slack', 'zoom', 'dropbox', 'mailchimp', 'hubspot'
+    ]
+    if (marketingCompanies.some(c => senderEmail.includes(c) || senderName.includes(c))) {
+      return true
+    }
+
+    return false
   },
 
   /**
    * Classify an email based on user rules (fast, no AI)
+   * CONSERVATIVE: Only categories explicitly enabled by user in wizard
    */
   classifyByRules(email: {
     subject: string
@@ -411,27 +333,51 @@ export const EmailClassificationRulesStore = {
     const senderEmail = email.from.email.toLowerCase()
     const senderDomain = senderEmail.split('@')[1] || ''
 
-    // Check BILLS and SUBSCRIPTION FIRST - payment/billing emails are high priority
-    // Priority order: bills > subs > urgent > work > personal
+    // FIRST: Check if this is promotional/marketing - never classify as urgent or work
+    const isPromo = this.isPromotionalEmail(email)
+    if (isPromo) {
+      // Promotional emails should be subscription or regular, never urgent/work
+      // Check if it's a billing-related promo (subscription)
+      const hasBilling = ['subscription', 'billing', 'payment', 'renewal'].some(k => text.includes(k))
+      if (hasBilling) {
+        return {
+          category: 'subs',
+          confidence: 0.7,
+          matchedRule: 'promotional with billing context',
+        }
+      }
+      // Regular promotional email
+      return {
+        category: 'all',
+        confidence: 0.8,
+        matchedRule: 'promotional/marketing email',
+      }
+    }
+
+    // Priority order: bills > subs > work > personal > urgent
+    // Note: urgent is last because it's often misclassified
     const categories: (keyof EmailClassificationRules)[] = [
       'bills',
       'subs',
-      'urgent',
       'work',
       'personal',
+      'urgent',
     ]
 
     for (const category of categories) {
       const rule = rules[category]
       if (!rule.enabled) continue
 
-      // Check keywords
-      for (const keyword of rule.keywords) {
-        if (text.includes(keyword.toLowerCase())) {
+      // Check sender domains FIRST (more reliable)
+      for (const domain of rule.senderDomains) {
+        if (
+          senderDomain === domain.toLowerCase() ||
+          senderEmail.includes(`@${domain.toLowerCase()}`)
+        ) {
           return {
             category,
-            confidence: 0.9,
-            matchedRule: `keyword: "${keyword}"`,
+            confidence: 0.85,
+            matchedRule: `domain: "${domain}"`,
           }
         }
       }
@@ -441,22 +387,35 @@ export const EmailClassificationRulesStore = {
         if (senderEmail.includes(emailPattern.toLowerCase())) {
           return {
             category,
-            confidence: 0.85,
+            confidence: 0.8,
             matchedRule: `sender: "${emailPattern}"`,
           }
         }
       }
 
-      // Check sender domains
-      for (const domain of rule.senderDomains) {
-        if (
-          senderDomain === domain.toLowerCase() ||
-          senderEmail.includes(`@${domain.toLowerCase()}`)
-        ) {
+      // Check keywords (less reliable, especially for urgent)
+      // For urgent category, require MORE evidence
+      if (category === 'urgent') {
+        // Urgent requires multiple signals or very specific keywords
+        const urgentSpecific = ['emergency', 'security breach', 'account compromised', 'action required immediately']
+        const hasSpecificUrgent = urgentSpecific.some(k => text.includes(k))
+        if (hasSpecificUrgent) {
           return {
             category,
-            confidence: 0.8,
-            matchedRule: `domain: "${domain}"`,
+            confidence: 0.75,
+            matchedRule: 'specific urgent keyword',
+          }
+        }
+        // Skip generic urgent keywords for promotional senders
+        continue
+      }
+
+      for (const keyword of rule.keywords) {
+        if (text.includes(keyword.toLowerCase())) {
+          return {
+            category,
+            confidence: 0.7,
+            matchedRule: `keyword: "${keyword}"`,
           }
         }
       }
