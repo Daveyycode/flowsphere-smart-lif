@@ -71,7 +71,11 @@ import {
   CreditCard,
   Info,
   ChartLine,
-  UserCircle
+  UserCircle,
+  Image,
+  Link,
+  FilePdf,
+  Paperclip
 } from '@phosphor-icons/react'
 import { smartCompletion, checkUsageLimits, getTodayUsage, AI_PROVIDERS, type AIProvider } from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
@@ -155,6 +159,16 @@ interface Message {
   content: string
   timestamp: number
   provider?: string
+  attachments?: Attachment[]
+}
+
+interface Attachment {
+  id: string
+  type: 'image' | 'file' | 'url'
+  name: string
+  url?: string
+  data?: string // base64 for images
+  mimeType?: string
 }
 
 interface AICredits {
@@ -250,6 +264,14 @@ export function KidsLearningCenter() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentSession, setCurrentSession] = useState<StudySession | null>(null)
 
+  // Attachment State
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
   // Camera/Monitoring State
   const [cameraActive, setCameraActive] = useState(false)
   const [focusScore, setFocusScore] = useState(100)
@@ -266,7 +288,6 @@ export function KidsLearningCenter() {
   const [ttsEnabled, setTtsEnabled] = useState(true)
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ==========================================
   // Effects
@@ -553,7 +574,7 @@ CRITICAL RULES:
   }
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !selectedKid || !selectedSubject || isLoading) return
+    if ((!inputMessage.trim() && attachments.length === 0) || !selectedKid || !selectedSubject || isLoading) return
 
     if (!hasCredits()) {
       toast.error('No AI credits remaining', {
@@ -562,15 +583,30 @@ CRITICAL RULES:
       return
     }
 
+    // Build message content including attachments
+    let messageContent = inputMessage.trim()
+    if (attachments.length > 0) {
+      const attachmentDescriptions = attachments.map(att => {
+        if (att.type === 'url') return `[Attached URL: ${att.url}]`
+        if (att.type === 'image') return `[Attached Image: ${att.name}]`
+        return `[Attached File: ${att.name}]`
+      }).join('\n')
+      messageContent = messageContent
+        ? `${messageContent}\n\n${attachmentDescriptions}`
+        : attachmentDescriptions
+    }
+
     const userMsg: Message = {
       id: `msg-${Date.now()}`,
       role: 'user',
-      content: inputMessage.trim(),
-      timestamp: Date.now()
+      content: messageContent,
+      timestamp: Date.now(),
+      attachments: attachments.length > 0 ? [...attachments] : undefined
     }
 
     setMessages(prev => [...prev, userMsg])
     setInputMessage('')
+    setAttachments([]) // Clear attachments after sending
     setIsLoading(true)
     useCredit()
 
@@ -589,7 +625,8 @@ Rules:
 - Keep responses concise (2-4 sentences)
 - Be encouraging and fun
 - Award "+10 XP!" for correct answers
-- Ask follow-up questions to check understanding`
+- Ask follow-up questions to check understanding
+- If the user shares files, images or URLs, acknowledge them and incorporate them into your teaching`
 
       const history = messages.slice(-10).map(m => ({
         role: m.role as 'user' | 'assistant',
@@ -599,7 +636,7 @@ Rules:
       const result = await smartCompletion([
         { role: 'system', content: systemPrompt },
         ...history,
-        { role: 'user', content: inputMessage.trim() }
+        { role: 'user', content: messageContent }
       ], { temperature: 0.7 })
 
       const assistantMsg: Message = {
@@ -625,6 +662,75 @@ Rules:
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // ==========================================
+  // Attachment Handlers
+  // ==========================================
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'file') => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach(file => {
+      if (type === 'image' && !file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        return
+      }
+
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error('File too large (max 10MB)')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        const newAttachment: Attachment = {
+          id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: type,
+          name: file.name,
+          data: reader.result as string,
+          mimeType: file.type
+        }
+        setAttachments(prev => [...prev, newAttachment])
+        toast.success(`${file.name} attached`)
+      }
+      reader.readAsDataURL(file)
+    })
+
+    e.target.value = '' // Reset input
+    setShowAttachmentMenu(false)
+  }
+
+  const handleUrlAdd = () => {
+    if (!urlInput.trim()) return
+
+    // Simple URL validation
+    let url = urlInput.trim()
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url
+    }
+
+    try {
+      new URL(url) // Validate URL format
+      const newAttachment: Attachment = {
+        id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: 'url',
+        name: url.length > 50 ? url.substring(0, 47) + '...' : url,
+        url: url
+      }
+      setAttachments(prev => [...prev, newAttachment])
+      setUrlInput('')
+      setShowUrlInput(false)
+      setShowAttachmentMenu(false)
+      toast.success('URL attached')
+    } catch {
+      toast.error('Invalid URL')
+    }
+  }
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id))
   }
 
   // ==========================================
@@ -1063,6 +1169,25 @@ Rules:
                     ? "bg-violet-500 text-white rounded-br-sm"
                     : "bg-muted rounded-bl-sm"
                 )}>
+                  {/* Show attachment previews */}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {msg.attachments.map(att => (
+                        <div
+                          key={att.id}
+                          className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs",
+                            msg.role === 'user' ? "bg-white/20" : "bg-muted-foreground/10"
+                          )}
+                        >
+                          {att.type === 'image' && <Image className="w-3 h-3" />}
+                          {att.type === 'file' && <FileText className="w-3 h-3" />}
+                          {att.type === 'url' && <Link className="w-3 h-3" />}
+                          <span className="max-w-[80px] truncate">{att.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   {msg.provider && (
                     <p className="text-[9px] opacity-50 mt-1">{msg.provider}</p>
@@ -1093,18 +1218,129 @@ Rules:
           </div>
         </ScrollArea>
 
+        {/* Attachments Preview */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {attachments.map(att => (
+              <div
+                key={att.id}
+                className="flex items-center gap-1.5 bg-muted rounded-full px-2 py-1 text-xs"
+              >
+                {att.type === 'image' && <Image className="w-3 h-3" />}
+                {att.type === 'file' && <FileText className="w-3 h-3" />}
+                {att.type === 'url' && <Link className="w-3 h-3" />}
+                <span className="max-w-[100px] truncate">{att.name}</span>
+                <button
+                  onClick={() => removeAttachment(att.id)}
+                  className="hover:bg-foreground/10 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Input */}
-        <div className="pt-3 border-t flex gap-2">
-          <Input
-            placeholder="Ask your tutor..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            disabled={isLoading}
+        <div className="pt-3 border-t space-y-2">
+          {/* URL Input (when active) */}
+          {showUrlInput && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter URL (website, video, etc.)"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUrlAdd()}
+                autoFocus
+                className="text-sm"
+              />
+              <Button size="sm" onClick={handleUrlAdd} disabled={!urlInput.trim()}>
+                Add
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowUrlInput(false); setUrlInput('') }}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Main Input Row */}
+          <div className="flex gap-2">
+            {/* Attachment Button with Menu */}
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                className="flex-shrink-0"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+
+              {/* Attachment Menu Popup */}
+              <AnimatePresence>
+                {showAttachmentMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute bottom-full left-0 mb-2 bg-popover border rounded-lg shadow-lg p-2 min-w-[160px] z-50"
+                  >
+                    <button
+                      onClick={() => imageInputRef.current?.click()}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
+                    >
+                      <Image className="w-4 h-4 text-green-500" />
+                      <span>Upload Image</span>
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
+                    >
+                      <FilePdf className="w-4 h-4 text-red-500" />
+                      <span>Upload File</span>
+                    </button>
+                    <button
+                      onClick={() => { setShowUrlInput(true); setShowAttachmentMenu(false) }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
+                    >
+                      <Link className="w-4 h-4 text-blue-500" />
+                      <span>Add URL/Link</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <Input
+              placeholder="Ask your tutor..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button onClick={sendMessage} disabled={isLoading || (!inputMessage.trim() && attachments.length === 0)}>
+              <PaperPlaneTilt className="w-5 h-5" weight="fill" />
+            </Button>
+          </div>
+
+          {/* Hidden File Inputs */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => handleFileUpload(e, 'image')}
+            className="hidden"
           />
-          <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
-            <PaperPlaneTilt className="w-5 h-5" weight="fill" />
-          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx"
+            multiple
+            onChange={(e) => handleFileUpload(e, 'file')}
+            className="hidden"
+          />
         </div>
       </div>
     )

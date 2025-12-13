@@ -40,3 +40,7 @@ pids
 ❌🤖ARCHIVED-DOCS-DONT-SEARCH❌/
 .backup-security-dec9/
 .env*.local
+
+# Environment files
+.env.all
+.env.production
