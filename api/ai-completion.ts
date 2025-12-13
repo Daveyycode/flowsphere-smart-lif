@@ -3,7 +3,19 @@
  * Proxies requests to various AI providers to avoid CORS issues
  */
 
-import type { VercelRequest, VercelResponse } from '@vercel/node'
+import type { IncomingMessage, ServerResponse } from 'http'
+
+interface VercelRequest extends IncomingMessage {
+  body: any
+  query: Record<string, string | string[]>
+  cookies: Record<string, string>
+}
+
+interface VercelResponse extends ServerResponse {
+  status: (code: number) => VercelResponse
+  json: (data: any) => void
+  send: (data: any) => void
+}
 
 // Provider configurations
 const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
