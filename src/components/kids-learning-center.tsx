@@ -2333,7 +2333,7 @@ TRACKING (internal):
                 Clear
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground truncate">Topics: {currentLessonPlan.topics.slice(0, 3).join(', ')}...</p>
+            <p className="text-xs text-muted-foreground truncate">Topics: {currentLessonPlan.topics.slice(0, 3).map(t => t.replace(/\*\*/g, '')).join(', ')}...</p>
           </div>
         )}
 
