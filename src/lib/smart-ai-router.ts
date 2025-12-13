@@ -10,7 +10,7 @@ import { logger } from '@/lib/security-utils'
 // Types & Interfaces
 // ==========================================
 
-export type AIProvider = 'groq' | 'openai' | 'anthropic' | 'deepseek' | 'gemini' | 'mistral' | 'together'
+export type AIProvider = 'groq' | 'openrouter' | 'xai' | 'openai' | 'anthropic' | 'deepseek' | 'gemini' | 'mistral' | 'together'
 
 export type TaskComplexity = 'simple' | 'medium' | 'complex' | 'vision'
 
@@ -65,6 +65,32 @@ export interface UserAIConfig {
 // ==========================================
 
 export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter (Free)',
+    model: 'mistralai/mistral-7b-instruct:free',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    costPer1kTokens: 0, // Free models available
+    maxTokens: 8192,
+    supportsVision: false,
+    requiresKey: true,
+    signupUrl: 'https://openrouter.ai/keys',
+    description: 'FREE models available. Many AI options.',
+    complexity: ['simple', 'medium', 'complex']
+  },
+  xai: {
+    id: 'xai',
+    name: 'xAI Grok',
+    model: 'grok-beta',
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    costPer1kTokens: 0.0001,
+    maxTokens: 8192,
+    supportsVision: false,
+    requiresKey: true,
+    signupUrl: 'https://x.ai',
+    description: 'Grok AI by xAI/Elon Musk.',
+    complexity: ['simple', 'medium', 'complex']
+  },
   groq: {
     id: 'groq',
     name: 'Groq (Free)',
@@ -73,7 +99,7 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
     costPer1kTokens: 0, // Free tier - 14,400 requests/day
     maxTokens: 8192,
     supportsVision: false,
-    requiresKey: false, // FlowSphere provides default
+    requiresKey: true,
     signupUrl: 'https://console.groq.com/keys',
     description: 'FREE - 14,400 req/day. Best for tutoring.',
     complexity: ['simple', 'medium', 'complex']
@@ -160,6 +186,8 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
 
 // Provider priority for smart routing (free first, then cheapest)
 const PROVIDER_PRIORITY: AIProvider[] = [
+  'openrouter', // FREE models available
+  'xai',       // Grok - has free tier
   'groq',      // FREE - 14,400 req/day
   'gemini',    // FREE - 1500 req/day
   'mistral',   // FREE tier available
@@ -177,6 +205,8 @@ const STORAGE_KEY = 'flowsphere-smart-ai-config'
 
 // Default API keys from environment (FlowSphere-provided for free tier)
 const DEFAULT_KEYS: Partial<Record<AIProvider, string>> = {
+  openrouter: import.meta.env.VITE_OPEN_ROUTER_API_KEY || '',
+  xai: import.meta.env.VITE_XAI_API_KEY || '',
   groq: import.meta.env.VITE_GROQ_API_KEY || '',
   openai: import.meta.env.VITE_OPENAI_API_KEY || '',
   anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',

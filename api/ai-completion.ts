@@ -23,6 +23,10 @@ const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     model: 'llama-3.3-70b-versatile'
   },
+  openrouter: {
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'mistralai/mistral-7b-instruct:free'
+  },
   openai: {
     endpoint: 'https://api.openai.com/v1/chat/completions',
     model: 'gpt-4o-mini'
@@ -38,12 +42,18 @@ const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
   together: {
     endpoint: 'https://api.together.xyz/v1/chat/completions',
     model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+  },
+  xai: {
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    model: 'grok-beta'
   }
 }
 
 // API keys from environment (check both VITE_ and non-VITE_ versions)
 const API_KEYS: Record<string, string | undefined> = {
   groq: process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY,
+  openrouter: process.env.OPENROUTER_API_KEY || process.env.VITE_OPEN_ROUTER_API_KEY,
+  xai: process.env.XAI_API_KEY || process.env.VITE_XAI_API_KEY,
   openai: process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY,
   deepseek: process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY,
   mistral: process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY,
