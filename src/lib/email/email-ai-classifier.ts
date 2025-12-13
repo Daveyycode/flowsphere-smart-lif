@@ -1,9 +1,17 @@
 /**
- * AI Email Classifier - Uses Groq to classify and analyze emails
+ * AI Email Classifier - Smart classification with rules-first approach
+ *
+ * STRATEGY:
+ * 1. PRIMARY: Rules-based classification (no API needed, instant)
+ * 2. FALLBACK: AI classification only for ambiguous emails
+ * 3. PROVIDERS: Groq → Gemini → OpenRouter → Rules-only
+ *
+ * This ensures the app works even without API keys or when APIs fail.
  */
 
 import { Email } from './email-service'
 import { logger } from '@/lib/security-utils'
+import { EmailClassificationRulesStore } from './email-classification-rules'
 
 export interface EmailClassification {
   category: 'emergency' | 'subscription' | 'important' | 'regular' | 'work' | 'personal'
@@ -21,13 +29,71 @@ export interface WorkCategorizationSettings {
   personalDomains: string[]
 }
 
+// Available AI providers for classification (free first)
+interface AIProvider {
+  name: string
+  endpoint: string
+  getKey: () => string
+  model: string
+  formatRequest: (prompt: string, systemPrompt: string) => object
+  parseResponse: (data: any) => string
+}
+
 export class EmailAIClassifier {
-  private groqApiKey: string
   private settings: WorkCategorizationSettings
+  private providers: AIProvider[]
+  private failedProviders: Set<string> = new Set()
+  private lastProviderReset: number = 0
 
   constructor() {
-    this.groqApiKey = import.meta.env.VITE_GROQ_API_KEY || ''
     this.loadSettings()
+
+    // Define AI providers in priority order (free first)
+    this.providers = [
+      {
+        name: 'groq',
+        endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+        getKey: () => import.meta.env.VITE_GROQ_API_KEY || '',
+        model: 'llama-3.3-70b-versatile',
+        formatRequest: (prompt, systemPrompt) => ({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 600,
+        }),
+        parseResponse: (data) => data.choices?.[0]?.message?.content || '',
+      },
+      {
+        name: 'gemini',
+        endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+        getKey: () => import.meta.env.VITE_GEMINI_API_KEY || '',
+        model: 'gemini-1.5-flash',
+        formatRequest: (prompt, systemPrompt) => ({
+          contents: [{ parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
+        }),
+        parseResponse: (data) => data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+      },
+      {
+        name: 'openrouter',
+        endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+        getKey: () => import.meta.env.VITE_OPENROUTER_API_KEY || '',
+        model: 'meta-llama/llama-3.2-3b-instruct:free',
+        formatRequest: (prompt, systemPrompt) => ({
+          model: 'meta-llama/llama-3.2-3b-instruct:free',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 600,
+        }),
+        parseResponse: (data) => data.choices?.[0]?.message?.content || '',
+      },
+    ]
   }
 
   /**
@@ -134,14 +200,110 @@ If user's work domains = "myflowsphere.com" and email is from "lazada.com.ph" �
   }
 
   /**
-   * Classify email using Groq AI as the PRIMARY classifier
-   * Groq handles ALL classification logic - local rules only used if API unavailable
+   * Reset failed providers after 5 minutes
+   */
+  private resetFailedProvidersIfNeeded(): void {
+    const RESET_INTERVAL = 5 * 60 * 1000 // 5 minutes
+    if (Date.now() - this.lastProviderReset > RESET_INTERVAL) {
+      this.failedProviders.clear()
+      this.lastProviderReset = Date.now()
+    }
+  }
+
+  /**
+   * Get available provider (one that has a key and hasn't failed recently)
+   */
+  private getAvailableProvider(): AIProvider | null {
+    this.resetFailedProvidersIfNeeded()
+
+    for (const provider of this.providers) {
+      const key = provider.getKey()
+      if (key && !this.failedProviders.has(provider.name)) {
+        return provider
+      }
+    }
+    return null
+  }
+
+  /**
+   * Call AI provider with automatic fallback
+   */
+  private async callAIProvider(prompt: string, systemPrompt: string): Promise<string | null> {
+    this.resetFailedProvidersIfNeeded()
+
+    for (const provider of this.providers) {
+      const key = provider.getKey()
+      if (!key || this.failedProviders.has(provider.name)) {
+        continue
+      }
+
+      try {
+        console.log(`🤖 Trying ${provider.name}...`)
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+
+        // Different auth for different providers
+        if (provider.name === 'gemini') {
+          // Gemini uses URL parameter for key
+        } else {
+          headers['Authorization'] = `Bearer ${key}`
+        }
+
+        const endpoint = provider.name === 'gemini'
+          ? `${provider.endpoint}?key=${key}`
+          : provider.endpoint
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(provider.formatRequest(prompt, systemPrompt)),
+        })
+
+        if (!response.ok) {
+          const status = response.status
+          console.warn(`⚠️ ${provider.name} returned ${status}`)
+
+          // Mark provider as failed for this session
+          if (status === 401 || status === 403 || status === 429) {
+            this.failedProviders.add(provider.name)
+            console.warn(`   Marking ${provider.name} as unavailable (will retry in 5 min)`)
+          }
+          continue
+        }
+
+        const data = await response.json()
+        const content = provider.parseResponse(data)
+
+        if (content) {
+          console.log(`✅ ${provider.name} responded successfully`)
+          return content
+        }
+      } catch (error) {
+        console.warn(`⚠️ ${provider.name} error:`, error)
+        this.failedProviders.add(provider.name)
+      }
+    }
+
+    console.log('📋 All AI providers unavailable, using rules-only classification')
+    return null
+  }
+
+  /**
+   * Classify email - RULES FIRST, AI as fallback for ambiguous cases
+   *
+   * Strategy:
+   * 1. Use rules-based classification (instant, no API)
+   * 2. If rules have high confidence (>0.7), use that result
+   * 3. Only call AI for ambiguous emails (low confidence from rules)
+   * 4. If AI fails, use rules result anyway
    */
   async classifyEmail(email: Email): Promise<EmailClassification> {
     // Reload settings to pick up any user changes
     this.loadSettings()
 
-    console.log(`🤖 [GROQ AI] Classifying email: "${email.subject}"`)
+    console.log(`📧 Classifying: "${email.subject}"`)
 
     // Include user's custom settings in the prompt
     const userSettingsPrompt = this.getUserSettingsPrompt()
@@ -274,88 +436,85 @@ Respond ONLY with valid JSON:
   "classificationReason": "brief reason for this classification"
 }`
 
-    try {
-      if (!this.groqApiKey) {
-        console.warn(
-          '⚠️ No Groq API key - using local fallback (configure VITE_GROQ_API_KEY for AI classification)'
-        )
-        return this.getDefaultClassification(email)
+    // STEP 1: Try rules-based classification first (instant, no API)
+    const rulesResult = EmailClassificationRulesStore.classifyByRules({
+      subject: email.subject,
+      body: email.body || email.snippet || '',
+      from: email.from,
+    })
+
+    console.log(`📋 Rules result: ${rulesResult.category} (confidence: ${rulesResult.confidence})`)
+    if (rulesResult.matchedRule) {
+      console.log(`   Matched: ${rulesResult.matchedRule}`)
+    }
+
+    // Map rules category to email category
+    const categoryMap: Record<string, EmailClassification['category']> = {
+      urgent: 'emergency',
+      work: 'work',
+      personal: 'personal',
+      subs: 'subscription',
+      bills: 'regular',
+      all: 'regular',
+    }
+
+    // STEP 2: If rules have high confidence, use that result (skip AI)
+    if (rulesResult.confidence >= 0.7) {
+      console.log(`✅ Using rules result (high confidence)`)
+      return {
+        category: categoryMap[rulesResult.category] || 'regular',
+        priority: rulesResult.category === 'urgent' ? 'high' : rulesResult.category === 'work' ? 'medium' : 'low',
+        summary: email.subject,
+        tags: [rulesResult.category],
+        isUrgent: rulesResult.category === 'urgent',
+        requiresAction: rulesResult.category === 'urgent' || rulesResult.category === 'bills',
       }
+    }
 
-      console.log('🌐 Sending to Groq AI (llama-3.3-70b-versatile)...')
+    // STEP 3: For ambiguous emails, try AI classification
+    const hasAnyProvider = this.getAvailableProvider() !== null
+    if (!hasAnyProvider) {
+      console.log('📋 No AI providers available, using rules result')
+      return this.getDefaultClassification(email)
+    }
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.groqApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            {
-              role: 'system',
-              content: `You are FlowSphere's intelligent email classification AI. Accurate classification is CRITICAL for the app's flow - dashboard, alerts, family notifications all depend on it.
+    try {
+      console.log('🤖 Low confidence from rules, trying AI classification...')
+
+      const systemPrompt = `You are FlowSphere's intelligent email classification AI. Accurate classification is CRITICAL for the app's flow.
 
 **MOST IMPORTANT: USER'S CUSTOM SETTINGS ARE PRIMARY**
 The user has configured their own work keywords, work domains, and personal domains.
-You MUST use these settings as the PRIMARY classifier. Do NOT use generic keywords that the user hasn't configured.
-
-CLASSIFICATION PRIORITY:
-1. **FIRST** - Check if PROMOTIONAL/MARKETING → always "regular"
-2. **THEN** - Apply USER'S settings:
-   - WORK: ONLY if email matches USER'S work keywords or work domains
-   - PERSONAL: ONLY if sender matches USER'S personal domains (and is real person)
-3. **FINALLY** - Apply standard rules for emergency, subscription, important
+You MUST use these settings as the PRIMARY classifier. Do NOT use generic keywords.
 
 CRITICAL RULES:
-- Lazada, Shopee, Amazon, any retail = REGULAR (never work, never personal)
-- If user's work domains = "myflowsphere.com" and email from "lazada.com.ph" → NOT WORK → REGULAR
-- If user's work keywords = "boss" and email doesn't contain "boss" → NOT WORK
-- User settings OVERRIDE all general classification logic
-- When in doubt: REGULAR (not work, not personal)
+- Promotional/marketing emails = REGULAR (never work, never urgent)
+- If user's work domains = "myflowsphere.com" and email from "lazada.com.ph" → REGULAR
+- When in doubt: REGULAR
+- isUrgent = RARELY true (only real emergencies)
 
-URGENT FLAG (VERY STRICT):
-- isUrgent = RARELY true
-- NEVER urgent: promos, sales, login links, newsletters, retail
-- ONLY urgent: actual emergencies, deadlines from boss
+Respond with valid JSON only.`
 
-Respond with valid JSON only.`,
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: 0.2, // Lower temperature for more consistent classification
-          max_tokens: 600,
-        }),
-      })
+      const content = await this.callAIProvider(prompt, systemPrompt)
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`❌ Groq API error: ${response.status} - ${errorText}`)
-        throw new Error(`Groq API error: ${response.status}`)
+      if (!content) {
+        // AI failed, use rules result
+        console.log('📋 AI unavailable, using rules result')
+        return this.getDefaultClassification(email)
       }
 
-      const data = await response.json()
-      const content = data.choices[0].message.content
-
-      // Parse JSON response
+      // Parse JSON response from AI
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
-        console.warn('⚠️ Groq response was not valid JSON:', content.substring(0, 200))
+        console.warn('⚠️ AI response was not valid JSON')
         return this.getDefaultClassification(email)
       }
 
       const classification = JSON.parse(jsonMatch[0])
 
-      // Log Groq's classification decision
-      console.log(`✅ [GROQ AI] Category: ${classification.category}`)
+      // Log AI classification decision
+      console.log(`✅ AI Category: ${classification.category}`)
       console.log(`   Priority: ${classification.priority}, Urgent: ${classification.isUrgent}`)
-      if (classification.classificationReason) {
-        console.log(`   Reason: ${classification.classificationReason}`)
-      }
 
       // Ensure all required fields exist
       return {
@@ -368,8 +527,8 @@ Respond with valid JSON only.`,
         suggestedActions: classification.suggestedActions,
       }
     } catch (error) {
-      console.error('❌ Groq AI classification failed:', error)
-      console.log('📋 Falling back to local rules (Groq unavailable)')
+      console.error('❌ AI classification failed:', error)
+      console.log('📋 Falling back to rules-based classification')
       return this.getDefaultClassification(email)
     }
   }
