@@ -122,7 +122,7 @@ export function useKeyboardScope(scope: string): void {
 export function useFocusTrap(
   isActive: boolean,
   options: FocusTrapOptions = {}
-): React.RefObject<HTMLDivElement> {
+): React.RefObject<HTMLDivElement | null> {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
 
@@ -176,7 +176,7 @@ export function useReturnFocus(): void {
 export function useRovingTabIndex(
   selector: string,
   options: { orientation?: 'horizontal' | 'vertical'; loop?: boolean } = {}
-): React.RefObject<HTMLDivElement> {
+): React.RefObject<HTMLDivElement | null> {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

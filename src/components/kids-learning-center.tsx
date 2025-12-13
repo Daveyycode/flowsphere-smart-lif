@@ -114,6 +114,7 @@ import {
   Link,
   FilePdf,
   Paperclip,
+  Users,
 } from '@phosphor-icons/react'
 import {
   smartCompletion,
