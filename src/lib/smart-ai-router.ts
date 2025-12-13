@@ -7,6 +7,47 @@
 import { logger } from '@/lib/security-utils'
 
 // ==========================================
+// Response Cleanup - Remove model artifacts
+// ==========================================
+
+/**
+ * Clean AI response by removing model-specific tags and artifacts
+ */
+export function cleanAIResponse(content: string): string {
+  if (!content) return ''
+
+  let cleaned = content
+    // Remove [OUT], [/OUT], [/s], [s] tags (common in some models)
+    .replace(/\[OUT\]/gi, '')
+    .replace(/\[\/OUT\]/gi, '')
+    .replace(/\[\/s\]/gi, '')
+    .replace(/\[s\]/gi, '')
+    // Remove <s>, </s> tokens
+    .replace(/<s>/gi, '')
+    .replace(/<\/s>/gi, '')
+    // Remove [INST], [/INST] tags (Llama format)
+    .replace(/\[INST\]/gi, '')
+    .replace(/\[\/INST\]/gi, '')
+    // Remove <<SYS>>, <</SYS>> tags
+    .replace(/<<SYS>>/gi, '')
+    .replace(/<<\/SYS>>/gi, '')
+    // Remove <|im_start|>, <|im_end|> tokens (ChatML format)
+    .replace(/<\|im_start\|>/gi, '')
+    .replace(/<\|im_end\|>/gi, '')
+    // Remove <|assistant|>, <|user|>, <|system|> tokens
+    .replace(/<\|assistant\|>/gi, '')
+    .replace(/<\|user\|>/gi, '')
+    .replace(/<\|system\|>/gi, '')
+    // Remove [assistant], [user] tags
+    .replace(/\[assistant\]/gi, '')
+    .replace(/\[user\]/gi, '')
+    // Trim whitespace
+    .trim()
+
+  return cleaned
+}
+
+// ==========================================
 // Types & Interfaces
 // ==========================================
 
@@ -79,15 +120,15 @@ export interface UserAIConfig {
 export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
   openrouter: {
     id: 'openrouter',
-    name: 'OpenRouter (Free)',
-    model: 'mistralai/mistral-7b-instruct:free',
+    name: 'OpenRouter (Llama 3.2)',
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     costPer1kTokens: 0, // Free models available
     maxTokens: 8192,
     supportsVision: false,
     requiresKey: true,
     signupUrl: 'https://openrouter.ai/keys',
-    description: 'FREE models available. Many AI options.',
+    description: 'FREE Llama 3.2 - clean responses.',
     complexity: ['simple', 'medium', 'complex'],
   },
   xai: {
@@ -558,7 +599,7 @@ async function callServerlessProxy(
   const data = await response.json()
 
   return {
-    content: data.content || '',
+    content: cleanAIResponse(data.content || ''),
     provider: data.provider || provider,
     tokens: data.tokens || 0,
     cost: ((data.tokens || 0) / 1000) * providerInfo.costPer1kTokens,

@@ -391,12 +391,24 @@ const AVATARS: Record<string, string> = {
 }
 
 const LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'tl', name: 'Filipino/Tagalog' },
-  { code: 'other', name: 'Other' },
+  { code: 'en-US', name: 'English (US)', speechCode: 'en-US' },
+  { code: 'en-GB', name: 'English (UK)', speechCode: 'en-GB' },
+  { code: 'es-ES', name: 'Spanish (Spain)', speechCode: 'es-ES' },
+  { code: 'es-MX', name: 'Spanish (Mexico)', speechCode: 'es-MX' },
+  { code: 'fr-FR', name: 'French', speechCode: 'fr-FR' },
+  { code: 'zh-CN', name: 'Chinese (Mandarin)', speechCode: 'zh-CN' },
+  { code: 'zh-TW', name: 'Chinese (Taiwan)', speechCode: 'zh-TW' },
+  { code: 'tl-PH', name: 'Filipino/Tagalog', speechCode: 'fil-PH' },
+  { code: 'ja-JP', name: 'Japanese', speechCode: 'ja-JP' },
+  { code: 'ko-KR', name: 'Korean', speechCode: 'ko-KR' },
+  { code: 'de-DE', name: 'German', speechCode: 'de-DE' },
+  { code: 'it-IT', name: 'Italian', speechCode: 'it-IT' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', speechCode: 'pt-BR' },
+  { code: 'hi-IN', name: 'Hindi', speechCode: 'hi-IN' },
+  { code: 'ar-SA', name: 'Arabic', speechCode: 'ar-SA' },
+  { code: 'vi-VN', name: 'Vietnamese', speechCode: 'vi-VN' },
+  { code: 'th-TH', name: 'Thai', speechCode: 'th-TH' },
+  { code: 'id-ID', name: 'Indonesian', speechCode: 'id-ID' },
 ]
 
 const FREE_DAILY_CREDITS = 20 // Free AI calls per day
@@ -1887,6 +1899,60 @@ export function KidsLearningCenter() {
 
   // Voice State
   const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+
+  // Speech-to-Text for Kids
+  const startListening = useCallback(() => {
+    if (!selectedKid) return
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = true
+    // Get the proper speech recognition code for the selected language
+    const langConfig = LANGUAGES.find(l => l.code === selectedKid.language)
+    recognition.lang = langConfig?.speechCode || selectedKid.language || 'en-US'
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      toast.success('Listening... Speak now!')
+    }
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('')
+      setInputMessage(transcript)
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error)
+      setIsListening(false)
+      if (event.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please allow microphone access.')
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+  }, [selectedKid])
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    }
+  }, [])
 
   // Game UI State
   const [selectedGameCategory, setSelectedGameCategory] = useState<string | null>(null)
@@ -2673,6 +2739,11 @@ STUDENT PROFILE:
 - Language: ${LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'}
 ${lessonContext}${suggestionContext}${yesterdayContext}${weakAreasContext}${uploadedContext}
 
+**LANGUAGE: RESPOND IN ${LANGUAGES.find(l => l.code === selectedKid.language)?.name?.toUpperCase() || 'ENGLISH'}**
+- You MUST speak/respond in ${LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'}
+- If the child speaks to you in their language, respond in that same language
+- Use simple, age-appropriate vocabulary in that language
+
 YOUR APPROACH:
 1. Greet ${selectedKid.name} warmly and ASK what they'd like to learn today
 2. Be genuinely interested in them - ask how they're doing naturally in conversation
@@ -2833,9 +2904,14 @@ NEVER skip to questions without teaching first!
             ? `\n\nCURRENT PHASE: LEARNING (${Math.ceil(learningTimer / 60)} min left) - Actively teach, ask questions, check understanding. Award XP for correct answers!`
             : ''
 
+      const langName = LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'
       const systemPrompt = `You are TutorBot, a warm, caring, REAL AI tutor for ${selectedKid.name}, age ${selectedKid.age}, in ${gradeInfo?.label || selectedKid.grade}.
 Subject: ${selectedSubject.name}
 ${lessonContext}${weakAreasContext}${uploadedContext}${phaseContext}
+
+**LANGUAGE: YOU MUST RESPOND IN ${langName.toUpperCase()}**
+- Speak and respond ONLY in ${langName}
+- Use simple, child-friendly vocabulary in ${langName}
 
 YOUR PERSONALITY:
 - You're like their favorite teacher who genuinely cares about them
@@ -4099,13 +4175,27 @@ MOOD DETECTION:
             </div>
 
             <Input
-              placeholder="Ask your tutor..."
+              placeholder={isListening ? 'Listening...' : 'Ask your tutor...'}
               value={inputMessage}
               onChange={e => setInputMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              disabled={isLoading}
+              disabled={isLoading || isListening}
               className="flex-1"
             />
+            <Button
+              variant={isListening ? 'destructive' : 'outline'}
+              size="icon"
+              onClick={isListening ? stopListening : startListening}
+              disabled={isLoading}
+              className={isListening ? 'animate-pulse' : ''}
+              title={isListening ? 'Stop listening' : 'Speak to your tutor'}
+            >
+              {isListening ? (
+                <MicrophoneSlash className="w-5 h-5" weight="fill" />
+              ) : (
+                <Microphone className="w-5 h-5" weight="fill" />
+              )}
+            </Button>
             <Button
               onClick={sendMessage}
               disabled={isLoading || (!inputMessage.trim() && attachments.length === 0)}
