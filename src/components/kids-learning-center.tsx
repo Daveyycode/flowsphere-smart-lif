@@ -205,6 +205,56 @@ interface ParentSettings {
   allowedCategories: string[]
 }
 
+// New comprehensive tutoring interfaces
+interface SessionAnalytics {
+  kidId: string
+  date: string
+  subject: string
+  totalMinutes: number
+  greetingPhaseComplete: boolean
+  mood: 'happy' | 'neutral' | 'sad' | 'anxious' | 'excited' | null
+  moodNotes: string
+  topicsConvered: string[]
+  correctAnswers: number
+  incorrectAnswers: number
+  weakAreas: string[]
+  strongAreas: string[]
+  focusRecommendation: string
+  confidenceLevel: number // 1-10
+  engagementLevel: number // 1-10
+  yesterdayRecap: string
+  parentAlerts: string[] // For bullying detection, mood concerns
+}
+
+interface WeeklySummary {
+  id: string
+  kidId: string
+  weekStart: string
+  weekEnd: string
+  totalSessions: number
+  totalMinutes: number
+  moodTrend: string[]
+  weakAreasOverall: string[]
+  strongAreasOverall: string[]
+  progressNotes: string
+  focusRecommendations: string[]
+  parentSuggestions: string[]
+  confidenceProgress: string
+  potentialConcerns: string[]
+  generatedAt: number
+}
+
+interface TopicSuggestion {
+  id: string
+  title: string
+  description: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  estimatedMinutes: number
+  learningObjectives: string[]
+}
+
+type SessionPhase = 'greeting' | 'learning' | 'review' | 'ended'
+
 // ==========================================
 // Constants
 // ==========================================
@@ -259,8 +309,16 @@ const STORAGE_KEYS = {
   REPORTS: 'flowsphere-kids-reports-v2',
   CREDITS: 'flowsphere-kids-credits-v2',
   GAME_PROGRESS: 'flowsphere-kids-games-v2',
-  PARENT_SETTINGS: 'flowsphere-kids-parent-settings-v2'
+  PARENT_SETTINGS: 'flowsphere-kids-parent-settings-v2',
+  SESSION_ANALYTICS: 'flowsphere-kids-analytics-v2',
+  WEEKLY_SUMMARIES: 'flowsphere-kids-weekly-v2'
 }
+
+// Session timing constants
+const GREETING_PHASE_MINUTES = 3 // 3 minutes for greeting/mood check
+const LEARNING_SESSION_MINUTES = 15 // 15 minutes per learning session
+const FOCUS_WEAK_AREA_PERCENT = 80 // 80% focus on weak areas
+const FOCUS_OTHER_PERCENT = 20 // 20% on other topics
 
 // Game Categories
 const GAME_CATEGORIES = [
@@ -477,6 +535,23 @@ export function KidsLearningCenter() {
   const [showParentSettings, setShowParentSettings] = useState(false)
   const gameTimerRef = useRef<number | null>(null)
 
+  // Comprehensive Tutoring State
+  const [sessionAnalytics, setSessionAnalytics] = useKV<SessionAnalytics[]>(STORAGE_KEYS.SESSION_ANALYTICS, [])
+  const [weeklySummaries, setWeeklySummaries] = useKV<WeeklySummary[]>(STORAGE_KEYS.WEEKLY_SUMMARIES, [])
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>('greeting')
+  const [sessionTimer, setSessionTimer] = useState<number>(0) // seconds elapsed
+  const [greetingTimer, setGreetingTimer] = useState<number>(GREETING_PHASE_MINUTES * 60)
+  const [learningTimer, setLearningTimer] = useState<number>(LEARNING_SESSION_MINUTES * 60)
+  const [currentMood, setCurrentMood] = useState<SessionAnalytics['mood']>(null)
+  const [currentAnalytics, setCurrentAnalytics] = useState<SessionAnalytics | null>(null)
+  const [topicSuggestions, setTopicSuggestions] = useState<TopicSuggestion[]>([])
+  const [showTopicSuggestions, setShowTopicSuggestions] = useState(false)
+  const [uploadedContent, setUploadedContent] = useState<string>('') // Parsed content from uploaded files
+  const [isAnalyzingContent, setIsAnalyzingContent] = useState(false)
+  const [showWeeklySummary, setShowWeeklySummary] = useState(false)
+  const sessionTimerRef = useRef<number | null>(null)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // ==========================================
@@ -540,6 +615,386 @@ export function KidsLearningCenter() {
   }
 
   const getTotalCredits = () => (credits?.free || 0) + (credits?.purchased || 0)
+
+  // ==========================================
+  // Comprehensive Tutoring System
+  // ==========================================
+
+  // Get yesterday's analytics for recap
+  const getYesterdayAnalytics = useCallback(() => {
+    if (!selectedKid || !sessionAnalytics) return null
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    return sessionAnalytics.find(a => a.kidId === selectedKid.id && a.date === yesterday)
+  }, [selectedKid, sessionAnalytics])
+
+  // Get weak areas from recent sessions
+  const getWeakAreas = useCallback(() => {
+    if (!selectedKid || !sessionAnalytics) return []
+    const recent = sessionAnalytics
+      .filter(a => a.kidId === selectedKid.id)
+      .slice(-10)
+    const weakCounts: Record<string, number> = {}
+    recent.forEach(a => {
+      a.weakAreas.forEach(area => {
+        weakCounts[area] = (weakCounts[area] || 0) + 1
+      })
+    })
+    return Object.entries(weakCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([area]) => area)
+  }, [selectedKid, sessionAnalytics])
+
+  // Initialize session analytics
+  const initializeSessionAnalytics = useCallback((subject: string) => {
+    if (!selectedKid) return null
+    const analytics: SessionAnalytics = {
+      kidId: selectedKid.id,
+      date: new Date().toISOString().split('T')[0],
+      subject,
+      totalMinutes: 0,
+      greetingPhaseComplete: false,
+      mood: null,
+      moodNotes: '',
+      topicsConvered: [],
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      weakAreas: [],
+      strongAreas: [],
+      focusRecommendation: '',
+      confidenceLevel: 5,
+      engagementLevel: 5,
+      yesterdayRecap: '',
+      parentAlerts: []
+    }
+    setCurrentAnalytics(analytics)
+    return analytics
+  }, [selectedKid])
+
+  // Start session timer
+  const startSessionTimer = useCallback(() => {
+    if (sessionTimerRef.current) clearInterval(sessionTimerRef.current)
+
+    sessionTimerRef.current = window.setInterval(() => {
+      setSessionTimer(prev => prev + 1)
+
+      // Update phase based on timer
+      if (sessionPhase === 'greeting') {
+        setGreetingTimer(prev => {
+          if (prev <= 1) {
+            setSessionPhase('learning')
+            toast.info('Great chat! Now let\'s start learning!')
+            return 0
+          }
+          return prev - 1
+        })
+      } else if (sessionPhase === 'learning') {
+        setLearningTimer(prev => {
+          if (prev <= 1) {
+            setSessionPhase('review')
+            performSessionAnalysis()
+            return 0
+          }
+          return prev - 1
+        })
+      }
+    }, 1000)
+  }, [sessionPhase])
+
+  // Stop session timer
+  const stopSessionTimer = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearInterval(sessionTimerRef.current)
+      sessionTimerRef.current = null
+    }
+  }, [])
+
+  // Perform 15-minute session analysis
+  const performSessionAnalysis = useCallback(async () => {
+    if (!selectedKid || !selectedSubject || !currentAnalytics) return
+
+    const weakAreas = getWeakAreas()
+    const analytics = {
+      ...currentAnalytics,
+      totalMinutes: Math.round(sessionTimer / 60),
+      weakAreas,
+      focusRecommendation: weakAreas.length > 0
+        ? `Focus ${FOCUS_WEAK_AREA_PERCENT}% on: ${weakAreas.slice(0, 2).join(', ')}`
+        : 'Continue with current topics'
+    }
+
+    setCurrentAnalytics(analytics)
+    setSessionAnalytics(prev => [...(prev || []), analytics])
+
+    // Generate AI summary
+    if (hasCredits()) {
+      useCredit()
+      try {
+        const result = await smartCompletion([
+          { role: 'system', content: `You are analyzing a ${LEARNING_SESSION_MINUTES}-minute tutoring session. Provide a brief parent-friendly summary.` },
+          { role: 'user', content: `Session Summary for ${selectedKid.name}:
+- Subject: ${selectedSubject.name}
+- Duration: ${analytics.totalMinutes} minutes
+- Mood: ${analytics.mood || 'Not assessed'}
+- Topics: ${analytics.topicsConvered.join(', ') || 'General review'}
+- Correct answers: ${analytics.correctAnswers}
+- Incorrect answers: ${analytics.incorrectAnswers}
+- Weak areas identified: ${analytics.weakAreas.join(', ') || 'None'}
+
+Generate a 2-3 sentence summary for parents with one actionable suggestion.` }
+        ], { temperature: 0.5 })
+
+        toast.success('Session analysis complete!', {
+          description: result.content.slice(0, 100) + '...'
+        })
+      } catch (e) {
+        console.error('Analysis failed:', e)
+      }
+    }
+  }, [selectedKid, selectedSubject, currentAnalytics, sessionTimer, getWeakAreas, hasCredits])
+
+  // Detect mood from AI response
+  const detectMoodFromConversation = useCallback((content: string) => {
+    const lowerContent = content.toLowerCase()
+    const moodIndicators = {
+      sad: ['sad', 'upset', 'crying', 'unhappy', 'bad day', 'hurt', 'lonely', 'bullied', 'mean to me'],
+      anxious: ['worried', 'scared', 'nervous', 'anxious', 'afraid', 'stress'],
+      happy: ['happy', 'great', 'awesome', 'excited', 'fun', 'good day', 'love'],
+      excited: ['can\'t wait', 'so excited', 'yay', 'amazing']
+    }
+
+    for (const [mood, indicators] of Object.entries(moodIndicators)) {
+      if (indicators.some(i => lowerContent.includes(i))) {
+        setCurrentMood(mood as SessionAnalytics['mood'])
+
+        // Alert parents for concerning moods
+        if (mood === 'sad' || mood === 'anxious') {
+          const alerts = currentAnalytics?.parentAlerts || []
+          if (!alerts.includes(`${mood} mood detected`)) {
+            setCurrentAnalytics(prev => prev ? {
+              ...prev,
+              mood: mood as SessionAnalytics['mood'],
+              parentAlerts: [...alerts, `${mood} mood detected - may need attention`]
+            } : prev)
+          }
+        }
+        return mood
+      }
+    }
+    return null
+  }, [currentAnalytics])
+
+  // Generate topic suggestions based on uploaded content
+  const generateTopicSuggestions = useCallback(async () => {
+    if (!selectedKid || !selectedSubject || !hasCredits()) return
+
+    setShowTopicSuggestions(true)
+    setIsLoading(true)
+    useCredit()
+
+    try {
+      const gradeInfo = GRADES.find(g => g.value === selectedKid.grade)
+      const weakAreas = getWeakAreas()
+      const uploadedContext = uploadedContent
+        ? `\n\nUploaded learning material:\n${uploadedContent.slice(0, 2000)}`
+        : ''
+
+      const result = await smartCompletion([
+        { role: 'system', content: `You are an educational curriculum expert. Generate 4 topic suggestions in JSON format.` },
+        { role: 'user', content: `Generate 4 topic suggestions for:
+- Student: ${selectedKid.name}, Age ${selectedKid.age}, ${gradeInfo?.label}
+- Subject: ${selectedSubject.name}
+- Weak areas to focus on: ${weakAreas.join(', ') || 'None identified'}
+${uploadedContext}
+
+Return ONLY valid JSON array with format:
+[{"id":"topic-1","title":"Topic Name","description":"Brief description","difficulty":"easy|medium|hard","estimatedMinutes":10,"learningObjectives":["objective1","objective2"]}]` }
+      ], { temperature: 0.7 })
+
+      try {
+        // Extract JSON from response
+        const jsonMatch = result.content.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          const suggestions = JSON.parse(jsonMatch[0]) as TopicSuggestion[]
+          setTopicSuggestions(suggestions)
+        }
+      } catch (e) {
+        console.error('Failed to parse suggestions:', e)
+        toast.error('Could not generate suggestions')
+      }
+    } catch (e) {
+      toast.error('Could not generate topic suggestions')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedKid, selectedSubject, uploadedContent, getWeakAreas, hasCredits])
+
+  // Generate weekly summary for parents
+  const generateWeeklySummary = useCallback(async () => {
+    if (!selectedKid || !sessionAnalytics || !hasCredits()) return
+
+    const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
+    const weekEnd = new Date().toISOString().split('T')[0]
+
+    const weeklyData = sessionAnalytics.filter(a =>
+      a.kidId === selectedKid.id &&
+      a.date >= weekStart &&
+      a.date <= weekEnd
+    )
+
+    if (weeklyData.length === 0) {
+      toast.info('No sessions this week to summarize')
+      return
+    }
+
+    setIsLoading(true)
+    useCredit()
+
+    try {
+      const moodTrend = weeklyData.map(a => a.mood).filter(Boolean) as string[]
+      const allWeakAreas = [...new Set(weeklyData.flatMap(a => a.weakAreas))]
+      const allStrongAreas = [...new Set(weeklyData.flatMap(a => a.strongAreas))]
+      const totalCorrect = weeklyData.reduce((sum, a) => sum + a.correctAnswers, 0)
+      const totalIncorrect = weeklyData.reduce((sum, a) => sum + a.incorrectAnswers, 0)
+      const parentAlerts = [...new Set(weeklyData.flatMap(a => a.parentAlerts))]
+
+      const result = await smartCompletion([
+        { role: 'system', content: `You are a caring educational advisor generating a weekly summary for parents. Be warm, encouraging, and actionable.` },
+        { role: 'user', content: `Generate weekly summary for ${selectedKid.name}:
+- Total sessions: ${weeklyData.length}
+- Total study time: ${weeklyData.reduce((sum, a) => sum + a.totalMinutes, 0)} minutes
+- Mood trend: ${moodTrend.join(' -> ') || 'Stable'}
+- Correct answers: ${totalCorrect}, Incorrect: ${totalIncorrect}
+- Areas needing focus: ${allWeakAreas.join(', ') || 'None'}
+- Strong areas: ${allStrongAreas.join(', ') || 'Still building'}
+- Concerns/Alerts: ${parentAlerts.join('; ') || 'None'}
+
+Provide:
+1. Overall progress summary (2-3 sentences)
+2. Confidence assessment
+3. Top 3 focus recommendations
+4. Any concerns to address
+5. Encouragement for next week` }
+      ], { temperature: 0.6 })
+
+      const summary: WeeklySummary = {
+        id: `weekly-${Date.now()}`,
+        kidId: selectedKid.id,
+        weekStart,
+        weekEnd,
+        totalSessions: weeklyData.length,
+        totalMinutes: weeklyData.reduce((sum, a) => sum + a.totalMinutes, 0),
+        moodTrend,
+        weakAreasOverall: allWeakAreas,
+        strongAreasOverall: allStrongAreas,
+        progressNotes: result.content,
+        focusRecommendations: allWeakAreas.slice(0, 3),
+        parentSuggestions: [],
+        confidenceProgress: `${Math.round((totalCorrect / (totalCorrect + totalIncorrect || 1)) * 100)}% accuracy`,
+        potentialConcerns: parentAlerts,
+        generatedAt: Date.now()
+      }
+
+      setWeeklySummaries(prev => [...(prev || []), summary])
+      setShowWeeklySummary(true)
+      toast.success('Weekly summary generated!')
+    } catch (e) {
+      toast.error('Could not generate weekly summary')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedKid, sessionAnalytics, hasCredits])
+
+  // Parse uploaded file content for AI analysis
+  const parseUploadedContent = useCallback(async (attachment: Attachment) => {
+    if (!selectedKid || !selectedSubject) return
+
+    setIsAnalyzingContent(true)
+
+    // For now, handle text-based content description
+    // In production, use OCR for images, PDF parsing, etc.
+    let contentDescription = ''
+
+    if (attachment.type === 'image') {
+      contentDescription = `[Image uploaded: ${attachment.name}] - The student has shared an educational image/worksheet that needs to be analyzed and taught from.`
+    } else if (attachment.type === 'file') {
+      contentDescription = `[Document uploaded: ${attachment.name}] - Educational material to analyze and create lessons from.`
+    } else if (attachment.type === 'url') {
+      contentDescription = `[URL shared: ${attachment.url}] - Online resource to incorporate into teaching.`
+    }
+
+    setUploadedContent(prev => prev + '\n' + contentDescription)
+    setIsAnalyzingContent(false)
+
+    toast.success('Content ready for teaching!', {
+      description: 'AI tutor will now teach based on your uploaded material'
+    })
+  }, [selectedKid, selectedSubject])
+
+  // Text-to-speech with stop functionality
+  const stopSpeaking = useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+    }
+  }, [])
+
+  const speak = useCallback((text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window && ttsEnabled) {
+      // Stop any current speech
+      window.speechSynthesis.cancel()
+
+      // Clean text from markdown artifacts
+      const cleanText = text
+        .replace(/<s>\[\/INST\]/g, '')
+        .replace(/\[\/INST\]/g, '')
+        .replace(/<\/s>/g, '')
+        .replace(/\[INST\]/g, '')
+        .replace(/<s>/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/#{1,6}\s/g, '')
+        .replace(/`/g, '')
+        .trim()
+
+      const utterance = new SpeechSynthesisUtterance(cleanText)
+      utterance.rate = 0.9
+      utterance.pitch = 1.1
+
+      // Get voices and prefer child-friendly ones
+      const voices = window.speechSynthesis.getVoices()
+      const preferredVoice = voices.find(v =>
+        v.name.includes('Samantha') ||
+        v.name.includes('Karen') ||
+        v.name.includes('Google') ||
+        v.lang.startsWith('en')
+      )
+      if (preferredVoice) utterance.voice = preferredVoice
+
+      utterance.onstart = () => setIsSpeaking(true)
+      utterance.onend = () => setIsSpeaking(false)
+      utterance.onerror = () => setIsSpeaking(false)
+
+      window.speechSynthesis.speak(utterance)
+    }
+  }, [ttsEnabled])
+
+  const toggleTTS = useCallback(() => {
+    if (ttsEnabled) {
+      stopSpeaking()
+    }
+    setTtsEnabled(!ttsEnabled)
+  }, [ttsEnabled, stopSpeaking])
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+      stopSessionTimer()
+    }
+  }, [stopSessionTimer])
 
   // ==========================================
   // Camera & Behavior Monitoring
@@ -614,6 +1069,15 @@ export function KidsLearningCenter() {
     setMessages([])
     setCurrentView('learn')
 
+    // Reset session timers and phase
+    setSessionPhase('greeting')
+    setSessionTimer(0)
+    setGreetingTimer(GREETING_PHASE_MINUTES * 60)
+    setLearningTimer(LEARNING_SESSION_MINUTES * 60)
+    setCurrentMood(null)
+    setTopicSuggestions([])
+    setShowTopicSuggestions(false)
+
     const session: StudySession = {
       id: `session-${Date.now()}`,
       kidId: selectedKid.id,
@@ -627,12 +1091,22 @@ export function KidsLearningCenter() {
     }
     setCurrentSession(session)
 
-    // Generate welcome message
+    // Initialize comprehensive analytics
+    initializeSessionAnalytics(subject.id)
+
+    // Start session timer
+    startSessionTimer()
+
+    // Generate welcome message with greeting phase
     generateWelcome(subject)
   }
 
   const endLearningSession = (xpEarned: number = 10) => {
     if (!currentSession || !selectedKid) return
+
+    // Stop session timer
+    stopSessionTimer()
+    stopSpeaking()
 
     const completedSession: StudySession = {
       ...currentSession,
@@ -642,6 +1116,15 @@ export function KidsLearningCenter() {
     }
 
     setSessions(prev => [...(prev || []), completedSession])
+
+    // Save session analytics
+    if (currentAnalytics) {
+      const finalAnalytics = {
+        ...currentAnalytics,
+        totalMinutes: Math.round(sessionTimer / 60)
+      }
+      setSessionAnalytics(prev => [...(prev || []), finalAnalytics])
+    }
 
     // Update kid stats
     const duration = Math.round((Date.now() - currentSession.startTime) / 1000 / 60)
@@ -669,6 +1152,9 @@ export function KidsLearningCenter() {
     stopCamera()
     setCurrentSession(null)
     setSelectedSubject(null)
+    setCurrentAnalytics(null)
+    setSessionPhase('ended')
+    setUploadedContent('')
     setCurrentView('home')
     toast.success(`Great job! +${xpEarned} XP earned!`)
   }
@@ -705,38 +1191,78 @@ export function KidsLearningCenter() {
 
     try {
       const gradeInfo = GRADES.find(g => g.value === selectedKid.grade)
+      const yesterdayData = getYesterdayAnalytics()
+      const weakAreas = getWeakAreas()
+
+      // Build context from uploaded content
+      const uploadedContext = uploadedContent
+        ? `\n\nIMPORTANT - Student has uploaded learning material:\n${uploadedContent}\nYou MUST teach from this material, not just describe it. Analyze it deeply and create an actual lesson from its content.`
+        : ''
+
       const lessonContext = currentLessonPlan
-        ? `\n\nThe parent has uploaded a lesson plan with these topics: ${currentLessonPlan.topics.join(', ')}. Focus on these topics.`
+        ? `\n\nParent uploaded lesson plan topics: ${currentLessonPlan.topics.join(', ')}. Focus on these topics.`
         : ''
 
       const suggestionContext = getTodaySuggestion()
         ? `\n\nToday's parent suggestion: "${getTodaySuggestion()?.topic}" - Prioritize this topic.`
         : ''
 
-      const systemPrompt = `You are FlowSphere Kids Tutor, a friendly AI tutor for children.
+      const yesterdayContext = yesterdayData
+        ? `\n\nYESTERDAY'S SESSION RECAP:
+- Subject: ${yesterdayData.subject}
+- Topics covered: ${yesterdayData.topicsConvered.join(', ') || 'General review'}
+- Mood: ${yesterdayData.mood || 'Not recorded'}
+- Performance: ${yesterdayData.correctAnswers} correct, ${yesterdayData.incorrectAnswers} incorrect
+- Areas to focus on: ${yesterdayData.weakAreas.join(', ') || 'None identified'}`
+        : ''
 
-Student Profile:
+      const weakAreasContext = weakAreas.length > 0
+        ? `\n\nSTUDENT'S WEAK AREAS (need ${FOCUS_WEAK_AREA_PERCENT}% focus): ${weakAreas.join(', ')}`
+        : ''
+
+      const systemPrompt = `You are a warm, caring, REAL AI tutor named TutorBot - like a friendly teacher who genuinely cares about ${selectedKid.name}.
+
+STUDENT PROFILE:
 - Name: ${selectedKid.name}
 - Age: ${selectedKid.age} years old
 - Grade: ${gradeInfo?.label || selectedKid.grade}
-- Subject: ${subject.name}
+- Subject Today: ${subject.name}
 - Language: ${LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'}
-${lessonContext}${suggestionContext}
+${lessonContext}${suggestionContext}${yesterdayContext}${weakAreasContext}${uploadedContext}
+
+SESSION STRUCTURE:
+This is the GREETING PHASE (${GREETING_PHASE_MINUTES} minutes). Your goals:
+1. Warmly greet ${selectedKid.name} by name
+2. Ask how their day is going (genuinely care about their answer)
+3. ${yesterdayData ? 'Do a quick recap of what you learned together yesterday' : 'If this is first session, welcome them warmly'}
+4. Listen for any emotional cues (sadness, anxiety, excitement)
+5. Be like a supportive friend who happens to be a great teacher
+
+TEACHING STYLE:
+- Be WARM, GENUINE, and ENCOURAGING - like a favorite teacher
+- Use age-appropriate vocabulary for a ${selectedKid.age}-year-old
+- If they uploaded material (worksheet, image, textbook), TEACH FROM IT - don't just describe what you see
+- Make learning feel like an adventure, not a chore
+- Award "+10 XP!" for correct answers with enthusiasm
+- Gently encourage if they struggle - never make them feel bad
+- Be alert for signs of bullying, sadness, or anxiety - respond with care and note for parents
+- If student seems distracted or sad, acknowledge their feelings first
 
 CRITICAL RULES:
-1. ALWAYS use age-appropriate vocabulary for a ${selectedKid.age}-year-old
-2. Keep explanations SHORT (2-3 sentences for young kids, 3-4 for older)
-3. Use fun examples and analogies kids can relate to
-4. Include interactive elements (ask questions, give mini-quizzes)
-5. Celebrate correct answers enthusiastically
-6. Gently correct mistakes with encouragement
-7. Award XP for correct answers (say "+10 XP!")
-8. If the student seems confused, try a different approach
-9. Never use complex jargon - explain everything simply`
+1. NEVER just describe uploaded content - ACTUALLY TEACH from it
+2. For worksheets: Guide them through solving problems step by step
+3. For textbook pages: Extract key concepts and explain them simply
+4. Create interactive mini-lessons based on uploaded material
+5. After greeting phase, transition naturally to teaching
+6. Track what topics you cover to help identify weak areas`
+
+      const greetingPrompt = yesterdayData
+        ? `Start the GREETING PHASE. Warmly greet ${selectedKid.name}, ask how their day is going, then briefly recap yesterday's ${yesterdayData.subject} lesson where you covered ${yesterdayData.topicsConvered.slice(0, 2).join(' and ') || 'some topics'}. Be genuine and caring!`
+        : `Start the GREETING PHASE. Warmly greet ${selectedKid.name}, ask how their day is going today, and express excitement to learn ${subject.name} together. Be like a friendly teacher who's genuinely happy to see them!`
 
       const result = await smartCompletion([
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Start a ${subject.name} lesson. Greet me by name, then suggest 3 topics appropriate for my grade level that we could learn today. Make it fun!` }
+        { role: 'user', content: greetingPrompt }
       ], { temperature: 0.8 })
 
       const msg: Message = {
@@ -754,7 +1280,7 @@ CRITICAL RULES:
       const fallback: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hi ${selectedKid.name}! ${subject.emoji} Let's learn some ${subject.name} today! What topic interests you?`,
+        content: `Hi ${selectedKid.name}! ${subject.emoji} I'm so happy to see you today! How's your day going? Once you tell me, we can start our ${subject.name} adventure together!`,
         timestamp: Date.now()
       }
       setMessages([fallback])
@@ -775,15 +1301,26 @@ CRITICAL RULES:
 
     // Build message content including attachments
     let messageContent = inputMessage.trim()
+
+    // Process attachments and update uploaded content for teaching
     if (attachments.length > 0) {
       const attachmentDescriptions = attachments.map(att => {
-        if (att.type === 'url') return `[Attached URL: ${att.url}]`
-        if (att.type === 'image') return `[Attached Image: ${att.name}]`
-        return `[Attached File: ${att.name}]`
+        if (att.type === 'url') return `[Attached URL: ${att.url}] - Please teach me topics from this resource`
+        if (att.type === 'image') return `[Attached Image/Worksheet: ${att.name}] - Please analyze this and teach me the topics/problems shown`
+        return `[Attached Document: ${att.name}] - Please teach me from this material`
       }).join('\n')
       messageContent = messageContent
         ? `${messageContent}\n\n${attachmentDescriptions}`
         : attachmentDescriptions
+
+      // Update uploaded content context for future messages
+      attachments.forEach(att => parseUploadedContent(att))
+    }
+
+    // Detect mood from user message
+    const detectedMood = detectMoodFromConversation(messageContent)
+    if (detectedMood && currentAnalytics) {
+      setCurrentAnalytics(prev => prev ? { ...prev, mood: detectedMood as any, moodNotes: messageContent } : prev)
     }
 
     const userMsg: Message = {
@@ -802,23 +1339,57 @@ CRITICAL RULES:
 
     try {
       const gradeInfo = GRADES.find(g => g.value === selectedKid.grade)
+      const weakAreas = getWeakAreas()
+
+      // Build comprehensive context
+      const uploadedContext = uploadedContent
+        ? `\n\nUPLOADED LEARNING MATERIAL:\n${uploadedContent}\n\nIMPORTANT: You must TEACH from this material. If it's a worksheet, guide them through solving problems. If it's a textbook page, explain the concepts. Don't just describe what you see - ACTUALLY TEACH!`
+        : ''
+
       const lessonContext = currentLessonPlan
         ? `\n\nLesson plan topics: ${currentLessonPlan.topics.join(', ')}`
         : ''
 
-      const systemPrompt = `You are FlowSphere Kids Tutor for ${selectedKid.name}, age ${selectedKid.age}, in ${gradeInfo?.label || selectedKid.grade}.
+      const weakAreasContext = weakAreas.length > 0
+        ? `\n\nFOCUS AREAS (student struggles with these - spend ${FOCUS_WEAK_AREA_PERCENT}% time here): ${weakAreas.join(', ')}`
+        : ''
+
+      const phaseContext = sessionPhase === 'greeting'
+        ? `\n\nCURRENT PHASE: GREETING (${Math.ceil(greetingTimer / 60)} min left) - Focus on building rapport, checking mood, and discussing their day. Transition to learning naturally.`
+        : sessionPhase === 'learning'
+        ? `\n\nCURRENT PHASE: LEARNING (${Math.ceil(learningTimer / 60)} min left) - Actively teach, ask questions, check understanding. Award XP for correct answers!`
+        : ''
+
+      const systemPrompt = `You are TutorBot, a warm, caring, REAL AI tutor for ${selectedKid.name}, age ${selectedKid.age}, in ${gradeInfo?.label || selectedKid.grade}.
 Subject: ${selectedSubject.name}
-${lessonContext}
+${lessonContext}${weakAreasContext}${uploadedContext}${phaseContext}
 
-Rules:
+YOUR PERSONALITY:
+- You're like their favorite teacher who genuinely cares about them
+- Be warm, patient, and encouraging - never make them feel bad
 - Use age-appropriate language for a ${selectedKid.age}-year-old
-- Keep responses concise (2-4 sentences)
-- Be encouraging and fun
-- Award "+10 XP!" for correct answers
-- Ask follow-up questions to check understanding
-- If the user shares files, images or URLs, acknowledge them and incorporate them into your teaching`
+- Make learning feel like an adventure, not a chore
 
-      const history = messages.slice(-10).map(m => ({
+TEACHING APPROACH:
+1. If they uploaded a worksheet/image: TEACH from it! Guide them through solving problems step by step
+2. If they seem sad/anxious: Acknowledge their feelings first, be supportive, then gently return to learning
+3. Award "+10 XP!" enthusiastically for correct answers
+4. For wrong answers: Encourage them, explain the concept differently, try again
+5. Ask follow-up questions to check understanding
+6. If they struggle multiple times: Note this topic as a weak area
+7. Keep responses concise but warm (3-5 sentences)
+
+BULLYING/MOOD DETECTION:
+- If child mentions being hurt, bullied, scared, or sad - respond with care and empathy
+- Note any concerning statements for parent alerts
+- Be a supportive friend while remaining educational
+
+TRACKING (internal):
+- Note topics covered in this conversation
+- Track if answers are correct (say "+10 XP!") or incorrect (needs more practice)
+- Identify patterns in what they struggle with`
+
+      const history = messages.slice(-12).map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content
       }))
@@ -839,10 +1410,49 @@ Rules:
 
       setMessages(prev => [...prev, assistantMsg])
 
-      // Check for XP award
-      if (result.content.includes('+10 XP') || result.content.toLowerCase().includes('correct')) {
+      // Track performance from AI response
+      const responseContent = result.content.toLowerCase()
+
+      // Check for correct answer (XP award)
+      if (result.content.includes('+10 XP') || responseContent.includes('correct') || responseContent.includes('great job') || responseContent.includes('well done') || responseContent.includes('excellent')) {
         if (currentSession) {
           setCurrentSession(prev => prev ? { ...prev, xpEarned: prev.xpEarned + 10 } : prev)
+        }
+        if (currentAnalytics) {
+          setCurrentAnalytics(prev => prev ? { ...prev, correctAnswers: prev.correctAnswers + 1 } : prev)
+        }
+      }
+
+      // Check for incorrect answer
+      if (responseContent.includes('not quite') || responseContent.includes('try again') || responseContent.includes('almost') || responseContent.includes('let\'s think')) {
+        if (currentAnalytics) {
+          setCurrentAnalytics(prev => prev ? { ...prev, incorrectAnswers: prev.incorrectAnswers + 1 } : prev)
+        }
+      }
+
+      // Update topics covered (extract from response if possible)
+      if (currentAnalytics && sessionPhase === 'learning') {
+        // Simple topic extraction from conversation
+        const topicPatterns = ['learning about', 'practicing', 'working on', 'studying']
+        for (const pattern of topicPatterns) {
+          if (responseContent.includes(pattern)) {
+            const startIdx = responseContent.indexOf(pattern) + pattern.length
+            const topic = responseContent.slice(startIdx, startIdx + 30).split(/[.!?,]/)[0].trim()
+            if (topic && topic.length > 3) {
+              setCurrentAnalytics(prev => prev ? {
+                ...prev,
+                topicsConvered: [...new Set([...prev.topicsConvered, topic])]
+              } : prev)
+            }
+            break
+          }
+        }
+      }
+
+      // Mark greeting phase complete if AI transitions to teaching
+      if (sessionPhase === 'greeting' && (responseContent.includes('let\'s start') || responseContent.includes('shall we begin') || responseContent.includes('ready to learn'))) {
+        if (currentAnalytics) {
+          setCurrentAnalytics(prev => prev ? { ...prev, greetingPhaseComplete: true } : prev)
         }
       }
 
@@ -1187,86 +1797,6 @@ Rules:
     toast.success('Study suggestion added!')
   }
 
-  // ==========================================
-  // Text-to-Speech
-  // ==========================================
-
-  const [isSpeaking, setIsSpeaking] = useState(false)
-
-  // Stop speaking immediately
-  const stopSpeaking = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      setIsSpeaking(false)
-    }
-  }, [])
-
-  // Speak text aloud
-  const speak = useCallback((text: string) => {
-    if (!ttsEnabled || !('speechSynthesis' in window)) return
-
-    // Cancel any ongoing speech first
-    window.speechSynthesis.cancel()
-
-    // Clean the text from markdown and model artifacts
-    const cleanText = text
-      .replace(/<s>\[\/INST\]/gi, '')
-      .replace(/<\/s>/gi, '')
-      .replace(/\[INST\]/gi, '')
-      .replace(/<s>/gi, '')
-      .replace(/\*\*/g, '')
-      .replace(/\n+/g, '. ')
-      .trim()
-      .slice(0, 800)
-
-    if (!cleanText) return
-
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    utterance.rate = 0.9
-    utterance.pitch = 1.1
-    utterance.volume = 1
-
-    // Try to find a child-friendly voice
-    const voices = window.speechSynthesis.getVoices()
-    const preferredVoice = voices.find(v =>
-      v.name.includes('Samantha') ||
-      v.name.includes('Google') ||
-      v.name.includes('Female') ||
-      v.lang.startsWith('en')
-    )
-    if (preferredVoice) utterance.voice = preferredVoice
-
-    utterance.onstart = () => setIsSpeaking(true)
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
-
-    window.speechSynthesis.speak(utterance)
-  }, [ttsEnabled])
-
-  // Toggle TTS and stop speaking if turned off
-  const toggleTTS = useCallback(() => {
-    if (ttsEnabled) {
-      // Turning OFF - stop any ongoing speech immediately
-      stopSpeaking()
-    }
-    setTtsEnabled(!ttsEnabled)
-  }, [ttsEnabled, stopSpeaking])
-
-  // Stop speaking when TTS is disabled
-  useEffect(() => {
-    if (!ttsEnabled) {
-      stopSpeaking()
-    }
-  }, [ttsEnabled, stopSpeaking])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-      }
-    }
-  }, [])
 
   // ==========================================
   // Profile Management
@@ -1368,6 +1898,153 @@ Rules:
             </Badge>
           </CardContent>
         </Card>
+
+        {/* Parent Zone - Weekly Summary */}
+        <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ChartLine className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <span className="font-medium text-sm">Parent Zone</span>
+                  <p className="text-xs text-muted-foreground">Weekly progress & mood reports</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={generateWeeklySummary}
+                disabled={isLoading}
+                className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+              >
+                <Export className="w-3 h-3 mr-1" />
+                Get Report
+              </Button>
+            </div>
+
+            {/* Show latest summary if available */}
+            {weeklySummaries && weeklySummaries.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-emerald-500/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Last report: {new Date(weeklySummaries[weeklySummaries.length - 1].generatedAt).toLocaleDateString()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => setShowWeeklySummary(true)}
+                  >
+                    View
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Weekly Summary Modal */}
+        <AnimatePresence>
+          {showWeeklySummary && weeklySummaries && weeklySummaries.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+              onClick={() => setShowWeeklySummary(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-background rounded-xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
+              >
+                <Card className="border-0">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <ChartLine className="w-5 h-5 text-emerald-500" />
+                        Weekly Progress Report
+                      </CardTitle>
+                      <Button variant="ghost" size="icon" onClick={() => setShowWeeklySummary(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {weeklySummaries[weeklySummaries.length - 1].weekStart} to {weeklySummaries[weeklySummaries.length - 1].weekEnd}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-blue-500/10 rounded-lg p-2 text-center">
+                        <p className="text-xl font-bold text-blue-500">{weeklySummaries[weeklySummaries.length - 1].totalSessions}</p>
+                        <p className="text-[10px] text-muted-foreground">Sessions</p>
+                      </div>
+                      <div className="bg-green-500/10 rounded-lg p-2 text-center">
+                        <p className="text-xl font-bold text-green-500">{weeklySummaries[weeklySummaries.length - 1].totalMinutes}</p>
+                        <p className="text-[10px] text-muted-foreground">Minutes</p>
+                      </div>
+                      <div className="bg-violet-500/10 rounded-lg p-2 text-center">
+                        <p className="text-xl font-bold text-violet-500">{weeklySummaries[weeklySummaries.length - 1].confidenceProgress}</p>
+                        <p className="text-[10px] text-muted-foreground">Accuracy</p>
+                      </div>
+                    </div>
+
+                    {/* Mood Trend */}
+                    {weeklySummaries[weeklySummaries.length - 1].moodTrend.length > 0 && (
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs font-medium mb-2">Mood This Week</p>
+                        <div className="flex gap-1 flex-wrap">
+                          {weeklySummaries[weeklySummaries.length - 1].moodTrend.map((mood, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {mood === 'happy' ? '😊' : mood === 'excited' ? '🤩' : mood === 'sad' ? '😢' : mood === 'anxious' ? '😟' : '😐'} {mood}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Focus Areas */}
+                    {weeklySummaries[weeklySummaries.length - 1].weakAreasOverall.length > 0 && (
+                      <div className="bg-orange-500/10 rounded-lg p-3">
+                        <p className="text-xs font-medium text-orange-600 mb-2">Areas to Focus On</p>
+                        <div className="flex gap-1 flex-wrap">
+                          {weeklySummaries[weeklySummaries.length - 1].weakAreasOverall.map((area, i) => (
+                            <Badge key={i} variant="outline" className="text-xs border-orange-500/50">
+                              {area}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Potential Concerns */}
+                    {weeklySummaries[weeklySummaries.length - 1].potentialConcerns.length > 0 && (
+                      <div className="bg-red-500/10 rounded-lg p-3">
+                        <p className="text-xs font-medium text-red-600 mb-2 flex items-center gap-1">
+                          <Warning className="w-3 h-3" /> Attention Needed
+                        </p>
+                        <ul className="text-xs space-y-1">
+                          {weeklySummaries[weeklySummaries.length - 1].potentialConcerns.map((concern, i) => (
+                            <li key={i} className="text-muted-foreground">{concern}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* AI Summary */}
+                    <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-lg p-3">
+                      <p className="text-xs font-medium text-emerald-600 mb-2">AI Summary & Recommendations</p>
+                      <p className="text-sm whitespace-pre-wrap">{weeklySummaries[weeklySummaries.length - 1].progressNotes}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Parent Suggestion */}
         {todaySuggestion && (
@@ -1510,6 +2187,100 @@ Rules:
             </Badge>
           </div>
         </div>
+
+        {/* Session Timer & Phase Indicator */}
+        <div className="mb-3 p-2 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className={cn("w-4 h-4", sessionPhase === 'greeting' ? "text-blue-500" : sessionPhase === 'learning' ? "text-green-500" : "text-violet-500")} />
+              <span className="text-xs font-medium">
+                {sessionPhase === 'greeting' && `Chat Time: ${Math.floor(greetingTimer / 60)}:${(greetingTimer % 60).toString().padStart(2, '0')}`}
+                {sessionPhase === 'learning' && `Learning: ${Math.floor(learningTimer / 60)}:${(learningTimer % 60).toString().padStart(2, '0')}`}
+                {sessionPhase === 'review' && 'Session Complete!'}
+              </span>
+              <Badge variant="secondary" className={cn(
+                "text-[10px] px-1.5 py-0",
+                sessionPhase === 'greeting' ? "bg-blue-500/20 text-blue-600" :
+                sessionPhase === 'learning' ? "bg-green-500/20 text-green-600" :
+                "bg-violet-500/20 text-violet-600"
+              )}>
+                {sessionPhase === 'greeting' ? 'Chat' : sessionPhase === 'learning' ? 'Learn' : 'Done'}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {/* Topic Suggestions Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={generateTopicSuggestions}
+                disabled={isLoading}
+                title="Get 4 AI-suggested topics"
+              >
+                <Lightbulb className="w-3 h-3 mr-1" />
+                Topics
+              </Button>
+
+              {/* Mood Indicator */}
+              {currentMood && (
+                <Badge variant="outline" className={cn(
+                  "text-[10px]",
+                  currentMood === 'happy' || currentMood === 'excited' ? "border-green-500 text-green-600" :
+                  currentMood === 'sad' || currentMood === 'anxious' ? "border-orange-500 text-orange-600" :
+                  "border-gray-400"
+                )}>
+                  {currentMood === 'happy' ? '😊' : currentMood === 'excited' ? '🤩' : currentMood === 'sad' ? '😢' : currentMood === 'anxious' ? '😟' : '😐'} {currentMood}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Progress bar for current phase */}
+          <Progress
+            value={sessionPhase === 'greeting'
+              ? ((GREETING_PHASE_MINUTES * 60 - greetingTimer) / (GREETING_PHASE_MINUTES * 60)) * 100
+              : sessionPhase === 'learning'
+              ? ((LEARNING_SESSION_MINUTES * 60 - learningTimer) / (LEARNING_SESSION_MINUTES * 60)) * 100
+              : 100}
+            className="h-1 mt-2"
+          />
+        </div>
+
+        {/* Topic Suggestions Panel */}
+        {showTopicSuggestions && topicSuggestions.length > 0 && (
+          <Card className="mb-3 p-3 border-violet-500/30 bg-violet-500/5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium flex items-center gap-1">
+                <Lightbulb className="w-4 h-4 text-violet-500" />
+                Suggested Topics
+              </span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTopicSuggestions(false)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {topicSuggestions.map((topic, i) => (
+                <Button
+                  key={topic.id || i}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 px-2 text-left justify-start flex-col items-start"
+                  onClick={() => {
+                    setInputMessage(`Let's learn about ${topic.title}`)
+                    setShowTopicSuggestions(false)
+                  }}
+                >
+                  <span className="text-xs font-medium truncate w-full">{topic.title}</span>
+                  <span className="text-[10px] text-muted-foreground truncate w-full">{topic.description}</span>
+                  <Badge variant="secondary" className="text-[9px] mt-1">
+                    {topic.difficulty} • {topic.estimatedMinutes}min
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Focus Score (if camera active) */}
         {cameraActive && (
