@@ -12,6 +12,7 @@
 import { Email } from './email-service'
 import { logger } from '@/lib/security-utils'
 import { EmailClassificationRulesStore } from './email-classification-rules'
+import { aiSubscriptionManager } from '@/lib/ai-subscription-manager'
 
 export interface EmailClassification {
   category: 'emergency' | 'subscription' | 'important' | 'regular' | 'work' | 'personal'
@@ -212,10 +213,38 @@ If user's work domains = "myflowsphere.com" and email is from "lazada.com.ph" �
 
   /**
    * Get available provider (one that has a key and hasn't failed recently)
+   * Checks BYOK keys first if user is on BYOK plan
    */
   private getAvailableProvider(): AIProvider | null {
     this.resetFailedProvidersIfNeeded()
 
+    const subscription = aiSubscriptionManager.getSubscription()
+
+    // For BYOK users, check their own keys first
+    if (subscription.tier === 'byok') {
+      const byokProviders: Array<{ name: string; key: string | null }> = [
+        { name: 'groq', key: aiSubscriptionManager.getByokKey('groq') },
+        { name: 'gemini', key: aiSubscriptionManager.getByokKey('gemini') },
+        { name: 'openrouter', key: aiSubscriptionManager.getByokKey('openrouter') },
+        { name: 'openai', key: aiSubscriptionManager.getByokKey('openai') },
+        { name: 'deepseek', key: aiSubscriptionManager.getByokKey('deepseek') },
+      ]
+
+      for (const { name, key } of byokProviders) {
+        if (key && !this.failedProviders.has(name)) {
+          const provider = this.providers.find(p => p.name === name)
+          if (provider) {
+            // Override the getKey function to return BYOK key
+            return {
+              ...provider,
+              getKey: () => key,
+            }
+          }
+        }
+      }
+    }
+
+    // For other users, use system keys
     for (const provider of this.providers) {
       const key = provider.getKey()
       if (key && !this.failedProviders.has(provider.name)) {
@@ -471,11 +500,24 @@ Respond ONLY with valid JSON:
       }
     }
 
-    // STEP 3: For ambiguous emails, try AI classification
+    // STEP 3: Check subscription before using AI
+    const aiCheck = aiSubscriptionManager.canUseAI()
+    if (!aiCheck.allowed) {
+      console.log(`📋 AI not available: ${aiCheck.reason}`)
+      // For ambiguous emails without AI, use default classification
+      return this.getDefaultClassification(email)
+    }
+
+    // Check if any AI provider is available
     const hasAnyProvider = this.getAvailableProvider() !== null
     if (!hasAnyProvider) {
-      console.log('📋 No AI providers available, using rules result')
+      console.log('📋 No AI providers configured, using rules result')
       return this.getDefaultClassification(email)
+    }
+
+    // Log remaining AI usage
+    if (aiCheck.remaining !== undefined && aiCheck.remaining !== -1) {
+      console.log(`📊 AI usage: ${aiCheck.remaining} classifications remaining this month`)
     }
 
     try {
@@ -515,6 +557,14 @@ Respond with valid JSON only.`
       // Log AI classification decision
       console.log(`✅ AI Category: ${classification.category}`)
       console.log(`   Priority: ${classification.priority}, Urgent: ${classification.isUrgent}`)
+
+      // Record AI usage for subscription tracking
+      aiSubscriptionManager.recordUsage(
+        email.id,
+        'ai-classifier',
+        600, // Approximate tokens used
+        classification.category
+      )
 
       // Ensure all required fields exist
       return {
