@@ -1069,11 +1069,9 @@ Provide:
     setMessages([])
     setCurrentView('learn')
 
-    // Reset session timers and phase
-    setSessionPhase('greeting')
+    // Reset session state (no visible timer - analysis happens silently)
+    setSessionPhase('learning')
     setSessionTimer(0)
-    setGreetingTimer(GREETING_PHASE_MINUTES * 60)
-    setLearningTimer(LEARNING_SESSION_MINUTES * 60)
     setCurrentMood(null)
     setTopicSuggestions([])
     setShowTopicSuggestions(false)
@@ -1091,13 +1089,10 @@ Provide:
     }
     setCurrentSession(session)
 
-    // Initialize comprehensive analytics
+    // Initialize analytics (silently tracks mood/performance for parent reports)
     initializeSessionAnalytics(subject.id)
 
-    // Start session timer
-    startSessionTimer()
-
-    // Generate welcome message with greeting phase
+    // Generate welcome - AI asks what they want to learn
     generateWelcome(subject)
   }
 
@@ -1220,7 +1215,7 @@ Provide:
         ? `\n\nSTUDENT'S WEAK AREAS (need ${FOCUS_WEAK_AREA_PERCENT}% focus): ${weakAreas.join(', ')}`
         : ''
 
-      const systemPrompt = `You are a warm, caring, REAL AI tutor named TutorBot - like a friendly teacher who genuinely cares about ${selectedKid.name}.
+      const systemPrompt = `You are a warm, caring AI tutor named TutorBot - like a friendly teacher who genuinely cares about ${selectedKid.name}.
 
 STUDENT PROFILE:
 - Name: ${selectedKid.name}
@@ -1230,42 +1225,36 @@ STUDENT PROFILE:
 - Language: ${LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'}
 ${lessonContext}${suggestionContext}${yesterdayContext}${weakAreasContext}${uploadedContext}
 
-SESSION STRUCTURE:
-This is the GREETING PHASE (${GREETING_PHASE_MINUTES} minutes). Your goals:
-1. Warmly greet ${selectedKid.name} by name
-2. Ask how their day is going (genuinely care about their answer)
-3. ${yesterdayData ? 'Do a quick recap of what you learned together yesterday' : 'If this is first session, welcome them warmly'}
-4. Listen for any emotional cues (sadness, anxiety, excitement)
-5. Be like a supportive friend who happens to be a great teacher
+YOUR APPROACH:
+1. Greet ${selectedKid.name} warmly and ASK what they'd like to learn today
+2. Be genuinely interested in them - ask how they're doing naturally in conversation
+3. Listen for emotional cues (if they mention being sad, worried, bullied - respond with care)
+4. Let THEM tell you what lesson/topic they want to work on
+5. Once they share a topic or upload material, THEN start teaching
 
 TEACHING STYLE:
 - Be WARM, GENUINE, and ENCOURAGING - like a favorite teacher
 - Use age-appropriate vocabulary for a ${selectedKid.age}-year-old
-- If they uploaded material (worksheet, image, textbook), TEACH FROM IT - don't just describe what you see
 - Make learning feel like an adventure, not a chore
 - Award "+10 XP!" for correct answers with enthusiasm
 - Gently encourage if they struggle - never make them feel bad
-- Be alert for signs of bullying, sadness, or anxiety - respond with care and note for parents
-- If student seems distracted or sad, acknowledge their feelings first
 
-**CRITICAL - AUTO-GENERATE LESSONS FROM UPLOADS:**
-When student uploads ANY document/image:
-1. IDENTIFY THE TOPIC from title, subject, objectives, or content
+**WHEN STUDENT SHARES TOPIC OR UPLOADS MATERIAL:**
+1. IDENTIFY THE TOPIC from what they say or upload
 2. USE YOUR KNOWLEDGE to create a comprehensive lesson about that topic
 3. AUTO-GENERATE: Introduction → Key Concepts → Examples → Practice Questions
-4. TEACH as if you researched thoroughly - provide real facts, definitions, examples
+4. TEACH thoroughly - provide real facts, definitions, examples
 
-Example: If uploaded doc says "Topic: Double Bar Graphs"
-→ Create a full lesson explaining what double bar graphs are, how to read them, and give practice questions
+NEVER just describe uploads - ACTUALLY TEACH the topic!
 
-Example: If uploaded worksheet shows "64 x 26"
-→ Say: "Let's solve 64 × 26! I'll teach you step by step. First, what's 6 × 4?"
+**SILENT OBSERVATION (do not mention this to student):**
+- Notice emotional cues in their messages
+- If they seem sad/anxious/mention bullying, be supportive and caring
+- This information is tracked for parent reports`
 
-NEVER just describe what you see - ACTUALLY TEACH the topic!`
-
-      const greetingPrompt = yesterdayData
-        ? `Start the GREETING PHASE. Warmly greet ${selectedKid.name}, ask how their day is going, then briefly recap yesterday's ${yesterdayData.subject} lesson. ${uploadedContent ? 'After they respond, immediately start teaching from their uploaded material - create a lesson plan and begin with the first problem/concept.' : 'Be genuine and caring!'}`
-        : `Start the GREETING PHASE. Warmly greet ${selectedKid.name}, ask how their day is going today. ${uploadedContent ? 'After they respond, immediately start teaching from their uploaded material - auto-generate a lesson and begin with the first problem/concept.' : 'Express excitement to learn ' + subject.name + ' together!'}`
+      const greetingPrompt = uploadedContent
+        ? `Greet ${selectedKid.name} warmly, then notice they have uploaded learning material. Ask them what specific part they'd like to learn about, or offer to start from the beginning. Be friendly and let them guide the session.`
+        : `Greet ${selectedKid.name} warmly and ask what they'd like to learn in ${subject.name} today. You can suggest some topics if they're not sure. Be friendly and conversational - let them tell you what they need help with.`
 
       const result = await smartCompletion([
         { role: 'system', content: systemPrompt },
@@ -2215,63 +2204,19 @@ MOOD DETECTION:
           </div>
         </div>
 
-        {/* Session Timer & Phase Indicator */}
-        <div className="mb-3 p-2 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className={cn("w-4 h-4", sessionPhase === 'greeting' ? "text-blue-500" : sessionPhase === 'learning' ? "text-green-500" : "text-violet-500")} />
-              <span className="text-xs font-medium">
-                {sessionPhase === 'greeting' && `Chat Time: ${Math.floor(greetingTimer / 60)}:${(greetingTimer % 60).toString().padStart(2, '0')}`}
-                {sessionPhase === 'learning' && `Learning: ${Math.floor(learningTimer / 60)}:${(learningTimer % 60).toString().padStart(2, '0')}`}
-                {sessionPhase === 'review' && 'Session Complete!'}
-              </span>
-              <Badge variant="secondary" className={cn(
-                "text-[10px] px-1.5 py-0",
-                sessionPhase === 'greeting' ? "bg-blue-500/20 text-blue-600" :
-                sessionPhase === 'learning' ? "bg-green-500/20 text-green-600" :
-                "bg-violet-500/20 text-violet-600"
-              )}>
-                {sessionPhase === 'greeting' ? 'Chat' : sessionPhase === 'learning' ? 'Learn' : 'Done'}
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {/* Topic Suggestions Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={generateTopicSuggestions}
-                disabled={isLoading}
-                title="Get 4 AI-suggested topics"
-              >
-                <Lightbulb className="w-3 h-3 mr-1" />
-                Topics
-              </Button>
-
-              {/* Mood Indicator */}
-              {currentMood && (
-                <Badge variant="outline" className={cn(
-                  "text-[10px]",
-                  currentMood === 'happy' || currentMood === 'excited' ? "border-green-500 text-green-600" :
-                  currentMood === 'sad' || currentMood === 'anxious' ? "border-orange-500 text-orange-600" :
-                  "border-gray-400"
-                )}>
-                  {currentMood === 'happy' ? '😊' : currentMood === 'excited' ? '🤩' : currentMood === 'sad' ? '😢' : currentMood === 'anxious' ? '😟' : '😐'} {currentMood}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Progress bar for current phase */}
-          <Progress
-            value={sessionPhase === 'greeting'
-              ? ((GREETING_PHASE_MINUTES * 60 - greetingTimer) / (GREETING_PHASE_MINUTES * 60)) * 100
-              : sessionPhase === 'learning'
-              ? ((LEARNING_SESSION_MINUTES * 60 - learningTimer) / (LEARNING_SESSION_MINUTES * 60)) * 100
-              : 100}
-            className="h-1 mt-2"
-          />
+        {/* Topic Suggestions Button - Simple header */}
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={generateTopicSuggestions}
+            disabled={isLoading}
+            title="Get 4 AI-suggested topics"
+          >
+            <Lightbulb className="w-3 h-3 mr-1" />
+            Topics
+          </Button>
         </div>
 
         {/* Topic Suggestions Panel */}
@@ -2328,28 +2273,6 @@ MOOD DETECTION:
           </div>
         )}
 
-        {/* Lesson Plan Upload */}
-        {!currentLessonPlan && messages.length <= 1 && (
-          <Card className="mb-3 p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-medium">Upload Lesson Plan (Optional)</span>
-            </div>
-            <Textarea
-              placeholder="Paste textbook content or lesson plan here..."
-              value={lessonPlanText}
-              onChange={(e) => setLessonPlanText(e.target.value)}
-              className="min-h-[60px] text-sm mb-2"
-            />
-            <Button
-              size="sm"
-              onClick={analyzeLessonPlan}
-              disabled={!lessonPlanText.trim() || analyzingLesson}
-            >
-              {analyzingLesson ? 'Analyzing...' : 'Analyze & Use'}
-            </Button>
-          </Card>
-        )}
 
         {/* Current Lesson Plan */}
         {currentLessonPlan && (
