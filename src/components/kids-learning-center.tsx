@@ -1,10 +1,15 @@
 /**
- * Kids Learning Center
- * Unified hub for all children's learning features:
- * - Tutor AI with interactive lessons
- * - Focus & Attention tracking
- * - AI Study Monitor with camera
- * - Progress reports and gamification
+ * Kids Learning Center - Unified AI-Powered Learning Platform
+ *
+ * Features:
+ * - Single unified interface (no redundant tabs)
+ * - Textbook/Lesson plan upload for AI analysis
+ * - Age & grade-appropriate content generation
+ * - Parent suggestions for daily topics
+ * - Camera-based behavior monitoring with AI
+ * - Daily/monthly behavior reports
+ * - Cheapest AI first with usage limits
+ * - User credit system for AI usage
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -14,8 +19,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { Switch } from '@/components/ui/switch'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { useDeviceType } from '@/hooks/use-mobile'
 import {
@@ -37,47 +45,41 @@ import {
   ArrowLeft,
   Play,
   Stop,
-  Pause,
   Camera,
   Eye,
   Warning,
-  Coffee,
   Clock,
   ChartBar,
   Shield,
   Bell,
   Lightning,
   CaretRight,
-  House,
-  Users,
   Plus,
   Trash,
-  Pencil,
   X,
-  Info
+  Upload,
+  FileText,
+  Microphone,
+  MicrophoneSlash,
+  SpeakerHigh,
+  SpeakerSlash,
+  Gear,
+  House,
+  CaretDown,
+  Export,
+  Coin,
+  CreditCard,
+  Info,
+  ChartLine,
+  UserCircle
 } from '@phosphor-icons/react'
-import { smartCompletion, checkUsageLimits, ChatMessage } from '@/lib/smart-ai-router'
-import { AIUsageWarning, AIUsageStats } from '@/components/ai-setup-guide'
-import { getFocusTracker, FocusSession, FocusStats, formatDuration } from '@/lib/focus-tracking'
+import { smartCompletion, checkUsageLimits, getTodayUsage, AI_PROVIDERS, type AIProvider } from '@/lib/smart-ai-router'
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
-import { logger } from '@/lib/security-utils'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LineChart,
-  Line,
-  PieChart,
-  Pie
-} from 'recharts'
+import { supabase } from '@/lib/supabase'
 
 // ==========================================
-// Types & Interfaces
+// Types
 // ==========================================
 
 interface KidProfile {
@@ -86,567 +88,709 @@ interface KidProfile {
   age: number
   grade: string
   avatar: string
-  selectedSubjects: string[]
-  // Gamification
+  language: string
+  parentEmail?: string
+  // Stats
   xp: number
   level: number
   streak: number
-  // Progress
-  completedLessons: number
-  completedTests: number
-  totalStudyTime: number // in minutes
-  // Parent link
-  parentId?: string
+  totalSessions: number
+  totalStudyMinutes: number
+  lastActiveDate: string
   // Settings
-  dailyGoal: number // minutes
-  focusAlertThreshold: number // seconds
+  dailyGoalMinutes: number
 }
 
-interface Subject {
-  id: string
-  name: string
-  icon: any
-  color: string
-  description: string
-  grades: string[]
-}
-
-interface LearningSession {
+interface LessonPlan {
   id: string
   kidId: string
   subject: string
-  type: 'lesson' | 'test' | 'practice'
+  title: string
+  content: string
+  aiAnalysis?: string
+  topics: string[]
+  createdAt: number
+}
+
+interface ParentSuggestion {
+  id: string
+  kidId: string
+  date: string
+  subject: string
+  topic: string
+  reason: string
+  completed: boolean
+}
+
+interface BehaviorReport {
+  id: string
+  kidId: string
+  sessionId: string
+  date: string
+  type: 'daily' | 'weekly' | 'monthly'
+  focusScore: number
+  attentionSpans: number[]
+  distractions: number
+  totalMinutes: number
+  notes: string[]
+  aiInsights?: string
+}
+
+interface StudySession {
+  id: string
+  kidId: string
+  subject: string
+  topic: string
   startTime: number
   endTime?: number
-  duration: number
-  focusScore: number
+  focusScores: number[]
+  behaviorNotes: string[]
   xpEarned: number
   completed: boolean
 }
 
 interface Message {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system'
   content: string
   timestamp: number
+  provider?: string
 }
 
-interface Assignment {
-  id: string
-  kidId: string
-  subject: string
-  title: string
-  questions: AssignmentQuestion[]
-  dueDate: number
-  completed: boolean
-  score?: number
-}
-
-interface AssignmentQuestion {
-  question: string
-  type: 'multiple_choice' | 'short_answer' | 'true_false'
-  options?: string[]
-  correctAnswer?: string
-  userAnswer?: string
-  isCorrect?: boolean
-}
-
-interface MonitorSettings {
-  analysisInterval: number
-  distractionThreshold: number
-  enableAlerts: boolean
-  enableSound: boolean
-  parentNotifications: boolean
+interface AICredits {
+  free: number
+  purchased: number
+  lastReset: string
 }
 
 // ==========================================
 // Constants
 // ==========================================
 
-const SUBJECTS: Subject[] = [
-  {
-    id: 'math',
-    name: 'Mathematics',
-    icon: Lightbulb,
-    color: 'from-blue-500 to-blue-600',
-    description: 'Numbers, algebra, geometry, and problem-solving',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
-  },
-  {
-    id: 'science',
-    name: 'Science',
-    icon: Sparkle,
-    color: 'from-green-500 to-green-600',
-    description: 'Biology, physics, chemistry, and earth science',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
-  },
-  {
-    id: 'reading',
-    name: 'Reading & Writing',
-    icon: BookOpen,
-    color: 'from-purple-500 to-purple-600',
-    description: 'Comprehension, grammar, vocabulary, and writing skills',
-    grades: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
-  },
-  {
-    id: 'language',
-    name: 'Language Learning',
-    icon: Globe,
-    color: 'from-orange-500 to-orange-600',
-    description: 'Spanish, French, Mandarin, Japanese, and more',
-    grades: ['Beginner', 'Elementary', 'Intermediate', 'Advanced']
-  },
-  {
-    id: 'general',
-    name: 'General Knowledge',
-    icon: GraduationCap,
-    color: 'from-pink-500 to-pink-600',
-    description: 'History, geography, current events, and trivia',
-    grades: ['All Ages']
-  }
+const SUBJECTS = [
+  { id: 'math', name: 'Mathematics', icon: Lightbulb, color: 'from-blue-500 to-indigo-600', emoji: '🧮' },
+  { id: 'science', name: 'Science', icon: Sparkle, color: 'from-green-500 to-emerald-600', emoji: '🔬' },
+  { id: 'reading', name: 'Reading & Writing', icon: BookOpen, color: 'from-purple-500 to-violet-600', emoji: '📚' },
+  { id: 'language', name: 'Languages', icon: Globe, color: 'from-orange-500 to-amber-600', emoji: '🌍' },
+  { id: 'general', name: 'General Knowledge', icon: GraduationCap, color: 'from-pink-500 to-rose-600', emoji: '💡' }
 ]
 
-const AVATARS = ['bear', 'rabbit', 'fox', 'owl', 'dolphin', 'lion', 'panda', 'penguin']
-const AVATAR_EMOJIS: Record<string, string> = {
-  bear: '🐻',
-  rabbit: '🐰',
-  fox: '🦊',
-  owl: '🦉',
-  dolphin: '🐬',
-  lion: '🦁',
-  panda: '🐼',
-  penguin: '🐧'
+const GRADES = [
+  { value: 'pre-k', label: 'Pre-K', ages: [3, 4] },
+  { value: 'kindergarten', label: 'Kindergarten', ages: [5, 6] },
+  { value: '1st', label: '1st Grade', ages: [6, 7] },
+  { value: '2nd', label: '2nd Grade', ages: [7, 8] },
+  { value: '3rd', label: '3rd Grade', ages: [8, 9] },
+  { value: '4th', label: '4th Grade', ages: [9, 10] },
+  { value: '5th', label: '5th Grade', ages: [10, 11] },
+  { value: '6th', label: '6th Grade', ages: [11, 12] },
+  { value: '7th', label: '7th Grade', ages: [12, 13] },
+  { value: '8th', label: '8th Grade', ages: [13, 14] },
+  { value: '9th', label: '9th Grade (Freshman)', ages: [14, 15] },
+  { value: '10th', label: '10th Grade (Sophomore)', ages: [15, 16] },
+  { value: '11th', label: '11th Grade (Junior)', ages: [16, 17] },
+  { value: '12th', label: '12th Grade (Senior)', ages: [17, 18] }
+]
+
+const AVATARS: Record<string, string> = {
+  bear: '🐻', rabbit: '🐰', fox: '🦊', owl: '🦉',
+  dolphin: '🐬', lion: '🦁', panda: '🐼', penguin: '🐧'
 }
+
+const LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'zh', name: 'Chinese' },
+  { code: 'tl', name: 'Filipino/Tagalog' },
+  { code: 'other', name: 'Other' }
+]
+
+const FREE_DAILY_CREDITS = 20 // Free AI calls per day
+const CREDIT_COST_PER_MESSAGE = 1
 
 const STORAGE_KEYS = {
-  KIDS: 'flowsphere-kids-profiles',
-  SESSIONS: 'flowsphere-learning-sessions',
-  MESSAGES: 'flowsphere-tutor-messages',
-  ASSIGNMENTS: 'flowsphere-kids-assignments',
-  MONITOR_SETTINGS: 'flowsphere-monitor-settings'
-}
-
-const DEFAULT_MONITOR_SETTINGS: MonitorSettings = {
-  analysisInterval: 15,
-  distractionThreshold: 120,
-  enableAlerts: true,
-  enableSound: true,
-  parentNotifications: true
+  PROFILES: 'flowsphere-kids-profiles-v2',
+  SESSIONS: 'flowsphere-kids-sessions-v2',
+  LESSONS: 'flowsphere-kids-lessons-v2',
+  SUGGESTIONS: 'flowsphere-kids-suggestions-v2',
+  REPORTS: 'flowsphere-kids-reports-v2',
+  CREDITS: 'flowsphere-kids-credits-v2'
 }
 
 // ==========================================
 // Main Component
 // ==========================================
 
-interface KidsLearningCenterProps {
-  familyId?: string
-}
-
-type TabType = 'dashboard' | 'tutor' | 'focus' | 'monitor' | 'profiles'
-
-export function KidsLearningCenter({ familyId }: KidsLearningCenterProps) {
+export function KidsLearningCenter() {
   const deviceType = useDeviceType()
   const isMobile = deviceType === 'mobile'
 
-  // ==========================================
-  // State
-  // ==========================================
-  const [currentTab, setCurrentTab] = useState<TabType>('dashboard')
-  const [kids, setKids] = useKV<KidProfile[]>(STORAGE_KEYS.KIDS, [])
-  const [sessions, setSessions] = useKV<LearningSession[]>(STORAGE_KEYS.SESSIONS, [])
-  const [messages, setMessages] = useKV<Message[]>(STORAGE_KEYS.MESSAGES, [])
-  const [assignments, setAssignments] = useKV<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, [])
-  const [monitorSettings, setMonitorSettings] = useKV<MonitorSettings>(STORAGE_KEYS.MONITOR_SETTINGS, DEFAULT_MONITOR_SETTINGS)
+  // Core State
+  const [profiles, setProfiles] = useKV<KidProfile[]>(STORAGE_KEYS.PROFILES, [])
+  const [sessions, setSessions] = useKV<StudySession[]>(STORAGE_KEYS.SESSIONS, [])
+  const [lessons, setLessons] = useKV<LessonPlan[]>(STORAGE_KEYS.LESSONS, [])
+  const [suggestions, setSuggestions] = useKV<ParentSuggestion[]>(STORAGE_KEYS.SUGGESTIONS, [])
+  const [reports, setReports] = useKV<BehaviorReport[]>(STORAGE_KEYS.REPORTS, [])
+  const [credits, setCredits] = useKV<AICredits>(STORAGE_KEYS.CREDITS, {
+    free: FREE_DAILY_CREDITS,
+    purchased: 0,
+    lastReset: new Date().toISOString().split('T')[0]
+  })
 
+  // UI State
   const [selectedKid, setSelectedKid] = useState<KidProfile | null>(null)
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
-  const [showKidSetup, setShowKidSetup] = useState(false)
-  const [editingKid, setEditingKid] = useState<KidProfile | null>(null)
+  const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile'>('home')
+  const [selectedSubject, setSelectedSubject] = useState<typeof SUBJECTS[0] | null>(null)
+  const [showSetup, setShowSetup] = useState(false)
 
-  // Focus Tracker
-  const [focusTracker] = useState(() => getFocusTracker())
-  const [currentFocusSession, setCurrentFocusSession] = useState<FocusSession | null>(null)
-  const [focusStats, setFocusStats] = useState<FocusStats | null>(null)
-
-  // Study Monitor
-  const [isMonitoring, setIsMonitoring] = useState(false)
-  const [cameraActive, setCameraActive] = useState(false)
-  const [currentStatus, setCurrentStatus] = useState<'studying' | 'distracted' | 'away' | 'break'>('studying')
-  const [monitorFocusScore, setMonitorFocusScore] = useState(100)
-  const [sessionDuration, setSessionDuration] = useState(0)
-
-  // Tutor AI
-  const [tutorMessages, setTutorMessages] = useState<Message[]>([])
+  // Learning Session State
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
-  const [isAILoading, setIsAILoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentSession, setCurrentSession] = useState<StudySession | null>(null)
 
+  // Camera/Monitoring State
+  const [cameraActive, setCameraActive] = useState(false)
+  const [focusScore, setFocusScore] = useState(100)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const monitorIntervalRef = useRef<number | null>(null)
+
+  // Lesson Plan State
+  const [lessonPlanText, setLessonPlanText] = useState('')
+  const [analyzingLesson, setAnalyzingLesson] = useState(false)
+  const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan | null>(null)
+
+  // Voice State
+  const [ttsEnabled, setTtsEnabled] = useState(true)
+
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ==========================================
   // Effects
   // ==========================================
 
-  // Initialize with first kid if available
+  // Auto-select first kid
   useEffect(() => {
-    if (kids && kids.length > 0 && !selectedKid) {
-      setSelectedKid(kids[0])
+    if (profiles && profiles.length > 0 && !selectedKid) {
+      setSelectedKid(profiles[0])
     }
-  }, [kids, selectedKid])
+  }, [profiles, selectedKid])
 
-  // Subscribe to focus updates
+  // Reset daily credits
   useEffect(() => {
-    const unsubscribe = focusTracker.subscribe((session) => {
-      setCurrentFocusSession(session)
-    })
+    if (credits) {
+      const today = new Date().toISOString().split('T')[0]
+      if (credits.lastReset !== today) {
+        setCredits({
+          ...credits,
+          free: FREE_DAILY_CREDITS,
+          lastReset: today
+        })
+      }
+    }
+  }, [credits])
 
-    setCurrentFocusSession(focusTracker.getCurrentSession())
-    setFocusStats(focusTracker.getStats())
+  // Auto-scroll messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
 
-    return () => unsubscribe()
-  }, [focusTracker])
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera()
+    }
+  }, [])
 
   // ==========================================
-  // Handlers
+  // Credit System
   // ==========================================
 
-  // Kid Profile Management
-  const handleCreateKid = (kidData: Omit<KidProfile, 'id' | 'xp' | 'level' | 'streak' | 'completedLessons' | 'completedTests' | 'totalStudyTime'>) => {
-    const newKid: KidProfile = {
-      ...kidData,
-      id: `kid-${Date.now()}`,
-      xp: 0,
-      level: 1,
-      streak: 0,
-      completedLessons: 0,
-      completedTests: 0,
-      totalStudyTime: 0
+  const hasCredits = (): boolean => {
+    if (!credits) return false
+    return (credits.free + credits.purchased) >= CREDIT_COST_PER_MESSAGE
+  }
+
+  const useCredit = () => {
+    if (!credits) return false
+    if (credits.free > 0) {
+      setCredits({ ...credits, free: credits.free - CREDIT_COST_PER_MESSAGE })
+      return true
+    } else if (credits.purchased > 0) {
+      setCredits({ ...credits, purchased: credits.purchased - CREDIT_COST_PER_MESSAGE })
+      return true
     }
-    setKids(prev => [...(prev || []), newKid])
-    setSelectedKid(newKid)
-    setShowKidSetup(false)
-    toast.success(`Welcome ${newKid.name}! Let's start learning!`)
+    return false
   }
 
-  const handleDeleteKid = (kidId: string) => {
-    setKids(prev => (prev || []).filter(k => k.id !== kidId))
-    if (selectedKid?.id === kidId) {
-      setSelectedKid(kids?.[0] || null)
+  const getTotalCredits = () => (credits?.free || 0) + (credits?.purchased || 0)
+
+  // ==========================================
+  // Camera & Behavior Monitoring
+  // ==========================================
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 320, height: 240 }
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+      }
+      setCameraActive(true)
+      startBehaviorMonitoring()
+      toast.success('Camera monitoring started')
+    } catch (err) {
+      toast.error('Camera access denied')
     }
-    toast.success('Profile removed')
   }
 
-  const handleSelectSubject = (subject: Subject) => {
-    setSelectedSubject(subject)
-    setCurrentTab('tutor')
-    setTutorMessages([])
-
-    // Start a learning session
-    startLearningSession(subject.id, 'lesson')
-
-    // Generate welcome message
-    generateWelcomeMessage(subject)
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    if (monitorIntervalRef.current) {
+      clearInterval(monitorIntervalRef.current)
+      monitorIntervalRef.current = null
+    }
+    setCameraActive(false)
   }
 
-  // Learning Session Management
-  const startLearningSession = (subjectId: string, type: 'lesson' | 'test' | 'practice') => {
+  const startBehaviorMonitoring = () => {
+    // Simulate behavior monitoring (in production, use ML model)
+    monitorIntervalRef.current = window.setInterval(() => {
+      // Simulate focus detection
+      const variation = Math.random() * 20 - 10
+      setFocusScore(prev => Math.max(0, Math.min(100, prev + variation)))
+
+      // Record to session if active
+      if (currentSession) {
+        setCurrentSession(prev => prev ? {
+          ...prev,
+          focusScores: [...prev.focusScores, focusScore]
+        } : prev)
+      }
+    }, 5000)
+  }
+
+  const recordBehaviorNote = (note: string) => {
+    if (currentSession) {
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        behaviorNotes: [...prev.behaviorNotes, `${new Date().toLocaleTimeString()}: ${note}`]
+      } : prev)
+    }
+  }
+
+  // ==========================================
+  // Learning Session
+  // ==========================================
+
+  const startLearningSession = (subject: typeof SUBJECTS[0]) => {
     if (!selectedKid) return
 
-    const session: LearningSession = {
+    setSelectedSubject(subject)
+    setMessages([])
+    setCurrentView('learn')
+
+    const session: StudySession = {
       id: `session-${Date.now()}`,
       kidId: selectedKid.id,
-      subject: subjectId,
-      type,
+      subject: subject.id,
+      topic: '',
       startTime: Date.now(),
-      duration: 0,
-      focusScore: 100,
+      focusScores: [],
+      behaviorNotes: [],
       xpEarned: 0,
       completed: false
     }
+    setCurrentSession(session)
 
-    setSessions(prev => [...(prev || []), session])
-
-    // Also start focus tracking
-    focusTracker.startSession(`${type}: ${subjectId}`)
-    setFocusStats(focusTracker.getStats())
+    // Generate welcome message
+    generateWelcome(subject)
   }
 
   const endLearningSession = (xpEarned: number = 10) => {
-    if (!selectedKid) return
+    if (!currentSession || !selectedKid) return
 
-    const focusSession = focusTracker.endSession()
-    const focusScore = focusSession?.focusScore || 80
+    const completedSession: StudySession = {
+      ...currentSession,
+      endTime: Date.now(),
+      xpEarned,
+      completed: true
+    }
 
-    // Update the current learning session
-    setSessions(prev => {
-      const updated = [...(prev || [])]
-      const lastSession = updated.find(s => s.kidId === selectedKid.id && !s.completed)
-      if (lastSession) {
-        lastSession.endTime = Date.now()
-        lastSession.duration = (Date.now() - lastSession.startTime) / 1000 / 60
-        lastSession.focusScore = focusScore
-        lastSession.xpEarned = xpEarned
-        lastSession.completed = true
-      }
-      return updated
-    })
+    setSessions(prev => [...(prev || []), completedSession])
 
-    // Update kid's XP and stats
-    setKids(prev => (prev || []).map(k => {
-      if (k.id === selectedKid.id) {
-        const newXP = k.xp + xpEarned
-        const newLevel = Math.floor(newXP / 100) + 1
+    // Update kid stats
+    const duration = Math.round((Date.now() - currentSession.startTime) / 1000 / 60)
+    setProfiles(prev => (prev || []).map(p => {
+      if (p.id === selectedKid.id) {
+        const newXP = p.xp + xpEarned
         return {
-          ...k,
+          ...p,
           xp: newXP,
-          level: newLevel,
-          completedLessons: k.completedLessons + 1,
-          totalStudyTime: k.totalStudyTime + Math.floor((Date.now() - ((sessions || []).find(s => !s.completed)?.startTime ?? Date.now())) / 1000 / 60)
+          level: Math.floor(newXP / 100) + 1,
+          totalSessions: p.totalSessions + 1,
+          totalStudyMinutes: p.totalStudyMinutes + duration,
+          lastActiveDate: new Date().toISOString().split('T')[0],
+          streak: updateStreak(p)
         }
       }
-      return k
+      return p
     }))
 
-    setFocusStats(focusTracker.getStats())
-    setCurrentFocusSession(null)
+    // Generate behavior report if camera was active
+    if (cameraActive && currentSession.focusScores.length > 0) {
+      generateBehaviorReport(completedSession)
+    }
 
-    toast.success(`Great job! You earned ${xpEarned} XP!`, {
-      description: `Focus score: ${focusScore}%`
-    })
+    stopCamera()
+    setCurrentSession(null)
+    setSelectedSubject(null)
+    setCurrentView('home')
+    toast.success(`Great job! +${xpEarned} XP earned!`)
   }
 
-  // AI Tutor
-  const generateWelcomeMessage = async (subject: Subject) => {
-    if (!selectedKid) return
+  const updateStreak = (kid: KidProfile): number => {
+    const today = new Date().toISOString().split('T')[0]
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    if (kid.lastActiveDate === yesterday) return kid.streak + 1
+    if (kid.lastActiveDate === today) return kid.streak
+    return 1
+  }
 
-    // Check usage limits before making AI call
-    const limitCheck = checkUsageLimits()
-    if (!limitCheck.canProceed) {
-      toast.error('Daily AI limit reached', {
-        description: 'Add your own API key in Settings to continue learning!'
-      })
+  // ==========================================
+  // AI Functions
+  // ==========================================
+
+  const generateWelcome = async (subject: typeof SUBJECTS[0]) => {
+    if (!selectedKid || !hasCredits()) {
+      if (!hasCredits()) {
+        toast.error('No AI credits remaining. Purchase more or wait for daily reset.')
+      }
       const fallback: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hi ${selectedKid.name}! I'm your Tutor AI! Ready to learn some ${subject.name}? What would you like to explore today?`,
+        content: `Hi ${selectedKid?.name || 'there'}! ${subject.emoji} Ready to learn ${subject.name}? What topic would you like to explore today?`,
         timestamp: Date.now()
       }
-      setTutorMessages([fallback])
+      setMessages([fallback])
       return
     }
 
-    setIsAILoading(true)
+    setIsLoading(true)
+    useCredit()
+
     try {
-      const systemPrompt = `You are FlowSphere Tutor AI, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${subject.name}.
+      const gradeInfo = GRADES.find(g => g.value === selectedKid.grade)
+      const lessonContext = currentLessonPlan
+        ? `\n\nThe parent has uploaded a lesson plan with these topics: ${currentLessonPlan.topics.join(', ')}. Focus on these topics.`
+        : ''
 
-Rules:
-- Be encouraging, patient, and fun
-- Use age-appropriate language
-- Include examples and analogies kids can relate to
-- Ask questions to check understanding
-- Celebrate correct answers with enthusiasm
-- Gently correct mistakes and explain why
-- Keep responses concise but engaging
-- Use emojis sparingly to keep it fun`
+      const suggestionContext = getTodaySuggestion()
+        ? `\n\nToday's parent suggestion: "${getTodaySuggestion()?.topic}" - Prioritize this topic.`
+        : ''
 
-      const messages: ChatMessage[] = [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: `Start a ${subject.name} lesson. Introduce yourself briefly and ask what topic the student wants to learn today. Be friendly and engaging!`
-        }
-      ]
+      const systemPrompt = `You are FlowSphere Kids Tutor, a friendly AI tutor for children.
 
-      const response = await smartCompletion(messages, { complexity: 'simple' })
+Student Profile:
+- Name: ${selectedKid.name}
+- Age: ${selectedKid.age} years old
+- Grade: ${gradeInfo?.label || selectedKid.grade}
+- Subject: ${subject.name}
+- Language: ${LANGUAGES.find(l => l.code === selectedKid.language)?.name || 'English'}
+${lessonContext}${suggestionContext}
 
-      if (response && response.content) {
-        const assistantMessage: Message = {
-          id: `msg-${Date.now()}`,
-          role: 'assistant',
-          content: response.content,
-          timestamp: Date.now()
-        }
-        setTutorMessages([assistantMessage])
+CRITICAL RULES:
+1. ALWAYS use age-appropriate vocabulary for a ${selectedKid.age}-year-old
+2. Keep explanations SHORT (2-3 sentences for young kids, 3-4 for older)
+3. Use fun examples and analogies kids can relate to
+4. Include interactive elements (ask questions, give mini-quizzes)
+5. Celebrate correct answers enthusiastically
+6. Gently correct mistakes with encouragement
+7. Award XP for correct answers (say "+10 XP!")
+8. If the student seems confused, try a different approach
+9. Never use complex jargon - explain everything simply`
+
+      const result = await smartCompletion([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Start a ${subject.name} lesson. Greet me by name, then suggest 3 topics appropriate for my grade level that we could learn today. Make it fun!` }
+      ], { temperature: 0.8 })
+
+      const msg: Message = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: result.content,
+        timestamp: Date.now(),
+        provider: result.provider
       }
+      setMessages([msg])
+
+      if (ttsEnabled) speak(result.content)
     } catch (error: any) {
-      logger.error('Tutor AI error', error, 'KidsLearningCenter')
+      toast.error('Could not connect to AI tutor')
       const fallback: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hi ${selectedKid.name}! I'm your Tutor AI! Ready to learn some ${subject.name}? What would you like to explore today?`,
+        content: `Hi ${selectedKid.name}! ${subject.emoji} Let's learn some ${subject.name} today! What topic interests you?`,
         timestamp: Date.now()
       }
-      setTutorMessages([fallback])
-      if (error.message?.includes('limit')) {
-        toast.error('AI limit reached', { description: 'Add your own API key in Settings.' })
-      }
+      setMessages([fallback])
     } finally {
-      setIsAILoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !selectedKid || !selectedSubject) return
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !selectedKid || !selectedSubject || isLoading) return
 
-    // Check usage limits before making AI call
-    const limitCheck = checkUsageLimits()
-    if (!limitCheck.canProceed) {
-      toast.error('Daily AI limit reached', {
-        description: 'Add your own API key in Settings to continue learning!'
+    if (!hasCredits()) {
+      toast.error('No AI credits remaining', {
+        description: 'Purchase more credits or wait for daily reset'
       })
       return
     }
 
-    // Show warning if approaching limit
-    if (limitCheck.warning && limitCheck.canProceed) {
-      toast.warning(limitCheck.warning)
-    }
-
-    const userMessage: Message = {
+    const userMsg: Message = {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: inputMessage.trim(),
       timestamp: Date.now()
     }
 
-    setTutorMessages(prev => [...prev, userMessage])
+    setMessages(prev => [...prev, userMsg])
     setInputMessage('')
-    setIsAILoading(true)
+    setIsLoading(true)
+    useCredit()
 
     try {
-      const systemPrompt = `You are FlowSphere Tutor AI, a friendly AI tutor for children. You're helping ${selectedKid.name}, a ${selectedKid.age}-year-old in ${selectedKid.grade} grade, learn ${selectedSubject.name}.
+      const gradeInfo = GRADES.find(g => g.value === selectedKid.grade)
+      const lessonContext = currentLessonPlan
+        ? `\n\nLesson plan topics: ${currentLessonPlan.topics.join(', ')}`
+        : ''
+
+      const systemPrompt = `You are FlowSphere Kids Tutor for ${selectedKid.name}, age ${selectedKid.age}, in ${gradeInfo?.label || selectedKid.grade}.
+Subject: ${selectedSubject.name}
+${lessonContext}
 
 Rules:
-- Be encouraging, patient, and fun
-- Use age-appropriate language
-- Include examples and analogies kids can relate to
-- Ask questions to check understanding
-- Celebrate correct answers with enthusiasm
-- Gently correct mistakes and explain why
-- Keep responses concise but engaging`
+- Use age-appropriate language for a ${selectedKid.age}-year-old
+- Keep responses concise (2-4 sentences)
+- Be encouraging and fun
+- Award "+10 XP!" for correct answers
+- Ask follow-up questions to check understanding`
 
-      const conversationHistory: ChatMessage[] = [
+      const history = messages.slice(-10).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }))
+
+      const result = await smartCompletion([
         { role: 'system', content: systemPrompt },
-        ...tutorMessages.map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content
-        })),
+        ...history,
         { role: 'user', content: inputMessage.trim() }
-      ]
+      ], { temperature: 0.7 })
 
-      const response = await smartCompletion(conversationHistory, {
-        complexity: conversationHistory.length > 10 ? 'medium' : 'simple'
-      })
+      const assistantMsg: Message = {
+        id: `msg-${Date.now() + 1}`,
+        role: 'assistant',
+        content: result.content,
+        timestamp: Date.now(),
+        provider: result.provider
+      }
 
-      if (response && response.content) {
-        const assistantMessage: Message = {
-          id: `msg-${Date.now()}-ai`,
-          role: 'assistant',
-          content: response.content,
-          timestamp: Date.now()
+      setMessages(prev => [...prev, assistantMsg])
+
+      // Check for XP award
+      if (result.content.includes('+10 XP') || result.content.toLowerCase().includes('correct')) {
+        if (currentSession) {
+          setCurrentSession(prev => prev ? { ...prev, xpEarned: prev.xpEarned + 10 } : prev)
         }
-        setTutorMessages(prev => [...prev, assistantMessage])
       }
-    } catch (error: any) {
-      logger.error('Tutor message error', error, 'KidsLearningCenter')
-      if (error.message?.includes('limit')) {
-        toast.error('AI limit reached', { description: 'Add your own API key in Settings.' })
-      } else {
-        toast.error('Could not get response. Please try again.')
-      }
+
+      if (ttsEnabled) speak(result.content)
+    } catch (error) {
+      toast.error('Could not get response')
     } finally {
-      setIsAILoading(false)
+      setIsLoading(false)
     }
   }
 
-  // Study Monitor
-  const startMonitoring = async () => {
-    if (!selectedKid) {
-      toast.error('Please select a child profile first')
-      return
-    }
+  // ==========================================
+  // Lesson Plan Analysis
+  // ==========================================
+
+  const analyzeLessonPlan = async () => {
+    if (!lessonPlanText.trim() || !selectedKid) return
+
+    setAnalyzingLesson(true)
+    useCredit()
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-      })
+      const result = await smartCompletion([
+        {
+          role: 'system',
+          content: `You are an educational curriculum analyzer. Extract key topics and create a learning outline for a ${selectedKid.age}-year-old in ${selectedKid.grade} grade. Be specific about what can be taught.`
+        },
+        {
+          role: 'user',
+          content: `Analyze this lesson material and extract 5-10 key topics suitable for my grade level:\n\n${lessonPlanText.slice(0, 3000)}`
+        }
+      ], { temperature: 0.5 })
 
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
+      // Extract topics from AI response
+      const topics = result.content.split('\n')
+        .filter(line => line.match(/^\d+\.|^-|^\*/))
+        .map(line => line.replace(/^\d+\.|^-|^\*/, '').trim())
+        .slice(0, 10)
+
+      const lessonPlan: LessonPlan = {
+        id: `lesson-${Date.now()}`,
+        kidId: selectedKid.id,
+        subject: selectedSubject?.id || 'general',
+        title: `Lesson Plan - ${new Date().toLocaleDateString()}`,
+        content: lessonPlanText,
+        aiAnalysis: result.content,
+        topics: topics.length > 0 ? topics : ['General topics from uploaded material'],
+        createdAt: Date.now()
       }
 
-      setCameraActive(true)
-      setIsMonitoring(true)
-      setCurrentStatus('studying')
-      setMonitorFocusScore(100)
-
-      // Start focus tracking
-      focusTracker.startSession('AI Study Monitor')
-
-      toast.success('Study monitoring started! Stay focused!')
+      setLessons(prev => [...(prev || []), lessonPlan])
+      setCurrentLessonPlan(lessonPlan)
+      setLessonPlanText('')
+      toast.success('Lesson plan analyzed! AI will focus on these topics.')
     } catch (error) {
-      toast.error('Could not access camera. Please grant permission.')
-    }
-  }
-
-  const stopMonitoring = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
-    }
-
-    setCameraActive(false)
-    setIsMonitoring(false)
-
-    // End focus session
-    const session = focusTracker.endSession()
-    if (session) {
-      toast.success(`Session complete! Focus score: ${session.focusScore}%`)
-    }
-
-    setFocusStats(focusTracker.getStats())
-  }
-
-  // Calculate stats
-  const getKidStats = (kid: KidProfile) => {
-    const kidSessions = (sessions || []).filter(s => s.kidId === kid.id)
-    const totalMinutes = kidSessions.reduce((sum, s) => sum + s.duration, 0)
-    const avgFocus = kidSessions.length > 0
-      ? kidSessions.reduce((sum, s) => sum + s.focusScore, 0) / kidSessions.length
-      : 0
-
-    return {
-      totalSessions: kidSessions.length,
-      totalMinutes: Math.round(totalMinutes),
-      avgFocus: Math.round(avgFocus),
-      todaySessions: kidSessions.filter(s => {
-        const today = new Date()
-        const sessionDate = new Date(s.startTime)
-        return sessionDate.toDateString() === today.toDateString()
-      }).length
+      toast.error('Could not analyze lesson plan')
+    } finally {
+      setAnalyzingLesson(false)
     }
   }
 
   // ==========================================
-  // Render Helpers
+  // Behavior Reports
   // ==========================================
 
-  const renderDashboard = () => {
+  const generateBehaviorReport = async (session: StudySession) => {
+    if (!selectedKid) return
+
+    const avgFocus = session.focusScores.length > 0
+      ? Math.round(session.focusScores.reduce((a, b) => a + b, 0) / session.focusScores.length)
+      : 80
+
+    const report: BehaviorReport = {
+      id: `report-${Date.now()}`,
+      kidId: selectedKid.id,
+      sessionId: session.id,
+      date: new Date().toISOString().split('T')[0],
+      type: 'daily',
+      focusScore: avgFocus,
+      attentionSpans: session.focusScores,
+      distractions: session.focusScores.filter(s => s < 50).length,
+      totalMinutes: Math.round((Date.now() - session.startTime) / 1000 / 60),
+      notes: session.behaviorNotes,
+      aiInsights: `${selectedKid.name} maintained ${avgFocus}% focus during this ${SUBJECTS.find(s => s.id === session.subject)?.name} session.`
+    }
+
+    setReports(prev => [...(prev || []), report])
+
+    // Notify parent if focus was low
+    if (avgFocus < 50 && selectedKid.parentEmail) {
+      toast.info('Low focus detected - Parent notification queued')
+    }
+  }
+
+  // ==========================================
+  // Parent Suggestions
+  // ==========================================
+
+  const getTodaySuggestion = (): ParentSuggestion | undefined => {
+    if (!selectedKid || !suggestions) return undefined
+    const today = new Date().toISOString().split('T')[0]
+    return suggestions.find(s => s.kidId === selectedKid.id && s.date === today && !s.completed)
+  }
+
+  const addSuggestion = (subject: string, topic: string, reason: string) => {
+    if (!selectedKid) return
+
+    const suggestion: ParentSuggestion = {
+      id: `sug-${Date.now()}`,
+      kidId: selectedKid.id,
+      date: new Date().toISOString().split('T')[0],
+      subject,
+      topic,
+      reason,
+      completed: false
+    }
+
+    setSuggestions(prev => [...(prev || []), suggestion])
+    toast.success('Study suggestion added!')
+  }
+
+  // ==========================================
+  // Text-to-Speech
+  // ==========================================
+
+  const speak = (text: string) => {
+    if (!ttsEnabled || !('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text.replace(/\*\*/g, '').slice(0, 500))
+    utterance.rate = 0.9
+    utterance.pitch = 1.1
+    window.speechSynthesis.speak(utterance)
+  }
+
+  // ==========================================
+  // Profile Management
+  // ==========================================
+
+  const createProfile = (data: Omit<KidProfile, 'id' | 'xp' | 'level' | 'streak' | 'totalSessions' | 'totalStudyMinutes' | 'lastActiveDate'>) => {
+    const profile: KidProfile = {
+      ...data,
+      id: `kid-${Date.now()}`,
+      xp: 0,
+      level: 1,
+      streak: 0,
+      totalSessions: 0,
+      totalStudyMinutes: 0,
+      lastActiveDate: ''
+    }
+    setProfiles(prev => [...(prev || []), profile])
+    setSelectedKid(profile)
+    setShowSetup(false)
+    toast.success(`Welcome ${profile.name}!`)
+  }
+
+  const deleteProfile = (id: string) => {
+    setProfiles(prev => (prev || []).filter(p => p.id !== id))
+    if (selectedKid?.id === id) {
+      setSelectedKid(profiles?.[0] || null)
+    }
+    toast.success('Profile removed')
+  }
+
+  // ==========================================
+  // Render: Home View
+  // ==========================================
+
+  const renderHome = () => {
     if (!selectedKid) {
       return (
         <Card className="p-8 text-center">
           <GraduationCap className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-bold mb-2">No Kid Profile Selected</h2>
-          <p className="text-muted-foreground mb-4">
-            Create a profile to start learning!
-          </p>
-          <Button onClick={() => setShowKidSetup(true)}>
+          <h2 className="text-xl font-bold mb-2">Welcome to Kids Learning Center!</h2>
+          <p className="text-muted-foreground mb-4">Create a profile to start learning</p>
+          <Button onClick={() => setShowSetup(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Create Profile
           </Button>
@@ -654,543 +798,365 @@ Rules:
       )
     }
 
-    const stats = getKidStats(selectedKid)
-    const xpToNextLevel = 100 - (selectedKid.xp % 100)
+    const todaySuggestion = getTodaySuggestion()
+    const xpToNext = 100 - (selectedKid.xp % 100)
 
     return (
-      <div className="space-y-6">
-        {/* Profile Card */}
-        <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20">
-          <CardContent className="p-6">
+      <div className="space-y-4">
+        {/* Kid Profile Card */}
+        <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/20">
+          <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-3xl">
-                {AVATAR_EMOJIS[selectedKid.avatar] || ''}
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl">
+                {AVATARS[selectedKid.avatar] || '🎓'}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-xl font-bold">{selectedKid.name}</h2>
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-500 flex items-center gap-1">
-                    <Star className="w-3 h-3" weight="fill" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-bold text-lg">{selectedKid.name}</h2>
+                  <Badge variant="secondary" className="text-xs">
+                    <Star className="w-3 h-3 mr-1" weight="fill" />
                     Level {selectedKid.level}
-                  </span>
+                  </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{selectedKid.grade} Grade | {selectedKid.age} years old</p>
+                <p className="text-sm text-muted-foreground">{selectedKid.grade} • Age {selectedKid.age}</p>
                 <div className="mt-2">
-                  <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex justify-between text-xs mb-1">
                     <span>{selectedKid.xp % 100} XP</span>
-                    <span>{xpToNextLevel} XP to Level {selectedKid.level + 1}</span>
+                    <span>{xpToNext} to Level {selectedKid.level + 1}</span>
                   </div>
-                  <Progress value={selectedKid.xp % 100} className="h-2" />
+                  <Progress value={selectedKid.xp % 100} className="h-1.5" />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="text-center">
-                  <div className="flex items-center gap-1 text-orange-500">
-                    <Fire className="w-5 h-5" weight="fill" />
-                    <span className="text-xl font-bold">{selectedKid.streak}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">day streak</p>
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 text-orange-500">
+                  <Fire className="w-5 h-5" weight="fill" />
+                  <span className="font-bold">{selectedKid.streak}</span>
                 </div>
+                <span className="text-[10px] text-muted-foreground">streak</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-blue-500/10 border-blue-500/20">
-            <CardContent className="p-4 text-center">
-              <BookOpen className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-              <p className="text-2xl font-bold">{selectedKid.completedLessons}</p>
-              <p className="text-xs text-muted-foreground">Lessons Done</p>
+        {/* Credits Display */}
+        <Card className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border-amber-500/20">
+          <CardContent className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coin className="w-5 h-5 text-amber-500" weight="fill" />
+              <span className="font-medium">AI Credits: {getTotalCredits()}</span>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {credits?.free || 0} free + {credits?.purchased || 0} purchased
+            </Badge>
+          </CardContent>
+        </Card>
+
+        {/* Parent Suggestion */}
+        {todaySuggestion && (
+          <Card className="bg-blue-500/10 border-blue-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Bell className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-blue-500 text-sm">Parent's Suggestion for Today</p>
+                  <p className="text-sm mt-1">{todaySuggestion.topic}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{todaySuggestion.reason}</p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const subject = SUBJECTS.find(s => s.id === todaySuggestion.subject)
+                    if (subject) startLearningSession(subject)
+                  }}
+                >
+                  Start
+                </Button>
+              </div>
             </CardContent>
           </Card>
-          <Card className="bg-green-500/10 border-green-500/20">
-            <CardContent className="p-4 text-center">
-              <Clock className="w-8 h-8 mx-auto mb-2 text-green-500" />
-              <p className="text-2xl font-bold">{stats.totalMinutes}</p>
-              <p className="text-xs text-muted-foreground">Minutes Studied</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-purple-500/10 border-purple-500/20">
-            <CardContent className="p-4 text-center">
-              <Eye className="w-8 h-8 mx-auto mb-2 text-purple-500" />
-              <p className="text-2xl font-bold">{stats.avgFocus}%</p>
-              <p className="text-xs text-muted-foreground">Avg Focus</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-yellow-500/10 border-yellow-500/20">
-            <CardContent className="p-4 text-center">
-              <Trophy className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-              <p className="text-2xl font-bold">{selectedKid.xp}</p>
-              <p className="text-xs text-muted-foreground">Total XP</p>
-            </CardContent>
-          </Card>
-        </div>
+        )}
 
         {/* Subject Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="w-5 h-5" />
-              Start Learning
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {SUBJECTS.map((subject) => {
-                const Icon = subject.icon
-                return (
-                  <button
-                    key={subject.id}
-                    onClick={() => handleSelectSubject(subject)}
-                    className={cn(
-                      "p-4 rounded-xl text-left transition-all hover:scale-105",
-                      "bg-gradient-to-br",
-                      subject.color,
-                      "text-white shadow-lg"
-                    )}
-                  >
-                    <Icon className="w-8 h-8 mb-2" weight="fill" />
-                    <h3 className="font-bold">{subject.name}</h3>
-                    <p className="text-xs opacity-80 mt-1">{subject.description}</p>
-                  </button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h3 className="font-semibold mb-3">Choose a Subject</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {SUBJECTS.map((subject) => {
+              const Icon = subject.icon
+              return (
+                <button
+                  key={subject.id}
+                  onClick={() => startLearningSession(subject)}
+                  className={cn(
+                    "p-4 rounded-xl text-left text-white shadow-lg transition-transform hover:scale-105",
+                    "bg-gradient-to-br",
+                    subject.color
+                  )}
+                >
+                  <Icon className="w-8 h-8 mb-2" weight="fill" />
+                  <h4 className="font-bold">{subject.name}</h4>
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer hover:border-green-500/50 transition-colors"
-            onClick={() => setCurrentTab('focus')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Target className="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Focus Session</h3>
-                <p className="text-sm text-muted-foreground">Track your concentration</p>
-              </div>
-              <CaretRight className="w-5 h-5 ml-auto text-muted-foreground" />
-            </CardContent>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="p-3 text-center">
+            <BookOpen className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+            <p className="font-bold">{selectedKid.totalSessions}</p>
+            <p className="text-[10px] text-muted-foreground">Sessions</p>
           </Card>
-
-          <Card
-            className="cursor-pointer hover:border-purple-500/50 transition-colors"
-            onClick={() => setCurrentTab('monitor')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Camera className="w-6 h-6 text-purple-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Study Monitor</h3>
-                <p className="text-sm text-muted-foreground">AI-powered focus detection</p>
-              </div>
-              <CaretRight className="w-5 h-5 ml-auto text-muted-foreground" />
-            </CardContent>
+          <Card className="p-3 text-center">
+            <Clock className="w-5 h-5 mx-auto mb-1 text-green-500" />
+            <p className="font-bold">{selectedKid.totalStudyMinutes}</p>
+            <p className="text-[10px] text-muted-foreground">Minutes</p>
+          </Card>
+          <Card className="p-3 text-center">
+            <Trophy className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
+            <p className="font-bold">{selectedKid.xp}</p>
+            <p className="text-[10px] text-muted-foreground">Total XP</p>
           </Card>
         </div>
       </div>
     )
   }
 
-  const renderTutor = () => {
-    if (!selectedKid || !selectedSubject) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Select a subject from the dashboard to start learning</p>
-          <Button className="mt-4" onClick={() => setCurrentTab('dashboard')}>
-            Go to Dashboard
-          </Button>
-        </div>
-      )
-    }
+  // ==========================================
+  // Render: Learning View
+  // ==========================================
+
+  const renderLearning = () => {
+    if (!selectedKid || !selectedSubject) return null
 
     const SubjectIcon = selectedSubject.icon
 
     return (
-      <div className="space-y-4">
-        {/* AI Usage Warning */}
-        <AIUsageWarning />
+      <div className="flex flex-col h-[calc(100vh-12rem)] max-h-[600px]">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => {
-              setSelectedSubject(null)
-              setCurrentTab('dashboard')
-              endLearningSession(tutorMessages.length * 5)
-            }}>
+        <div className="flex items-center justify-between pb-3 border-b mb-3">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => endLearningSession(currentSession?.xpEarned || 10)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white bg-gradient-to-br", selectedSubject.color)}>
-              <SubjectIcon className="w-5 h-5" weight="fill" />
+            <div className={cn("w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center text-white", selectedSubject.color)}>
+              <SubjectIcon className="w-4 h-4" weight="fill" />
             </div>
             <div>
-              <h2 className="font-bold">{selectedSubject.name}</h2>
-              <p className="text-xs text-muted-foreground">Learning with {selectedKid.name}</p>
+              <h3 className="font-semibold text-sm">{selectedSubject.name}</h3>
+              <p className="text-[10px] text-muted-foreground">with {selectedKid.name}</p>
             </div>
           </div>
 
-          {currentFocusSession && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/20 text-green-500 text-sm">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Focus Active
+          <div className="flex items-center gap-2">
+            {/* Camera Toggle */}
+            <div className="relative">
+              {cameraActive ? (
+                <div className="w-16 h-12 rounded-lg overflow-hidden border-2 border-green-500 bg-black">
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white p-0"
+                    onClick={stopCamera}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={startCamera}>
+                  <Camera className="w-4 h-4 mr-1" />
+                  Monitor
+                </Button>
+              )}
             </div>
-          )}
+
+            {/* TTS Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTtsEnabled(!ttsEnabled)}
+              className={cn(ttsEnabled && "text-green-500")}
+            >
+              {ttsEnabled ? <SpeakerHigh className="w-4 h-4" /> : <SpeakerSlash className="w-4 h-4" />}
+            </Button>
+
+            {/* Credits */}
+            <Badge variant="outline" className="text-xs">
+              <Coin className="w-3 h-3 mr-1" />
+              {getTotalCredits()}
+            </Badge>
+          </div>
         </div>
 
-        {/* Chat Area */}
-        <Card className="h-[50vh] flex flex-col">
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {tutorMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex gap-3",
-                    msg.role === 'user' && "flex-row-reverse"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                    msg.role === 'user'
-                      ? "bg-blue-500 text-white"
-                      : "bg-gradient-to-br from-purple-500 to-pink-500 text-white"
-                  )}>
-                    {msg.role === 'user' ? (
-                      <span className="text-sm">{AVATAR_EMOJIS[selectedKid.avatar]}</span>
-                    ) : (
-                      <Robot className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2",
-                    msg.role === 'user'
-                      ? "bg-blue-500 text-white"
-                      : "bg-muted"
-                  )}>
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                  </div>
-                </div>
-              ))}
-
-              {isAILoading && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Robot className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="bg-muted rounded-2xl px-4 py-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Input */}
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ask your tutor anything..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                disabled={isAILoading}
-              />
-              <Button onClick={handleSendMessage} disabled={isAILoading || !inputMessage.trim()}>
-                <PaperPlaneTilt className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  const renderFocusTracker = () => {
-    const isActive = focusTracker.isSessionActive()
-
-    return (
-      <div className="space-y-6">
-        {/* Focus Session Card */}
-        <Card className={cn(
-          "bg-gradient-to-br border-2 transition-all",
-          isActive ? "from-green-500/10 to-green-600/10 border-green-500/50" : "from-gray-500/10 to-slate-500/10 border-muted"
-        )}>
-          <CardContent className="p-6 text-center">
-            <div className={cn(
-              "w-32 h-32 mx-auto mb-4 rounded-full flex items-center justify-center",
-              "bg-gradient-to-br",
-              isActive ? "from-green-500 to-green-600" : "from-gray-500 to-slate-500"
-            )}>
-              {isActive ? (
-                <Eye className="w-16 h-16 text-white animate-pulse" weight="fill" />
-              ) : (
-                <Target className="w-16 h-16 text-white" />
-              )}
-            </div>
-
-            {isActive && currentFocusSession && (
-              <div className="mb-4">
-                <p className="text-3xl font-mono font-bold">
-                  {formatDuration(Date.now() - currentFocusSession.startTime)}
-                </p>
-                <p className="text-sm text-muted-foreground">{currentFocusSession.label || 'Focus Session'}</p>
+        {/* Focus Score (if camera active) */}
+        {cameraActive && (
+          <div className="mb-3 p-2 bg-muted rounded-lg flex items-center gap-3">
+            <Eye className="w-4 h-4 text-green-500" />
+            <div className="flex-1">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Focus Score</span>
+                <span className={cn(
+                  "font-bold",
+                  focusScore >= 70 ? "text-green-500" : focusScore >= 40 ? "text-yellow-500" : "text-red-500"
+                )}>
+                  {Math.round(focusScore)}%
+                </span>
               </div>
-            )}
-
-            <div className="flex items-center justify-center gap-4">
-              {!isActive ? (
-                <Button
-                  size="lg"
-                  onClick={() => {
-                    focusTracker.startSession('Focus Session')
-                    setFocusStats(focusTracker.getStats())
-                    toast.success('Focus session started!')
-                  }}
-                  className="gap-2"
-                >
-                  <Play className="w-5 h-5" weight="fill" />
-                  Start Focus Session
-                </Button>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={() => {
-                    focusTracker.startBreak()
-                    toast.info('Break time! Take a moment to rest.')
-                  }}>
-                    <Coffee className="w-5 h-5 mr-2" />
-                    Take Break
-                  </Button>
-                  <Button variant="destructive" onClick={() => {
-                    const session = focusTracker.endSession()
-                    if (session) {
-                      toast.success(`Session complete! Focus: ${session.focusScore}%`)
-                    }
-                    setFocusStats(focusTracker.getStats())
-                    setCurrentFocusSession(null)
-                  }}>
-                    <Stop className="w-5 h-5 mr-2" weight="fill" />
-                    End Session
-                  </Button>
-                </>
-              )}
+              <Progress value={focusScore} className="h-1" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats */}
-        {focusStats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Lightning className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
-                <p className="text-xl font-bold">{focusStats.totalSessions}</p>
-                <p className="text-xs text-muted-foreground">Total Sessions</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Clock className="w-6 h-6 mx-auto mb-2 text-blue-500" />
-                <p className="text-xl font-bold">{formatDuration(focusStats.totalFocusTime)}</p>
-                <p className="text-xs text-muted-foreground">Focus Time</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <ChartBar className="w-6 h-6 mx-auto mb-2 text-green-500" />
-                <p className="text-xl font-bold">{focusStats.averageFocusScore}%</p>
-                <p className="text-xs text-muted-foreground">Avg Focus</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Fire className="w-6 h-6 mx-auto mb-2 text-orange-500" />
-                <p className="text-xl font-bold">{focusStats.currentStreak}</p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
-              </CardContent>
-            </Card>
           </div>
         )}
-      </div>
-    )
-  }
 
-  const renderStudyMonitor = () => {
-    return (
-      <div className="space-y-6">
-        {/* Privacy Notice */}
-        <Card className="bg-blue-500/10 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-500">Privacy-First Monitoring</p>
-                <p className="text-muted-foreground mt-1">
-                  Video is analyzed in real-time and never stored. Only focus scores are saved to track progress.
-                </p>
-              </div>
+        {/* Lesson Plan Upload */}
+        {!currentLessonPlan && messages.length <= 1 && (
+          <Card className="mb-3 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-sm font-medium">Upload Lesson Plan (Optional)</span>
             </div>
-          </CardContent>
-        </Card>
+            <Textarea
+              placeholder="Paste textbook content or lesson plan here..."
+              value={lessonPlanText}
+              onChange={(e) => setLessonPlanText(e.target.value)}
+              className="min-h-[60px] text-sm mb-2"
+            />
+            <Button
+              size="sm"
+              onClick={analyzeLessonPlan}
+              disabled={!lessonPlanText.trim() || analyzingLesson}
+            >
+              {analyzingLesson ? 'Analyzing...' : 'Analyze & Use'}
+            </Button>
+          </Card>
+        )}
 
-        {/* Monitor Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center">
-              {/* Camera Preview */}
-              <div className={cn(
-                "relative w-full max-w-md aspect-video rounded-xl overflow-hidden mb-6",
-                "bg-gray-900 flex items-center justify-center",
-                cameraActive && "ring-2",
-                currentStatus === 'studying' && "ring-green-500",
-                currentStatus === 'distracted' && "ring-yellow-500",
-                currentStatus === 'away' && "ring-red-500"
-              )}>
-                {cameraActive ? (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
-                ) : (
-                  <div className="text-center text-gray-500">
-                    <Camera className="w-16 h-16 mx-auto mb-2" />
-                    <p>Camera preview will appear here</p>
+        {/* Current Lesson Plan */}
+        {currentLessonPlan && (
+          <div className="mb-3 p-2 bg-blue-500/10 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-blue-500">Lesson Plan Active</span>
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setCurrentLessonPlan(null)}>
+                Clear
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">Topics: {currentLessonPlan.topics.slice(0, 3).join(', ')}...</p>
+          </div>
+        )}
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
+          <div className="space-y-3 pb-4">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn("flex gap-2", msg.role === 'user' ? 'justify-end' : 'justify-start')}
+              >
+                {msg.role === 'assistant' && (
+                  <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center flex-shrink-0", selectedSubject.color)}>
+                    <Robot className="w-4 h-4 text-white" />
                   </div>
                 )}
-
-                {isMonitoring && (
-                  <div className={cn(
-                    "absolute top-4 left-4 px-3 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium",
-                    currentStatus === 'studying' && "bg-green-500 text-white",
-                    currentStatus === 'distracted' && "bg-yellow-500 text-black",
-                    currentStatus === 'away' && "bg-red-500 text-white"
-                  )}>
-                    <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                    {currentStatus === 'studying' && 'Studying'}
-                    {currentStatus === 'distracted' && 'Distracted'}
-                    {currentStatus === 'away' && 'Away'}
-                  </div>
-                )}
-              </div>
-
-              {/* Focus Score */}
-              {isMonitoring && (
-                <div className="w-full max-w-md mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Focus Score</span>
-                    <span className={cn(
-                      "text-lg font-bold",
-                      monitorFocusScore >= 80 && "text-green-500",
-                      monitorFocusScore >= 50 && monitorFocusScore < 80 && "text-yellow-500",
-                      monitorFocusScore < 50 && "text-red-500"
-                    )}>
-                      {monitorFocusScore}%
-                    </span>
-                  </div>
-                  <Progress
-                    value={monitorFocusScore}
-                    className={cn(
-                      "h-3",
-                      monitorFocusScore >= 80 && "[&>div]:bg-green-500",
-                      monitorFocusScore >= 50 && monitorFocusScore < 80 && "[&>div]:bg-yellow-500",
-                      monitorFocusScore < 50 && "[&>div]:bg-red-500"
-                    )}
-                  />
+                <div className={cn(
+                  "max-w-[80%] rounded-2xl px-3 py-2",
+                  msg.role === 'user'
+                    ? "bg-violet-500 text-white rounded-br-sm"
+                    : "bg-muted rounded-bl-sm"
+                )}>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.provider && (
+                    <p className="text-[9px] opacity-50 mt-1">{msg.provider}</p>
+                  )}
                 </div>
-              )}
-
-              {/* Controls */}
-              <div className="flex items-center gap-4">
-                {!isMonitoring ? (
-                  <Button size="lg" onClick={startMonitoring} className="gap-2">
-                    <Camera className="w-5 h-5" />
-                    Start Monitoring
-                  </Button>
-                ) : (
-                  <>
-                    <Button variant="outline" onClick={() => {
-                      setCurrentStatus('break')
-                      toast.info('Break time!')
-                    }}>
-                      <Coffee className="w-5 h-5 mr-2" />
-                      Take Break
-                    </Button>
-                    <Button variant="destructive" onClick={stopMonitoring}>
-                      <Stop className="w-5 h-5 mr-2" weight="fill" />
-                      Stop
-                    </Button>
-                  </>
+                {msg.role === 'user' && (
+                  <div className="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm">{AVATARS[selectedKid.avatar]}</span>
+                  </div>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
 
-        {/* Hidden canvas for frame capture */}
-        <canvas ref={canvasRef} className="hidden" width={640} height={480} />
+            {isLoading && (
+              <div className="flex gap-2">
+                <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center", selectedSubject.color)}>
+                  <Robot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Input */}
+        <div className="pt-3 border-t flex gap-2">
+          <Input
+            placeholder="Ask your tutor..."
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            disabled={isLoading}
+          />
+          <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
+            <PaperPlaneTilt className="w-5 h-5" weight="fill" />
+          </Button>
+        </div>
       </div>
     )
   }
 
-  const renderProfiles = () => {
+  // ==========================================
+  // Render: Profile View
+  // ==========================================
+
+  const renderProfile = () => {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
+        {/* Profile Selector */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Kid Profiles</h2>
-          <Button onClick={() => setShowKidSetup(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Profile
+          <h3 className="font-semibold">Learner Profiles</h3>
+          <Button size="sm" onClick={() => setShowSetup(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(kids || []).map((kid) => (
+        {/* Profile Cards */}
+        <div className="space-y-2">
+          {(profiles || []).map((kid) => (
             <Card
               key={kid.id}
               className={cn(
                 "cursor-pointer transition-all",
-                selectedKid?.id === kid.id && "ring-2 ring-blue-500"
+                selectedKid?.id === kid.id && "ring-2 ring-violet-500"
               )}
               onClick={() => setSelectedKid(kid)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl">
-                    {AVATAR_EMOJIS[kid.avatar] || ''}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold">{kid.name}</h3>
-                    <p className="text-sm text-muted-foreground">{kid.grade} Grade | {kid.age} years</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs">
-                      <span className="flex items-center gap-1 text-yellow-500">
-                        <Star className="w-3 h-3" weight="fill" />
-                        Level {kid.level}
-                      </span>
-                      <span className="flex items-center gap-1 text-orange-500">
-                        <Fire className="w-3 h-3" weight="fill" />
-                        {kid.streak} streak
-                      </span>
-                    </div>
-                  </div>
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-lg">
+                  {AVATARS[kid.avatar] || '🎓'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium">{kid.name}</h4>
+                  <p className="text-xs text-muted-foreground">{kid.grade} • {kid.age} years</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    <Star className="w-3 h-3 mr-1" weight="fill" />
+                    L{kid.level}
+                  </Badge>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="w-8 h-8"
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDeleteKid(kid.id)
+                      deleteProfile(kid.id)
                     }}
                   >
                     <Trash className="w-4 h-4 text-red-500" />
@@ -1201,11 +1167,97 @@ Rules:
           ))}
         </div>
 
-        {(!kids || kids.length === 0) && (
-          <Card className="p-8 text-center">
-            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">No profiles yet. Create one to get started!</p>
-          </Card>
+        {selectedKid && (
+          <>
+            {/* Parent Suggestions */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  Parent Suggestions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <ParentSuggestionForm onAdd={addSuggestion} />
+                {(suggestions || [])
+                  .filter(s => s.kidId === selectedKid.id)
+                  .slice(-3)
+                  .map((sug) => (
+                    <div key={sug.id} className="p-2 bg-muted rounded-lg text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{sug.topic}</span>
+                        <Badge variant={sug.completed ? "default" : "secondary"} className="text-[10px]">
+                          {sug.completed ? 'Done' : sug.date}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{sug.reason}</p>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+
+            {/* Behavior Reports */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ChartLine className="w-4 h-4" />
+                  Recent Behavior Reports
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(reports || [])
+                  .filter(r => r.kidId === selectedKid.id)
+                  .slice(-5)
+                  .reverse()
+                  .map((report) => (
+                    <div key={report.id} className="p-2 border-b last:border-0">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{report.date}</span>
+                        <Badge
+                          variant={report.focusScore >= 70 ? "default" : report.focusScore >= 40 ? "secondary" : "destructive"}
+                          className="text-xs"
+                        >
+                          {report.focusScore}% Focus
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {report.totalMinutes} min • {report.distractions} distractions
+                      </p>
+                    </div>
+                  ))}
+                {(reports || []).filter(r => r.kidId === selectedKid.id).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No reports yet. Enable camera during learning sessions.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* AI Credits */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Coin className="w-4 h-4" />
+                  AI Credits
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Free Daily</span>
+                  <span className="font-medium">{credits?.free || 0} / {FREE_DAILY_CREDITS}</span>
+                </div>
+                <Progress value={(credits?.free || 0) / FREE_DAILY_CREDITS * 100} className="h-2" />
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Purchased Credits</span>
+                  <span>{credits?.purchased || 0}</span>
+                </div>
+                <Button variant="outline" size="sm" className="w-full mt-2" disabled>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Purchase Credits (Coming Soon)
+                </Button>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     )
@@ -1215,80 +1267,65 @@ Rules:
   // Main Render
   // ==========================================
 
-  const tabs = [
-    { id: 'dashboard' as const, label: 'Dashboard', icon: House },
-    { id: 'tutor' as const, label: 'Tutor', icon: Brain },
-    { id: 'focus' as const, label: 'Focus', icon: Target },
-    { id: 'monitor' as const, label: 'Monitor', icon: Camera },
-    { id: 'profiles' as const, label: 'Profiles', icon: Users }
-  ]
-
   return (
-    <div className={cn("space-y-6", isMobile && "space-y-4")}>
+    <div className={cn("space-y-4", isMobile && "space-y-3")}>
       {/* Header */}
-      <Card className="bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20">
-        <CardHeader className={cn(isMobile ? "pb-2" : "pb-4")}>
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" weight="fill" />
-            </div>
-            <div>
-              <h1 className={cn("font-bold", isMobile ? "text-xl" : "text-2xl")}>
-                Kids Learning Center
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                AI-powered tutoring, focus tracking, and study monitoring
-              </p>
-            </div>
-          </CardTitle>
-        </CardHeader>
+      <Card className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/20">
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+            <GraduationCap className="w-6 h-6 text-white" weight="fill" />
+          </div>
+          <div className="flex-1">
+            <h1 className="font-bold text-lg">Kids Learning Center</h1>
+            <p className="text-xs text-muted-foreground">AI-powered tutoring with behavior monitoring</p>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Tab Navigation */}
-      <div className={cn(
-        "flex gap-2 p-1 bg-muted rounded-lg overflow-x-auto",
-        isMobile && "scrollbar-hide"
-      )}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          return (
-            <Button
-              key={tab.id}
-              variant={currentTab === tab.id ? 'default' : 'ghost'}
-              size={isMobile ? 'sm' : 'default'}
-              onClick={() => setCurrentTab(tab.id)}
-              className={cn("flex-shrink-0", isMobile && "px-3")}
-            >
-              <Icon className={cn("w-4 h-4", !isMobile && "mr-2")} />
-              {!isMobile && tab.label}
-            </Button>
-          )
-        })}
-      </div>
+      {/* Navigation */}
+      {currentView !== 'learn' && (
+        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          <Button
+            variant={currentView === 'home' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('home')}
+            className="flex-1"
+          >
+            <House className="w-4 h-4 mr-2" />
+            Learn
+          </Button>
+          <Button
+            variant={currentView === 'profile' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('profile')}
+            className="flex-1"
+          >
+            <UserCircle className="w-4 h-4 mr-2" />
+            Profile
+          </Button>
+        </div>
+      )}
 
-      {/* Tab Content */}
+      {/* Content */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentTab}
+          key={currentView}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
         >
-          {currentTab === 'dashboard' && renderDashboard()}
-          {currentTab === 'tutor' && renderTutor()}
-          {currentTab === 'focus' && renderFocusTracker()}
-          {currentTab === 'monitor' && renderStudyMonitor()}
-          {currentTab === 'profiles' && renderProfiles()}
+          {currentView === 'home' && renderHome()}
+          {currentView === 'learn' && renderLearning()}
+          {currentView === 'profile' && renderProfile()}
         </motion.div>
       </AnimatePresence>
 
-      {/* Kid Setup Modal */}
+      {/* Setup Modal */}
       <AnimatePresence>
-        {showKidSetup && (
-          <KidSetupModal
-            onClose={() => setShowKidSetup(false)}
-            onSave={handleCreateKid}
+        {showSetup && (
+          <ProfileSetupModal
+            onClose={() => setShowSetup(false)}
+            onSave={createProfile}
           />
         )}
       </AnimatePresence>
@@ -1297,36 +1334,100 @@ Rules:
 }
 
 // ==========================================
-// Kid Setup Modal Component
+// Parent Suggestion Form
 // ==========================================
 
-interface KidSetupModalProps {
-  onClose: () => void
-  onSave: (kid: Omit<KidProfile, 'id' | 'xp' | 'level' | 'streak' | 'completedLessons' | 'completedTests' | 'totalStudyTime'>) => void
+function ParentSuggestionForm({ onAdd }: { onAdd: (subject: string, topic: string, reason: string) => void }) {
+  const [subject, setSubject] = useState('')
+  const [topic, setTopic] = useState('')
+  const [reason, setReason] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleSubmit = () => {
+    if (!subject || !topic) {
+      toast.error('Please fill in subject and topic')
+      return
+    }
+    onAdd(subject, topic, reason || 'Parent suggestion')
+    setSubject('')
+    setTopic('')
+    setReason('')
+    setIsOpen(false)
+  }
+
+  if (!isOpen) {
+    return (
+      <Button variant="outline" size="sm" className="w-full" onClick={() => setIsOpen(true)}>
+        <Plus className="w-4 h-4 mr-2" />
+        Add Study Suggestion
+      </Button>
+    )
+  }
+
+  return (
+    <div className="p-3 border rounded-lg space-y-2">
+      <Select value={subject} onValueChange={setSubject}>
+        <SelectTrigger className="h-9">
+          <SelectValue placeholder="Select subject" />
+        </SelectTrigger>
+        <SelectContent>
+          {SUBJECTS.map(s => (
+            <SelectItem key={s.id} value={s.id}>{s.emoji} {s.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input
+        placeholder="Topic to study"
+        value={topic}
+        onChange={(e) => setTopic(e.target.value)}
+        className="h-9"
+      />
+      <Input
+        placeholder="Reason (optional)"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        className="h-9"
+      />
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="flex-1">Cancel</Button>
+        <Button size="sm" onClick={handleSubmit} className="flex-1">Add</Button>
+      </div>
+    </div>
+  )
 }
 
-function KidSetupModal({ onClose, onSave }: KidSetupModalProps) {
+// ==========================================
+// Profile Setup Modal
+// ==========================================
+
+function ProfileSetupModal({
+  onClose,
+  onSave
+}: {
+  onClose: () => void
+  onSave: (data: any) => void
+}) {
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [grade, setGrade] = useState('')
   const [avatar, setAvatar] = useState('bear')
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
-  const [dailyGoal, setDailyGoal] = useState(30)
+  const [language, setLanguage] = useState('en')
+  const [parentEmail, setParentEmail] = useState('')
+  const [dailyGoal, setDailyGoal] = useState('30')
 
   const handleSubmit = () => {
     if (!name || !age || !grade) {
-      toast.error('Please fill in all required fields')
+      toast.error('Please fill in name, age, and grade')
       return
     }
-
     onSave({
       name,
       age: parseInt(age),
       grade,
       avatar,
-      selectedSubjects,
-      dailyGoal,
-      focusAlertThreshold: 120
+      language,
+      parentEmail: parentEmail || undefined,
+      dailyGoalMinutes: parseInt(dailyGoal) || 30
     })
   }
 
@@ -1336,34 +1437,34 @@ function KidSetupModal({ onClose, onSave }: KidSetupModalProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md max-h-[90vh] overflow-auto"
       >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Create Kid Profile</span>
+              <span>Create Learner Profile</span>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="w-5 h-5" />
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Avatar Selection */}
+            {/* Avatar */}
             <div>
               <Label>Choose Avatar</Label>
               <div className="flex gap-2 mt-2 flex-wrap">
-                {AVATARS.map((av) => (
+                {Object.entries(AVATARS).map(([key, emoji]) => (
                   <button
-                    key={av}
-                    onClick={() => setAvatar(av)}
+                    key={key}
+                    onClick={() => setAvatar(key)}
                     className={cn(
-                      "w-12 h-12 rounded-full text-2xl transition-all",
-                      avatar === av
-                        ? "bg-gradient-to-br from-blue-500 to-purple-500 ring-2 ring-blue-500 ring-offset-2"
+                      "w-10 h-10 rounded-full text-xl transition-all",
+                      avatar === key
+                        ? "bg-violet-500 ring-2 ring-violet-500 ring-offset-2"
                         : "bg-muted hover:bg-muted/80"
                     )}
                   >
-                    {AVATAR_EMOJIS[av]}
+                    {emoji}
                   </button>
                 ))}
               </div>
@@ -1373,38 +1474,66 @@ function KidSetupModal({ onClose, onSave }: KidSetupModalProps) {
             <div>
               <Label>Name *</Label>
               <Input
-                placeholder="Enter name"
+                placeholder="Child's name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
 
-            {/* Age */}
-            <div>
-              <Label>Age *</Label>
-              <Input
-                type="number"
-                placeholder="Enter age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                min={3}
-                max={18}
-              />
+            {/* Age & Grade */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Age *</Label>
+                <Select value={age} onValueChange={setAge}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Age" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 15 }, (_, i) => i + 4).map(a => (
+                      <SelectItem key={a} value={String(a)}>{a} years</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Grade *</Label>
+                <Select value={grade} onValueChange={setGrade}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRADES.map(g => (
+                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Grade */}
+            {/* Language */}
             <div>
-              <Label>Grade *</Label>
-              <select
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background"
-              >
-                <option value="">Select grade</option>
-                {['Pre-K', 'Kindergarten', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'].map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+              <Label>Language</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map(l => (
+                    <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Parent Email */}
+            <div>
+              <Label>Parent Email (for reports)</Label>
+              <Input
+                type="email"
+                placeholder="parent@email.com"
+                value={parentEmail}
+                onChange={(e) => setParentEmail(e.target.value)}
+              />
             </div>
 
             {/* Daily Goal */}
@@ -1413,45 +1542,16 @@ function KidSetupModal({ onClose, onSave }: KidSetupModalProps) {
               <Input
                 type="number"
                 value={dailyGoal}
-                onChange={(e) => setDailyGoal(parseInt(e.target.value) || 30)}
-                min={10}
-                max={180}
+                onChange={(e) => setDailyGoal(e.target.value)}
+                min="10"
+                max="120"
               />
             </div>
 
-            {/* Subject Selection */}
-            <div>
-              <Label>Favorite Subjects (optional)</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {SUBJECTS.map((subject) => (
-                  <button
-                    key={subject.id}
-                    onClick={() => setSelectedSubjects(prev =>
-                      prev.includes(subject.id)
-                        ? prev.filter(s => s !== subject.id)
-                        : [...prev, subject.id]
-                    )}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-sm transition-all",
-                      selectedSubjects.includes(subject.id)
-                        ? "bg-blue-500 text-white"
-                        : "bg-muted hover:bg-muted/80"
-                    )}
-                  >
-                    {subject.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Actions */}
-            <div className="flex gap-2 pt-4">
-              <Button variant="outline" onClick={onClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} className="flex-1">
-                Create Profile
-              </Button>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button onClick={handleSubmit} className="flex-1">Create Profile</Button>
             </div>
           </CardContent>
         </Card>
