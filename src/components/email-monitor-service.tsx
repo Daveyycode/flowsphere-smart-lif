@@ -28,30 +28,26 @@ export function EmailMonitorService() {
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // DISABLED: Email monitoring is currently disabled until OAuth is properly configured
-    // The Gmail API cannot be called directly from the browser due to CORS restrictions
-    // Email monitoring requires a proper backend proxy or Edge Function implementation
-
-    const EMAIL_MONITORING_ENABLED = false // Set to true when backend is ready
-
-    if (!EMAIL_MONITORING_ENABLED) {
-      console.log('📭 Email monitoring is disabled - OAuth backend not configured')
-      return
-    }
+    // Email monitoring enabled - uses Edge Functions for OAuth token refresh
+    const EMAIL_MONITORING_ENABLED = true
 
     const activeAccounts = EmailAccountStore.getActiveAccounts()
+    console.log('📧 Email Monitor: Found', activeAccounts.length, 'active account(s)')
+    activeAccounts.forEach(acc => {
+      console.log(`  - ${acc.email} (${acc.provider}) | hasRefresh: ${!!acc.refreshToken} | expires: ${acc.expiresAt ? new Date(acc.expiresAt).toLocaleString() : 'unknown'}`)
+    })
 
-    // SECURITY FIX: Only monitor accounts with valid OAuth tokens
+    // SECURITY FIX: Only monitor accounts with OAuth tokens
+    // Note: Expired tokens are OK - EmailMonitor handles auto-refresh
     const validAccounts = activeAccounts.filter(account => {
       // Check if account has required OAuth fields
       if (!account.accessToken || !account.refreshToken) {
         console.warn(`⚠️ Skipping ${account.email} - missing OAuth tokens`)
         return false
       }
-      // Check if token is not expired (with 1 minute buffer)
+      // Log token status but don't skip - EmailMonitor will refresh expired tokens
       if (account.expiresAt && Date.now() > account.expiresAt - 60000) {
-        console.warn(`⚠️ Skipping ${account.email} - token expired`)
-        return false
+        console.log(`🔄 ${account.email} - token expired, will auto-refresh`)
       }
       return true
     })
