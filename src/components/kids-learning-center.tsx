@@ -734,6 +734,42 @@ Rules:
   }
 
   // ==========================================
+  // Text Formatting Helpers
+  // ==========================================
+
+  // Clean AI response from model artifacts and render basic markdown
+  const formatAIResponse = (text: string): React.ReactNode => {
+    // Remove common model artifacts
+    let cleaned = text
+      .replace(/<s>\[\/INST\]/gi, '')
+      .replace(/<\/s>/gi, '')
+      .replace(/\[INST\]/gi, '')
+      .replace(/<s>/gi, '')
+      .replace(/<<SYS>>[\s\S]*?<<\/SYS>>/gi, '')
+      .trim()
+
+    // Split by lines and process
+    const lines = cleaned.split('\n')
+    const elements: React.ReactNode[] = []
+
+    lines.forEach((line, idx) => {
+      // Process bold text **text**
+      const parts = line.split(/(\*\*[^*]+\*\*)/g)
+      const formattedLine = parts.map((part, pIdx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={pIdx}>{part.slice(2, -2)}</strong>
+        }
+        return part
+      })
+
+      if (idx > 0) elements.push(<br key={`br-${idx}`} />)
+      elements.push(<span key={`line-${idx}`}>{formattedLine}</span>)
+    })
+
+    return elements
+  }
+
+  // ==========================================
   // Lesson Plan Analysis
   // ==========================================
 
@@ -1038,7 +1074,7 @@ Rules:
     const SubjectIcon = selectedSubject.icon
 
     return (
-      <div className="flex flex-col h-[calc(100vh-12rem)] max-h-[600px]">
+      <div className="flex flex-col h-[calc(100vh-14rem)] min-h-[400px]">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b mb-3">
           <div className="flex items-center gap-2">
@@ -1151,7 +1187,7 @@ Rules:
         )}
 
         {/* Messages */}
-        <ScrollArea className="flex-1 pr-2" ref={scrollRef}>
+        <ScrollArea className="flex-1 min-h-0 pr-2" ref={scrollRef}>
           <div className="space-y-3 pb-4">
             {messages.map((msg) => (
               <div
@@ -1188,7 +1224,9 @@ Rules:
                       ))}
                     </div>
                   )}
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <div className="text-sm">
+                    {msg.role === 'assistant' ? formatAIResponse(msg.content) : msg.content}
+                  </div>
                   {msg.provider && (
                     <p className="text-[9px] opacity-50 mt-1">{msg.provider}</p>
                   )}
@@ -1242,7 +1280,7 @@ Rules:
         )}
 
         {/* Input */}
-        <div className="pt-3 border-t space-y-2">
+        <div className="pt-3 border-t space-y-2 flex-shrink-0 bg-background">
           {/* URL Input (when active) */}
           {showUrlInput && (
             <div className="flex gap-2">
