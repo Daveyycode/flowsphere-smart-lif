@@ -177,6 +177,34 @@ interface AICredits {
   lastReset: string
 }
 
+interface GameChallenge {
+  id: string
+  category: 'math' | 'memory' | 'logic' | 'words' | 'pattern' | 'speed' | 'creativity'
+  name: string
+  description: string
+  minAge: number
+  maxAge: number
+  difficulty: 'easy' | 'medium' | 'hard'
+  xpReward: number
+  icon: string
+  type: 'multiple-choice' | 'fill-blank' | 'match' | 'sequence' | 'memory' | 'speed' | 'draw'
+}
+
+interface GameProgress {
+  challengeId: string
+  completed: boolean
+  score: number
+  bestTime?: number
+  attempts: number
+  lastPlayed: string
+}
+
+interface ParentSettings {
+  gamesEnabled: boolean
+  maxDailyGameMinutes: number
+  allowedCategories: string[]
+}
+
 // ==========================================
 // Constants
 // ==========================================
@@ -229,8 +257,148 @@ const STORAGE_KEYS = {
   LESSONS: 'flowsphere-kids-lessons-v2',
   SUGGESTIONS: 'flowsphere-kids-suggestions-v2',
   REPORTS: 'flowsphere-kids-reports-v2',
-  CREDITS: 'flowsphere-kids-credits-v2'
+  CREDITS: 'flowsphere-kids-credits-v2',
+  GAME_PROGRESS: 'flowsphere-kids-games-v2',
+  PARENT_SETTINGS: 'flowsphere-kids-parent-settings-v2'
 }
+
+// Game Categories
+const GAME_CATEGORIES = [
+  { id: 'math', name: 'Math Games', icon: '🧮', color: 'from-blue-500 to-indigo-600', description: 'Numbers & Calculations' },
+  { id: 'memory', name: 'Memory Games', icon: '🧠', color: 'from-purple-500 to-violet-600', description: 'Remember & Recall' },
+  { id: 'logic', name: 'Logic Puzzles', icon: '🧩', color: 'from-green-500 to-emerald-600', description: 'Think & Solve' },
+  { id: 'words', name: 'Word Games', icon: '📝', color: 'from-orange-500 to-amber-600', description: 'Letters & Words' },
+  { id: 'pattern', name: 'Pattern Games', icon: '🔷', color: 'from-cyan-500 to-teal-600', description: 'Find the Pattern' },
+  { id: 'speed', name: 'Speed Challenges', icon: '⚡', color: 'from-yellow-500 to-orange-600', description: 'Quick Thinking' },
+  { id: 'creativity', name: 'Creative Games', icon: '🎨', color: 'from-pink-500 to-rose-600', description: 'Imagine & Create' }
+]
+
+// 100+ Game Challenges
+const GAME_CHALLENGES: GameChallenge[] = [
+  // Math Games (20 challenges)
+  { id: 'math-1', category: 'math', name: 'Number Buddies', description: 'Find numbers that add up to 10', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '➕', type: 'match' },
+  { id: 'math-2', category: 'math', name: 'Count the Stars', description: 'Count objects and pick the right number', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '⭐', type: 'multiple-choice' },
+  { id: 'math-3', category: 'math', name: 'Addition Adventure', description: 'Solve simple addition problems', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎯', type: 'fill-blank' },
+  { id: 'math-4', category: 'math', name: 'Subtraction Safari', description: 'Take away and find the answer', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🦁', type: 'fill-blank' },
+  { id: 'math-5', category: 'math', name: 'Shape Counter', description: 'Count different shapes', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '🔺', type: 'multiple-choice' },
+  { id: 'math-6', category: 'math', name: 'Number Order', description: 'Put numbers in the right order', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 15, icon: '📊', type: 'sequence' },
+  { id: 'math-7', category: 'math', name: 'Double Trouble', description: 'Double the numbers!', minAge: 6, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '✖️', type: 'fill-blank' },
+  { id: 'math-8', category: 'math', name: 'Times Tables', description: 'Practice multiplication', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔢', type: 'speed' },
+  { id: 'math-9', category: 'math', name: 'Division Detective', description: 'Solve division mysteries', minAge: 8, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔍', type: 'fill-blank' },
+  { id: 'math-10', category: 'math', name: 'Fraction Fun', description: 'Match fractions to pictures', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🍕', type: 'match' },
+  { id: 'math-11', category: 'math', name: 'Money Math', description: 'Count coins and bills', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '💰', type: 'multiple-choice' },
+  { id: 'math-12', category: 'math', name: 'Clock Challenge', description: 'Tell the time correctly', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🕐', type: 'multiple-choice' },
+  { id: 'math-13', category: 'math', name: 'Greater or Less', description: 'Compare numbers quickly', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '⚖️', type: 'speed' },
+  { id: 'math-14', category: 'math', name: 'Number Bonds', description: 'Find pairs that make a number', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🤝', type: 'match' },
+  { id: 'math-15', category: 'math', name: 'Math Maze', description: 'Solve equations to find the path', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 30, icon: '🏃', type: 'sequence' },
+  { id: 'math-16', category: 'math', name: 'Place Value Pro', description: 'Understand tens and ones', minAge: 6, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🏠', type: 'multiple-choice' },
+  { id: 'math-17', category: 'math', name: 'Skip Counting', description: 'Count by 2s, 5s, and 10s', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🐰', type: 'sequence' },
+  { id: 'math-18', category: 'math', name: 'Equation Builder', description: 'Build correct equations', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🏗️', type: 'fill-blank' },
+  { id: 'math-19', category: 'math', name: 'Odd & Even Sort', description: 'Sort numbers into groups', minAge: 5, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎲', type: 'match' },
+  { id: 'math-20', category: 'math', name: 'Mental Math Race', description: 'Quick calculations challenge', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏎️', type: 'speed' },
+
+  // Memory Games (15 challenges)
+  { id: 'mem-1', category: 'memory', name: 'Animal Match', description: 'Match pairs of cute animals', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🐶', type: 'memory' },
+  { id: 'mem-2', category: 'memory', name: 'Color Memory', description: 'Remember the color sequence', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🌈', type: 'sequence' },
+  { id: 'mem-3', category: 'memory', name: 'Picture Recall', description: 'Remember what you saw', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🖼️', type: 'memory' },
+  { id: 'mem-4', category: 'memory', name: 'Number Memory', description: 'Remember number sequences', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔢', type: 'sequence' },
+  { id: 'mem-5', category: 'memory', name: 'Shape Shuffle', description: 'Remember where shapes were', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔷', type: 'memory' },
+  { id: 'mem-6', category: 'memory', name: 'Sound Memory', description: 'Match sounds to pictures', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🔊', type: 'match' },
+  { id: 'mem-7', category: 'memory', name: 'Story Recall', description: 'Remember details from a story', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📖', type: 'multiple-choice' },
+  { id: 'mem-8', category: 'memory', name: 'Simon Says', description: 'Follow the pattern sequence', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🎮', type: 'sequence' },
+  { id: 'mem-9', category: 'memory', name: "What's Missing?", description: 'Find the missing item', minAge: 4, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '❓', type: 'multiple-choice' },
+  { id: 'mem-10', category: 'memory', name: 'Face Match', description: 'Match faces with names', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '😊', type: 'match' },
+  { id: 'mem-11', category: 'memory', name: 'Word Memory', description: 'Remember lists of words', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '📝', type: 'sequence' },
+  { id: 'mem-12', category: 'memory', name: 'Pattern Recall', description: 'Remember complex patterns', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🎯', type: 'memory' },
+  { id: 'mem-13', category: 'memory', name: 'Emoji Match', description: 'Match emoji pairs', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '😀', type: 'memory' },
+  { id: 'mem-14', category: 'memory', name: 'Location Memory', description: 'Remember item locations', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📍', type: 'memory' },
+  { id: 'mem-15', category: 'memory', name: 'Sequence Master', description: 'Master long sequences', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏆', type: 'sequence' },
+
+  // Logic Puzzles (15 challenges)
+  { id: 'logic-1', category: 'logic', name: 'Odd One Out', description: 'Find what does not belong', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🤔', type: 'multiple-choice' },
+  { id: 'logic-2', category: 'logic', name: 'Simple Sudoku', description: 'Fill in the grid (4x4)', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 25, icon: '📊', type: 'fill-blank' },
+  { id: 'logic-3', category: 'logic', name: 'Sort It Out', description: 'Group items by category', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '📦', type: 'match' },
+  { id: 'logic-4', category: 'logic', name: 'If-Then Puzzles', description: 'Solve logical statements', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔀', type: 'multiple-choice' },
+  { id: 'logic-5', category: 'logic', name: 'Picture Puzzles', description: 'Complete the picture logic', minAge: 5, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🧩', type: 'multiple-choice' },
+  { id: 'logic-6', category: 'logic', name: 'Who Lives Where?', description: 'Solve simple logic grids', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🏠', type: 'fill-blank' },
+  { id: 'logic-7', category: 'logic', name: 'Balance Scale', description: 'Make both sides equal', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '⚖️', type: 'fill-blank' },
+  { id: 'logic-8', category: 'logic', name: 'Code Breaker', description: 'Crack the secret code', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 30, icon: '🔐', type: 'fill-blank' },
+  { id: 'logic-9', category: 'logic', name: 'Tower Builder', description: 'Stack blocks correctly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🗼', type: 'sequence' },
+  { id: 'logic-10', category: 'logic', name: 'Mirror Image', description: 'Find the correct reflection', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🪞', type: 'multiple-choice' },
+  { id: 'logic-11', category: 'logic', name: 'Maze Runner', description: 'Find the path through', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🏃', type: 'sequence' },
+  { id: 'logic-12', category: 'logic', name: 'True or False', description: 'Evaluate statements', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '✅', type: 'multiple-choice' },
+  { id: 'logic-13', category: 'logic', name: 'Riddle Time', description: 'Solve fun riddles', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🎭', type: 'multiple-choice' },
+  { id: 'logic-14', category: 'logic', name: 'Tangram Puzzle', description: 'Arrange shapes to match', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📐', type: 'match' },
+  { id: 'logic-15', category: 'logic', name: 'Brain Teaser', description: 'Advanced logic challenges', minAge: 10, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🧠', type: 'fill-blank' },
+
+  // Word Games (15 challenges)
+  { id: 'word-1', category: 'words', name: 'Letter Hunt', description: 'Find hidden letters', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🔤', type: 'match' },
+  { id: 'word-2', category: 'words', name: 'Rhyme Time', description: 'Match words that rhyme', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎵', type: 'match' },
+  { id: 'word-3', category: 'words', name: 'Spell It Right', description: 'Choose correct spelling', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '✏️', type: 'multiple-choice' },
+  { id: 'word-4', category: 'words', name: 'Word Builder', description: 'Make words from letters', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🏗️', type: 'fill-blank' },
+  { id: 'word-5', category: 'words', name: 'Alphabet Order', description: 'Put letters in order', minAge: 4, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '📝', type: 'sequence' },
+  { id: 'word-6', category: 'words', name: 'Picture Words', description: 'Match pictures to words', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🖼️', type: 'match' },
+  { id: 'word-7', category: 'words', name: 'Opposite Words', description: 'Find the opposites', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '↔️', type: 'match' },
+  { id: 'word-8', category: 'words', name: 'Word Search', description: 'Find words in the grid', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔍', type: 'match' },
+  { id: 'word-9', category: 'words', name: 'Fill the Gap', description: 'Complete the sentence', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📝', type: 'fill-blank' },
+  { id: 'word-10', category: 'words', name: 'Word Categories', description: 'Sort words into groups', minAge: 5, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '📂', type: 'match' },
+  { id: 'word-11', category: 'words', name: 'Synonym Match', description: 'Find words with same meaning', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔗', type: 'match' },
+  { id: 'word-12', category: 'words', name: 'Unscramble', description: 'Rearrange jumbled letters', minAge: 7, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🔀', type: 'fill-blank' },
+  { id: 'word-13', category: 'words', name: 'Story Words', description: 'Put story words in order', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '📖', type: 'sequence' },
+  { id: 'word-14', category: 'words', name: 'Compound Words', description: 'Make compound words', minAge: 7, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🔧', type: 'match' },
+  { id: 'word-15', category: 'words', name: 'Crossword Kids', description: 'Simple crossword puzzles', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '📰', type: 'fill-blank' },
+
+  // Pattern Games (15 challenges)
+  { id: 'pat-1', category: 'pattern', name: 'Color Patterns', description: 'Complete the color sequence', minAge: 3, maxAge: 6, difficulty: 'easy', xpReward: 10, icon: '🌈', type: 'sequence' },
+  { id: 'pat-2', category: 'pattern', name: 'Shape Sequence', description: 'What comes next?', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔷', type: 'multiple-choice' },
+  { id: 'pat-3', category: 'pattern', name: 'Number Patterns', description: 'Find the number pattern', minAge: 6, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🔢', type: 'fill-blank' },
+  { id: 'pat-4', category: 'pattern', name: 'Growing Patterns', description: 'Patterns that grow', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '📈', type: 'sequence' },
+  { id: 'pat-5', category: 'pattern', name: 'Repeating Beats', description: 'Complete the rhythm pattern', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🥁', type: 'sequence' },
+  { id: 'pat-6', category: 'pattern', name: 'Picture Pattern', description: 'What picture comes next?', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🎨', type: 'multiple-choice' },
+  { id: 'pat-7', category: 'pattern', name: 'AB Patterns', description: 'Simple alternating patterns', minAge: 3, maxAge: 5, difficulty: 'easy', xpReward: 10, icon: '🔄', type: 'sequence' },
+  { id: 'pat-8', category: 'pattern', name: 'ABC Patterns', description: 'Three-part patterns', minAge: 4, maxAge: 7, difficulty: 'medium', xpReward: 15, icon: '🔁', type: 'sequence' },
+  { id: 'pat-9', category: 'pattern', name: 'Tile Patterns', description: 'Complete the tile design', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🎴', type: 'match' },
+  { id: 'pat-10', category: 'pattern', name: 'Symmetry Finder', description: 'Find symmetrical patterns', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🦋', type: 'multiple-choice' },
+  { id: 'pat-11', category: 'pattern', name: 'Pattern Rules', description: 'Discover the rule', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '📏', type: 'fill-blank' },
+  { id: 'pat-12', category: 'pattern', name: 'Missing Piece', description: 'Find what fits', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🧩', type: 'multiple-choice' },
+  { id: 'pat-13', category: 'pattern', name: 'Pattern Matrix', description: 'Complex pattern grids', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '📊', type: 'multiple-choice' },
+  { id: 'pat-14', category: 'pattern', name: 'Rotation Pattern', description: 'Patterns that rotate', minAge: 7, maxAge: 11, difficulty: 'hard', xpReward: 30, icon: '🔄', type: 'multiple-choice' },
+  { id: 'pat-15', category: 'pattern', name: 'Pattern Detective', description: 'Find hidden patterns', minAge: 9, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🕵️', type: 'fill-blank' },
+
+  // Speed Challenges (15 challenges)
+  { id: 'speed-1', category: 'speed', name: 'Quick Count', description: 'Count objects fast!', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '⏱️', type: 'speed' },
+  { id: 'speed-2', category: 'speed', name: 'Flash Cards', description: 'Quick math answers', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '⚡', type: 'speed' },
+  { id: 'speed-3', category: 'speed', name: 'Color Tap', description: 'Tap the right color fast', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🎯', type: 'speed' },
+  { id: 'speed-4', category: 'speed', name: 'Shape Race', description: 'Identify shapes quickly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🏁', type: 'speed' },
+  { id: 'speed-5', category: 'speed', name: 'Word Dash', description: 'Spell words against time', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '💨', type: 'speed' },
+  { id: 'speed-6', category: 'speed', name: 'Number Ninja', description: 'Quick number recognition', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '🥷', type: 'speed' },
+  { id: 'speed-7', category: 'speed', name: 'Match Sprint', description: 'Find matches quickly', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '🏃‍♂️', type: 'speed' },
+  { id: 'speed-8', category: 'speed', name: 'Reflex Test', description: 'Test your reaction time', minAge: 6, maxAge: 12, difficulty: 'medium', xpReward: 20, icon: '👆', type: 'speed' },
+  { id: 'speed-9', category: 'speed', name: 'Quick Sort', description: 'Sort items fast', minAge: 5, maxAge: 8, difficulty: 'medium', xpReward: 20, icon: '📤', type: 'speed' },
+  { id: 'speed-10', category: 'speed', name: '60 Second Math', description: 'Solve max problems in a minute', minAge: 7, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '⏰', type: 'speed' },
+  { id: 'speed-11', category: 'speed', name: 'Letter Race', description: 'Find letters quickly', minAge: 4, maxAge: 7, difficulty: 'easy', xpReward: 15, icon: '🔠', type: 'speed' },
+  { id: 'speed-12', category: 'speed', name: 'Pattern Speed', description: 'Complete patterns fast', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '⚡', type: 'speed' },
+  { id: 'speed-13', category: 'speed', name: 'Memory Sprint', description: 'Quick memory challenges', minAge: 6, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '🧠', type: 'speed' },
+  { id: 'speed-14', category: 'speed', name: 'Tap Master', description: 'Tap targets accurately', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '👇', type: 'speed' },
+  { id: 'speed-15', category: 'speed', name: 'Ultimate Speed', description: 'Mixed speed challenges', minAge: 8, maxAge: 12, difficulty: 'hard', xpReward: 40, icon: '🏆', type: 'speed' },
+
+  // Creativity Games (15 challenges)
+  { id: 'create-1', category: 'creativity', name: 'Color Mix', description: 'Create new colors', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🎨', type: 'match' },
+  { id: 'create-2', category: 'creativity', name: 'Shape Art', description: 'Make pictures with shapes', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🔶', type: 'draw' },
+  { id: 'create-3', category: 'creativity', name: 'Story Builder', description: 'Create your own story', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 25, icon: '📚', type: 'sequence' },
+  { id: 'create-4', category: 'creativity', name: 'Pattern Creator', description: 'Design your own pattern', minAge: 5, maxAge: 9, difficulty: 'medium', xpReward: 20, icon: '✨', type: 'draw' },
+  { id: 'create-5', category: 'creativity', name: 'Animal Mix-up', description: 'Create funny animals', minAge: 4, maxAge: 8, difficulty: 'easy', xpReward: 15, icon: '🦄', type: 'draw' },
+  { id: 'create-6', category: 'creativity', name: 'Emoji Story', description: 'Tell stories with emojis', minAge: 5, maxAge: 10, difficulty: 'easy', xpReward: 15, icon: '😊', type: 'sequence' },
+  { id: 'create-7', category: 'creativity', name: 'Music Maker', description: 'Create simple tunes', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🎵', type: 'sequence' },
+  { id: 'create-8', category: 'creativity', name: 'Dream House', description: 'Design your dream house', minAge: 5, maxAge: 10, difficulty: 'medium', xpReward: 20, icon: '🏠', type: 'draw' },
+  { id: 'create-9', category: 'creativity', name: 'Invention Time', description: 'Create a new invention', minAge: 6, maxAge: 12, difficulty: 'medium', xpReward: 25, icon: '💡', type: 'draw' },
+  { id: 'create-10', category: 'creativity', name: 'Comic Strip', description: 'Make a mini comic', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '📰', type: 'draw' },
+  { id: 'create-11', category: 'creativity', name: 'Recipe Creator', description: 'Invent a silly recipe', minAge: 5, maxAge: 9, difficulty: 'easy', xpReward: 15, icon: '🍳', type: 'sequence' },
+  { id: 'create-12', category: 'creativity', name: 'Monster Designer', description: 'Create friendly monsters', minAge: 4, maxAge: 9, difficulty: 'easy', xpReward: 15, icon: '👾', type: 'draw' },
+  { id: 'create-13', category: 'creativity', name: 'World Builder', description: 'Design your own world', minAge: 7, maxAge: 12, difficulty: 'hard', xpReward: 35, icon: '🌍', type: 'draw' },
+  { id: 'create-14', category: 'creativity', name: 'Character Quest', description: 'Create a story character', minAge: 6, maxAge: 11, difficulty: 'medium', xpReward: 25, icon: '🦸', type: 'draw' },
+  { id: 'create-15', category: 'creativity', name: 'Art Challenge', description: 'Complete creative challenges', minAge: 5, maxAge: 12, difficulty: 'medium', xpReward: 25, icon: '🎭', type: 'draw' }
+]
 
 // ==========================================
 // Main Component
@@ -252,9 +420,17 @@ export function KidsLearningCenter() {
     lastReset: new Date().toISOString().split('T')[0]
   })
 
+  // Game State
+  const [gameProgress, setGameProgress] = useKV<GameProgress[]>(STORAGE_KEYS.GAME_PROGRESS, [])
+  const [parentSettings, setParentSettings] = useKV<ParentSettings>(STORAGE_KEYS.PARENT_SETTINGS, {
+    gamesEnabled: true,
+    maxDailyGameMinutes: 60,
+    allowedCategories: ['math', 'memory', 'logic', 'words', 'pattern', 'speed', 'creativity']
+  })
+
   // UI State
   const [selectedKid, setSelectedKid] = useState<KidProfile | null>(null)
-  const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile'>('home')
+  const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile' | 'games'>('home')
   const [selectedSubject, setSelectedSubject] = useState<typeof SUBJECTS[0] | null>(null)
   const [showSetup, setShowSetup] = useState(false)
 
@@ -286,6 +462,20 @@ export function KidsLearningCenter() {
 
   // Voice State
   const [ttsEnabled, setTtsEnabled] = useState(true)
+
+  // Game UI State
+  const [selectedGameCategory, setSelectedGameCategory] = useState<string | null>(null)
+  const [activeGame, setActiveGame] = useState<GameChallenge | null>(null)
+  const [gameState, setGameState] = useState<{
+    score: number
+    timeLeft: number
+    currentQuestion: number
+    answers: any[]
+    isPlaying: boolean
+    showResult: boolean
+  }>({ score: 0, timeLeft: 60, currentQuestion: 0, answers: [], isPlaying: false, showResult: false })
+  const [showParentSettings, setShowParentSettings] = useState(false)
+  const gameTimerRef = useRef<number | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -767,6 +957,124 @@ Rules:
     })
 
     return elements
+  }
+
+  // ==========================================
+  // Game Functions
+  // ==========================================
+
+  // Get games filtered by kid's age and parent settings
+  const getAvailableGames = useCallback(() => {
+    if (!selectedKid || !parentSettings.gamesEnabled) return []
+
+    return GAME_CHALLENGES.filter(game =>
+      selectedKid.age >= game.minAge &&
+      selectedKid.age <= game.maxAge &&
+      parentSettings.allowedCategories.includes(game.category)
+    )
+  }, [selectedKid, parentSettings])
+
+  // Get games by category
+  const getGamesByCategory = useCallback((category: string) => {
+    return getAvailableGames().filter(game => game.category === category)
+  }, [getAvailableGames])
+
+  // Get game progress for a specific game
+  const getGameProgressById = useCallback((gameId: string) => {
+    return gameProgress.find(p => p.challengeId === gameId)
+  }, [gameProgress])
+
+  // Calculate total games completed
+  const getTotalGamesCompleted = useCallback(() => {
+    return gameProgress.filter(p => p.completed).length
+  }, [gameProgress])
+
+  // Start a game
+  const startGame = (game: GameChallenge) => {
+    setActiveGame(game)
+    setGameState({
+      score: 0,
+      timeLeft: game.type === 'speed' ? 60 : 120,
+      currentQuestion: 0,
+      answers: [],
+      isPlaying: true,
+      showResult: false
+    })
+
+    // Start timer for speed games
+    if (game.type === 'speed') {
+      gameTimerRef.current = window.setInterval(() => {
+        setGameState(prev => {
+          if (prev.timeLeft <= 1) {
+            if (gameTimerRef.current) clearInterval(gameTimerRef.current)
+            return { ...prev, timeLeft: 0, isPlaying: false, showResult: true }
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 }
+        })
+      }, 1000)
+    }
+  }
+
+  // End game and record progress
+  const endGame = (finalScore: number) => {
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current)
+      gameTimerRef.current = null
+    }
+
+    if (activeGame && selectedKid) {
+      const existingProgress = getGameProgressById(activeGame.id)
+      const isHighScore = !existingProgress || finalScore > existingProgress.score
+
+      const newProgress: GameProgress = {
+        challengeId: activeGame.id,
+        completed: finalScore >= 50, // 50% to complete
+        score: isHighScore ? finalScore : (existingProgress?.score || 0),
+        bestTime: gameState.timeLeft,
+        attempts: (existingProgress?.attempts || 0) + 1,
+        lastPlayed: new Date().toISOString()
+      }
+
+      setGameProgress(prev => {
+        const filtered = prev.filter(p => p.challengeId !== activeGame.id)
+        return [...filtered, newProgress]
+      })
+
+      // Award XP if completed
+      if (finalScore >= 50) {
+        const xpToAward = Math.round((activeGame.xpReward * finalScore) / 100)
+        toast.success(`+${xpToAward} XP!`, { description: `Great job on ${activeGame.name}!` })
+
+        // Update kid's XP
+        setProfiles(prev => prev.map(p =>
+          p.id === selectedKid.id
+            ? { ...p, xp: p.xp + xpToAward, level: Math.floor((p.xp + xpToAward) / 100) + 1 }
+            : p
+        ))
+      }
+    }
+
+    setGameState(prev => ({ ...prev, isPlaying: false, showResult: true }))
+  }
+
+  // Close game
+  const closeGame = () => {
+    if (gameTimerRef.current) {
+      clearInterval(gameTimerRef.current)
+      gameTimerRef.current = null
+    }
+    setActiveGame(null)
+    setGameState({ score: 0, timeLeft: 60, currentQuestion: 0, answers: [], isPlaying: false, showResult: false })
+  }
+
+  // Toggle parent settings
+  const toggleGameCategory = (categoryId: string) => {
+    setParentSettings(prev => ({
+      ...prev,
+      allowedCategories: prev.allowedCategories.includes(categoryId)
+        ? prev.allowedCategories.filter(c => c !== categoryId)
+        : [...prev.allowedCategories, categoryId]
+    }))
   }
 
   // ==========================================
@@ -1538,6 +1846,371 @@ Rules:
   }
 
   // ==========================================
+  // Render: Games View
+  // ==========================================
+
+  const renderGames = () => {
+    if (!selectedKid) return null
+
+    const availableGames = getAvailableGames()
+    const completedCount = getTotalGamesCompleted()
+
+    // If game is active, show game screen
+    if (activeGame) {
+      return (
+        <div className="space-y-4">
+          {/* Game Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={closeGame}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{activeGame.icon}</span>
+                <div>
+                  <h3 className="font-semibold">{activeGame.name}</h3>
+                  <p className="text-xs text-muted-foreground">{activeGame.description}</p>
+                </div>
+              </div>
+            </div>
+            {gameState.isPlaying && activeGame.type === 'speed' && (
+              <Badge variant="outline" className="text-lg px-3">
+                <Clock className="w-4 h-4 mr-1" />
+                {gameState.timeLeft}s
+              </Badge>
+            )}
+          </div>
+
+          {/* Game Content */}
+          <Card className="p-6">
+            {gameState.showResult ? (
+              // Results Screen
+              <div className="text-center space-y-4">
+                <div className="text-6xl mb-4">
+                  {gameState.score >= 80 ? '🏆' : gameState.score >= 50 ? '⭐' : '💪'}
+                </div>
+                <h2 className="text-2xl font-bold">
+                  {gameState.score >= 80 ? 'Amazing!' : gameState.score >= 50 ? 'Good Job!' : 'Keep Practicing!'}
+                </h2>
+                <div className="text-4xl font-bold text-violet-500">{gameState.score}%</div>
+                <p className="text-muted-foreground">
+                  {gameState.score >= 50 && `+${Math.round((activeGame.xpReward * gameState.score) / 100)} XP earned!`}
+                </p>
+                <div className="flex gap-2 justify-center pt-4">
+                  <Button onClick={() => startGame(activeGame)}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Play Again
+                  </Button>
+                  <Button variant="outline" onClick={closeGame}>
+                    Back to Games
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Active Game
+              <div className="space-y-6">
+                <div className="text-center">
+                  <p className="text-lg font-medium mb-4">{activeGame.description}</p>
+                  <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                    {/* Sample game interaction - Math type */}
+                    {activeGame.category === 'math' && (
+                      <>
+                        {[1, 2, 3, 4].map((option) => {
+                          const num1 = Math.floor(Math.random() * 10) + 1
+                          const num2 = Math.floor(Math.random() * 10) + 1
+                          return (
+                            <Button
+                              key={option}
+                              variant="outline"
+                              size="lg"
+                              className="h-16 text-xl"
+                              onClick={() => {
+                                const newScore = Math.min(100, gameState.score + 25)
+                                setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                                if (newScore >= 100 || gameState.currentQuestion >= 3) {
+                                  endGame(newScore)
+                                }
+                              }}
+                            >
+                              {num1 + num2}
+                            </Button>
+                          )
+                        })}
+                      </>
+                    )}
+
+                    {/* Memory type */}
+                    {activeGame.category === 'memory' && (
+                      <>
+                        {['🐶', '🐱', '🐰', '🦊', '🐼', '🐨'].map((emoji, idx) => (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            size="lg"
+                            className="h-16 text-3xl"
+                            onClick={() => {
+                              const newScore = Math.min(100, gameState.score + 17)
+                              setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                              if (newScore >= 100 || gameState.currentQuestion >= 5) {
+                                endGame(newScore)
+                              }
+                            }}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Generic for other types */}
+                    {!['math', 'memory'].includes(activeGame.category) && (
+                      <>
+                        {['A', 'B', 'C', 'D'].map((option) => (
+                          <Button
+                            key={option}
+                            variant="outline"
+                            size="lg"
+                            className="h-16 text-xl"
+                            onClick={() => {
+                              const newScore = Math.min(100, gameState.score + 25)
+                              setGameState(prev => ({ ...prev, score: newScore, currentQuestion: prev.currentQuestion + 1 }))
+                              if (newScore >= 100 || gameState.currentQuestion >= 3) {
+                                endGame(newScore)
+                              }
+                            }}
+                          >
+                            {option}
+                          </Button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <Progress value={gameState.score} className="h-2" />
+                  <p className="text-center text-xs text-muted-foreground mt-1">Progress: {gameState.score}%</p>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )
+    }
+
+    // Parent Settings Modal
+    if (showParentSettings) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setShowParentSettings(false)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h2 className="font-semibold text-lg">Parent Controls</h2>
+          </div>
+
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              {/* Enable/Disable Games */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Games Enabled</p>
+                  <p className="text-xs text-muted-foreground">Allow access to fun challenges</p>
+                </div>
+                <Button
+                  variant={parentSettings.gamesEnabled ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setParentSettings(prev => ({ ...prev, gamesEnabled: !prev.gamesEnabled }))}
+                >
+                  {parentSettings.gamesEnabled ? 'On' : 'Off'}
+                </Button>
+              </div>
+
+              {/* Daily Time Limit */}
+              <div>
+                <p className="font-medium mb-2">Daily Game Time: {parentSettings.maxDailyGameMinutes} minutes</p>
+                <div className="flex gap-2">
+                  {[15, 30, 60, 90, 120].map(mins => (
+                    <Button
+                      key={mins}
+                      variant={parentSettings.maxDailyGameMinutes === mins ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setParentSettings(prev => ({ ...prev, maxDailyGameMinutes: mins }))}
+                    >
+                      {mins}m
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category Controls */}
+              <div>
+                <p className="font-medium mb-2">Allowed Categories</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {GAME_CATEGORIES.map(cat => (
+                    <Button
+                      key={cat.id}
+                      variant={parentSettings.allowedCategories.includes(cat.id) ? 'default' : 'outline'}
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => toggleGameCategory(cat.id)}
+                    >
+                      <span className="mr-2">{cat.icon}</span>
+                      {cat.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    // Category View
+    if (selectedGameCategory) {
+      const category = GAME_CATEGORIES.find(c => c.id === selectedGameCategory)
+      const categoryGames = getGamesByCategory(selectedGameCategory)
+
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedGameCategory(null)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <span className="text-2xl">{category?.icon}</span>
+            <h2 className="font-semibold text-lg">{category?.name}</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            {categoryGames.map(game => {
+              const progress = getGameProgressById(game.id)
+              return (
+                <Card
+                  key={game.id}
+                  className={cn(
+                    "p-4 cursor-pointer transition-all hover:shadow-md",
+                    progress?.completed && "border-green-500/50 bg-green-500/5"
+                  )}
+                  onClick={() => startGame(game)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">{game.icon}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{game.name}</h3>
+                        {progress?.completed && <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{game.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-[10px]">
+                          {game.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          +{game.xpReward} XP
+                        </Badge>
+                        {progress && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Best: {progress.score}%
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CaretRight className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
+
+    // Main Games Home
+    return (
+      <div className="space-y-4">
+        {/* Games Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-lg">Fun Challenges</h2>
+            <p className="text-xs text-muted-foreground">
+              {availableGames.length} games available | {completedCount} completed
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowParentSettings(true)}>
+            <Shield className="w-4 h-4 mr-1" />
+            Parent
+          </Button>
+        </div>
+
+        {!parentSettings.gamesEnabled ? (
+          <Card className="p-6 text-center">
+            <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+            <p className="text-muted-foreground">Games are currently disabled</p>
+            <p className="text-xs text-muted-foreground">Parents can enable games in settings</p>
+          </Card>
+        ) : (
+          <>
+            {/* Progress Overview */}
+            <Card className="p-4 bg-gradient-to-br from-violet-500/10 to-purple-500/10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Overall Progress</span>
+                <span className="text-sm text-muted-foreground">{completedCount}/{availableGames.length}</span>
+              </div>
+              <Progress value={(completedCount / Math.max(1, availableGames.length)) * 100} className="h-2" />
+            </Card>
+
+            {/* Game Categories Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {GAME_CATEGORIES.filter(cat => parentSettings.allowedCategories.includes(cat.id)).map(category => {
+                const categoryGames = getGamesByCategory(category.id)
+                const categoryCompleted = categoryGames.filter(g => getGameProgressById(g.id)?.completed).length
+
+                return (
+                  <Card
+                    key={category.id}
+                    className={cn(
+                      "p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
+                      `bg-gradient-to-br ${category.color} text-white`
+                    )}
+                    onClick={() => setSelectedGameCategory(category.id)}
+                  >
+                    <div className="text-3xl mb-2">{category.icon}</div>
+                    <h3 className="font-semibold text-sm">{category.name}</h3>
+                    <p className="text-[10px] opacity-80">{category.description}</p>
+                    <div className="mt-2 flex items-center gap-1">
+                      <div className="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-white rounded-full transition-all"
+                          style={{ width: `${(categoryCompleted / Math.max(1, categoryGames.length)) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px]">{categoryCompleted}/{categoryGames.length}</span>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+
+            {/* Quick Play - Random Game */}
+            <Card className="p-4">
+              <Button
+                className="w-full h-12"
+                onClick={() => {
+                  const randomGame = availableGames[Math.floor(Math.random() * availableGames.length)]
+                  if (randomGame) startGame(randomGame)
+                }}
+              >
+                <Lightning className="w-5 h-5 mr-2" weight="fill" />
+                Quick Play - Random Challenge
+              </Button>
+            </Card>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // ==========================================
   // Main Render
   // ==========================================
 
@@ -1558,15 +2231,24 @@ Rules:
 
       {/* Navigation */}
       {currentView !== 'learn' && (
-        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg">
           <Button
             variant={currentView === 'home' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setCurrentView('home')}
             className="flex-1"
           >
-            <House className="w-4 h-4 mr-2" />
+            <House className="w-4 h-4 mr-1" />
             Learn
+          </Button>
+          <Button
+            variant={currentView === 'games' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('games')}
+            className="flex-1"
+          >
+            <Lightning className="w-4 h-4 mr-1" weight="fill" />
+            Games
           </Button>
           <Button
             variant={currentView === 'profile' ? 'default' : 'ghost'}
@@ -1574,7 +2256,7 @@ Rules:
             onClick={() => setCurrentView('profile')}
             className="flex-1"
           >
-            <UserCircle className="w-4 h-4 mr-2" />
+            <UserCircle className="w-4 h-4 mr-1" />
             Profile
           </Button>
         </div>
@@ -1590,6 +2272,7 @@ Rules:
         >
           {currentView === 'home' && renderHome()}
           {currentView === 'learn' && renderLearning()}
+          {currentView === 'games' && renderGames()}
           {currentView === 'profile' && renderProfile()}
         </motion.div>
       </AnimatePresence>
