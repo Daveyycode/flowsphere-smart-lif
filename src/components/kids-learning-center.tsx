@@ -1191,14 +1191,82 @@ Rules:
   // Text-to-Speech
   // ==========================================
 
-  const speak = (text: string) => {
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
+  // Stop speaking immediately
+  const stopSpeaking = useCallback(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+    }
+  }, [])
+
+  // Speak text aloud
+  const speak = useCallback((text: string) => {
     if (!ttsEnabled || !('speechSynthesis' in window)) return
+
+    // Cancel any ongoing speech first
     window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text.replace(/\*\*/g, '').slice(0, 500))
+
+    // Clean the text from markdown and model artifacts
+    const cleanText = text
+      .replace(/<s>\[\/INST\]/gi, '')
+      .replace(/<\/s>/gi, '')
+      .replace(/\[INST\]/gi, '')
+      .replace(/<s>/gi, '')
+      .replace(/\*\*/g, '')
+      .replace(/\n+/g, '. ')
+      .trim()
+      .slice(0, 800)
+
+    if (!cleanText) return
+
+    const utterance = new SpeechSynthesisUtterance(cleanText)
     utterance.rate = 0.9
     utterance.pitch = 1.1
+    utterance.volume = 1
+
+    // Try to find a child-friendly voice
+    const voices = window.speechSynthesis.getVoices()
+    const preferredVoice = voices.find(v =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Google') ||
+      v.name.includes('Female') ||
+      v.lang.startsWith('en')
+    )
+    if (preferredVoice) utterance.voice = preferredVoice
+
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
     window.speechSynthesis.speak(utterance)
-  }
+  }, [ttsEnabled])
+
+  // Toggle TTS and stop speaking if turned off
+  const toggleTTS = useCallback(() => {
+    if (ttsEnabled) {
+      // Turning OFF - stop any ongoing speech immediately
+      stopSpeaking()
+    }
+    setTtsEnabled(!ttsEnabled)
+  }, [ttsEnabled, stopSpeaking])
+
+  // Stop speaking when TTS is disabled
+  useEffect(() => {
+    if (!ttsEnabled) {
+      stopSpeaking()
+    }
+  }, [ttsEnabled, stopSpeaking])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   // ==========================================
   // Profile Management
@@ -1425,10 +1493,14 @@ Rules:
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTtsEnabled(!ttsEnabled)}
-              className={cn(ttsEnabled && "text-green-500")}
+              onClick={toggleTTS}
+              className={cn(
+                ttsEnabled && "text-green-500",
+                isSpeaking && "animate-pulse"
+              )}
+              title={ttsEnabled ? (isSpeaking ? "Speaking... (click to mute)" : "Voice On") : "Voice Off"}
             >
-              {ttsEnabled ? <SpeakerHigh className="w-4 h-4" /> : <SpeakerSlash className="w-4 h-4" />}
+              {ttsEnabled ? <SpeakerHigh className="w-4 h-4" weight={isSpeaking ? "fill" : "regular"} /> : <SpeakerSlash className="w-4 h-4" />}
             </Button>
 
             {/* Credits */}
