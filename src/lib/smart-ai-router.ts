@@ -242,8 +242,8 @@ function getDefaultConfig(): UserAIConfig {
       lastReset: Date.now(),
     },
     limits: {
-      dailyMessageLimit: 100,
-      dailyTokenLimit: 100000,
+      dailyMessageLimit: 15, // Default free tier for regular users
+      dailyTokenLimit: 15000,
       warningThreshold: 80,
       enabled: true,
     },
