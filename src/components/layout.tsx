@@ -110,7 +110,12 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
               )}
             </Button>
 
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav
+              id="navigation"
+              className="hidden md:flex items-center space-x-1"
+              role="navigation"
+              aria-label="Main navigation"
+            >
               {tabs.map(tab => {
                 const Icon = tab.icon
                 const isActive = currentTab === tab.id
@@ -125,11 +130,14 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                         ? 'text-blue-mid dark:text-blue-light font-semibold'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={`Navigate to ${tab.label}`}
                   >
                     <div className="flex items-center space-x-2">
                       <Icon
                         className={cn(isTablet ? 'w-4 h-4' : 'w-5 h-5')}
                         weight={isActive ? 'fill' : 'regular'}
+                        aria-hidden="true"
                       />
                       <span>{tab.label}</span>
                     </div>
@@ -138,6 +146,7 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                         layoutId="activeTab"
                         className="absolute inset-0 bg-gradient-to-r from-blue-light/20 via-blue-mid/10 to-transparent rounded-lg -z-10 border border-blue-mid/30"
                         transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        aria-hidden="true"
                       />
                     )}
                   </button>
@@ -148,11 +157,24 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
         </div>
       </header>
 
-      <main className={cn('container mx-auto', containerPadding, contentPadding)}>{children}</main>
+      <main
+        id="main-content"
+        className={cn('container mx-auto', containerPadding, contentPadding)}
+        role="main"
+        aria-label="Main content"
+        tabIndex={-1}
+      >
+        {children}
+      </main>
 
       {(isMobile || isTablet) && (
         <>
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl safe-area-inset-bottom">
+          <nav
+            id="navigation"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl safe-area-inset-bottom"
+            role="navigation"
+            aria-label="Main navigation"
+          >
             <div className={cn('grid grid-cols-5', bottomNavHeight)}>
               {tabs
                 .filter(tab =>
@@ -173,10 +195,13 @@ export function Layout({ children, currentTab, onTabChange }: LayoutProps) {
                         isMobile ? 'space-y-0.5' : 'space-y-1',
                         isActive ? 'text-blue-mid' : 'text-muted-foreground'
                       )}
+                      aria-current={isActive ? 'page' : undefined}
+                      aria-label={`Navigate to ${label}`}
                     >
                       <Icon
                         className={cn(isMobile ? 'w-5 h-5' : 'w-6 h-6')}
                         weight={isActive ? 'fill' : 'regular'}
+                        aria-hidden="true"
                       />
                       {!isMobile && (
                         <span className={cn('font-medium leading-tight', 'text-xs')}>{label}</span>

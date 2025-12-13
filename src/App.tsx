@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { initializeSleepTracking, getTodaySleepData } from '@/lib/sleep-tracking'
 import { initializeSecurity } from '@/lib/security-utils'
 import { NotificationSyncStore } from '@/lib/shared-data-store'
+import { useAccessibilityInit, useKeyboardNavigation } from '@/hooks/use-accessibility'
 // Removed: DemoModeIndicator - Production only
 import { LandingPage } from '@/components/landing-page'
 import { AuthModal } from '@/components/auth-modal'
@@ -57,6 +58,10 @@ import { EmailMonitorService } from '@/components/email-monitor-service'
 function App() {
   const { mode, colorTheme, toggleMode, setColorTheme } = useTheme()
   const deviceInfo = useDeviceInfo()
+
+  // Initialize accessibility features (screen reader, keyboard nav)
+  useAccessibilityInit()
+  const isKeyboardNav = useKeyboardNavigation()
 
   // URL-based timer routing state
   const [timerRoute, setTimerRoute] = useState<{
@@ -546,7 +551,15 @@ function App() {
   }
 
   return (
-    <>
+    <div className={isKeyboardNav ? 'keyboard-nav' : ''}>
+      {/* Skip Links for Keyboard Navigation */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <a href="#navigation" className="skip-link" style={{ left: '160px' }}>
+        Skip to navigation
+      </a>
+
       {/* Global Email Monitoring Service */}
       <EmailMonitorService />
 
@@ -692,7 +705,7 @@ function App() {
       />
       <InstallPrompt />
       <Toaster position="top-center" />
-    </>
+    </div>
   )
 }
 

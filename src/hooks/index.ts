@@ -16,3 +16,20 @@ export {
 
 // New utility hooks
 export { useSafeTimers, useDebounce, useThrottle, useCountdown } from './use-safe-timers'
+
+// Accessibility hooks
+export {
+  useAccessibilityInit,
+  useAnnounce,
+  useKeyboardShortcut,
+  useKeyboardShortcuts,
+  useKeyboardScope,
+  useFocusTrap,
+  useFocusOnMount,
+  useReturnFocus,
+  useRovingTabIndex,
+  useReducedMotion,
+  useLiveRegion,
+  useKeyboardNavigation,
+  useFormAccessibility,
+} from './use-accessibility'

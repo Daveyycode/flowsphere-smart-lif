@@ -125,6 +125,26 @@ import {
 import { toast } from 'sonner'
 import { useKV } from '@/hooks/use-kv'
 import { supabase } from '@/lib/supabase'
+import { useAnnounce, useLiveRegion, useKeyboardShortcut } from '@/hooks/use-accessibility'
+import {
+  type PeerSubmission,
+  type PeerReview,
+  type PeerConnection,
+  createSubmission,
+  addReview,
+  getSubmissions,
+  saveSubmissions,
+  getConnections,
+  saveConnections,
+  getReviewableSubmissions,
+  getKidSubmissions,
+  isConstructiveFeedback,
+  getPromptsForAge,
+  getRandomStarters,
+  generateFeedbackSuggestions,
+  PEER_REVIEW_XP,
+  FEEDBACK_STARTERS,
+} from '@/lib/peer-review-system'
 
 // ==========================================
 // Types
@@ -1820,9 +1840,23 @@ export function KidsLearningCenter() {
 
   // UI State
   const [selectedKid, setSelectedKid] = useState<KidProfile | null>(null)
-  const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile' | 'games'>('home')
+  const [currentView, setCurrentView] = useState<'home' | 'learn' | 'profile' | 'games' | 'peers'>(
+    'home'
+  )
   const [selectedSubject, setSelectedSubject] = useState<(typeof SUBJECTS)[0] | null>(null)
   const [showSetup, setShowSetup] = useState(false)
+
+  // Peer Review State
+  const [peerSubmissions, setPeerSubmissions] = useState<PeerSubmission[]>([])
+  const [peerConnections, setPeerConnections] = useState<PeerConnection[]>([])
+  const [showSubmitWork, setShowSubmitWork] = useState(false)
+  const [reviewingSubmission, setReviewingSubmission] = useState<PeerSubmission | null>(null)
+  const [reviewFeedback, setReviewFeedback] = useState('')
+  const [reviewRating, setReviewRating] = useState<1 | 2 | 3 | 4 | 5>(5)
+
+  // Accessibility
+  const { announce } = useAnnounce()
+  const { announceNew } = useLiveRegion(true) // Kids mode
 
   // Learning Session State
   const [messages, setMessages] = useState<Message[]>([])
@@ -1936,6 +1970,12 @@ export function KidsLearningCenter() {
     return () => {
       stopCamera()
     }
+  }, [])
+
+  // Load peer review data
+  useEffect(() => {
+    setPeerSubmissions(getSubmissions())
+    setPeerConnections(getConnections())
   }, [])
 
   // ==========================================
@@ -4656,6 +4696,390 @@ MOOD DETECTION:
   }
 
   // ==========================================
+  // Peer Review Functions
+  // ==========================================
+
+  const handleSubmitWork = (subject: string, topic: string, content: string) => {
+    if (!selectedKid) return
+
+    const submission = createSubmission(
+      selectedKid.id,
+      selectedKid.name,
+      selectedKid.avatar,
+      subject,
+      topic,
+      content
+    )
+
+    const updated = [...peerSubmissions, submission]
+    setPeerSubmissions(updated)
+    saveSubmissions(updated)
+
+    // Award XP for submitting
+    setProfiles(
+      prev =>
+        prev?.map(p =>
+          p.id === selectedKid.id ? { ...p, xp: p.xp + PEER_REVIEW_XP.SUBMIT_WORK } : p
+        ) || []
+    )
+
+    setShowSubmitWork(false)
+    announce(`Work submitted! You earned ${PEER_REVIEW_XP.SUBMIT_WORK} XP`)
+    toast.success(`Work submitted! +${PEER_REVIEW_XP.SUBMIT_WORK} XP`)
+  }
+
+  const handleSubmitReview = () => {
+    if (!selectedKid || !reviewingSubmission) return
+
+    const validation = isConstructiveFeedback(reviewFeedback)
+    if (!validation.isValid) {
+      toast.error(validation.reason || 'Please write constructive feedback')
+      return
+    }
+
+    const updated = addReview(reviewingSubmission, {
+      submissionId: reviewingSubmission.id,
+      reviewerId: selectedKid.id,
+      reviewerName: selectedKid.name,
+      reviewerAvatar: selectedKid.avatar,
+      rating: reviewRating,
+      feedback: reviewFeedback,
+      categories: [],
+    })
+
+    const allSubmissions = peerSubmissions.map(s => (s.id === updated.id ? updated : s))
+    setPeerSubmissions(allSubmissions)
+    saveSubmissions(allSubmissions)
+
+    // Award XP for giving review
+    const isFirstReview = !peerSubmissions.some(s =>
+      s.reviews.some(r => r.reviewerId === selectedKid.id)
+    )
+    const xpEarned = isFirstReview
+      ? PEER_REVIEW_XP.GIVE_REVIEW + PEER_REVIEW_XP.FIRST_REVIEW
+      : PEER_REVIEW_XP.GIVE_REVIEW
+
+    setProfiles(
+      prev => prev?.map(p => (p.id === selectedKid.id ? { ...p, xp: p.xp + xpEarned } : p)) || []
+    )
+
+    setReviewingSubmission(null)
+    setReviewFeedback('')
+    setReviewRating(5)
+    announce(`Review submitted! You earned ${xpEarned} XP`)
+    toast.success(`Great review! +${xpEarned} XP`)
+  }
+
+  const renderPeers = () => {
+    if (!selectedKid) {
+      return (
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground">Please select a profile first</p>
+        </Card>
+      )
+    }
+
+    const mySubmissions = getKidSubmissions(selectedKid.id)
+    const reviewableWork = getReviewableSubmissions(selectedKid.id, peerConnections)
+    const feedbackStarters = getRandomStarters('positive', 2)
+    const constructiveStarters = getRandomStarters('constructive', 2)
+
+    return (
+      <div className="space-y-4" role="region" aria-label="Peer Review Section">
+        {/* Header */}
+        <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="font-bold">Peer Learning</h2>
+                <p className="text-xs text-muted-foreground">
+                  Share work & help your friends learn!
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit Work Button */}
+        <Button
+          onClick={() => setShowSubmitWork(true)}
+          className="w-full"
+          aria-label="Share your work for peer review"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Share My Work
+        </Button>
+
+        {/* Submit Work Modal */}
+        {showSubmitWork && (
+          <Card className="p-4 space-y-4 border-2 border-primary/20">
+            <h3 className="font-bold flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Share Your Work
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Share what you've been working on so friends can give you feedback!
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="submit-subject">Subject</Label>
+                <Select onValueChange={value => {}}>
+                  <SelectTrigger id="submit-subject">
+                    <SelectValue placeholder="Choose subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBJECTS.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.emoji} {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="submit-topic">What did you work on?</Label>
+                <Input id="submit-topic" placeholder="e.g., Addition problems, Story writing" />
+              </div>
+
+              <div>
+                <Label htmlFor="submit-content">Describe your work</Label>
+                <Textarea
+                  id="submit-content"
+                  placeholder="Tell your friends what you did and what you learned!"
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSubmitWork(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleSubmitWork('math', 'Practice problems', 'My work description')}
+                className="flex-1"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Share (+{PEER_REVIEW_XP.SUBMIT_WORK} XP)
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* My Submissions */}
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Star className="w-4 h-4 text-yellow-500" />
+            My Shared Work ({mySubmissions.length})
+          </h3>
+
+          {mySubmissions.length === 0 ? (
+            <Card className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">You haven't shared any work yet</p>
+              <p className="text-xs mt-1">Share your work to get feedback from friends!</p>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {mySubmissions.slice(0, 3).map(sub => (
+                <Card key={sub.id} className="p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{sub.topic}</p>
+                      <p className="text-xs text-muted-foreground">{sub.subject}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-sm font-bold">{sub.averageRating || '-'}</span>
+                    </div>
+                  </div>
+                  {sub.reviews.length > 0 && (
+                    <p className="text-xs text-green-600 mt-2">
+                      {sub.reviews.length} review{sub.reviews.length !== 1 ? 's' : ''}!
+                    </p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Work to Review */}
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            Help Friends ({reviewableWork.length} to review)
+          </h3>
+
+          {reviewableWork.length === 0 ? (
+            <Card className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">No work to review right now</p>
+              <p className="text-xs mt-1">Check back later for friend submissions!</p>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {reviewableWork.slice(0, 5).map(sub => (
+                <Card
+                  key={sub.id}
+                  className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setReviewingSubmission(sub)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setReviewingSubmission(sub)
+                    }
+                  }}
+                  aria-label={`Review ${sub.kidName}'s work on ${sub.topic}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{AVATARS[sub.kidAvatar] || '👤'}</div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{sub.kidName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {sub.topic} • {sub.subject}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      Review (+{PEER_REVIEW_XP.GIVE_REVIEW} XP)
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Review Modal */}
+        {reviewingSubmission && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Write a review"
+          >
+            <Card className="w-full max-w-md p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold">Review {reviewingSubmission.kidName}'s Work</h3>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setReviewingSubmission(null)}
+                  aria-label="Close review"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Work Details */}
+              <Card className="p-3 bg-muted/50">
+                <p className="font-medium">{reviewingSubmission.topic}</p>
+                <p className="text-sm text-muted-foreground mt-1">{reviewingSubmission.content}</p>
+              </Card>
+
+              {/* Star Rating */}
+              <div>
+                <Label>How did they do?</Label>
+                <div className="flex gap-1 mt-2" role="radiogroup" aria-label="Rating">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setReviewRating(star as 1 | 2 | 3 | 4 | 5)}
+                      className="p-1 transition-transform hover:scale-110"
+                      aria-label={`${star} star${star !== 1 ? 's' : ''}`}
+                      aria-checked={reviewRating >= star}
+                      role="radio"
+                    >
+                      <Star
+                        className={cn(
+                          'w-8 h-8',
+                          reviewRating >= star ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'
+                        )}
+                        weight={reviewRating >= star ? 'fill' : 'regular'}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feedback Starters */}
+              <div>
+                <Label>Feedback starters (tap to use):</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {[...feedbackStarters, ...constructiveStarters].map((starter, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => setReviewFeedback(prev => prev + starter + ' ')}
+                    >
+                      {starter.slice(0, 25)}...
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feedback Input */}
+              <div>
+                <Label htmlFor="review-feedback">Your feedback</Label>
+                <Textarea
+                  id="review-feedback"
+                  value={reviewFeedback}
+                  onChange={e => setReviewFeedback(e.target.value)}
+                  placeholder="Write something helpful and kind..."
+                  rows={4}
+                  aria-describedby="feedback-hint"
+                />
+                <p id="feedback-hint" className="text-xs text-muted-foreground mt-1">
+                  Be kind and helpful! Say something nice and give a suggestion.
+                </p>
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setReviewingSubmission(null)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSubmitReview}
+                  className="flex-1"
+                  disabled={reviewFeedback.length < 10}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Submit Review
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Tips Card */}
+        <Card className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+          <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+            <Lightbulb className="w-4 h-4 text-green-500" />
+            Tips for Great Feedback
+          </h4>
+          <ul className="text-xs text-muted-foreground space-y-1">
+            <li>• Start with something you liked about their work</li>
+            <li>• Give one helpful suggestion for improvement</li>
+            <li>• Be kind - everyone is learning!</li>
+            <li>• Ask questions if you're curious about their work</li>
+          </ul>
+        </Card>
+      </div>
+    )
+  }
+
+  // ==========================================
   // Main Render
   // ==========================================
 
@@ -4698,6 +5122,16 @@ MOOD DETECTION:
             Games
           </Button>
           <Button
+            variant={currentView === 'peers' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('peers')}
+            className="flex-1"
+            aria-label="View peer reviews and share work"
+          >
+            <Users className="w-4 h-4 mr-1" />
+            Peers
+          </Button>
+          <Button
             variant={currentView === 'profile' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setCurrentView('profile')}
@@ -4720,6 +5154,7 @@ MOOD DETECTION:
           {currentView === 'home' && renderHome()}
           {currentView === 'learn' && renderLearning()}
           {currentView === 'games' && renderGames()}
+          {currentView === 'peers' && renderPeers()}
           {currentView === 'profile' && renderProfile()}
         </motion.div>
       </AnimatePresence>
