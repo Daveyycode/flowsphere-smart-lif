@@ -29,15 +29,15 @@ const PROVIDERS: Record<string, { endpoint: string; model: string }> = {
   }
 }
 
-// API keys from environment
+// API keys from environment (check both VITE_ and non-VITE_ versions)
 const API_KEYS: Record<string, string | undefined> = {
-  groq: process.env.VITE_GROQ_API_KEY,
-  openai: process.env.VITE_OPENAI_API_KEY,
-  deepseek: process.env.VITE_DEEPSEEK_API_KEY,
-  mistral: process.env.VITE_MISTRAL_API_KEY,
-  together: process.env.VITE_TOGETHER_API_KEY,
-  anthropic: process.env.VITE_ANTHROPIC_API_KEY,
-  gemini: process.env.VITE_GEMINI_API_KEY
+  groq: process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY,
+  openai: process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY,
+  deepseek: process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY,
+  mistral: process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY,
+  together: process.env.TOGETHER_API_KEY || process.env.VITE_TOGETHER_API_KEY,
+  anthropic: process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY,
+  gemini: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
