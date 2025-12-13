@@ -71,6 +71,13 @@ import { globalEmailMonitor } from '@/lib/email/email-monitor'
 import { Email, EmailAccountStore } from '@/lib/email/email-service'
 import { emailDatabase } from '@/lib/email/email-database'
 import { UnifiedEmailSearch } from '@/components/unified-email-search'
+import {
+  EmailCategorizationSetup,
+  isCategorizationSetupComplete,
+  getSavedCategorizationSettings,
+  UserCategorizationSettings,
+  EMAIL_CATEGORIZATION_COMPLETE_KEY,
+} from '@/components/email-categorization-setup'
 
 declare const spark: {
   llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
@@ -202,6 +209,10 @@ export function NotificationsResourcesView({
   // Latest AI response for "Hear Summary" button
   const [latestAIResponse, setLatestAIResponse] = useState<string | null>(null)
 
+  // Email Categorization Setup Wizard
+  const [showCategorizationSetup, setShowCategorizationSetup] = useState(false)
+  const [categorizationSettings, setCategorizationSettings] = useState<UserCategorizationSettings | null>(null)
+
   // Handle handoff from Email AI Assistant to General AI Assistant
   const handleHandoffToGeneralAI = (query: string) => {
     // Dispatch event to open the general AI assistant with the query
@@ -227,30 +238,41 @@ export function NotificationsResourcesView({
     setShowUnifiedSearch(true)
   }
 
-  // Load work categorization settings
+  // Check if categorization setup is complete on mount
+  useEffect(() => {
+    const savedSettings = getSavedCategorizationSettings()
+    setCategorizationSettings(savedSettings)
+
+    // Show setup wizard if:
+    // 1. Setup is not complete AND
+    // 2. User has connected email accounts
+    const hasAccounts = EmailAccountStore.getAccounts().length > 0
+    const setupComplete = isCategorizationSetupComplete()
+
+    if (hasAccounts && !setupComplete) {
+      // Small delay to let the page load first
+      setTimeout(() => {
+        setShowCategorizationSetup(true)
+      }, 500)
+    }
+  }, [])
+
+  // Load work categorization settings (now from user preferences, not defaults)
   useEffect(() => {
     try {
       const stored = localStorage.getItem('flowsphere-work-categorization')
       if (stored) {
         setWorkSettings(JSON.parse(stored))
       } else {
-        // Set default settings
-        const defaults = {
-          workKeywords: [
-            'project',
-            'meeting',
-            'deadline',
-            'team',
-            'office',
-            'task',
-            'report',
-            'client',
-          ],
+        // NO DEFAULT SETTINGS - user must set these up via the wizard
+        // Only set empty defaults if no setup exists
+        const emptyDefaults = {
+          workKeywords: [],
           workDomains: [],
-          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'],
+          personalDomains: [],
         }
-        setWorkSettings(defaults)
-        localStorage.setItem('flowsphere-work-categorization', JSON.stringify(defaults))
+        setWorkSettings(emptyDefaults)
+        // Don't save empty defaults - let the wizard handle this
       }
     } catch (error) {
       console.error('Failed to load work settings:', error)
@@ -849,7 +871,7 @@ export function NotificationsResourcesView({
                       <MagnifyingGlass className="w-4 h-4" />
                       Search
                     </Button>
-                    <Button size="icon" variant="outline" onClick={() => setShowWorkSettings(true)}>
+                    <Button size="icon" variant="outline" onClick={() => setShowCategorizationSetup(true)} title="Email Categorization Settings">
                       <Gear className="w-4 h-4" />
                     </Button>
                     <Button
@@ -1901,6 +1923,32 @@ export function NotificationsResourcesView({
         initialMode={unifiedSearchMode}
         onLatestAIResponse={setLatestAIResponse}
         onHandoffToGeneral={handleHandoffToGeneralAI}
+      />
+
+      {/* Email Categorization Setup Wizard */}
+      <EmailCategorizationSetup
+        open={showCategorizationSetup}
+        onOpenChange={setShowCategorizationSetup}
+        onComplete={(settings) => {
+          setCategorizationSettings(settings)
+          // Reload work settings
+          const workCategorizationSettings = {
+            workKeywords: settings.workKeywords,
+            workDomains: settings.workDomains,
+            personalDomains: settings.personalDomains,
+          }
+          setWorkSettings(workCategorizationSettings)
+          toast.success('Email categorization preferences saved! Reclassifying emails...')
+          // Trigger reclassification with new rules
+          reclassifyAllEmails().then(async () => {
+            const stats = await getEmailStats()
+            setEmailStats(stats)
+            const emails = await emailDatabase.getAllEmails()
+            emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            setDatabaseEmails(emails)
+          })
+        }}
+        initialSettings={categorizationSettings}
       />
 
       {/* Email Preview Dialog */}

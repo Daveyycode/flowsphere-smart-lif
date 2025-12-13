@@ -33,6 +33,7 @@ export class EmailAIClassifier {
   /**
    * Load categorization settings from localStorage
    * Called before each classification to pick up any user changes
+   * NO DEFAULT SETTINGS - user must configure via the setup wizard
    */
   private loadSettings(): void {
     try {
@@ -45,21 +46,15 @@ export class EmailAIClassifier {
           personalDomains: this.settings.personalDomains?.length || 0,
         })
       } else {
-        // Default settings
+        // NO DEFAULT SETTINGS - user must set up via Email Categorization Setup wizard
+        // Empty settings means AI will classify purely based on email content
+        // without any user-specific work/personal rules
         this.settings = {
-          workKeywords: [
-            'project',
-            'meeting',
-            'deadline',
-            'team',
-            'office',
-            'task',
-            'report',
-            'client',
-          ],
+          workKeywords: [],
           workDomains: [],
-          personalDomains: ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'],
+          personalDomains: [],
         }
+        console.log('📋 No user settings found - using empty defaults (setup wizard not completed)')
       }
     } catch (error) {
       logger.debug('Failed to load email classifier settings', error)
@@ -83,18 +78,38 @@ export class EmailAIClassifier {
    * These settings are the PRIMARY classification rules - they OVERRIDE general AI logic
    */
   private getUserSettingsPrompt(): string {
-    const workKeywords =
-      this.settings.workKeywords?.length > 0
-        ? this.settings.workKeywords.join(', ')
-        : 'NONE CONFIGURED'
-    const workDomains =
-      this.settings.workDomains?.length > 0
-        ? this.settings.workDomains.join(', ')
-        : 'NONE CONFIGURED'
-    const personalDomains =
-      this.settings.personalDomains?.length > 0
-        ? this.settings.personalDomains.join(', ')
-        : 'NONE CONFIGURED'
+    const hasWorkKeywords = this.settings.workKeywords?.length > 0
+    const hasWorkDomains = this.settings.workDomains?.length > 0
+    const hasPersonalDomains = this.settings.personalDomains?.length > 0
+
+    const workKeywords = hasWorkKeywords
+      ? this.settings.workKeywords.join(', ')
+      : 'NOT CONFIGURED BY USER'
+    const workDomains = hasWorkDomains
+      ? this.settings.workDomains.join(', ')
+      : 'NOT CONFIGURED BY USER'
+    const personalDomains = hasPersonalDomains
+      ? this.settings.personalDomains.join(', ')
+      : 'NOT CONFIGURED BY USER'
+
+    // If user hasn't set up ANY categorization preferences, use a different prompt
+    const noUserSettings = !hasWorkKeywords && !hasWorkDomains && !hasPersonalDomains
+
+    if (noUserSettings) {
+      return `
+=== USER CATEGORIZATION SETTINGS: NOT YET CONFIGURED ===
+
+The user has NOT set up their email categorization preferences yet.
+This means you should:
+1. DO NOT classify any email as WORK (no work domains/keywords defined)
+2. DO NOT classify any email as PERSONAL (no personal domains defined)
+3. Use only the standard categories: EMERGENCY, IMPORTANT, SUBSCRIPTION, REGULAR
+4. When in doubt, classify as REGULAR
+
+**IMPORTANT:** Without user settings, be very conservative. Most emails should be REGULAR.
+Only use EMERGENCY for true safety alerts, IMPORTANT for security/login emails, and SUBSCRIPTION for billing.
+`
+    }
 
     return `
 === USER'S CUSTOM CATEGORIZATION SETTINGS (PRIMARY - MUST FOLLOW) ===

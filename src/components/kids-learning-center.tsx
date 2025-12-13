@@ -46,6 +46,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import confetti from 'canvas-confetti'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -146,6 +147,13 @@ import {
   PEER_REVIEW_XP,
   FEEDBACK_STARTERS,
 } from '@/lib/peer-review-system'
+import {
+  getEmailSettings,
+  saveEmailSettings,
+  sendBullyingAlert,
+  sendMoodAlert,
+  type EmailSettings,
+} from '@/lib/email-alerts'
 
 // ==========================================
 // Types
@@ -1824,6 +1832,96 @@ const GAME_CHALLENGES: GameChallenge[] = [
 ]
 
 // ==========================================
+// Confetti & Celebration Helpers
+// ==========================================
+
+const triggerConfetti = (type: 'correct' | 'xp' | 'levelUp' | 'session') => {
+  const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd']
+
+  switch (type) {
+    case 'correct':
+      // Quick burst for correct answer
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#10b981', '#34d399', '#6ee7b7'], // Green colors
+      })
+      break
+    case 'xp':
+      // Star burst for XP gain
+      confetti({
+        particleCount: 30,
+        spread: 50,
+        origin: { y: 0.6 },
+        shapes: ['star'],
+        colors: ['#fbbf24', '#f59e0b', '#d97706'], // Gold colors
+      })
+      break
+    case 'levelUp':
+      // Big celebration for level up
+      const duration = 3000
+      const end = Date.now() + duration
+      const frame = () => {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors,
+        })
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors,
+        })
+        if (Date.now() < end) requestAnimationFrame(frame)
+      }
+      frame()
+      break
+    case 'session':
+      // Full celebration for session completion
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors,
+      })
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 60,
+          spread: 80,
+          origin: { x: 0, y: 0.6 },
+          colors,
+        })
+        confetti({
+          particleCount: 50,
+          angle: 120,
+          spread: 80,
+          origin: { x: 1, y: 0.6 },
+          colors,
+        })
+      }, 200)
+      break
+  }
+}
+
+// Encouraging messages for loading state
+const LOADING_MESSAGES = [
+  'Thinking of something awesome...',
+  'Getting your answer ready...',
+  'Almost there...',
+  'Finding the best explanation...',
+  'Preparing something special...',
+  'Working on it...',
+  'This is going to be good...',
+  'Putting on my thinking cap...',
+]
+
+// ==========================================
 // Main Component
 // ==========================================
 
@@ -1875,6 +1973,7 @@ export function KidsLearningCenter() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('')
   const [currentSession, setCurrentSession] = useState<StudySession | null>(null)
 
   // Attachment State
@@ -1995,6 +2094,8 @@ export function KidsLearningCenter() {
   const [uploadedContent, setUploadedContent] = useState<string>('') // Parsed content from uploaded files
   const [isAnalyzingContent, setIsAnalyzingContent] = useState(false)
   const [showWeeklySummary, setShowWeeklySummary] = useState(false)
+  const [emailSettings, setEmailSettings] = useState<EmailSettings | null>(null)
+  const [showEmailSettings, setShowEmailSettings] = useState(false)
   const sessionTimerRef = useRef<number | null>(null)
   const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -2044,6 +2145,27 @@ export function KidsLearningCenter() {
     setPeerSubmissions(getSubmissions())
     setPeerConnections(getConnections())
   }, [])
+
+  // Load email settings
+  useEffect(() => {
+    const settings = getEmailSettings()
+    if (settings) {
+      setEmailSettings(settings)
+    }
+  }, [])
+
+  // Cycle loading messages while waiting for AI
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)])
+      const interval = setInterval(() => {
+        setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)])
+      }, 2000)
+      return () => clearInterval(interval)
+    } else {
+      setLoadingMessage('')
+    }
+  }, [isLoading])
 
   // ==========================================
   // Credit System
@@ -2664,6 +2786,8 @@ Provide:
     setSessionPhase('ended')
     setUploadedContent('')
     setCurrentView('home')
+    // Celebration for completing session!
+    triggerConfetti('session')
     toast.success(`Great job! +${xpEarned} XP earned!`)
   }
 
@@ -2997,6 +3121,9 @@ MOOD DETECTION:
         responseContent.includes('well done') ||
         responseContent.includes('excellent')
       ) {
+        // Trigger celebration confetti!
+        triggerConfetti('correct')
+        triggerConfetti('xp')
         if (currentSession) {
           setCurrentSession(prev => (prev ? { ...prev, xpEarned: prev.xpEarned + 10 } : prev))
         }
@@ -3264,14 +3391,24 @@ MOOD DETECTION:
       // Award XP if completed
       if (finalScore >= 50) {
         const xpToAward = Math.round((activeGame.xpReward * finalScore) / 100)
-        toast.success(`+${xpToAward} XP!`, { description: `Great job on ${activeGame.name}!` })
+        const oldLevel = selectedKid.level
+        const newLevel = Math.floor((selectedKid.xp + xpToAward) / 100) + 1
+
+        // Check for level up
+        if (newLevel > oldLevel) {
+          triggerConfetti('levelUp')
+          toast.success(`LEVEL UP! You're now Level ${newLevel}!`, {
+            description: 'Amazing progress! Keep it up!',
+          })
+        } else {
+          triggerConfetti('xp')
+          toast.success(`+${xpToAward} XP!`, { description: `Great job on ${activeGame.name}!` })
+        }
 
         // Update kid's XP
         setProfiles(prev =>
           prev.map(p =>
-            p.id === selectedKid.id
-              ? { ...p, xp: p.xp + xpToAward, level: Math.floor((p.xp + xpToAward) / 100) + 1 }
-              : p
+            p.id === selectedKid.id ? { ...p, xp: p.xp + xpToAward, level: newLevel } : p
           )
         )
       }
@@ -3579,6 +3716,217 @@ MOOD DETECTION:
           </CardContent>
         </Card>
 
+        {/* Email Alerts Settings */}
+        <Card className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-blue-500" />
+                <div>
+                  <span className="font-medium text-sm">Email Alerts</span>
+                  <p className="text-xs text-muted-foreground">Get notified about safety concerns</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowEmailSettings(true)}
+                className="border-blue-500/50 text-blue-600 hover:bg-blue-500/10"
+              >
+                <Gear className="w-3 h-3 mr-1" />
+                {emailSettings?.enabled ? 'Enabled' : 'Setup'}
+              </Button>
+            </div>
+            {emailSettings?.enabled && (
+              <div className="mt-2 pt-2 border-t border-blue-500/20 text-xs text-muted-foreground">
+                Alerts: {emailSettings.parentEmail}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Email Settings Modal */}
+        <AnimatePresence>
+          {showEmailSettings && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+              onClick={() => setShowEmailSettings(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-background rounded-xl w-full max-w-md"
+              >
+                <Card className="border-0">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-blue-500" />
+                        Email Alert Settings
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowEmailSettings(false)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Get email notifications for safety concerns and progress updates
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Parent Email */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Parent Email Address</Label>
+                      <Input
+                        type="email"
+                        placeholder="parent@example.com"
+                        value={emailSettings?.parentEmail || ''}
+                        onChange={e => {
+                          const newSettings: EmailSettings = {
+                            parentEmail: e.target.value,
+                            enabled: emailSettings?.enabled || false,
+                            bullyingAlerts: emailSettings?.bullyingAlerts ?? true,
+                            moodAlerts: emailSettings?.moodAlerts ?? true,
+                            dailyDigest: emailSettings?.dailyDigest ?? false,
+                            weeklyReport: emailSettings?.weeklyReport ?? true,
+                          }
+                          setEmailSettings(newSettings)
+                        }}
+                      />
+                    </div>
+
+                    {/* Alert Types */}
+                    <div className="space-y-3">
+                      <Label className="text-sm">Alert Types</Label>
+
+                      {/* Bullying Alerts */}
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-red-500/5 border border-red-500/20">
+                        <div>
+                          <p className="text-sm font-medium text-red-600">Safety Alerts</p>
+                          <p className="text-xs text-muted-foreground">
+                            Immediate alerts for bullying concerns
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={emailSettings?.bullyingAlerts ?? true}
+                          onChange={e => {
+                            if (emailSettings) {
+                              const newSettings = { ...emailSettings, bullyingAlerts: e.target.checked }
+                              setEmailSettings(newSettings)
+                            }
+                          }}
+                          className="w-4 h-4 accent-red-500"
+                        />
+                      </div>
+
+                      {/* Mood Alerts */}
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                        <div>
+                          <p className="text-sm font-medium text-amber-600">Mood Updates</p>
+                          <p className="text-xs text-muted-foreground">
+                            Alerts when child seems sad or anxious
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={emailSettings?.moodAlerts ?? true}
+                          onChange={e => {
+                            if (emailSettings) {
+                              const newSettings = { ...emailSettings, moodAlerts: e.target.checked }
+                              setEmailSettings(newSettings)
+                            }
+                          }}
+                          className="w-4 h-4 accent-amber-500"
+                        />
+                      </div>
+
+                      {/* Weekly Report */}
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-violet-500/5 border border-violet-500/20">
+                        <div>
+                          <p className="text-sm font-medium text-violet-600">Weekly Report</p>
+                          <p className="text-xs text-muted-foreground">
+                            Progress summary every Sunday
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={emailSettings?.weeklyReport ?? true}
+                          onChange={e => {
+                            if (emailSettings) {
+                              const newSettings = { ...emailSettings, weeklyReport: e.target.checked }
+                              setEmailSettings(newSettings)
+                            }
+                          }}
+                          className="w-4 h-4 accent-violet-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowEmailSettings(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1 bg-blue-500 hover:bg-blue-600"
+                        disabled={!emailSettings?.parentEmail}
+                        onClick={() => {
+                          if (emailSettings?.parentEmail) {
+                            const newSettings: EmailSettings = {
+                              ...emailSettings,
+                              enabled: true,
+                            }
+                            saveEmailSettings(newSettings)
+                            setEmailSettings(newSettings)
+                            setShowEmailSettings(false)
+                            toast.success('Email alerts enabled!', {
+                              description: `Alerts will be sent to ${emailSettings.parentEmail}`,
+                            })
+                          }
+                        }}
+                      >
+                        Save & Enable
+                      </Button>
+                    </div>
+
+                    {/* Disable Button */}
+                    {emailSettings?.enabled && (
+                      <Button
+                        variant="ghost"
+                        className="w-full text-muted-foreground text-xs"
+                        onClick={() => {
+                          const newSettings: EmailSettings = {
+                            ...emailSettings,
+                            enabled: false,
+                          }
+                          saveEmailSettings(newSettings)
+                          setEmailSettings(newSettings)
+                          toast.info('Email alerts disabled')
+                        }}
+                      >
+                        Disable all email alerts
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Weekly Summary Modal */}
         <AnimatePresence>
           {showWeeklySummary && weeklySummaries && weeklySummaries.length > 0 && (
@@ -3878,6 +4226,93 @@ MOOD DETECTION:
           </div>
         </div>
 
+        {/* Session Progress Bar */}
+        {currentSession && (
+          <div className="mb-3 bg-muted/30 rounded-lg p-2">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
+              <span className="font-medium">Session Progress</span>
+              <span>
+                {Math.floor(sessionTimer / 60)}:{String(sessionTimer % 60).padStart(2, '0')} elapsed
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Greeting Phase */}
+              <div className="flex-1">
+                <div
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    sessionPhase === 'greeting'
+                      ? 'bg-gradient-to-r from-amber-400 to-amber-500 animate-pulse'
+                      : sessionPhase === 'learning' || sessionPhase === 'review'
+                        ? 'bg-amber-500'
+                        : 'bg-muted'
+                  )}
+                />
+                <div className="flex items-center justify-center mt-0.5">
+                  <span
+                    className={cn(
+                      'text-[9px]',
+                      sessionPhase === 'greeting' ? 'text-amber-500 font-semibold' : 'text-muted-foreground'
+                    )}
+                  >
+                    {sessionPhase === 'greeting'
+                      ? `Hi! ${Math.ceil(greetingTimer / 60)}m`
+                      : 'Greeting'}
+                  </span>
+                </div>
+              </div>
+              <CaretRight className="w-3 h-3 text-muted-foreground" />
+              {/* Learning Phase */}
+              <div className="flex-[2]">
+                <div
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    sessionPhase === 'learning'
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-500 animate-pulse'
+                      : sessionPhase === 'review'
+                        ? 'bg-blue-500'
+                        : 'bg-muted'
+                  )}
+                />
+                <div className="flex items-center justify-center mt-0.5">
+                  <span
+                    className={cn(
+                      'text-[9px]',
+                      sessionPhase === 'learning' ? 'text-blue-500 font-semibold' : 'text-muted-foreground'
+                    )}
+                  >
+                    {sessionPhase === 'learning'
+                      ? `Learning ${Math.ceil(learningTimer / 60)}m`
+                      : 'Learning'}
+                  </span>
+                </div>
+              </div>
+              <CaretRight className="w-3 h-3 text-muted-foreground" />
+              {/* Review Phase */}
+              <div className="flex-1">
+                <div
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    sessionPhase === 'review'
+                      ? 'bg-gradient-to-r from-green-400 to-green-500 animate-pulse'
+                      : 'bg-muted'
+                  )}
+                />
+                <div className="flex items-center justify-center mt-0.5">
+                  <span
+                    className={cn(
+                      'text-[9px]',
+                      sessionPhase === 'review' ? 'text-green-500 font-semibold' : 'text-muted-foreground'
+                    )}
+                  >
+                    Review
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Topic Suggestions Button - Simple header */}
         <div className="mb-3 flex items-center justify-end gap-2">
           <Button
@@ -4044,29 +4479,43 @@ MOOD DETECTION:
             ))}
 
             {isLoading && (
-              <div className="flex gap-2">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex gap-2"
+              >
                 <div
                   className={cn(
-                    'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center',
+                    'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center animate-pulse',
                     selectedSubject.color
                   )}
                 >
                   <Robot className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
-                  <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
-                    <span
-                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
+                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 min-w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" />
+                      <span
+                        className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.1s' }}
+                      />
+                      <span
+                        className="w-2 h-2 bg-primary/50 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      />
+                    </div>
+                    <motion.span
+                      key={loadingMessage}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {loadingMessage}
+                    </motion.span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </ScrollArea>
@@ -4831,6 +5280,7 @@ MOOD DETECTION:
     )
 
     setShowSubmitWork(false)
+    triggerConfetti('xp')
     announce(`Work submitted! You earned ${PEER_REVIEW_XP.SUBMIT_WORK} XP`)
     toast.success(`Work submitted! +${PEER_REVIEW_XP.SUBMIT_WORK} XP`)
   }
@@ -4873,6 +5323,7 @@ MOOD DETECTION:
     setReviewingSubmission(null)
     setReviewFeedback('')
     setReviewRating(5)
+    triggerConfetti('xp')
     announce(`Review submitted! You earned ${xpEarned} XP`)
     toast.success(`Great review! +${xpEarned} XP`)
   }
